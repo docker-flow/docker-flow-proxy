@@ -11,7 +11,7 @@ import (
 type ArgsTestSuite struct {
 	suite.Suite
 	args            Args
-	argsReconfigure ArgsReconfigure
+	argsReconfigure Reconfigure
 }
 
 func (s *ArgsTestSuite) SetupTest() {
@@ -23,17 +23,17 @@ func (s *ArgsTestSuite) SetupTest() {
 // Parse
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
-	argsOrig := argsReconfigure
-	defer func() { argsReconfigure = argsOrig }()
+	argsOrig := reconfigure
+	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
 		key 		string
 		value		*string
 	}{
-		{"serviceNameFromArgs", "service-name", &argsReconfigure.ServiceName},
-		{"servicePathFromArgs", "service-path", &argsReconfigure.ServicePath},
-		{"consulAddressFromArgs", "consul-address", &argsReconfigure.ConsulAddress},
+		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
+		{"servicePathFromArgs", "service-path", &reconfigure.ServicePath},
+		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 	}
 
 	for _, d := range data {
@@ -46,17 +46,17 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
-	argsOrig := argsReconfigure
-	defer func() { argsReconfigure = argsOrig }()
+	argsOrig := reconfigure
+	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
 		key 		string
 		value		*string
 	}{
-		{"serviceNameFromArgs", "s", &argsReconfigure.ServiceName},
-		{"servicePathFromArgs", "p", &argsReconfigure.ServicePath},
-		{"consulAddressFromArgs", "a", &argsReconfigure.ConsulAddress},
+		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
+		{"servicePathFromArgs", "p", &reconfigure.ServicePath},
+		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
 	}
 
 	for _, d := range data {
