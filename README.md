@@ -4,7 +4,7 @@ Docker Flow: Proxy
 TODO
 ----
 
-* main function
+* Dockerfile
 * Functional/manual testing
 * Travis integration
 * Docker Hub

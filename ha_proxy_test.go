@@ -8,6 +8,7 @@ import (
 	"os"
 	"fmt"
 	"io/ioutil"
+	"github.com/stretchr/testify/mock"
 )
 
 // Setup
@@ -62,17 +63,15 @@ func (s HaProxyTestSuite) Test_Run_ExecutesCommand() {
 		"-p",
 		"/var/run/haproxy.pid",
 	}
-	HaProxy{}.Run([]string{})
+	HaProxy{}.Run()
 
 	s.Equal(expected, *actual)
 }
 
-func (s HaProxyTestSuite) Test_Run_ExecutesCommandWithExtraArgs() {
+// Run
+
+func (s HaProxyTestSuite) Test_Reconfigure_ExecutesCommandWithExtraArgs() {
 	actual := s.mockExecCmd()
-	extraArgs := []string{
-		"-extra-arg",
-		"extra-arg-value",
-	}
 	expected := []string{
 		"haproxy",
 		"-f",
@@ -80,14 +79,13 @@ func (s HaProxyTestSuite) Test_Run_ExecutesCommandWithExtraArgs() {
 		"-D",
 		"-p",
 		"/var/run/haproxy.pid",
+		"-sf",
+		"$(cat /var/run/haproxy.pid)",
 	}
-	expected = append(expected, extraArgs...)
-	HaProxy{}.Run(extraArgs)
+	HaProxy{}.Reconfigure()
 
 	s.Equal(expected, *actual)
 }
-
-
 
 // getConsulTemplate
 
@@ -234,4 +232,10 @@ func (s HaProxyTestSuite) mockReadFileForConfigs() (*[]string, *string) {
 		return []byte(string(counter)), nil
 	}
 	return &files, &content
+}
+
+// Mock
+
+type HaProxyMock struct{
+	mock.Mock
 }

@@ -12,8 +12,13 @@ const ConfigsDir = "/cfg/tmpl"
 
 type HaProxy struct { }
 
-func (p HaProxy) Run(extraArgs []string) error {
-	return p.runCmd(extraArgs)
+func (p HaProxy) Run() error {
+	return p.runCmd([]string{})
+}
+
+func (p HaProxy) Reconfigure() error {
+	args := []string{"-sf", "$(cat /var/run/haproxy.pid)"}
+	return p.runCmd(args)
 }
 
 func (p HaProxy) CreateConfig(serviceName, consulAddress, configsPath string) error {
@@ -57,7 +62,7 @@ backend ${SERVICE_NAME}-be
 
 func (p HaProxy) getConfigs(path string) (string, error) {
 	if _, err := os.Stat(path); err != nil {
-		return "", fmt.Errorf("Directory")
+		return "", err
 	}
 	content := []string{}
 	configsFiles := []string{"haproxy.tmpl"}
