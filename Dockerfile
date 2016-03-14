@@ -20,4 +20,4 @@ RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 ENV CONSUL_ADDRESS ""
 
-CMD ["run.sh"]
+ENTRYPOINT ["run.sh"]
