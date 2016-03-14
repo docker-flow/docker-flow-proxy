@@ -12,7 +12,6 @@ RUN apt-get update && \
 RUN mkdir -p /cfg/tmpl
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
-COPY service.ctmpl /cfg/tmpl/service.ctmpl
 COPY run.sh /usr/local/bin/run.sh
 RUN chmod +x /usr/local/bin/run.sh
 COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy
@@ -20,4 +19,4 @@ RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 ENV CONSUL_ADDRESS ""
 
-ENTRYPOINT ["run.sh"]
+CMD ["run.sh", "run"]

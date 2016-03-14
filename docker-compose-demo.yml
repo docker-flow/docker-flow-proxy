@@ -2,15 +2,12 @@ version: '2'
 
 services:
   app:
-    image: vfarcic/books-ms${BOOKS_MS_VERSION}
+    image: vfarcic/books-ms
     ports:
       - 8080
     environment:
-      - SERVICE_NAME=books-ms
       - DB_HOST=books-ms-db
 
   db:
     container_name: books-ms-db
     image: mongo
-    environment:
-      - SERVICE_NAME=books-ms-db

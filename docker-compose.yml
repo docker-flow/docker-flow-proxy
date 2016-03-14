@@ -24,3 +24,4 @@ services:
       CONSUL_ADDRESS: $CONSUL_IP:8500
     ports:
       - 80:80
+    command: run

@@ -27,7 +27,6 @@ func (m Reconfigure) Execute(args []string) error {
 func (m Reconfigure) createConfig() error {
 	templateContent := m.getConsulTemplate()
 	templatePath := fmt.Sprintf("%s/%s", m.TemplatesPath, "service-formatted.ctmpl")
-	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
 	writeConsulTemplateFile(templatePath, []byte(templateContent), 0664)
 	if err := m.runConsulTemplateCmd(); err != nil {
 		return err
@@ -36,6 +35,7 @@ func (m Reconfigure) createConfig() error {
 	if err != nil {
 		return err
 	}
+	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
 	return writeConsulConfigFile(configPath, []byte(configsContent), 0664)
 }
 
