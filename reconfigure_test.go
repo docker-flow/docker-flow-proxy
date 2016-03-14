@@ -11,15 +11,22 @@ import (
 type ReconfigureTestSuite struct {
 	suite.Suite
 	ServiceName		string
+	ServicePath		string
 	ConsulAddress	string
 	ConsulTemplate	string
+	ConfigsPath		string
+	TemplatesPath	string
 	reconfigure		Reconfigure
+	Pid				string
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
-	ConfigsDir = "test_configs"
 	s.ServiceName = "myService"
+	s.Pid = "123"
 	s.ConsulAddress = "http://1.2.3.4:1234"
+	s.ServicePath = "path/to/my/service/api"
+	s.ConfigsPath = "path/to/configs/dir"
+	s.TemplatesPath = "test_configs/tmpl"
 	s.ConsulTemplate = strings.TrimSpace(fmt.Sprintf(`
 frontend myService-fe
 	bind *:80
@@ -28,29 +35,37 @@ frontend myService-fe
 	acl url_myService path_beg %s
 	use_backend myService-be if url_myService
 
-backend ${SERVICE_NAME}-be
+backend myService-be
 	{{range service "myService" "any"}}
 	server {{.Node}}_{{.Port}} {{.Address}}:{{.Port}} check
-	{{end}}`, ConsulTemplatePath))
+	{{end}}`, s.ServicePath))
+	cmdRunHa = func(cmd *exec.Cmd) error {
+		return nil
+	}
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		return nil
+	}
 	s.reconfigure = Reconfigure{
 		ConsulAddress: s.ConsulAddress,
 		ServiceName: s.ServiceName,
+		TemplatesPath: s.TemplatesPath,
+		ServicePath: s.ServicePath,
+		ConfigsPath: s.ConfigsPath,
 	}
-//	s.reconfigure.HaProxy = getHaProxyMock()
 	readFile = func(fileName string) ([]byte, error) {
 		return []byte(""), nil
+	}
+	readPidFile = func(fileName string) ([]byte, error) {
+		return []byte(s.Pid), nil
 	}
 	readDir = func (dirname string) ([]os.FileInfo, error) {
 		return nil, nil
 	}
-	writeFile = func(fileName string, data []byte, perm os.FileMode) error {
+	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
 		return nil
 	}
-	execHaCmd = func(name string, arg ...string) *exec.Cmd {
-		return &exec.Cmd{}
-	}
-	execConsulCmd = func(name string, arg ...string) *exec.Cmd {
-		return &exec.Cmd{}
+	writeConsulTemplateFile = func(fileName string, data []byte, perm os.FileMode) error {
+		return nil
 	}
 }
 
@@ -66,7 +81,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
 
 func (s ReconfigureTestSuite) Test_Execute_CreatesConsulTemplate() {
 	var actual string
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
 		if len(actual) == 0 {
 			actual = string(data)
 		}
@@ -78,9 +93,10 @@ func (s ReconfigureTestSuite) Test_Execute_CreatesConsulTemplate() {
 	s.Equal(s.ConsulTemplate, actual)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_WritesToFile() {
+func (s ReconfigureTestSuite) Test_Execute_WritesTemplateToFile() {
 	var actual string
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+	expected := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFilename)
+	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
 		if len(actual) == 0 {
 			actual = filename
 		}
@@ -89,13 +105,13 @@ func (s ReconfigureTestSuite) Test_Execute_WritesToFile() {
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(ConsulTemplatePath, actual)
+	s.Equal(expected, actual)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_SetsFilePermissions() {
 	var actual os.FileMode
 	var expected os.FileMode = 0664
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
 		actual = perm
 		return nil
 	}
@@ -113,9 +129,10 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 		s.ConsulAddress,
 		"-template",
 		fmt.Sprintf(
-			`"%s:%s/%s.cfg"`,
-			ConsulTemplatePath,
-			ConsulDir,
+			`%s/%s:%s/%s.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateFilename,
+			s.TemplatesPath,
 			s.ServiceName,
 		),
 		"-once",
@@ -126,22 +143,34 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 	s.Equal(expected, *actual)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateCommandFails() {
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		return fmt.Errorf("This is an error")
+	}
+
+	err := s.reconfigure.Execute([]string{})
+
+	s.Error(err)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_SavesConfigsToTheFile() {
-	var actualFilenames []string = []string{}
+	var actualFilename string
 	var actualData string
-	writeFile = func(fileName string, data []byte, perm os.FileMode) error {
-		actualFilenames = append(actualFilenames, fileName)
+	expected := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
+	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
+		actualFilename = fileName
 		actualData = string(data)
 		return nil
 	}
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(ConfigsDir, actualFilenames[1])
+	s.Equal(expected, actualFilename)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenGetConfigsFail() {
-	ConfigsDir = "/this/path/does/not/exist"
+	s.reconfigure.TemplatesPath = "/this/path/does/not/exist"
+
 	err := s.reconfigure.Execute([]string{})
 	s.Error(err)
 }
@@ -156,7 +185,7 @@ func (s ReconfigureTestSuite) Test_Execute_RunsHaProxy() {
 		"-p",
 		"/var/run/haproxy.pid",
 		"-sf",
-		"$(cat /var/run/haproxy.pid)",
+		s.Pid,
 	}
 
 	s.reconfigure.Execute([]string{})
@@ -164,8 +193,53 @@ func (s ReconfigureTestSuite) Test_Execute_RunsHaProxy() {
 	s.Equal(expected, *actual)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenHaCommandFails() {
+	cmdRunHa = func(cmd *exec.Cmd) error {
+		return fmt.Errorf("This is an error")
+	}
+
+	err := s.reconfigure.Execute([]string{})
+
+	s.Error(err)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_ReadsPidFile() {
+	var actual string
+	readPidFile = func(fileName string) ([]byte, error) {
+		actual = fileName
+		return []byte(s.Pid), nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal("/var/run/haproxy.pid", actual)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenReadPidFails() {
+	readPidFile = func(fileName string) ([]byte, error) {
+		return []byte(""), fmt.Errorf("This is an error")
+	}
+
+	err := s.reconfigure.Execute([]string{})
+
+	s.Error(err)
+}
+
 // Suite
 
 func TestReconfigureTestSuite(t *testing.T) {
 	suite.Run(t, new(ReconfigureTestSuite))
 }
+
+// Mock
+
+func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
+	var actualCommand []string
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		actualCommand = cmd.Args
+		return nil
+	}
+	return &actualCommand
+}
+
+

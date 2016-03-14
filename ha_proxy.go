@@ -1,13 +1,14 @@
 package main
 
 import (
+//	"os"
+//	"fmt"
 	"os"
 	"fmt"
+	"os/exec"
 )
 
-var ConsulDir = "/cfg/tmpl"
-var ConsulTemplatePath = "/cfg/tmpl/service-formatted.ctmpl"
-var ConfigsDir = "/cfg/tmpl"
+const ServiceTemplateFilename = "service-formatted.ctmpl"
 
 type Proxy interface {
 	RunCmd(extraArgs []string) error
@@ -24,10 +25,10 @@ func (p HaProxy) RunCmd(extraArgs []string) error {
 		"/var/run/haproxy.pid",
 	}
 	args = append(args, extraArgs...)
-	cmd := execHaCmd("haproxy", args...)
+	cmd := exec.Command("haproxy", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := cmdRunHa(cmd); err != nil {
 		return fmt.Errorf("Command %v\n%v\n", cmd, err)
 	}
 	return nil

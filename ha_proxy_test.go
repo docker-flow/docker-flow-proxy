@@ -24,18 +24,9 @@ func TestHaProxyTestSuite(t *testing.T) {
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string
-	execHaCmd = func(name string, arg ...string) *exec.Cmd {
-		actualCommand = append([]string{name}, arg...)
-		return &exec.Cmd{}
-	}
-	return &actualCommand
-}
-
-func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
-	var actualCommand []string
-	execConsulCmd = func(name string, arg ...string) *exec.Cmd {
-		actualCommand = append([]string{name}, arg...)
-		return &exec.Cmd{}
+	cmdRunHa = func(cmd *exec.Cmd) error {
+		actualCommand = cmd.Args
+		return nil
 	}
 	return &actualCommand
 }

@@ -6,7 +6,13 @@ import (
 )
 
 var readFile = ioutil.ReadFile
+var readPidFile = ioutil.ReadFile
 var readDir = ioutil.ReadDir
-var writeFile = ioutil.WriteFile
-var execConsulCmd = exec.Command
-var execHaCmd = exec.Command
+var cmdRunConsul = func(cmd *exec.Cmd) error {
+	return cmd.Run()
+}
+var cmdRunHa = func(cmd *exec.Cmd) error {
+	return cmd.Run()
+}
+var writeConsulTemplateFile = ioutil.WriteFile
+var writeConsulConfigFile = ioutil.WriteFile

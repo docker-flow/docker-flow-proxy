@@ -10,13 +10,13 @@ eval "$(docker-machine env docker-flow)"
 
 export DOCKER_IP=$(docker-machine ip docker-flow)
 
+export CONSUL_IP=$(docker-machine ip docker-flow)
+
 docker run -d \
     -p "8500:8500" \
     -h "consul" \
     --name "consul" \
     progrium/consul -server -bootstrap
-
-export CONSUL_IP=$(docker-machine ip docker-flow)
 
 docker run -d \
     --name registrator \
@@ -30,17 +30,26 @@ HAProxy
 =======
 
 ```bash
-cd haproxy
+go test --cover
 
-docker build -t vfarcic/docker-flow-haproxy-consul .
+docker run --rm \
+    -v $PWD:/usr/src/myapp \
+    -w /usr/src/myapp \
+    -v $GOPATH:/go \
+    golang:1.6 \
+    go build -v -o docker-flow-proxy
+
+docker build -t vfarcic/docker-flow-proxy .
 
 # Start HA
 
+docker rm -f docker-flow-proxy
+
 docker run -d \
-    --name docker-flow-haproxy-consul \
-    -e CONSUL_IP=192.168.99.100 \
+    --name docker-flow-proxy \
+    -e CONSUL_ADDRESS=${CONSUL_IP}:8500 \
     -p 80:80 \
-    vfarcic/docker-flow-haproxy-consul
+    vfarcic/docker-flow-proxy
 
 # Start the service
 
@@ -48,57 +57,9 @@ docker-compose up -d app db
 
 # Update HA
 
-docker exec docker-flow-haproxy-consul \
-    run.sh books-ms /api/v1/books
+docker exec docker-flow-proxy \
+    docker-flow-proxy \
+    reconfigure --service-name books-ms --service-path /api/v1/books
 
-
-
-docker exec -it docker-flow-haproxy-consul bash
-
-
-
-
-
-
-
-
-
-
-
-docker run -it --rm -p 8080:80 haproxy bash
-
-apt-get update
-
-apt-get install -y wget unzip
-
-wget https://releases.hashicorp.com/consul-template/0.13.0/consul-template_0.13.0_linux_amd64.zip -O /usr/local/bin/consul-template.zip
-
-unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/
-
-chmod +x /usr/local/bin/consul-template
-
-mkdir -p /usr/local/etc/haproxy/tmpl
-
-# copy haproxy.tmpl and service.ctmpl to /usr/local/etc/haproxy/tmpl
-CONSUL_SERVICE=books-ms
-CONSUL_URL=/api/v1/books
-
-# Figure out how to fix the case when no services are running
-haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D -p /var/run/haproxy.pid
-
-consul-template \
-    -consul 192.168.99.100:8500 \
-    -template "/usr/local/etc/haproxy/tmpl/service.ctmpl:/usr/local/etc/haproxy/tmpl/books-ms.cfg" \
-    -once
-
-cat /usr/local/etc/haproxy/tmpl/haproxy.tmpl /usr/local/etc/haproxy/tmpl/*.cfg >/usr/local/etc/haproxy/haproxy.cfg
-
-haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D -p /var/run/haproxy.pid -sf $(cat /var/run/haproxy.pid)
+curl -I $DOCKER_IP/api/v1/books
 ```
-
-Service
-=======
-
-
-* Tag to +blue/green after pull
-* Change image to +blue/green
