@@ -4,9 +4,9 @@ Docker Flow: Proxy
 TODO
 ----
 
+* Travis integration
 * Dockerfile
 * Functional/manual testing
-* Travis integration
 * Docker Hub
 * README
 * Article

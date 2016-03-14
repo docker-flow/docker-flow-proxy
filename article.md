@@ -61,5 +61,7 @@ docker exec docker-flow-proxy \
     docker-flow-proxy \
     reconfigure --service-name books-ms --service-path /api/v1/books
 
+# Check
+
 curl -I $DOCKER_IP/api/v1/books
 ```
