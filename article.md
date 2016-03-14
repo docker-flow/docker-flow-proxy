@@ -30,8 +30,9 @@ docker-compose \
 curl -I $DOCKER_IP/api/v1/books
 
 docker exec docker-flow-proxy \
-    docker-flow-proxy \
-    reconfigure --service-name books-ms --service-path /api/v1/books
+    reconfigure \
+    --service-name books-ms \
+    --service-path /api/v1/books
 
 curl -I $DOCKER_IP/api/v1/books
 ```
@@ -45,7 +46,7 @@ docker-compose \
     scale app=3
 
 docker exec docker-flow-proxy \
-    docker-flow-proxy reconfigure \
+    reconfigure \
     --service-name books-ms \
     --service-path /api/v1/books
 
