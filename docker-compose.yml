@@ -1,16 +1,26 @@
 version: '2'
 
 services:
-  app:
-    image: vfarcic/books-ms${BOOKS_MS_VERSION}
+  consul:
+    container_name: consul
+    image: progrium/consul
     ports:
-      - 8080
-    environment:
-      - SERVICE_NAME=books-ms
-      - DB_HOST=books-ms-db
+      - 8500:8500
+    command: -server -bootstrap
 
-  db:
-    container_name: books-ms-db
-    image: mongo
+  registrator:
+    depends_on:
+      - consul
+    container_name: registrator
+    image: gliderlabs/registrator
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    command: -ip $DOCKER_IP consul://$CONSUL_IP:8500
+
+  proxy:
+    container_name: docker-flow-proxy
+    image: vfarcic/docker-flow-proxy
     environment:
-      - SERVICE_NAME=books-ms-db
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+    ports:
+      - 80:80

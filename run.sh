@@ -2,5 +2,8 @@
 
 set -e
 
-docker-flow-proxy run
-sleep infinity
+docker-flow-proxy $@
+
+if [[ "$1" == "run" ]]; then
+    sleep infinity
+fi
