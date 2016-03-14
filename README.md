@@ -10,3 +10,4 @@ TODO
 * Docker Hub
 * README
 * Article
+* Add description to Docker Hub
