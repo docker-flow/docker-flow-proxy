@@ -9,11 +9,17 @@ TODO
   * Add proxy to the code
   * Add proxy to the README
 
-* README
 * Add description to Docker Hub
 * Article
 
+  * Proofread
+  * Copy to README
   * Reference README, docker-flow README, and docker-flow article.
   * Publish
 
-* New Article with blue-green, scaling, and proxy
+* New Docker Flow article with blue-green, scaling, and proxy
+
+  * Write
+  * Proofread
+  * Publish
+  * Add reference to README

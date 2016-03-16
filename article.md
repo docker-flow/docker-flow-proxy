@@ -1,16 +1,14 @@
 Docker Flow: Dynamic Proxy
 ==========================
 
-Following the [Blue-Green Deployment and Relative Scaling](http://technologyconversations.com/2016/03/07/docker-flow-blue-green-deployment-and-relative-scaling/) features of the [Docker Flow](https://github.com/vfarcic/docker-flow) project, the next feature in line was *proxy*.
-
-The goal of the *Docker Flow: Proxy* sub-project is to provide an easy way to reconfigure proxy every time a new service is deployed or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and join them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) for service discovery. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
+The goal of the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project is to provide an easy way to reconfigure proxy every time a new service is deployed or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and join them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) for service discovery. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
 
 Instead of debating theory, let's see it in action. We'll start by setting up an example environment.
 
 Setting It Up
 -------------
 
-We'll use [Docker Compose](https://www.docker.com/products/docker-compose) and [Docker Machine](https://www.docker.com/products/docker-engine). If you do not already have them installed, the easiest way to get them is through [Docker Machine](https://www.docker.com/products/docker-toolbox). I'll assume that you already have a [Git client](https://git-scm.com/) set up.
+We'll use [Docker Compose](https://www.docker.com/products/docker-compose) and [Docker Machine](https://www.docker.com/products/docker-engine). If you do not already have them installed, the easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). I'll assume that you already have a [Git client](https://git-scm.com/) set up.
 
 Let's start by checking out the project code.
 
@@ -20,22 +18,26 @@ git clone https://github.com/vfarcic/docker-flow-proxy.git
 cd docker-flow-proxy
 ```
 
-We'll create a VM with Docker Engine by running `docker-machine`.
+To demonstrate the benefits of *Docker Flow: Proxy*, we'll setup a Swarm cluster and deploy a few services. We'll create four virtual machines. One (*proxy*), will be running *Consul* and *Docker Flow: Proxy*. The other three machines will form a Swarm cluster with one master and two nodes.
+
+Let's start with the first one. We'll create the *proxy* machine and create a few environment variables
 
 ```
-docker-machine create \
-    -d virtualbox \
-    docker-flow
+docker-machine create -d virtualbox proxy
+
+export CONSUL_IP=$(docker-machine ip proxy)
+
+export PROXY_IP=$(docker-machine ip proxy)
 ```
+
+Now that the *proxy* VM is running, we can provision it with Consul and [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy). We'll
 
 Now that we have a machine with Docker Engine up and running, we should create a few environment variables.
 
 ```
-eval "$(docker-machine env docker-flow)"
-
 export DOCKER_IP=$(docker-machine ip docker-flow)
 
-export CONSUL_IP=$(docker-machine ip docker-flow)
+export CONSUL_IP=$(docker-machine ip proxy)
 ```
 
 The first command was a standard *Docker Machine* way to enable a local Docker Engine to communicate with the one inside the VM we just created. The other two set the environment variables *DOCKER_IP* and *CONSUL_IP* that we'll use later on.
@@ -77,8 +79,20 @@ The configuration specifies three containers. Consul will be used as service reg
 Let's run those containers.
 
 ```bash
-docker-compose up -d
+eval "$(docker-machine env proxy)"
+
+docker-compose up -d consul proxy
 ```
+
+TODO: Start explain
+
+```bash
+eval "$(docker-machine env swarm-master)"
+
+docker-compose up -d registrator swarm-master
+```
+
+TODO: End explain
 
 Now that everything is set up, let's run a few services.
 
