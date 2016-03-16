@@ -75,22 +75,24 @@ The response is *200 OK*, meaning that our service is indeed accessible through 
 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances.
 
+```bash
+eval "$(docker-machine env --swarm swarm-master)"
+
+docker-compose \
+    -f docker-compose-demo.yml \
+    -p books-ms \
+    scale app=3
+
+eval "$(docker-machine env proxy)"
+
+docker exec docker-flow-proxy \
+    docker-flow-proxy reconfigure \
+    --service-name books-ms \
+    --service-path /api/v1/books
+
+curl -I $PROXY_IP/api/v1/books
+```
+
 For a more detailed example, please read the [Docker Flow: Proxy - On-Demand HAProxy Reconfiguration](http://technologyconversations.com/2016/03/16/docker-flow-proxy-reconfiguration/) article.
 
-TODO
-----
 
-* Add description to Docker Hub
-* Article
-
-  * Proofread
-  * Copy to README
-  * Reference README, docker-flow README, and docker-flow article.
-  * Publish
-
-* New Docker Flow article with blue-green, scaling, and proxy
-
-  * Write
-  * Proofread
-  * Publish
-  * Add reference to README
