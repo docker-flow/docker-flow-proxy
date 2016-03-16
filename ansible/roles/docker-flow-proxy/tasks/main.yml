@@ -1,0 +1,9 @@
+- name: Container is running
+  docker:
+    name: docker-flow-proxy
+    image: vfarcic/docker-flow-proxy
+    state: running
+    env:
+      CONSUL_ADDRESS: "{{ consul_ip }}:8500"
+    ports:
+      - 80:80

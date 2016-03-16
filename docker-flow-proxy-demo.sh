@@ -6,6 +6,8 @@ cd docker-flow-proxy
 
 docker-machine create -d virtualbox proxy
 
+export DOCKER_IP=$(docker-machine ip proxy)
+
 export CONSUL_IP=$(docker-machine ip proxy)
 
 export PROXY_IP=$(docker-machine ip proxy)

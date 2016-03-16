@@ -18,5 +18,6 @@ COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy
 RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 ENV CONSUL_ADDRESS ""
+EXPOSE 80
 
 CMD ["run.sh", "run"]

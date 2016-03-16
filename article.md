@@ -1,14 +1,11 @@
-Docker Flow: Dynamic Proxy
-==========================
-
 The goal of the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project is to provide an easy way to reconfigure proxy every time a new service is deployed or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and join them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) for service discovery. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
 
 Instead of debating theory, let's see it in action. We'll start by setting up an example environment.
 
-Setting It Up
--------------
+Setting Up the Environments
+===========================
 
-We'll use [Docker Compose](https://www.docker.com/products/docker-compose) and [Docker Machine](https://www.docker.com/products/docker-engine). If you do not already have them installed, the easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). I'll assume that you already have a [Git client](https://git-scm.com/) set up.
+The only prerequisites for this article are [Vagrant](https://www.vagrantup.com/) and [Git client](https://git-scm.com/).
 
 Let's start by checking out the project code.
 
@@ -20,123 +17,97 @@ cd docker-flow-proxy
 
 To demonstrate the benefits of *Docker Flow: Proxy*, we'll setup a Swarm cluster and deploy a few services. We'll create four virtual machines. One (*proxy*), will be running *Consul* and *Docker Flow: Proxy*. The other three machines will form a Swarm cluster with one master and two nodes.
 
-Let's start with the first one. We'll create the *proxy* machine and create a few environment variables
+Since I want to concentrate on how *Docker Flow: Proxy* works, I'll skip detailed instructions how the environments will be set up and only mention that we'll use [Ansible](https://www.ansible.com/) to provision the VMs. Besides Docker Engine, the only requirement for *Docker Flow: Proxy* is that service information (IPs and ports) are store in [Consul](https://www.consul.io/).
 
 ```
-docker-machine create -d virtualbox proxy
-
-export CONSUL_IP=$(docker-machine ip proxy)
-
-export PROXY_IP=$(docker-machine ip proxy)
+vagrant up proxy swarm-master swarm-node-1 swarm-node-2
 ```
 
-Now that the *proxy* VM is running, we can provision it with Consul and [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy). We'll
+Now we have the four servers up and running. The first one (*proxy*) is already provisioned so let us setup the Swarm cluster on the other three servers.
 
-Now that we have a machine with Docker Engine up and running, we should create a few environment variables.
-
-```
-export DOCKER_IP=$(docker-machine ip docker-flow)
-
-export CONSUL_IP=$(docker-machine ip proxy)
-```
-
-The first command was a standard *Docker Machine* way to enable a local Docker Engine to communicate with the one inside the VM we just created. The other two set the environment variables *DOCKER_IP* and *CONSUL_IP* that we'll use later on.
-
-Now that all the prerequisites are set up, let's bring up the three containers that will constitute the solution for dynamic proxy. The [docker-compose.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose.yml) definition is as follows.
-
-```yml
-version: '2'
-
-services:
-  consul:
-    container_name: consul
-    image: progrium/consul
-    ports:
-      - 8500:8500
-    command: -server -bootstrap
-
-  registrator:
-    depends_on:
-      - consul
-    container_name: registrator
-    image: gliderlabs/registrator
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock
-    command: -ip $DOCKER_IP consul://$CONSUL_IP:8500
-
-  proxy:
-    container_name: docker-flow-proxy
-    image: vfarcic/docker-flow-proxy
-    environment:
-      CONSUL_ADDRESS: $CONSUL_IP:8500
-    ports:
-      - 80:80
-    command: run
-```
-
-The configuration specifies three containers. Consul will be used as service registry and Registrator will make sure that Consul is updated whenever a new container is run or stopped. The third target is the custom made container called *docker-flow-proxy*. It is based on *HAProxy*, *Consul Template*, and custom code that will make sure that the proxy is reconfigured and points to all deployed services.
-
-Let's run those containers.
+Besides Swarm itself, we'll run [Registrator](https://github.com/gliderlabs/registrator) on all nodes of the cluster. It will monitor Docker events and store service information we need in Consul.
 
 ```bash
-eval "$(docker-machine env proxy)"
+vagrant ssh proxy
 
-docker-compose up -d consul proxy
+ansible-playbook \
+    /vagrant/ansible/swarm.yml \
+    -i /vagrant/ansible/hosts/prod
 ```
 
-TODO: Start explain
+Let's take a quick look at the cluster status.
 
 ```bash
-eval "$(docker-machine env swarm-master)"
+export DOCKER_HOST=tcp://10.100.192.200:2375
 
-docker-compose up -d registrator swarm-master
+docker info
 ```
 
-TODO: End explain
+The output of the `docker info` command should show that two nodes are managed by Swarm master.
+
+To summarize, we set up four servers. The *proxy* node hosts *Docker Compose*, *Consul*, and *Docker Flow: Proxy*. We'll use Docker Compose as a convenient way to run containers, Consul will have information about currently running services, and *Docker Flow: Proxy* will be our single entry into the system. All requests to our services will go to a single address, and HAProxy will make sure that they are redirected to the final destination.
+
+The other three nodes constitute our Docker Swarm cluster. The *swarm-master* is in charge of orchestration and will deploy services to one of its nodes (at the moment only *swarm-node-1* and *swarm-node-2*).
 
 Now that everything is set up, let's run a few services.
 
 Running a Single Instance of a Service
-----------------------------------------
+======================================
 
 We'll run services defined in the [docker-compose-demo.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-demo.yml).
 
 ```bash
+cd /vagrant
+
+export DOCKER_HOST=tcp://swarm-master:2375
+
 docker-compose \
     -f docker-compose-demo.yml \
     up -d
 ```
 
-We just run a service that exposes HTTP API. However, that service is running on a random port exposed by Docker Engine. This example is running on a single server. In production, we might choose to run containers in a cluster using Docker Swarm as orchestrator. In such a case, not only port, but also IP is not known in advance.
+We just run a service that exposes HTTP API. The details of the service are not important for this article. What does matter is that it is running on a random port exposed by Docker Engine. Since we're using Swarm, it might be running on any of its nodes. In other words, both IP and port of the service is unknown. This is a good thing since Swarm takes away tedious task of managing services in a (potentially huge) cluster. However, not knowing IP and port in advance poses a few questions, most important one being how to access the service if we don't know where it is?
+
+This is the moment when *Registrator* comes into play. It detected that a new container is running and stored its data into Consul. We can confirm that by running the following request.
 
 ```bash
-curl -I $DOCKER_IP/api/v1/books
+curl proxy:8500/v1/catalog/service/books-ms \
+    | jq '.'
 ```
 
-The response of the `curl` command is as follows.
+The output of the command is as follows.
 
-```
-HTTP/1.0 503 Service Unavailable
-Cache-Control: no-cache
-Connection: close
-Content-Type: text/html
+```json
+[
+  {
+    "ServicePort": 32768,
+    "ServiceAddress": "10.100.192.201",
+    "ServiceTags": null,
+    "ServiceName": "books-ms",
+    "ServiceID": "swarm-node-1:vagrant_app_1:8080",
+    "Address": "172.17.0.2",
+    "Node": "6829011907a8"
+  }
+]
 ```
 
-As expected, since HAProxy is not configured to responded with *503 Service Unavailable*. That means that we have to configure the proxy that will redirect all requests to the final service. *Docker Flow: Proxy* allows us to reconfigure the HAProxy instance with a single command.
+We can see that, in this case, the service is running in *10.100.192.201* on the port *32768*. The name of the service (*books-ms*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
 
 ```bash
+export DOCKER_HOST=tcp://proxy:2375
+
 docker exec docker-flow-proxy \
     docker-flow-proxy reconfigure \
     --service-name books-ms \
     --service-path /api/v1/books
 ```
 
-All we had to do is run the `reconfigure` command together with a few arguments. The `--service-name` contains the name of the service we want to integrate with the proxy. The `--service-path` is the unique URL that identifies the service.
+That's it. That single command reconfigured the proxy. All we had to do is run the `reconfigure` command together with a few arguments. The `--service-name` contains the name of the service we want to integrate with the proxy. The `--service-path` is the unique URL that identifies the service.
 
 Let's see whether it worked.
 
 ```bash
-curl -I $DOCKER_IP/api/v1/books
+curl -I proxy/api/v1/books
 ```
 
 The output of the `curl` command is as follows.
@@ -180,3 +151,9 @@ Summary
 -------
 
 Even though the examples used a single service, you should not pose such a limit. You can use this project for as many services as you need. The only important prerequisite is that each has a unique name and a unique path.
+
+
+TODO
+====
+
+Explain how to run docker-flow-proxy manually

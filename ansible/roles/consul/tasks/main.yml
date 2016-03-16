@@ -1,0 +1,8 @@
+- name: Container is running
+  docker:
+    name: consul
+    image: progrium/consul
+    state: running
+    ports:
+      - 8500:8500
+    command: -server -bootstrap
