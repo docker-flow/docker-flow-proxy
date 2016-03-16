@@ -3,41 +3,35 @@ Docker Flow: Proxy
 
 The goal of the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project is to provide an easy way to reconfigure proxy every time a new service is deployed or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and join them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) for service discovery. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
 
-For a practical example please read the [TODO](TOD) article.
+Examples
+--------
 
-Arguments
----------
+For a more detailed example please read the [TODO](TOD) article.
 
-### Environment Variables
+Prerequisite for the *Docker Flow: Proxy* container is at least one [Consul](https://www.consul.io/) instance and the ability to put services information. The easiest way to store services information in Consul is through [Registrator]([Registrator](https://github.com/gliderlabs/registrator)).
 
-The following
+To run the *Docker Flow: Proxy* container, please execute the following command (please change *[CONSUL_IP]* with the address of the Consul instance).
 
-Arguments can be specified through *docker-flow.yml* file, environment variables, and command line arguments. If the same argument is specified in several places, command line overwrites all others and environment variables overwrite *docker-flow.yml*.
-
-### Command line arguments
-
-|Command argument       |Environment variable  |YML              |Description|
-|-----------------------|----------------------|-----------------|-----------|
-|-F, --flow             |FLOW                  |flow             |The actions that should be performed as the flow. (**multi**)<br>**deploy**: Deploys a new release<br>**scale**: Scales currently running release<br>**stop-old**: Stops the old release<br>**proxy**: Reconfigures the proxy<br>(**default**: [deploy])|
-|-H, --host             |FLOW_HOST             |host             |Docker daemon socket to connect to. If not specified, DOCKER_HOST environment variable will be used instead.|
-|-f, --compose-path     |FLOW_COMPOSE_PATH     |compose_path     |Path to the Docker Compose configuration file. (**default**: docker-compose.yml)|
-|-b, --blue-green       |FLOW_BLUE_GREEN       |blue_green       |Perform blue-green deployment. (**bool**)|
-|-t, --target           |FLOW_TARGET           |target           |Docker Compose target. (**required**)|
-|-T, --side-target      |FLOW_SIDE_TARGETS     |side_targets     |Side or auxiliary Docker Compose targets. (**multi**)|
-|-P, --skip-pull-targets|FLOW_SKIP_PULL_TARGET |skip_pull_target |Skip pulling targets. (**bool**)|
-|-S, --pull-side-targets|FLOW_PULL_SIDE_TARGETS|pull_side_targets|Pull side or auxiliary targets. (**bool**)|
-|-p, --project          |FLOW_PROJECT          |project          |Docker Compose project. If not specified, the current directory will be used instead.|
-|-c, --consul-address   |FLOW_CONSUL_ADDRESS   |consul_address   |The address of the Consul server. (**required**)|
-|-s, --scale            |FLOW_SCALE            |scale            |Number of instances to deploy. If the value starts with the plus sign (+), the number of instances will be increased by the given number. If the value begins with the minus sign (-), the number of instances will be decreased by the given number.|
-|-r, --proxy-host       |FLOW_PROXY_HOST       |proxy_host       |Docker daemon socket of the proxy host.|
-
-Arguments can be strings, boolean, or multiple values. Command line arguments of boolean type do not have any value (i.e. *--blue-green*). Environment variables and YML arguments of boolean type should use *true* as value (i.e. *FLOW_BLUE_GREEN=true* and *blue_green: true*). When allowed, multiple values can be specified by repeating the command line argument (i.e. *--flow=deploy --flow=stop-old*). When specified through environment variables, multiple values should be separated by comma (i.e. *FLOW=deploy,stop-old*). YML accepts multiple values through the standard format.
-
-```yml
-flow:
-  - deploy
-  - stop-old
+```bash
+docker run -d \
+    --name docker-flow-proxy \
+    --env CONSUL_ADDRESS=[CONSUL_IP]:8500 \
+    -p 80:80
+    docker-flow-proxy
 ```
+
+The environment variable *CONSUL_ADDRESS* is mandatory.
+
+Once the proxy is running, you can deploy your services. Once a new service is running and its information is stored in Consul, run the `docker exec` command against the already running container.
+
+```bash
+docker exec docker-flow-proxy \
+    docker-flow-proxy reconfigure \
+    --service-name books-ms \
+    --service-path /api/v1/books
+```
+
+The `--service-name` must contain the name of the service that should be integrated into the proxy. That name must coincide with the name stored in Consul. The `--service-path` is the unique URL that identifies the service. HAProxy will be configured to redirect all requests to the base URL starting with the value specified through the `--service-path` argument. Both of those arguments are mandatory.
 
 TODO
 ----
