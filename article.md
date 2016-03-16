@@ -169,3 +169,9 @@ docker exec docker-flow-proxy \
 From this moment on, HAProxy is reconfigured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as the `reconfigure` command is run, the proxy will load-balance all the requests. Those instances can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
 
 Please give *Docker Flow: Proxy* a try. Deploy multiple services, scale them, destroy them, and so on. The project [README](https://github.com/vfarcic/docker-flow-proxy) has more information. If you have a problem, suggestion, or an opinion regarding the project, please send me an email (my info is in the [About](http://technologyconversations.com/about/) section) or create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues).
+
+Before moving onto a next task, please do not forget to stop (or destroy) VMs we created and free your resources.
+
+```bash
+vagrant halt
+```

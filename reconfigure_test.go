@@ -36,8 +36,8 @@ frontend myService-fe
 	use_backend myService-be if url_myService
 
 backend myService-be
-	{{range service "myService" "any"}}
-	server {{.Node}}_{{.Port}} {{.Address}}:{{.Port}} check
+	{{range $i, $e := service "myService" "any"}}
+	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
 	{{end}}`, s.ServicePath))
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return nil

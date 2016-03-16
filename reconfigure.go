@@ -72,8 +72,8 @@ frontend %s-fe
 	use_backend %s-be if url_%s
 
 backend %s-be
-	{{range service "%s" "any"}}
-	server {{.Node}}_{{.Port}} {{.Address}}:{{.Port}} check
+	{{range $i, $e := service "%s" "any"}}
+	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
 	{{end}}`, m.ServiceName, m.ServiceName, m.ServicePath, m.ServiceName, m.ServiceName, m.ServiceName, m.ServiceName))
 }
 
