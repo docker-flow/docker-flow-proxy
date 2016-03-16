@@ -5,4 +5,4 @@
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
     hostname: "{{ ansible_hostname }}"
-    command: -ip {{ facter_ipaddress_eth1 }} consul://{{ consul_ip }}:8500
+    command: -ip {{ facter_ipaddress_eth1 }} consul://{{ facter_ipaddress_eth1 }}:8500

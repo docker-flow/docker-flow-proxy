@@ -5,5 +5,4 @@
     - common
     - docker
     - docker-compose
-    - consul
     - docker-flow-proxy

@@ -5,4 +5,7 @@
     state: running
     ports:
       - 8500:8500
-    command: -server -bootstrap
+      - 8301:8301
+      - 8300:8300
+    hostname: "{{ ansible_hostname }}"
+    command: -advertise {{ facter_ipaddress_eth1 }} -server {{ consul_extra }}

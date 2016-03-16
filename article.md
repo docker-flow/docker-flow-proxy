@@ -15,7 +15,7 @@ git clone https://github.com/vfarcic/docker-flow-proxy.git
 cd docker-flow-proxy
 ```
 
-To demonstrate the benefits of *Docker Flow: Proxy*, we'll setup a Swarm cluster and deploy a few services. We'll create four virtual machines. One (*proxy*), will be running *Consul* and *Docker Flow: Proxy*. The other three machines will form a Swarm cluster with one master and two nodes.
+To demonstrate the benefits of *Docker Flow: Proxy*, we'll setup a Swarm cluster and deploy a few services. We'll create four virtual machines. One (*proxy*) will be running *Docker Flow: Proxy*. The other three machines will form a Swarm cluster with one master and two nodes.
 
 Since I want to concentrate on how *Docker Flow: Proxy* works, I'll skip detailed instructions how the environments will be set up and only mention that we'll use [Ansible](https://www.ansible.com/) to provision the VMs. Besides Docker Engine, the only requirement for *Docker Flow: Proxy* is that service information (IPs and ports) are store in [Consul](https://www.consul.io/).
 
@@ -25,7 +25,7 @@ vagrant up proxy swarm-master swarm-node-1 swarm-node-2
 
 Now we have the four servers up and running. The first one (*proxy*) is already provisioned so let us setup the Swarm cluster on the other three servers.
 
-Besides Swarm itself, we'll run [Registrator](https://github.com/gliderlabs/registrator) on all nodes of the cluster. It will monitor Docker events and store service information we need in Consul.
+Besides Swarm itself, we'll run [Registrator](https://github.com/gliderlabs/registrator) and [Consul](https://www.consul.io/) on all nodes of the cluster. Registrator will monitor Docker events and store service information we need in Consul.
 
 ```bash
 vagrant ssh proxy
@@ -71,7 +71,7 @@ We just run a service that exposes HTTP API. The details of the service are not 
 This is the moment when *Registrator* comes into play. It detected that a new container is running and stored its data into Consul. We can confirm that by running the following request.
 
 ```bash
-curl proxy:8500/v1/catalog/service/books-ms \
+curl swarm-master:8500/v1/catalog/service/books-ms \
     | jq '.'
 ```
 
@@ -121,39 +121,51 @@ Content-Type: application/json; charset=UTF-8
 Content-Length: 2
 ```
 
-This time, the response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service.
+The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service.
 
 Scaling The Service
--------------------
+===================
 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances.
 
 As an example, let's scale the service to three instances.
 
 ```bash
+export DOCKER_HOST=tcp://swarm-master:2375
+
 docker-compose \
     -f docker-compose-demo.yml \
     scale app=3
 ```
 
-Even though three instances are running, the proxy continues redirecting all requests to the first instances. We can change that by re-running the `reconfigure` command.
+Let's see the result.
 
 ```bash
+docker-compose -f docker-compose-demo.yml ps
+```
+
+The result of the `docker-compose ps` command is as follows.
+
+```
+    Name               Command          State               Ports
+------------------------------------------------------------------------------
+books-ms-db     /entrypoint.sh mongod   Up      27017/tcp
+vagrant_app_1   /run.sh                 Up      10.100.192.201:32768->8080/tcp
+vagrant_app_2   /run.sh                 Up      10.100.192.202:32768->8080/tcp
+vagrant_app_3   /run.sh                 Up      10.100.192.201:32769->8080/tcp
+```
+
+As you can see, the service is scaled to three instances (not counting the database). Two of them are running on *swarm-node-1* (*10.100.192.201*) while the third is in *swarm-node-2* (*10.100.192.202*). Even though three instances are running, the proxy continues redirecting all requests to the first instances. We can change that by re-running the `reconfigure` command.
+
+```bash
+export DOCKER_HOST=tcp://proxy:2375
+
 docker exec docker-flow-proxy \
     docker-flow-proxy reconfigure \
     --service-name books-ms \
     --service-path /api/v1/books
 ```
 
-From this moment on, HAProxy is reconfigured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as the `reconfigure` command is run, the proxy will load balance all the requests. Those instances can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
+From this moment on, HAProxy is reconfigured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as the `reconfigure` command is run, the proxy will load-balance all the requests. Those instances can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
 
-Summary
--------
-
-Even though the examples used a single service, you should not pose such a limit. You can use this project for as many services as you need. The only important prerequisite is that each has a unique name and a unique path.
-
-
-TODO
-====
-
-Explain how to run docker-flow-proxy manually
+Please give *Docker Flow: Proxy* a try. Deploy multiple services, scale them, destroy them, and so on. The project [README](https://github.com/vfarcic/docker-flow-proxy) has more information. If you have a problem, suggestion, or an opinion regarding the project, please send me an email (my info is in the [About](http://technologyconversations.com/about/) section) or create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues).
