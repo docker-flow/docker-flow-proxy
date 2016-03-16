@@ -2,6 +2,8 @@ The goal of the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-prox
 
 Instead of debating theory, let's see it in action. We'll start by setting up an example environment.
 
+> If you prefer using Docker Machine instead of Vagrant, please consult the example from the project [README]([README](https://github.com/vfarcic/docker-flow-proxy) has more information. If you have a problem, suggestion, or an opinion regarding the project, please send me an email (my info is in the [About](http://technologyconversations.com/about/) section) or create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues)).
+
 Setting Up the Environments
 ===========================
 
@@ -25,7 +27,8 @@ vagrant up proxy swarm-master swarm-node-1 swarm-node-2
 
 Now we have the four servers up and running. The first one (*proxy*) is already provisioned so let us setup the Swarm cluster on the other three servers.
 
-Besides Swarm itself, we'll run [Registrator](https://github.com/gliderlabs/registrator) and [Consul](https://www.consul.io/) on all nodes of the cluster. Registrator will monitor Docker events and store service information we need in Consul.
+Besides Swarm itself, we'll run [Consul](https://www.consul.io/) on all nodes of the cluster. It will contain all the information we might need for proxy configuration. At the same time, it is a service discovery tool of choice for setting up a Swarm cluster. Each of the machines in the cluster will also have *Registrator* that monitors Docker events and puts data to Consul whenever a new container is run. It works in the other way as well. If a container is stopped or removed, Registrator will remove its data from Consul. In other words, thanks to Registrator, Consul will always have up-to-date information of all containers running inside the cluster.
+
 
 ```bash
 vagrant ssh proxy
@@ -104,7 +107,7 @@ docker exec docker-flow-proxy \
 
 That's it. That single command reconfigured the proxy. All we had to do is run the `reconfigure` command together with a few arguments. The `--service-name` contains the name of the service we want to integrate with the proxy. The `--service-path` is the unique URL that identifies the service.
 
-Let's see whether it worked.
+Let's see whether the service is indeed accessible through the proxy.
 
 ```bash
 curl -I proxy/api/v1/books
