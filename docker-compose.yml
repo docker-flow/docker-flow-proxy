@@ -17,7 +17,7 @@ services:
 
   proxy:
     container_name: docker-flow-proxy
-    image: vfarcic/docker-flow-proxy:0.5-beta
+    image: vfarcic/docker-flow-proxy
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
     ports:
