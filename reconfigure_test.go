@@ -233,12 +233,8 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenReadPidFails() {
 // NewReconfigure
 
 func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
-	br := BaseReconfigure{
-		ConsulAddress: "myConsulAddress",
-	}
-	sr := ServiceReconfigure{
-		ServiceName: "myService",
-	}
+	br := BaseReconfigure{ConsulAddress: "myConsulAddress"}
+	sr := ServiceReconfigure{ServiceName: "myService"}
 
 	r := NewReconfigure(br, sr)
 
@@ -247,11 +243,18 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 	s.Equal(sr, actualSr)
 }
 
-//func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
-//	r1 := NewReconfigure(
-//
-//	)
-//}
+func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
+	r1 := NewReconfigure(
+		BaseReconfigure{ConsulAddress: "myConsulAddress"},
+		ServiceReconfigure{ServiceName: "myService"},
+	)
+	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{})
+
+	actualBr1, actualSr1 := r1.GetData()
+	actualBr2, actualSr2 := r2.GetData()
+	s.NotEqual(actualBr1, actualBr2)
+	s.NotEqual(actualSr1, actualSr2)
+}
 
 // Suite
 
