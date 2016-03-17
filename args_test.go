@@ -7,18 +7,15 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"os/exec"
+	"net/http"
 )
 
 type ArgsTestSuite struct {
 	suite.Suite
 	args            Args
-	argsReconfigure Reconfigure
 }
 
 func (s *ArgsTestSuite) SetupTest() {
-	s.argsReconfigure.ServiceName = "myService"
-	s.argsReconfigure.ServicePath = "/path/to/my/service"
-	s.argsReconfigure.ConsulAddress = "http://1.2.3.4:1234"
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		return nil
 	}
@@ -37,9 +34,22 @@ func (s *ArgsTestSuite) SetupTest() {
 	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
 		return nil
 	}
+	httpListenAndServe = func(addr string, handler http.Handler) error {
+		return nil
+	}
 }
 
-// Parse
+//
+
+func (s ArgsTestSuite) Test_Parse_ReturnsError_WhenFailure() {
+	os.Args = []string{"myProgram", "myCommand", "--this-flag-does-not-exist=something"}
+
+	actual := Args{}.Parse()
+
+	s.Error(actual)
+}
+
+// Parse > Reconfigure
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 	argsOrig := reconfigure
@@ -91,7 +101,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 	}
 }
 
-func (s ArgsTestSuite) Test_Parse_HasDefaultValues() {
+func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 	argsOrig := reconfigure
 	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
@@ -109,7 +119,7 @@ func (s ArgsTestSuite) Test_Parse_HasDefaultValues() {
 	}
 }
 
-func (s ArgsTestSuite) Test_Parse_DefaultsToEnvVars() {
+func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 	os.Args = []string{
 		"myProgram", "reconfigure",
 		"--service-name", "serviceName",
@@ -132,12 +142,91 @@ func (s ArgsTestSuite) Test_Parse_DefaultsToEnvVars() {
 	}
 }
 
-func (s ArgsTestSuite) TestParseArgs_ReturnsError_WhenFailure() {
-	os.Args = []string{"myProgram", "myCommand", "--this-flag-does-not-exist=something"}
+// Parse > Reconfigure
 
-	actual := Args{}.Parse()
+func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
+	argsOrig := server
+	defer func() { server = argsOrig }()
+	os.Args = []string{"myProgram", "server"}
+	data := []struct{
+		expected	string
+		key 		string
+		value		*string
+	}{
+		{"ipFromArgs", "ip", &server.IP},
+		{"portFromArgs", "port", &server.Port},
+	}
 
-	s.Error(actual)
+	for _, d := range data {
+		os.Args = append(os.Args, fmt.Sprintf("--%s", d.key), d.expected)
+	}
+	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
+	argsOrig := server
+	defer func() { server = argsOrig }()
+	os.Args = []string{"myProgram", "server"}
+	data := []struct{
+		expected	string
+		key 		string
+		value		*string
+	}{
+		{"ipFromArgs", "i", &server.IP},
+		{"portFromArgs", "p", &server.Port},
+	}
+
+	for _, d := range data {
+		os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), d.expected)
+	}
+	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
+	argsOrig := server
+	defer func() { server = argsOrig }()
+	os.Args = []string{"myProgram", "server"}
+	data := []struct{
+		expected	string
+		value		*string
+	}{
+		{"0.0.0.0", &server.IP},
+		{"8080", &server.Port},
+	}
+
+	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
+	os.Args = []string{"myProgram", "server"}
+	data := []struct{
+		expected	string
+		key 		string
+		value		*string
+	}{
+		{"ipFromEnv", "IP", &server.IP},
+		{"portFromEnv", "PORT", &server.Port},
+	}
+	defer func() {
+		os.Clearenv()
+	}()
+
+	for _, d := range data {
+		os.Setenv(d.key, d.expected)
+	}
+	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
 }
 
 // Suite

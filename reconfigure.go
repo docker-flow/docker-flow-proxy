@@ -7,15 +7,32 @@ import (
 	"os/exec"
 )
 
+type Reconfigurable interface {
+	Execute(args []string) error
+}
+
 type Reconfigure struct {
+	BaseReconfigure
+	ServiceReconfigure
+}
+
+type ServiceReconfigure struct {
 	ServiceName 			string	`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
 	ServicePath 			string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+}
+
+type BaseReconfigure struct {
 	ConsulAddress			string	`short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
 	ConfigsPath				string  `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
 	TemplatesPath			string  `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
+// TODO: Switch to NewReconfigure
 var reconfigure Reconfigure
+
+var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	return Reconfigure{}
+}
 
 func (m Reconfigure) Execute(args []string) error {
 	if err := m.createConfig(); err != nil {

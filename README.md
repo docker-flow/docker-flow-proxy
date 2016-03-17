@@ -94,5 +94,3 @@ curl -I $PROXY_IP/api/v1/books
 ```
 
 For a more detailed example, please read the [Docker Flow: Proxy - On-Demand HAProxy Reconfiguration](http://technologyconversations.com/2016/03/16/docker-flow-proxy-reconfiguration/) article.
-
-

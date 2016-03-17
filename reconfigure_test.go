@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"github.com/stretchr/testify/mock"
 )
 
 type ReconfigureTestSuite struct {
@@ -45,12 +46,16 @@ backend myService-be
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		return nil
 	}
-	s.reconfigure = Reconfigure{
-		ConsulAddress: s.ConsulAddress,
-		ServiceName: s.ServiceName,
-		TemplatesPath: s.TemplatesPath,
-		ServicePath: s.ServicePath,
-		ConfigsPath: s.ConfigsPath,
+	s.reconfigure = Reconfigure {
+		BaseReconfigure: BaseReconfigure{
+			ConsulAddress: s.ConsulAddress,
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath: s.ConfigsPath,
+		},
+		ServiceReconfigure: ServiceReconfigure{
+			ServiceName: s.ServiceName,
+			ServicePath: s.ServicePath,
+		},
 	}
 	readFile = func(fileName string) ([]byte, error) {
 		return []byte(""), nil
@@ -241,5 +246,21 @@ func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
 	}
 	return &actualCommand
 }
+
+type ReconfigureMock struct{
+	mock.Mock
+}
+
+func (m *ReconfigureMock) Execute(args []string) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
+func getReconfigureMock() *ReconfigureMock {
+	mockObj := new(ReconfigureMock)
+	mockObj.On("Execute", mock.Anything).Return(nil)
+	return mockObj
+}
+
 
 
