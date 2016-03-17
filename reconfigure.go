@@ -31,21 +31,21 @@ type BaseReconfigure struct {
 var reconfigure Reconfigure
 
 var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-	return Reconfigure{baseData, serviceData}
+	return &Reconfigure{baseData, serviceData}
 }
 
-func (m Reconfigure) Execute(args []string) error {
+func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfig(); err != nil {
 		return err
 	}
 	return m.run()
 }
 
-func (m Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
+func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-func (m Reconfigure) createConfig() error {
+func (m *Reconfigure) createConfig() error {
 	templateContent := m.getConsulTemplate()
 	templatePath := fmt.Sprintf("%s/%s", m.TemplatesPath, "service-formatted.ctmpl")
 	writeConsulTemplateFile(templatePath, []byte(templateContent), 0664)
@@ -60,7 +60,7 @@ func (m Reconfigure) createConfig() error {
 	return writeConsulConfigFile(configPath, []byte(configsContent), 0664)
 }
 
-func (m Reconfigure) runConsulTemplateCmd() error {
+func (m *Reconfigure) runConsulTemplateCmd() error {
 	cmdArgs := []string{
 		"-consul",
 		m.ConsulAddress,
@@ -83,7 +83,7 @@ func (m Reconfigure) runConsulTemplateCmd() error {
 	return nil
 }
 
-func (m Reconfigure) getConsulTemplate() string {
+func (m *Reconfigure) getConsulTemplate() string {
 	return strings.TrimSpace(fmt.Sprintf(`
 frontend %s-fe
 	bind *:80
@@ -98,7 +98,7 @@ backend %s-be
 	{{end}}`, m.ServiceName, m.ServiceName, m.ServicePath, m.ServiceName, m.ServiceName, m.ServiceName, m.ServiceName))
 }
 
-func (m Reconfigure) getConfigs() (string, error) {
+func (m *Reconfigure) getConfigs() (string, error) {
 	if _, err := os.Stat(m.TemplatesPath); err != nil {
 		return "", fmt.Errorf("Could not find the directory %s\n%#v", m.TemplatesPath, err)
 	}
@@ -123,7 +123,7 @@ func (m Reconfigure) getConfigs() (string, error) {
 	return strings.Join(content, "\n\n"), nil
 }
 
-func (m Reconfigure) run() error {
+func (m *Reconfigure) run() error {
 	pidPath := "/var/run/haproxy.pid"
 	pid, err := readPidFile(pidPath)
 	if err != nil {

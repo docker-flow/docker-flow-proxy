@@ -4,10 +4,10 @@ import (
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"os"
-	"fmt"
 	"github.com/stretchr/testify/mock"
 	"os/exec"
 	"net/http"
+	"fmt"
 )
 
 type ArgsTestSuite struct {
@@ -39,13 +39,21 @@ func (s *ArgsTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
-	rOrig := reconfigure
-	defer func() { reconfigure = rOrig }()
-	sOrig := server
-	defer func() { server = sOrig }()
+	readPidFile = func(fileName string) ([]byte, error) {
+		return []byte(""), nil
+	}
+	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
 }
 
-//
+// NewArgs
+
+func (s ArgsTestSuite) Test_NewArgs_ReturnsNewStruct() {
+	a := NewArgs()
+
+	s.IsType(Args{}, a)
+}
+
+// Parse
 
 func (s ArgsTestSuite) Test_Parse_ReturnsError_WhenFailure() {
 	os.Args = []string{"myProgram", "myCommand", "--this-flag-does-not-exist=something"}
@@ -90,7 +98,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
 		{"servicePathFromArgs", "p", &reconfigure.ServicePath},
 		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
-		{"templatesPathFromArgs", "t", &reconfigure.TemplatesPath},
+		{s.TemplatesPath, "t", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},
 	}
 
@@ -104,7 +112,11 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
-	os.Args = []string{"myProgram", "reconfigure"}
+	os.Args = []string{
+		"myProgram", "reconfigure",
+		"--service-name", "myService",
+		"--service-path", "my/service/path",
+	}
 	data := []struct{
 		expected	string
 		value		*string
@@ -112,6 +124,9 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		{"/cfg/tmpl", &reconfigure.TemplatesPath},
 		{"/cfg", &reconfigure.ConfigsPath},
 	}
+	reconfigure.ConsulAddress = "myConsulAddress"
+	reconfigure.ServicePath = "myConsulAddress"
+	reconfigure.ServiceName = "myConsulAddress"
 
 	Args{}.Parse()
 	for _, d := range data {
@@ -142,7 +157,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 	}
 }
 
-// Parse > Reconfigure
+// Parse > Server
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 	os.Args = []string{"myProgram", "server"}
