@@ -39,6 +39,10 @@ func (s *ArgsTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
+	rOrig := reconfigure
+	defer func() { reconfigure = rOrig }()
+	sOrig := server
+	defer func() { server = sOrig }()
 }
 
 //
@@ -54,8 +58,6 @@ func (s ArgsTestSuite) Test_Parse_ReturnsError_WhenFailure() {
 // Parse > Reconfigure
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
-	argsOrig := reconfigure
-	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
@@ -79,8 +81,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
-	argsOrig := reconfigure
-	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
@@ -104,8 +104,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
-	argsOrig := reconfigure
-	defer func() { reconfigure = argsOrig }()
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
@@ -147,8 +145,6 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 // Parse > Reconfigure
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
-	argsOrig := server
-	defer func() { server = argsOrig }()
 	os.Args = []string{"myProgram", "server"}
 	data := []struct{
 		expected	string
@@ -169,8 +165,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
-	argsOrig := server
-	defer func() { server = argsOrig }()
 	os.Args = []string{"myProgram", "server"}
 	data := []struct{
 		expected	string
@@ -191,8 +185,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 }
 
 func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
-	argsOrig := server
-	defer func() { server = argsOrig }()
 	os.Args = []string{"myProgram", "server"}
 	data := []struct{
 		expected	string

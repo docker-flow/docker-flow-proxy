@@ -9,6 +9,7 @@ import (
 
 type Reconfigurable interface {
 	Execute(args []string) error
+	GetData() (BaseReconfigure, ServiceReconfigure)
 }
 
 type Reconfigure struct {
@@ -30,7 +31,7 @@ type BaseReconfigure struct {
 var reconfigure Reconfigure
 
 var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-	return Reconfigure{}
+	return Reconfigure{baseData, serviceData}
 }
 
 func (m Reconfigure) Execute(args []string) error {
@@ -38,6 +39,10 @@ func (m Reconfigure) Execute(args []string) error {
 		return err
 	}
 	return m.run()
+}
+
+func (m Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
+	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
 func (m Reconfigure) createConfig() error {

@@ -230,6 +230,29 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenReadPidFails() {
 	s.Error(err)
 }
 
+// NewReconfigure
+
+func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
+	br := BaseReconfigure{
+		ConsulAddress: "myConsulAddress",
+	}
+	sr := ServiceReconfigure{
+		ServiceName: "myService",
+	}
+
+	r := NewReconfigure(br, sr)
+
+	actualBr, actualSr := r.GetData()
+	s.Equal(br, actualBr)
+	s.Equal(sr, actualSr)
+}
+
+//func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
+//	r1 := NewReconfigure(
+//
+//	)
+//}
+
 // Suite
 
 func TestReconfigureTestSuite(t *testing.T) {
@@ -254,6 +277,11 @@ type ReconfigureMock struct{
 func (m *ReconfigureMock) Execute(args []string) error {
 	params := m.Called(args)
 	return params.Error(0)
+}
+
+func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
+	m.Called()
+	return BaseReconfigure{}, ServiceReconfigure{}
 }
 
 func getReconfigureMock(skipMethod string) *ReconfigureMock {
