@@ -12,12 +12,11 @@ RUN apt-get update && \
 RUN mkdir -p /cfg/tmpl
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
-COPY run.sh /usr/local/bin/run.sh
-RUN chmod +x /usr/local/bin/run.sh
 COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy
 RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 ENV CONSUL_ADDRESS ""
 EXPOSE 80
+EXPOSE 8080
 
-CMD ["run.sh", "run"]
+CMD ["docker-flow-proxy", "server"]

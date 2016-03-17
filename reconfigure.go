@@ -8,7 +8,7 @@ import (
 )
 
 type Reconfigurable interface {
-	Execute(args []string) error
+	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
 }
 

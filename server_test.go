@@ -44,6 +44,7 @@ func (s *ServerTestSuite) SetupTest() {
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return getReconfigureMock("")
 	}
+	logPrintf = func(format string, v ...interface{}) {}
 }
 
 // Execute
@@ -61,6 +62,21 @@ func (s ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	}
 	server.Execute([]string{})
 	s.Equal(expected, actual)
+}
+
+func (s ServerTestSuite) Test_Execute_InvokesRunExecute() {
+	orig := NewRun
+	defer func() {
+		NewRun = orig
+	}()
+	mockObj := getRunMock("")
+	NewRun = func() Executable {
+		return mockObj
+	}
+
+	server.Execute([]string{})
+
+	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
 // ServeHTTP

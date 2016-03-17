@@ -44,19 +44,18 @@ The only thing missing now is to reconfigure the proxy so that our newly deploye
 ```bash
 eval "$(docker-machine env proxy)"
 
-docker exec docker-flow-proxy \
-    docker-flow-proxy reconfigure \
-    --service-name books-ms \
-    --service-path /api/v1/books
+export PROXY_IP=$(docker-machine ip proxy)
+
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
 ```
 
-That's it. All we had to do is run the `reconfigure` command together with a few arguments. The `--service-name` contains the name of the service we want to integrate with the proxy. The `--service-path` is the unique URL that identifies the service.
+That's it. All we had to do is send a request to `reconfigure` the proxy. The
+`serviceName` query contains the name of the service we want to integrate with the proxy. The `servicePath` is
+the unique URL that identifies the service.
 
 Let's see whether the service is indeed accessible through the proxy.
 
 ```bash
-export PROXY_IP=$(docker-machine ip proxy)
-
 curl -I $PROXY_IP/api/v1/books
 ```
 
@@ -83,12 +82,9 @@ docker-compose \
     -p books-ms \
     scale app=3
 
-eval "$(docker-machine env proxy)"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
 
-docker exec docker-flow-proxy \
-    docker-flow-proxy reconfigure \
-    --service-name books-ms \
-    --service-path /api/v1/books
+eval "$(docker-machine env proxy)"
 
 curl -I $PROXY_IP/api/v1/books
 ```

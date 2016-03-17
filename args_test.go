@@ -43,6 +43,7 @@ func (s *ArgsTestSuite) SetupTest() {
 		return []byte(""), nil
 	}
 	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
+	logPrintf = func(format string, v ...interface{}) {}
 }
 
 // NewArgs

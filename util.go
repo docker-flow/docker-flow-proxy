@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"net/http"
+	"log"
 )
 
 var readFile = ioutil.ReadFile
@@ -20,4 +21,9 @@ var writeConsulConfigFile = ioutil.WriteFile
 var httpListenAndServe = http.ListenAndServe
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 	w.Header().Set("Content-Type", value)
+}
+var logPrintf = log.Printf
+
+type Executable interface {
+	Execute(args []string) error
 }
