@@ -256,9 +256,11 @@ func (m *ReconfigureMock) Execute(args []string) error {
 	return params.Error(0)
 }
 
-func getReconfigureMock() *ReconfigureMock {
+func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	mockObj := new(ReconfigureMock)
-	mockObj.On("Execute", mock.Anything).Return(nil)
+	if skipMethod != "Execute" {
+		mockObj.On("Execute", mock.Anything).Return(nil)
+	}
 	return mockObj
 }
 

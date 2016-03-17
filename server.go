@@ -46,13 +46,16 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				m.BaseReconfigure,
 				sr,
 			)
-			reconfig.Execute([]string{})
-			js, _ := json.Marshal(Response{
-				Status: "OK",
-				ServiceReconfigure: sr,
-			})
-			httpWriterSetContentType(w, "application/json")
-			w.Write(js)
+			if err := reconfig.Execute([]string{}); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			} else {
+				js, _ := json.Marshal(Response{
+					Status: "OK",
+					ServiceReconfigure: sr,
+				})
+				httpWriterSetContentType(w, "application/json")
+				w.Write(js)
+			}
 		}
 	default:
 		w.WriteHeader(http.StatusNotFound)

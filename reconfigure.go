@@ -27,7 +27,6 @@ type BaseReconfigure struct {
 	TemplatesPath			string  `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
-// TODO: Switch to NewReconfigure
 var reconfigure Reconfigure
 
 var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {

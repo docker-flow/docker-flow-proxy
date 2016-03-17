@@ -13,9 +13,11 @@ import (
 type ArgsTestSuite struct {
 	suite.Suite
 	args            Args
+	TemplatesPath 	string
 }
 
 func (s *ArgsTestSuite) SetupTest() {
+	s.TemplatesPath = "test_configs/tmpl"
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		return nil
 	}
@@ -63,7 +65,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"servicePathFromArgs", "service-path", &reconfigure.ServicePath},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
-		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
+		{s.TemplatesPath, "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
 	}
 

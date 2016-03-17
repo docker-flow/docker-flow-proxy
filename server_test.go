@@ -4,7 +4,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"net/http"
 	"github.com/stretchr/testify/suite"
-"testing"
+	"testing"
 	"fmt"
 	"encoding/json"
 )
@@ -40,6 +40,9 @@ func (s *ServerTestSuite) SetupTest() {
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddress: s.ConsulAddress,
 		},
+	}
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return getReconfigureMock("")
 	}
 }
 
@@ -114,7 +117,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsN
 }
 
 func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
-	mockObj := getReconfigureMock()
+	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
 		ConsulAddress: s.ConsulAddress,
@@ -138,6 +141,18 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	s.Equal(expectedBase, actualBase)
 	s.Equal(expectedService, actualService)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
+}
+
+func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
+	mockObj := getReconfigureMock("Execute")
+	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+
+	Server{}.ServeHTTP(s.ResponseWriter, s.Request)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
 // Suite
