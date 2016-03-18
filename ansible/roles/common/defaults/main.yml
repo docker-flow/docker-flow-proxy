@@ -1,5 +1,6 @@
 hosts: [
   { host_ip: "10.100.198.200", host_name: "proxy"},
+  { host_ip: "10.100.198.201", host_name: "jenkins"},
   { host_ip: "10.100.192.200", host_name: "swarm-master"},
   { host_ip: "10.100.192.201", host_name: "swarm-node-1"},
   { host_ip: "10.100.192.202", host_name: "swarm-node-2"},

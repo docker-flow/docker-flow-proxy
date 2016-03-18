@@ -6,6 +6,8 @@ services:
     image: progrium/consul
     ports:
       - 8500:8500
+      - 8301:8301
+      - 8300:8300
     command: -server -bootstrap
 
   registrator:

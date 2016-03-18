@@ -4,6 +4,5 @@
   roles:
     - common
     - docker
-    - consul
     - registrator
     - swarm
