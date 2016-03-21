@@ -95,8 +95,6 @@ docker-compose \
 
 curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
 
-eval "$(docker-machine env proxy)"
-
 curl -I $PROXY_IP/api/v1/books
 ```
 
@@ -148,4 +146,3 @@ Feedback and Contributions
 --------------------------
 
 I'd appreciate any feedback you might give (both positive and negative). Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues), send a pull request, or tell me about any feature you might be missing. You can find my contact information in the [About](http://technologyconversations.com/about/) section of my [blog](http://technologyconversations.com/).
-
