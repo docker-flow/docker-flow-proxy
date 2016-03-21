@@ -75,11 +75,11 @@ docker info
 The output of the `docker info` is as follows.
 
 ```
-Containers: 6
- Running: 6
+Containers: 4
+ Running: 4
  Paused: 0
  Stopped: 0
-Images: 6
+Images: 4
 Server Version: swarm/1.1.3
 Role: primary
 Strategy: spread
@@ -87,20 +87,20 @@ Filters: health, port, dependency, affinity, constraint
 Nodes: 2
  swarm-node-1: 10.100.192.201:2375
   └ Status: Healthy
-  └ Containers: 3
+  └ Containers: 2
   └ Reserved CPUs: 0 / 1
   └ Reserved Memory: 0 B / 1.536 GiB
   └ Labels: executiondriver=native-0.2, kernelversion=3.13.0-79-generic, operatingsystem=Ubuntu 14.04.4 LTS, storagedriver=devicemapper
   └ Error: (none)
-  └ UpdatedAt: 2016-03-18T13:02:44Z
+  └ UpdatedAt: 2016-03-21T14:24:54Z
  swarm-node-2: 10.100.192.202:2375
   └ Status: Healthy
-  └ Containers: 3
+  └ Containers: 2
   └ Reserved CPUs: 0 / 1
   └ Reserved Memory: 0 B / 1.536 GiB
   └ Labels: executiondriver=native-0.2, kernelversion=3.13.0-79-generic, operatingsystem=Ubuntu 14.04.4 LTS, storagedriver=devicemapper
   └ Error: (none)
-  └ UpdatedAt: 2016-03-18T13:02:12Z
+  └ UpdatedAt: 2016-03-21T14:24:51Z
 Plugins:
  Volume:
  Network:
@@ -109,7 +109,7 @@ Operating System: linux
 Architecture: amd64
 CPUs: 2
 Total Memory: 3.072 GiB
-Name: 8270d49a7fd8
+Name: 9fdd284ff391
 ```
 
 As you can see, the Swarm cluster consists of two nodes (*swarm-node-1* and *swarm-node-2*), each has one CPU and 1.5 GB of RAM, and the status is *Healthy*.

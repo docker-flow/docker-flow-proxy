@@ -1,0 +1,12 @@
+- hosts: localhost
+  remote_user: vagrant
+  serial: 1
+  vars:
+    - docker_flow_proxy_port: 8081
+  roles:
+    - common
+    - docker
+    - docker-compose
+    - consul
+    - docker-flow-proxy
+    - jenkins

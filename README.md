@@ -8,9 +8,9 @@ Prerequisite for the *Docker Flow: Proxy* container is, at least, one [Consul](h
 Examples
 --------
 
-For a more detailed example, please read the [TODO](TODO) article. Besides providing more information, the article has a benefit or being OS agnostic. It will work on Linux, OS X, and Windows and do not have any requirement besides Vagrant.
+For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article. Besides providing more information, the article has a benefit or being OS agnostic. It will work on Linux, OS X, and Windows and do not have any requirement besides Vagrant.
 
-The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). The examples will not run on Windows. Please see the [TODO](TODO) article for an OS agnostic walkthrough.
+The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). The examples will not run on Windows. Please see the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article for an OS agnostic walkthrough.
 
 To setup an example environment using Docker Machine, please run the commands that follow.
 
@@ -100,7 +100,7 @@ eval "$(docker-machine env proxy)"
 curl -I $PROXY_IP/api/v1/books
 ```
 
-For a more detailed example, please read the [TODO](TODO) article.
+For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article.
 
 Containers Definition
 ---------------------

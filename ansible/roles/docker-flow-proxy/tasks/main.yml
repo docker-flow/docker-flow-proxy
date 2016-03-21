@@ -7,4 +7,4 @@
       CONSUL_ADDRESS: "{{ consul_ip }}:8500"
     ports:
       - 80:80
-      - 8080:8080
+      - "{{ docker_flow_proxy_port }}:8080"
