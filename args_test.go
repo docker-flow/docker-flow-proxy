@@ -246,6 +246,8 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 
 func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 	os.Args = []string{"myProgram", "server"}
+	os.Unsetenv("IP")
+	os.Unsetenv("PORT")
 	data := []struct{
 		expected	string
 		value		*string
@@ -270,9 +272,6 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 		{"ipFromEnv", "IP", &server.IP},
 		{"portFromEnv", "PORT", &server.Port},
 	}
-	defer func() {
-		os.Clearenv()
-	}()
 
 	for _, d := range data {
 		os.Setenv(d.key, d.expected)

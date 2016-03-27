@@ -12,8 +12,6 @@ eval "$(docker-machine env proxy)"
 
 docker-compose up -d consul proxy
 
-docker ps -a
-
 docker-machine create -d virtualbox \
     --swarm --swarm-master \
     --swarm-discovery="consul://$CONSUL_IP:8500" \

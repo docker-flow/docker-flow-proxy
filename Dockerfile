@@ -1,13 +1,12 @@
-FROM haproxy:1.6
+FROM haproxy:1.6-alpine
+MAINTAINER 	Viktor Farcic <viktor@farcic.com>
 
-RUN apt-get update && \
-    apt-get install -y wget unzip && \
-    wget https://releases.hashicorp.com/consul-template/0.13.0/consul-template_0.13.0_linux_amd64.zip -O /usr/local/bin/consul-template.zip && \
+RUN apk add --no-cache --virtual .build-deps curl unzip && \
+    curl -SL https://releases.hashicorp.com/consul-template/0.13.0/consul-template_0.13.0_linux_amd64.zip -o /usr/local/bin/consul-template.zip && \
     unzip /usr/local/bin/consul-template.zip -d /usr/local/bin/ && \
+    rm -f /usr/local/bin/consul-template.zip && \
     chmod +x /usr/local/bin/consul-template && \
-    apt-get purge -y wget unzip && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apk del .build-deps
 
 RUN mkdir -p /cfg/tmpl
 COPY haproxy.cfg /cfg/haproxy.cfg

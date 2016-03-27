@@ -9,13 +9,14 @@ services:
   - docker
 
 script:
-  - go test --cover -v ./...
-
-after_success:
+#  - go test --cover --tags integration -v ./...
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
   - docker build -t vfarcic/docker-flow-proxy:${VERSION} .
   - docker tag vfarcic/docker-flow-proxy:${VERSION} vfarcic/docker-flow-proxy
-  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-  - docker push vfarcic/docker-flow-proxy:${VERSION}
-  - docker push vfarcic/docker-flow-proxy
+  - go test --cover --tags integration -v ./...
+
+#after_success:
+#  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+#  - docker push vfarcic/docker-flow-proxy:${VERSION}
+#  - docker push vfarcic/docker-flow-proxy
 

@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  app:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+      SERVICE_8080_NAME: test-service
+    ports:
+      - 8080
