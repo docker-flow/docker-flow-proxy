@@ -1,5 +1,5 @@
 env:
-  - VERSION=0.7 DOCKER_COMPOSE_VERSION=1.6.0
+  - VERSION=0.7
 
 sudo: required
 
@@ -8,24 +8,14 @@ language: go
 services:
   - docker
 
-before_script:
-  - sudo apt-get -qq update
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine
-  - sudo rm /usr/local/bin/docker-compose
-  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-  - chmod +x docker-compose
-  - sudo mv docker-compose /usr/local/bin
-  - docker --version
-
 script:
-#  - go test --cover --tags integration -v ./...
+  - go test --cover -v ./...
+
+after_success:
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
   - docker build -t vfarcic/docker-flow-proxy:${VERSION} .
   - docker tag vfarcic/docker-flow-proxy:${VERSION} vfarcic/docker-flow-proxy
-  - go test --cover --tags integration
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker push vfarcic/docker-flow-proxy:${VERSION}
+  - docker push vfarcic/docker-flow-proxy
 
-##after_success:
-##  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-##  - docker push vfarcic/docker-flow-proxy:${VERSION}
-##  - docker push vfarcic/docker-flow-proxy
-#
