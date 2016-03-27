@@ -71,6 +71,11 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				w.Write(js)
 			}
 		}
+	case "/v1/test", "/v2/test":
+		js, _ := json.Marshal(Response{Status: "OK"})
+		httpWriterSetContentType(w, "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(js)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}

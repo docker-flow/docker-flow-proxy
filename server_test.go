@@ -170,6 +170,17 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteF
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
+func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
+	for ver := 1; ver <= 2; ver++ {
+		rw := getResponseWriterMock()
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
+
+		Server{}.ServeHTTP(rw, req)
+
+		rw.AssertCalled(s.T(), "WriteHeader", 200)
+	}
+}
+
 // Suite
 
 func TestServerTestSuite(t *testing.T) {
