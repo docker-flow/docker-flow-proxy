@@ -6,6 +6,6 @@
 - name: Host is present
   lineinfile:
     dest: /etc/hosts
-    regexp: "^{{ item.host_ip }}"
+    regexp: "^{{ item.host_ip }} {{ item.host_name }}"
     line: "{{ item.host_ip }} {{ item.host_name }}"
   with_items: "{{ hosts }}"

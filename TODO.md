@@ -1,4 +1,3 @@
-* Announce *Docker Flow: Proxy*
 * TC Article
 
   * Announce

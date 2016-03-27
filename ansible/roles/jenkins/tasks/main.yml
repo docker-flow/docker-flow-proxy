@@ -1,7 +1,7 @@
 - name: Directories are created
   file:
     path: "{{ item.dir }}"
-#    mode: 0777
+    mode: 0777
     recurse: yes
     state: directory
   with_items: "{{ configs }}"
@@ -11,10 +11,9 @@
     name: jenkins
     image: jenkins
     ports: "{{ jenkins_port }}:8080"
-    docker_user: root
     volumes:
       - /data/jenkins:/var/jenkins_home
-#      - /vagrant/.vagrant/machines:/machines
+      - /vagrant/.vagrant/machines:/machines
   register: container_result
 
 - pause: seconds=60
@@ -56,40 +55,33 @@
     name: jenkins
     image: jenkins
     ports: "{{ jenkins_port }}:8080"
-    docker_user: root
     volumes:
       - /data/jenkins:/var/jenkins_home
       - /vagrant/.vagrant/machines:/machines
   when: configs_result|changed or plugins_result|changed
 
-#- pause: seconds=30
-#  when: configs_result|changed or plugins_result|changed
-#
-#- name: Job directories are present
-#  file:
-#    path: "{{ home }}/jobs/{{ item.name }}"
-#    state: directory
-#    mode: 0777
-#  with_items: "{{ jobs }}"
-#
-#- name: Jobs are present
-#  template:
-#    src: "{{ item.src }}"
-#    dest: "{{ home }}/jobs/{{ item.name }}/config.xml"
-#    mode: 0777
-#  with_items: jobs
-#  register: "{{ jobs_result }}"
-#
-#- name: Jenkins is reloaded
-#  uri:
-#    url: http://{{ facter_ipaddress_eth1 }}:8080/reload
-#    method: POST
-#    status_code: 200,302
-#  when: jobs_result|changed
-#  ignore_errors: yes
-#
-#- name: Scripts are present
-#  copy:
-#    src: scripts
-#    dest: /data
-#    mode: 0766
+- pause: seconds=30
+  when: configs_result|changed or plugins_result|changed
+
+- name: Job directories are present
+  file:
+    path: "{{ home }}/jobs/{{ item }}"
+    state: directory
+    mode: 0777
+  with_items: "{{ jobs }}"
+
+- name: Jobs are present
+  template:
+    src: "{{ item }}-config.xml"
+    dest: "{{ home }}/jobs/{{ item }}/config.xml"
+    mode: 0777
+  with_items: jobs
+  register: jobs_result
+
+- name: Jenkins is reloaded
+  uri:
+    url: http://{{ facter_ipaddress_eth1 }}:8080/reload
+    method: POST
+    status_code: 200,302
+  when: jobs_result|changed
+  ignore_errors: yes

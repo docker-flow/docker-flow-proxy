@@ -19,7 +19,7 @@ type Reconfigure struct {
 
 type ServiceReconfigure struct {
 	ServiceName 			string	`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServicePath 			string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServicePath 			[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 }
 
 type BaseReconfigure struct {
@@ -95,12 +95,20 @@ frontend %s-fe
 backend %s-be
 	{{range $i, $e := service "%s" "any"}}
 	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-	{{end}}`, m.ServiceName, m.ServiceName, m.ServicePath, m.ServiceName, m.ServiceName, m.ServiceName, m.ServiceName))
+	{{end}}`,
+		m.ServiceName,
+		m.ServiceName,
+		strings.Join(m.ServicePath, " path_beg "),
+		m.ServiceName,
+		m.ServiceName,
+		m.ServiceName,
+		m.ServiceName,
+	))
 }
 
 func (m *Reconfigure) getConfigs() (string, error) {
 	if _, err := os.Stat(m.TemplatesPath); err != nil {
-		return "", fmt.Errorf("Could not find the directory %s\n%#v", m.TemplatesPath, err)
+		return "", fmt.Errorf("Could not find the directory %s\n%s", m.TemplatesPath, err.Error())
 	}
 	content := []string{}
 	configsFiles := []string{"haproxy.tmpl"}

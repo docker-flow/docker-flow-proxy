@@ -15,20 +15,15 @@
         <hudson.model.ParametersDefinitionProperty>
             <parameterDefinitions>
                 <hudson.model.StringParameterDefinition>
-                    <name>checkId</name>
+                    <name>SCALE</name>
                     <description></description>
-                    <defaultValue></defaultValue>
-                </hudson.model.StringParameterDefinition>
-                <hudson.model.StringParameterDefinition>
-                    <name>status</name>
-                    <description></description>
-                    <defaultValue></defaultValue>
+                    <defaultValue>1</defaultValue>
                 </hudson.model.StringParameterDefinition>
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
     </properties>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@1.11">
-        <script>{% include "hardware-notification.groovy" %}</script>
+        <script>{% include "scale-to-swarm-with-proxy.groovy" %}</script>
         <sandbox>false</sandbox>
     </definition>
     <triggers/>

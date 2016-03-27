@@ -7,6 +7,7 @@ import (
 	"testing"
 	"fmt"
 	"encoding/json"
+	"strings"
 )
 
 type ServerTestSuite struct {
@@ -15,7 +16,7 @@ type ServerTestSuite struct {
 	ReconfigureBaseUrl 	string
 	ReconfigureUrl		string
 	ServiceName			string
-	ServicePath			string
+	ServicePath			[]string
 	ResponseWriter		*ResponseWriterMock
 	Request				*http.Request
 }
@@ -23,13 +24,13 @@ type ServerTestSuite struct {
 func (s *ServerTestSuite) SetupTest() {
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
-	s.ServicePath = "/path/to/my/service/api"
+	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
 	s.ReconfigureBaseUrl = "/v1/docker-flow-proxy/reconfigure"
 	s.ReconfigureUrl = fmt.Sprintf(
 		"%s?serviceName=%s&servicePath=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
-		s.ServicePath,
+		strings.Join(s.ServicePath, ","),
 	)
 	s.ResponseWriter = getResponseWriterMock()
 	s.Request, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
@@ -124,7 +125,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServiceNameQueryIsN
 }
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
-	url := fmt.Sprintf("%s?serviceName=%s", s.ReconfigureBaseUrl, s.ServiceName)
+	url := fmt.Sprintf("%s?serviceName=%s", s.ReconfigureBaseUrl, s.ServiceName[0])
 	req, _ := http.NewRequest("GET", url, nil)
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -148,9 +149,7 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 		actualService = serviceData
 		return mockObj
 	}
-	server := Server{
-		BaseReconfigure: expectedBase,
-	}
+	server := Server{BaseReconfigure: expectedBase}
 
 	server.ServeHTTP(s.ResponseWriter, s.Request)
 

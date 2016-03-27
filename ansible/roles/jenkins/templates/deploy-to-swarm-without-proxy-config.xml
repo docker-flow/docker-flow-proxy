@@ -12,18 +12,9 @@
                 <artifactNumToKeep>-1</artifactNumToKeep>
             </strategy>
         </org.jenkinsci.plugins.workflow.job.properties.BuildDiscarderProperty>
-        <hudson.model.ParametersDefinitionProperty>
-            <parameterDefinitions>
-                <hudson.model.StringParameterDefinition>
-                    <name>serviceName</name>
-                    <description></description>
-                    <defaultValue></defaultValue>
-                </hudson.model.StringParameterDefinition>
-            </parameterDefinitions>
-        </hudson.model.ParametersDefinitionProperty>
     </properties>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@1.11">
-        <script>{% include "service-redeploy.groovy" %}</script>
+        <script>{% include "deploy-to-swarm-without-proxy.groovy" %}</script>
         <sandbox>false</sandbox>
     </definition>
     <triggers/>

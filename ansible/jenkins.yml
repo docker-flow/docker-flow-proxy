@@ -3,10 +3,13 @@
   serial: 1
   vars:
     - docker_flow_proxy_port: 8081
+    - consul_ip: 10.100.199.200
+    - proxy_ip: 10.100.199.200
   roles:
     - common
     - docker
     - docker-compose
     - consul
     - docker-flow-proxy
+    - java
     - jenkins

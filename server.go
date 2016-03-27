@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"fmt"
 	"encoding/json"
+	"strings"
 )
 
 type Serverable interface {
@@ -40,7 +41,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logPrintf("Processing request %s", req.URL)
 		sr := ServiceReconfigure{
 			ServiceName: req.URL.Query().Get("serviceName"),
-			ServicePath: req.URL.Query().Get("servicePath"),
+			ServicePath: strings.Split(req.URL.Query().Get("servicePath"), ","),
 		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
 			js, _ := json.Marshal(Response{

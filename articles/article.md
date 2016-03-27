@@ -22,7 +22,6 @@ That is where [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy)
 
 Let's see it in action.
 
-
 Setting Up the Environments
 ===========================
 
@@ -120,8 +119,8 @@ The other three nodes constitute our Docker Swarm cluster. The *swarm-master* is
 
 Now that everything is set up let's run a few services.
 
-Running a Single Instance of a Service
-======================================
+Reconfiguring Proxy With a Single Instance of a Service
+=======================================================
 
 We'll run a service defined in the [docker-compose-demo.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-demo.yml) file.
 
@@ -147,7 +146,7 @@ curl proxy:8500/v1/catalog/service/books-ms \
 
 The output of the `curl` command is as follows.
 
-```json
+```
 [
   {
     "ServicePort": 32768,
@@ -161,7 +160,7 @@ The output of the `curl` command is as follows.
 ]
 ```
 
-We can see that, in this case, the service is running in *10.100.192.201* (*swarm-node-2*) on the port *32768*. The name of the service (*books-ms*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
+We can see that, in this case, the service is running in *10.100.192.201* (*swarm-node-1*) on the port *32768*. The name of the service (*books-ms*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
 
 ```bash
 curl \
@@ -203,8 +202,8 @@ Content-Length: 2
 
 The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service and its base URL.
 
-Scaling The Service
-===================
+Reconfiguring Proxy With a Multiple Instance of a Service
+=========================================================
 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances of a service.
 
@@ -286,6 +285,18 @@ curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePa
 ```
 
 From this moment on, *HAProxy* is configured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as we send the `reconfigure` request, the proxy will load-balance requests across all instances. They can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
+
+Reconfiguring Proxy With Multiple Service Paths
+===============================================
+
+*Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example reconfiguration request could look as follows.
+
+```bash
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books,/api/v2/books" \
+     | jq '.'
+```
+
+TODO: Continue
 
 Please give *Docker Flow: Proxy* a try. Deploy multiple services, scale them, destroy them, and so on. More information can be found in the project [README](https://github.com/vfarcic/docker-flow-proxy). Please contact me if you have a problem, suggestion, or an opinion regarding the project (my info is in the [About](http://technologyconversations.com/about/) section). Feel free to create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues) or send a pull request.
 

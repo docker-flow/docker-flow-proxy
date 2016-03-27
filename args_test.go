@@ -66,7 +66,7 @@ func (s ArgsTestSuite) Test_Parse_ReturnsError_WhenFailure() {
 
 // Parse > Reconfigure
 
-func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
+func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
@@ -74,7 +74,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 		value		*string
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
-		{"servicePathFromArgs", "service-path", &reconfigure.ServicePath},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 		{s.TemplatesPath, "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
@@ -89,7 +88,31 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgs() {
 	}
 }
 
-func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
+func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
+	os.Args = []string{"myProgram", "reconfigure"}
+	data := []struct{
+		expected	[]string
+		key 		string
+		value		*[]string
+	}{
+		{[]string{"path1", "path2"}, "service-path", &reconfigure.ServicePath},
+	}
+
+	for _, d := range data {
+		for _, v := range d.expected {
+			os.Args = append(os.Args, fmt.Sprintf("--%s", d.key), v)
+		}
+
+	}
+
+	Args{}.Parse()
+
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 	os.Args = []string{"myProgram", "reconfigure"}
 	data := []struct{
 		expected	string
@@ -97,7 +120,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 		value		*string
 	}{
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
-		{"servicePathFromArgs", "p", &reconfigure.ServicePath},
 		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
 		{s.TemplatesPath, "t", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},
@@ -107,6 +129,28 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgs() {
 		os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), d.expected)
 	}
 	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsSlices() {
+	os.Args = []string{"myProgram", "reconfigure"}
+	data := []struct{
+		expected	[]string
+		key 		string
+		value		*[]string
+	}{
+		{[]string{"p1", "p2"}, "p", &reconfigure.ServicePath},
+	}
+	for _, d := range data {
+		for _, v := range d.expected {
+			os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), v)
+		}
+	}
+
+	Args{}.Parse()
+
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -126,7 +170,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		{"/cfg", &reconfigure.ConfigsPath},
 	}
 	reconfigure.ConsulAddress = "myConsulAddress"
-	reconfigure.ServicePath = "myConsulAddress"
+	reconfigure.ServicePath = []string{"p1", "p2"}
 	reconfigure.ServiceName = "myConsulAddress"
 
 	Args{}.Parse()

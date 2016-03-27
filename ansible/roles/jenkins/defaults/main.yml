@@ -3,52 +3,14 @@ main_job_src: service-workflow-config.xml
 jenkins_port: 8080
 
 configs: [
-  { src: "scriptApproval.xml", dir: "/data/jenkins", file: "scriptApproval.xml", mode: "0644" }
+  { src: "credentials.xml", dir: "/data/jenkins", file: "credentials.xml", mode: "0777" },
+  { src: "docker-node-config.xml", dir: "/data/jenkins/nodes/docker", file: "config.xml", mode: "0777" },
 ]
 
-#jobs: [
-#  {
-#    name: "books-ms-ansible",
-#    service_name: "books-ms",
-#    src: "service-ansible-config.xml"
-#  }, {
-#    name: "books-ms",
-#    service_name: "books-ms",
-#    src: "{{ main_job_src }}"
-#  }, {
-#    name: "books-ms-multibranch",
-#    service_name: "books-ms",
-#    src: "service-workflow-multibranch-config.xml"
-#  }, {
-#    name: "books-ms-blue-green",
-#    service_name: "books-ms",
-#    src: "service-blue-green-config.xml"
-#  }, {
-#    name: "books-ms-swarm",
-#    service_name: "books-ms",
-#    src: "service-swarm-config.xml"
-#  }, {
-#    name: "service-redeploy",
-#    service_name: "books-ms",
-#    src: "service-redeploy-config.xml"
-#  }, {
-#    name: "books-ms-scale",
-#    service_name: "books-ms",
-#    src: "service-scale-config.xml",
-#    scale: "2",
-#    time: "45 23 31 12 *"
-#  }, {
-#    name: "books-ms-descale",
-#    service_name: "books-ms",
-#    src: "service-scale-config.xml",
-#    scale: "-2",
-#    time: "15 0 2 1 *"
-#  }, {
-#     name: "hardware-notification",
-#     service_name: "books-ms",
-#     src: "hardware-notification-config.xml"
-#   }
-#]
+jobs:
+  - "deploy-to-swarm-without-proxy"
+  - "deploy-to-swarm-with-proxy"
+  - "scale-to-swarm-with-proxy"
 
 plugins:
   - git

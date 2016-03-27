@@ -1,7 +1,7 @@
 package main
+
 import (
 	"github.com/stretchr/testify/suite"
-	"strings"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,7 +12,7 @@ import (
 type ReconfigureTestSuite struct {
 	suite.Suite
 	ServiceName		string
-	ServicePath		string
+	ServicePath		[]string
 	ConsulAddress	string
 	ConsulTemplate	string
 	ConfigsPath		string
@@ -25,21 +25,20 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ServiceName = "myService"
 	s.Pid = "123"
 	s.ConsulAddress = "http://1.2.3.4:1234"
-	s.ServicePath = "path/to/my/service/api"
+	s.ServicePath = []string{"path/to/my/service/api", "path/to/my/other/service/api"}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
-	s.ConsulTemplate = strings.TrimSpace(fmt.Sprintf(`
-frontend myService-fe
+	s.ConsulTemplate = `frontend myService-fe
 	bind *:80
 	bind *:443
 	option http-server-close
-	acl url_myService path_beg %s
+	acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
 	use_backend myService-be if url_myService
 
 backend myService-be
 	{{range $i, $e := service "myService" "any"}}
 	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-	{{end}}`, s.ServicePath))
+	{{end}}`
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return nil
 	}
