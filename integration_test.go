@@ -82,7 +82,7 @@ func (s IntegrationTestSuite) runCmd(command string, args ...string) bool {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		fmt.Printf(command)
-		fmt.Printf(args)
+		fmt.Printf(strings.Join(args, " "))
 		fmt.Printf(err.Error())
 		return false
 	}
