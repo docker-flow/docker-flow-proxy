@@ -81,9 +81,7 @@ func (s IntegrationTestSuite) runCmd(command string, args ...string) bool {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf(command)
-		fmt.Printf(strings.Join(args, " "))
-		fmt.Printf(err.Error())
+		fmt.Printf("%s %s\n%s\n", command, strings.Join(args, " "), err.Error())
 		return false
 	}
 	return true
