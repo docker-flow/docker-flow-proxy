@@ -1,4 +1,4 @@
-FROM haproxy:1.6
+FROM haproxy:1.6-alpine
 MAINTAINER 	Viktor Farcic <viktor@farcic.com>
 
 RUN apk add --no-cache --virtual .build-deps curl unzip && \
