@@ -8,6 +8,7 @@ RUN apk add --no-cache --virtual .build-deps curl unzip && \
     chmod +x /usr/local/bin/consul-template && \
     apk del .build-deps
 
+RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 RUN mkdir -p /cfg/tmpl
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
