@@ -18,8 +18,9 @@ type Reconfigure struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName 			string	`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServicePath 			[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceName		string		`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServicePath 	[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceDomain	string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 }
 
 type BaseReconfigure struct {
@@ -84,13 +85,23 @@ func (m *Reconfigure) runConsulTemplateCmd() error {
 }
 
 func (m *Reconfigure) getConsulTemplate() string {
+	acl := ""
+	aclCondition := ""
+	if (len(m.ServiceDomain) > 0) {
+		acl = fmt.Sprintf(`
+	acl domain_%s hdr_dom(host) -i %s`,
+			m.ServiceName,
+			m.ServiceDomain,
+		)
+		aclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
+	}
 	return strings.TrimSpace(fmt.Sprintf(`
 frontend %s-fe
 	bind *:80
 	bind *:443
 	option http-server-close
-	acl url_%s path_beg %s
-	use_backend %s-be if url_%s
+	acl url_%s path_beg %s%s
+	use_backend %s-be if url_%s%s
 
 backend %s-be
 	{{range $i, $e := service "%s" "any"}}
@@ -99,8 +110,10 @@ backend %s-be
 		m.ServiceName,
 		m.ServiceName,
 		strings.Join(m.ServicePath, " path_beg "),
+		acl,
 		m.ServiceName,
 		m.ServiceName,
+		aclCondition,
 		m.ServiceName,
 		m.ServiceName,
 	))

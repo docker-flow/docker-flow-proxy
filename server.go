@@ -42,6 +42,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		sr := ServiceReconfigure{
 			ServiceName: req.URL.Query().Get("serviceName"),
 			ServicePath: strings.Split(req.URL.Query().Get("servicePath"), ","),
+			ServiceDomain: req.URL.Query().Get("serviceDomain"),
 		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
 			js, _ := json.Marshal(Response{

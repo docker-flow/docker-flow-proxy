@@ -74,6 +74,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		value		*string
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
+		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 		{s.TemplatesPath, "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
@@ -171,7 +172,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 	}
 	reconfigure.ConsulAddress = "myConsulAddress"
 	reconfigure.ServicePath = []string{"p1", "p2"}
-	reconfigure.ServiceName = "myConsulAddress"
+	reconfigure.ServiceName = "myServiceName"
 
 	Args{}.Parse()
 	for _, d := range data {

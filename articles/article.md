@@ -202,8 +202,8 @@ Content-Length: 2
 
 The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service and its base URL.
 
-Reconfiguring Proxy With a Multiple Instance of a Service
-=========================================================
+Reconfiguring Proxy With a Multiple Instances of a Service
+==========================================================
 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances of a service.
 
@@ -296,7 +296,20 @@ curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePa
      | jq '.'
 ```
 
-TODO: Continue
+The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
+
+Reconfiguring Proxy Limited to a Specific Domain
+================================================
+
+Optionally, serviceDomain can be used as well. If specified, the proxy will allow access only to requests coming from that domain. The example that follows sets *serviceDomain* to *my-domain-com*. After the proxy is reconfigured, only requests for that domain will be redirected to the destination service.
+
+```bash
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/&serviceDomain=my-domain.com" \
+     | jq '.'
+```
+
+Call For Action
+===============
 
 Please give *Docker Flow: Proxy* a try. Deploy multiple services, scale them, destroy them, and so on. More information can be found in the project [README](https://github.com/vfarcic/docker-flow-proxy). Please contact me if you have a problem, suggestion, or an opinion regarding the project (my info is in the [About](http://technologyconversations.com/about/) section). Feel free to create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues) or send a pull request.
 

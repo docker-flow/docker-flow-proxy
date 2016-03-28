@@ -17,6 +17,7 @@ type ServerTestSuite struct {
 	ReconfigureUrl		string
 	ServiceName			string
 	ServicePath			[]string
+	ServiceDomain		string
 	ResponseWriter		*ResponseWriterMock
 	Request				*http.Request
 }
@@ -24,13 +25,15 @@ type ServerTestSuite struct {
 func (s *ServerTestSuite) SetupTest() {
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
+	s.ServiceDomain = "my-domain.com"
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
 	s.ReconfigureBaseUrl = "/v1/docker-flow-proxy/reconfigure"
 	s.ReconfigureUrl = fmt.Sprintf(
-		"%s?serviceName=%s&servicePath=%s",
+		"%s?serviceName=%s&servicePath=%s&serviceDomain=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		strings.Join(s.ServicePath, ","),
+		s.ServiceDomain,
 	)
 	s.ResponseWriter = getResponseWriterMock()
 	s.Request, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
@@ -100,6 +103,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
 			ServicePath: s.ServicePath,
+			ServiceDomain: s.ServiceDomain,
 		},
 	})
 
@@ -143,6 +147,7 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	expectedService := ServiceReconfigure{
 		ServiceName: s.ServiceName,
 		ServicePath: s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
 	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		actualBase = baseData
