@@ -25,7 +25,7 @@ type ReconfigureTestSuite struct {
 func (s *ReconfigureTestSuite) SetupTest() {
 	s.ServiceName = "myService"
 	s.Pid = "123"
-	s.ConsulAddress = "http://1.2.3.4:1234"
+	s.ConsulAddress = "1.2.3.4:1234"
 	s.ServicePath = []string{"path/to/my/service/api", "path/to/my/other/service/api"}
 	s.ServiceDomain = "my-domain.com"
 	s.ConfigsPath = "path/to/configs/dir"
@@ -162,6 +162,52 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 		),
 		"-once",
 	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expected, *actual)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
+	actual := HaProxyTestSuite{}.mockConsulExecCmd()
+	expected := []string{
+		"consul-template",
+		"-consul",
+		s.ConsulAddress,
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateFilename,
+			s.TemplatesPath,
+			s.ServiceName,
+		),
+		"-once",
+	}
+	s.reconfigure.ConsulAddress = fmt.Sprintf("HttP://%s", s.ConsulAddress)
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expected, *actual)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttps() {
+	actual := HaProxyTestSuite{}.mockConsulExecCmd()
+	expected := []string{
+		"consul-template",
+		"-consul",
+		s.ConsulAddress,
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateFilename,
+			s.TemplatesPath,
+			s.ServiceName,
+		),
+		"-once",
+	}
+	s.reconfigure.ConsulAddress = fmt.Sprintf("HttPs://%s", s.ConsulAddress)
 
 	s.reconfigure.Execute([]string{})
 

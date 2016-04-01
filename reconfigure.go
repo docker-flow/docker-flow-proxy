@@ -62,17 +62,19 @@ func (m *Reconfigure) createConfig() error {
 }
 
 func (m *Reconfigure) runConsulTemplateCmd() error {
+	address := strings.ToLower(m.ConsulAddress)
+	address = strings.TrimLeft(address, "http://")
+	address = strings.TrimLeft(address, "https://")
+	template := fmt.Sprintf(
+		`%s/%s:%s/%s.cfg`,
+		m.TemplatesPath,
+		ServiceTemplateFilename,
+		m.TemplatesPath,
+		m.ServiceName,
+	)
 	cmdArgs := []string{
-		"-consul",
-		m.ConsulAddress,
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s.cfg`,
-			m.TemplatesPath,
-			ServiceTemplateFilename,
-			m.TemplatesPath,
-			m.ServiceName,
-		),
+		"-consul", address,
+		"-template", template,
 		"-once",
 	}
 	cmd := exec.Command("consul-template", cmdArgs...)

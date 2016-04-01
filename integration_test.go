@@ -106,6 +106,5 @@ func TestIntegrationTestSuite(t *testing.T) {
 	if !ok {
 		s.FailNow("Could not run the test service")
 	}
-//	time.Sleep(time.Second)
 	suite.Run(t, s)
 }
