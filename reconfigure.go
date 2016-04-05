@@ -19,6 +19,7 @@ type Reconfigure struct {
 
 type ServiceReconfigure struct {
 	ServiceName		string		`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor	string		`short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath 	[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServiceDomain	string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 }
@@ -97,6 +98,12 @@ func (m *Reconfigure) getConsulTemplate() string {
 		)
 		aclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
 	}
+	var fullServiceName string
+	if (len(m.ServiceColor) > 0) {
+		fullServiceName = fmt.Sprintf("%s-%s", m.ServiceName, m.ServiceColor)
+	} else {
+		fullServiceName = m.ServiceName
+	}
 	return strings.TrimSpace(fmt.Sprintf(`
 frontend %s-fe
 	bind *:80
@@ -117,7 +124,7 @@ backend %s-be
 		m.ServiceName,
 		aclCondition,
 		m.ServiceName,
-		m.ServiceName,
+		fullServiceName,
 	))
 }
 

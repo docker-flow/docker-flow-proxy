@@ -7,7 +7,7 @@ package main
 // $ eval $(docker-machine env testing)
 // $ export DOCKER_IP=$(docker-machine ip testing)
 // $ export CONSUL_IP=$(docker-machine ip testing)
-// $ go test --cover --tags integration
+// $ go build && go test --cover --tags integration
 // $ docker-machine rm -f testing
 
 // TODO: Change books-ms for a lighter service

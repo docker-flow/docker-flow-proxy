@@ -74,6 +74,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		value		*string
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
+		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
 		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 		{s.TemplatesPath, "templates-path", &reconfigure.TemplatesPath},
@@ -121,6 +122,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 		value		*string
 	}{
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
+		{"serviceColorFromArgs", "C", &reconfigure.ServiceColor},
 		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
 		{s.TemplatesPath, "t", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},

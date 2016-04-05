@@ -12,12 +12,10 @@ import (
 
 type ServerTestSuite struct {
 	suite.Suite
+	ServiceReconfigure
 	ConsulAddress		string
 	ReconfigureBaseUrl 	string
 	ReconfigureUrl		string
-	ServiceName			string
-	ServicePath			[]string
-	ServiceDomain		string
 	ResponseWriter		*ResponseWriterMock
 	Request				*http.Request
 }
@@ -25,13 +23,15 @@ type ServerTestSuite struct {
 func (s *ServerTestSuite) SetupTest() {
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
+	s.ServiceColor = "pink"
 	s.ServiceDomain = "my-domain.com"
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
 	s.ReconfigureBaseUrl = "/v1/docker-flow-proxy/reconfigure"
 	s.ReconfigureUrl = fmt.Sprintf(
-		"%s?serviceName=%s&servicePath=%s&serviceDomain=%s",
+		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
+		s.ServiceColor,
 		strings.Join(s.ServicePath, ","),
 		s.ServiceDomain,
 	)
@@ -100,11 +100,7 @@ func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigu
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
 		Status: "OK",
-		ServiceReconfigure: ServiceReconfigure{
-			ServiceName: s.ServiceName,
-			ServicePath: s.ServicePath,
-			ServiceDomain: s.ServiceDomain,
-		},
+		ServiceReconfigure: s.ServiceReconfigure,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, s.Request)
@@ -144,11 +140,6 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 		ConsulAddress: s.ConsulAddress,
 	}
 	var actualService ServiceReconfigure
-	expectedService := ServiceReconfigure{
-		ServiceName: s.ServiceName,
-		ServicePath: s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
@@ -159,7 +150,7 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	server.ServeHTTP(s.ResponseWriter, s.Request)
 
 	s.Equal(expectedBase, actualBase)
-	s.Equal(expectedService, actualService)
+	s.Equal(s.ServiceReconfigure, actualService)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 

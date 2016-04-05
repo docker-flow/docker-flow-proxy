@@ -41,6 +41,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logPrintf("Processing request %s", req.URL)
 		sr := ServiceReconfigure{
 			ServiceName: req.URL.Query().Get("serviceName"),
+			ServiceColor: req.URL.Query().Get("serviceColor"),
 			ServicePath: strings.Split(req.URL.Query().Get("servicePath"), ","),
 			ServiceDomain: req.URL.Query().Get("serviceDomain"),
 		}
@@ -59,7 +60,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if err := reconfig.Execute([]string{}); err != nil {
 				js, _ := json.Marshal(Response{
 					Status: "NOK",
-					Message: fmt.Sprintf("%#s", err),
+					Message: fmt.Sprintf("%s", err.Error()),
 				})
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write(js)

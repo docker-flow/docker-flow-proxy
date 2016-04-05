@@ -11,9 +11,7 @@ import (
 
 type ReconfigureTestSuite struct {
 	suite.Suite
-	ServiceName		string
-	ServicePath		[]string
-	ServiceDomain	string
+	ServiceReconfigure
 	ConsulAddress	string
 	ConsulTemplate	string
 	ConfigsPath		string
@@ -100,6 +98,15 @@ backend myService-be
 	actual := s.reconfigure.getConsulTemplate()
 
 	s.Equal(s.ConsulTemplate, actual)
+}
+
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsColor() {
+	s.reconfigure.ServiceColor = "black"
+	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
+
+	actual := s.reconfigure.getConsulTemplate()
+
+	s.Contains(actual, expected)
 }
 
 // Execute
