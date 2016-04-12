@@ -172,11 +172,11 @@ Usage
 
 The following query arguments can be used to send a request to *Docker Flow: Proxy*. The should be added to the base address *[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure*.
 
-|Query argument|Description                                                                 |Required|Example   |
-|--------------|----------------------------------------------------------------------------|--------|----------|
-|serviceName   |The name of the service. It must match the name stored in Consul            |Yes     |books-ms  |
-|servicePath   |The URL path of the service                                                 |Yes     |domain.com|
-|pathType      |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No|path_beg|
+|Query      |Description                                                                 |Required|Example   |
+|-----------|----------------------------------------------------------------------------|--------|----------|
+|serviceName|The name of the service. It must match the name stored in Consul            |Yes     |books-ms  |
+|servicePath|The URL path of the service                                                 |Yes     |domain.com|
+|pathType   |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No|path_beg|
 
 Feedback and Contribution
 -------------------------
