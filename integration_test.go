@@ -1,5 +1,4 @@
 // +build integration
-
 package main
 
 // To run locally on OS X
@@ -7,6 +6,8 @@ package main
 // $ eval $(docker-machine env testing)
 // $ export DOCKER_IP=$(docker-machine ip testing)
 // $ export CONSUL_IP=$(docker-machine ip testing)
+// $ docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
+// $ docker build -t vfarcic/docker-flow-proxy .
 // $ go build && go test --cover --tags integration
 // $ docker-machine rm -f testing
 
@@ -32,7 +33,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 // Integration
 
 func (s IntegrationTestSuite) Test_Integration_SingleInstance() {
-	s.reconfigure("/v1/test")
+	s.reconfigure("","/v1/test")
 
 	s.verifyReconfigure(1)
 }
@@ -47,13 +48,28 @@ func (s IntegrationTestSuite) Test_Integration_MultipleInstances() {
 		s.Fail("Failed to scale the service")
 	}
 
-	s.reconfigure("/v1/test")
+	s.reconfigure("", "/v1/test")
+
+	s.verifyReconfigure(1)
+}
+
+func (s IntegrationTestSuite) Test_Integration_PathReg() {
+	if ok := s.runCmd(
+		"docker-compose",
+		"-p", "test-service",
+		"-f", "docker-compose-test.yml",
+		"scale", "app=3",
+	); !ok {
+		s.Fail("Failed to scale the service")
+	}
+
+	s.reconfigure("path_reg", "/.*/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Integration_MultiplePaths() {
-	s.reconfigure("/v1/test", "/v2/test")
+	s.reconfigure("", "/v1/test", "/v2/test")
 
 	s.verifyReconfigure(2)
 }
@@ -68,11 +84,12 @@ func (s IntegrationTestSuite) verifyReconfigure(version int) {
 	s.Equal(200, resp.StatusCode)
 }
 
-func (s IntegrationTestSuite) reconfigure(paths ...string) {
+func (s IntegrationTestSuite) reconfigure(pathType string, paths ...string) {
 	_, err := http.Get(fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s&pathType=%s",
 		os.Getenv("DOCKER_IP"),
 		strings.Join(paths, ","),
+		pathType,
 	))
 	s.NoError(err)
 }

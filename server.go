@@ -44,6 +44,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ServiceColor: req.URL.Query().Get("serviceColor"),
 			ServicePath: strings.Split(req.URL.Query().Get("servicePath"), ","),
 			ServiceDomain: req.URL.Query().Get("serviceDomain"),
+			PathType: req.URL.Query().Get("pathType"),
 		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
 			js, _ := json.Marshal(Response{

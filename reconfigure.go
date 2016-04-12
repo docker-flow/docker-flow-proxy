@@ -5,6 +5,8 @@ import (
 	"strings"
 	"os"
 	"os/exec"
+	"html/template"
+	"bytes"
 )
 
 type Reconfigurable interface {
@@ -18,10 +20,14 @@ type Reconfigure struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName		string		`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor	string		`short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePath 	[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
-	ServiceDomain	string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ServiceName			string		`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor  		string		`short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
+	ServicePath   		[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceDomain 		string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	PathType      		string
+	Acl           		string
+	AclCondition  		string
+	FullServiceName		string
 }
 
 type BaseReconfigure struct {
@@ -88,44 +94,39 @@ func (m *Reconfigure) runConsulTemplateCmd() error {
 }
 
 func (m *Reconfigure) getConsulTemplate() string {
-	acl := ""
-	aclCondition := ""
+	m.Acl = ""
+	m.AclCondition = ""
 	if (len(m.ServiceDomain) > 0) {
-		acl = fmt.Sprintf(`
+		m.Acl = fmt.Sprintf(`
 	acl domain_%s hdr_dom(host) -i %s`,
 			m.ServiceName,
 			m.ServiceDomain,
 		)
-		aclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
+		m.AclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
 	}
-	var fullServiceName string
 	if (len(m.ServiceColor) > 0) {
-		fullServiceName = fmt.Sprintf("%s-%s", m.ServiceName, m.ServiceColor)
+		m.FullServiceName = fmt.Sprintf("%s-%s", m.ServiceName, m.ServiceColor)
 	} else {
-		fullServiceName = m.ServiceName
+		m.FullServiceName = m.ServiceName
 	}
-	return strings.TrimSpace(fmt.Sprintf(`
-frontend %s-fe
+	if (len(m.PathType) == 0) {
+		m.PathType = "path_beg"
+	}
+	src := `frontend {{.ServiceName}}-fe
 	bind *:80
 	bind *:443
 	option http-server-close
-	acl url_%s path_beg %s%s
-	use_backend %s-be if url_%s%s
+	acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
+	use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}
 
-backend %s-be
-	{{range $i, $e := service "%s" "any"}}
-	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-	{{end}}`,
-		m.ServiceName,
-		m.ServiceName,
-		strings.Join(m.ServicePath, " path_beg "),
-		acl,
-		m.ServiceName,
-		m.ServiceName,
-		aclCondition,
-		m.ServiceName,
-		fullServiceName,
-	))
+backend {{.ServiceName}}-be
+	{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
+	server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check"}}
+	{{"{{end}}"}}`
+	tmpl, _ := template.New("consulTemplate").Parse(src)
+	var ct bytes.Buffer
+	tmpl.Execute(&ct, m)
+	return ct.String()
 }
 
 func (m *Reconfigure) getConfigs() (string, error) {

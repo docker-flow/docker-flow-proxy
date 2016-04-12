@@ -108,6 +108,19 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithPathType_WhenPresent() {
+	s.ServiceReconfigure.PathType = "path_reg"
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&pathType=path_reg", nil)
+	expected, _ := json.Marshal(Response{
+		Status: "OK",
+		ServiceReconfigure: s.ServiceReconfigure,
+	})
+
+	Server{}.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	req, _ := http.NewRequest("GET", "/this/url/does/not/exist", nil)
 

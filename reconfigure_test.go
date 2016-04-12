@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"testing"
 	"github.com/stretchr/testify/mock"
+	"strings"
 )
 
 type ReconfigureTestSuite struct {
@@ -95,6 +96,14 @@ backend myService-be
 	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
 	{{end}}`
 	s.reconfigure.ServiceDomain = s.ServiceDomain
+	actual := s.reconfigure.getConsulTemplate()
+
+	s.Equal(s.ConsulTemplate, actual)
+}
+
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesPathReg() {
+	s.ConsulTemplate = strings.Replace(s.ConsulTemplate, "path_beg", "path_reg", -1)
+	s.reconfigure.PathType = "path_reg"
 	actual := s.reconfigure.getConsulTemplate()
 
 	s.Equal(s.ConsulTemplate, actual)

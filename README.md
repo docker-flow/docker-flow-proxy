@@ -1,6 +1,15 @@
 Docker Flow: Proxy
 ==================
 
+* [Introduction](#introduction)
+* [Examples](#examples)
+* [Containers Definition](#containers-definition)
+* [Usage](#usage)
+* [Feedback and Contribution](#feedback-and-contribution)
+
+Introduction
+------------
+
 The goal of the *Docker Flow: Proxy* project is to provide an easy way to reconfigure proxy every time a new service is deployed, or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and combine them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) as service registry. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
 
 Prerequisite for the *Docker Flow: Proxy* container is, at least, one [Consul](https://www.consul.io/) instance and the ability to put services information. The easiest way to store services data in Consul is through [Registrator]([Registrator](https://github.com/gliderlabs/registrator)). That does not mean that Registrator is the requirement. Any other method that will put the information into Consul will do.
@@ -158,7 +167,18 @@ As you can see, all three targets are pretty simple and straightforward. In the 
 
 Finally, *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
 
-Feedback and Contributions
---------------------------
+Usage
+-----
+
+The following query arguments can be used to send a request to *Docker Flow: Proxy*. The should be added to the base address *[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure*.
+
+|Query argument|Description                                                                 |Required|Example |
+|--------------|----------------------------------------------------------------------------|--------|--------|
+|serviceName   |The name of the service. It must match the name stored in Consul            |Yes     |books-ms|
+|servicePath   |The URL path of the service                                                 |Yes|my-domain.com|
+|pathType      |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No|path_beg|
+
+Feedback and Contribution
+-------------------------
 
 I'd appreciate any feedback you might give (both positive and negative). Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues), send a pull request, or tell me about any feature you might be missing. You can find my contact information in the [About](http://technologyconversations.com/about/) section of my [blog](http://technologyconversations.com/).
