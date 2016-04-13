@@ -46,7 +46,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfig(); err != nil {
 		return err
 	}
-	return m.run()
+	return proxy.Reload()
 }
 
 func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
@@ -60,12 +60,7 @@ func (m *Reconfigure) createConfig() error {
 	if err := m.runConsulTemplateCmd(); err != nil {
 		return err
 	}
-	configsContent, err := m.getConfigs()
-	if err != nil {
-		return err
-	}
-	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
-	return writeConsulConfigFile(configPath, []byte(configsContent), 0664)
+	return proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath)
 }
 
 func (m *Reconfigure) runConsulTemplateCmd() error {
@@ -127,39 +122,4 @@ backend {{.ServiceName}}-be
 	var ct bytes.Buffer
 	tmpl.Execute(&ct, m)
 	return ct.String()
-}
-
-func (m *Reconfigure) getConfigs() (string, error) {
-	if _, err := os.Stat(m.TemplatesPath); err != nil {
-		return "", fmt.Errorf("Could not find the directory %s\n%s", m.TemplatesPath, err.Error())
-	}
-	content := []string{}
-	configsFiles := []string{"haproxy.tmpl"}
-	configs, err := readDir(m.TemplatesPath)
-	if err != nil {
-		return "", fmt.Errorf("Could not read the directory %s\n%#s", m.TemplatesPath, err)
-	}
-	for _, fi := range configs {
-		if strings.HasSuffix(fi.Name(), ".cfg") {
-			configsFiles = append(configsFiles, fi.Name())
-		}
-	}
-	for _, file := range configsFiles {
-		templateBytes, err := readFile(fmt.Sprintf("%s/%s", m.TemplatesPath, file))
-		if err != nil {
-			return "", fmt.Errorf("Could not read the file %s\n%#s", file, err)
-		}
-		content = append(content, string(templateBytes))
-	}
-	return strings.Join(content, "\n\n"), nil
-}
-
-func (m *Reconfigure) run() error {
-	pidPath := "/var/run/haproxy.pid"
-	pid, err := readPidFile(pidPath)
-	if err != nil {
-		return fmt.Errorf("Could not read the %s file\n%#v", pidPath, err)
-	}
-	cmdArgs := []string{"-sf", string(pid)}
-	return HaProxy{}.RunCmd(cmdArgs)
 }

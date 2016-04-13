@@ -5,19 +5,21 @@ import (
 	"os/exec"
 	"net/http"
 	"log"
+	"os"
 )
 
-var readFile = ioutil.ReadFile
 var readPidFile = ioutil.ReadFile
-var readDir = ioutil.ReadDir
+var readConfigsDir = ioutil.ReadDir
+var readConfigsFile = ioutil.ReadFile
 var cmdRunConsul = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 var cmdRunHa = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
+var writeFile = ioutil.WriteFile
 var writeConsulTemplateFile = ioutil.WriteFile
-var writeConsulConfigFile = ioutil.WriteFile
+var osRemove = os.Remove
 var httpListenAndServe = http.ListenAndServe
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 	w.Header().Set("Content-Type", value)

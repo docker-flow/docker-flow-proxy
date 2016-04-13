@@ -24,7 +24,7 @@ var server = Server{}
 type Response struct {
 	Status    	string
 	Message 	string
-	ServiceReconfigure
+	ServiceName	string
 }
 
 func (m Server) Execute(args []string) error {
@@ -36,9 +36,9 @@ func (m Server) Execute(args []string) error {
 }
 
 func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	logPrintf("Processing request %s", req.URL)
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
-		logPrintf("Processing request %s", req.URL)
 		sr := ServiceReconfigure{
 			ServiceName: req.URL.Query().Get("serviceName"),
 			ServiceColor: req.URL.Query().Get("serviceColor"),
@@ -46,34 +46,49 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ServiceDomain: req.URL.Query().Get("serviceDomain"),
 			PathType: req.URL.Query().Get("pathType"),
 		}
+		response := Response{
+			Status: "OK",
+			ServiceName: sr.ServiceName,
+		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
-			js, _ := json.Marshal(Response{
-				Status: "NOK",
-				Message: "The following queries are mandatory: serviceName and servicePath",
-			})
+			response.Status = "NOK"
+			response.Message = "The following queries are mandatory: serviceName and servicePath"
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write(js)
 		} else {
-			reconfig := NewReconfigure(
+			action := NewReconfigure(
 				m.BaseReconfigure,
 				sr,
 			)
-			if err := reconfig.Execute([]string{}); err != nil {
-				js, _ := json.Marshal(Response{
-					Status: "NOK",
-					Message: fmt.Sprintf("%s", err.Error()),
-				})
+			if err := action.Execute([]string{}); err != nil {
+				response.Status = "NOK"
+				response.Message = fmt.Sprintf("%s", err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write(js)
-			} else {
-				js, _ := json.Marshal(Response{
-					Status: "OK",
-					ServiceReconfigure: sr,
-				})
-				httpWriterSetContentType(w, "application/json")
-				w.Write(js)
 			}
 		}
+		httpWriterSetContentType(w, "application/json")
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	case "/v1/docker-flow-proxy/remove":
+		serviceName := req.URL.Query().Get("serviceName")
+		response := Response{
+			Status: "OK",
+			ServiceName: serviceName,
+		}
+		if len(serviceName) == 0 {
+			response.Status = "NOK"
+			response.Message = "The following queries are mandatory: serviceName and servicePath"
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			action := NewRemove(
+				serviceName,
+				m.BaseReconfigure.ConfigsPath,
+				m.BaseReconfigure.TemplatesPath,
+			)
+			action.Execute([]string{})
+		}
+		httpWriterSetContentType(w, "application/json")
+		js, _ := json.Marshal(response)
+		w.Write(js)
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")

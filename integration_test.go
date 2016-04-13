@@ -7,12 +7,11 @@ package main
 // $ eval $(docker-machine env testing)
 // $ export DOCKER_IP=$(docker-machine ip testing)
 // $ export CONSUL_IP=$(docker-machine ip testing)
+// $ docker rm -f docker-flow-proxy
 // $ docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
 // $ docker build -t vfarcic/docker-flow-proxy .
-// $ go build && go test --cover --tags integration
+// $ go test --tags integration
 // $ docker-machine rm -f testing
-
-// TODO: Change books-ms for a lighter service
 
 import (
 	"fmt"
@@ -33,13 +32,13 @@ func (s *IntegrationTestSuite) SetupTest() {
 
 // Integration
 
-func (s IntegrationTestSuite) Test_Integration_SingleInstance() {
+func (s IntegrationTestSuite) Test_Reconfigure_SingleInstance() {
 	s.reconfigure("","/v1/test")
 
 	s.verifyReconfigure(1)
 }
 
-func (s IntegrationTestSuite) Test_Integration_MultipleInstances() {
+func (s IntegrationTestSuite) Test_Reconfigure_MultipleInstances() {
 	if ok := s.runCmd(
 		"docker-compose",
 		"-p", "test-service",
@@ -54,7 +53,7 @@ func (s IntegrationTestSuite) Test_Integration_MultipleInstances() {
 	s.verifyReconfigure(1)
 }
 
-func (s IntegrationTestSuite) Test_Integration_PathReg() {
+func (s IntegrationTestSuite) Test_Reconfigure_PathReg() {
 	if ok := s.runCmd(
 		"docker-compose",
 		"-p", "test-service",
@@ -69,10 +68,27 @@ func (s IntegrationTestSuite) Test_Integration_PathReg() {
 	s.verifyReconfigure(1)
 }
 
-func (s IntegrationTestSuite) Test_Integration_MultiplePaths() {
+func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
 	s.reconfigure("", "/v1/test", "/v2/test")
 
 	s.verifyReconfigure(2)
+}
+
+func (s IntegrationTestSuite) Test_Remove() {
+	s.reconfigure("", "/v1/test")
+	s.verifyReconfigure(1)
+
+	_, err := http.Get(fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/remove?serviceName=test-service",
+		os.Getenv("DOCKER_IP"),
+	))
+
+	s.NoError(err)
+	url := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	fmt.Println(url)
+	resp, err := http.Get(url)
+	s.NoError(err)
+	s.NotEqual(200, resp.StatusCode)
 }
 
 // Util

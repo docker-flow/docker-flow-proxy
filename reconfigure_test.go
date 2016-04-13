@@ -1,3 +1,5 @@
+// +build !integration
+
 package main
 
 import (
@@ -57,17 +59,8 @@ backend myService-be
 			ServicePath: s.ServicePath,
 		},
 	}
-	readFile = func(fileName string) ([]byte, error) {
-		return []byte(""), nil
-	}
 	readPidFile = func(fileName string) ([]byte, error) {
 		return []byte(s.Pid), nil
-	}
-	readDir = func (dirname string) ([]os.FileInfo, error) {
-		return nil, nil
-	}
-	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
-		return nil
 	}
 	writeConsulTemplateFile = func(fileName string, data []byte, perm os.FileMode) error {
 		return nil
@@ -138,9 +131,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesTemplateToFile() {
 	var actual string
 	expected := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFilename)
 	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		if len(actual) == 0 {
-			actual = filename
-		}
+		actual = filename
 		return nil
 	}
 
@@ -163,7 +154,7 @@ func (s ReconfigureTestSuite) Test_Execute_SetsFilePermissions() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
-	actual := HaProxyTestSuite{}.mockConsulExecCmd()
+	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
 	expected := []string{
 		"consul-template",
 		"-consul",
@@ -185,7 +176,7 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
-	actual := HaProxyTestSuite{}.mockConsulExecCmd()
+	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
 	expected := []string{
 		"consul-template",
 		"-consul",
@@ -208,7 +199,7 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttps() {
-	actual := HaProxyTestSuite{}.mockConsulExecCmd()
+	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
 	expected := []string{
 		"consul-template",
 		"-consul",
@@ -244,7 +235,7 @@ func (s ReconfigureTestSuite) Test_Execute_SavesConfigsToTheFile() {
 	var actualFilename string
 	var actualData string
 	expected := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
-	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
+	writeFile = func(fileName string, data []byte, perm os.FileMode) error {
 		actualFilename = fileName
 		actualData = string(data)
 		return nil
@@ -262,54 +253,17 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenGetConfigsFail() {
 	s.Error(err)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_RunsHaProxy() {
-	actual := HaProxyTestSuite{}.mockHaExecCmd()
-	expected := []string{
-		"haproxy",
-		"-f",
-		"/cfg/haproxy.cfg",
-		"-D",
-		"-p",
-		"/var/run/haproxy.pid",
-		"-sf",
-		s.Pid,
-	}
+func (s ReconfigureTestSuite) Test_Execute_Invokes_HaProxyReload() {
+	proxyOrig := proxy
+	defer func() {
+		proxy = proxyOrig
+	}()
+	mock := getProxyMock("")
+	proxy = mock
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, *actual)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenHaCommandFails() {
-	cmdRunHa = func(cmd *exec.Cmd) error {
-		return fmt.Errorf("This is an error")
-	}
-
-	err := s.reconfigure.Execute([]string{})
-
-	s.Error(err)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_ReadsPidFile() {
-	var actual string
-	readPidFile = func(fileName string) ([]byte, error) {
-		actual = fileName
-		return []byte(s.Pid), nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal("/var/run/haproxy.pid", actual)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenReadPidFails() {
-	readPidFile = func(fileName string) ([]byte, error) {
-		return []byte(""), fmt.Errorf("This is an error")
-	}
-
-	err := s.reconfigure.Execute([]string{})
-
-	s.Error(err)
+	mock.AssertCalled(s.T(), "Reload")
 }
 
 // NewReconfigure
@@ -346,7 +300,7 @@ func TestReconfigureTestSuite(t *testing.T) {
 
 // Mock
 
-func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
+func (s ReconfigureTestSuite) mockConsulExecCmd() *[]string {
 	var actualCommand []string
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		actualCommand = cmd.Args

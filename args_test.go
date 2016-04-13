@@ -1,3 +1,5 @@
+// +build !integration
+
 package main
 
 import (
@@ -13,27 +15,16 @@ import (
 type ArgsTestSuite struct {
 	suite.Suite
 	args            Args
-	TemplatesPath 	string
 }
 
 func (s *ArgsTestSuite) SetupTest() {
-	s.TemplatesPath = "test_configs/tmpl"
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		return nil
 	}
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return nil
 	}
-	readFile = func(fileName string) ([]byte, error) {
-		return []byte(""), nil
-	}
-	readDir = func (dirname string) ([]os.FileInfo, error) {
-		return nil, nil
-	}
 	writeConsulTemplateFile = func(fileName string, data []byte, perm os.FileMode) error {
-		return nil
-	}
-	writeConsulConfigFile = func(fileName string, data []byte, perm os.FileMode) error {
 		return nil
 	}
 	httpListenAndServe = func(addr string, handler http.Handler) error {
@@ -41,6 +32,9 @@ func (s *ArgsTestSuite) SetupTest() {
 	}
 	readPidFile = func(fileName string) ([]byte, error) {
 		return []byte(""), nil
+	}
+	osRemove = func(name string) error {
+		return nil
 	}
 	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
 	logPrintf = func(format string, v ...interface{}) {}
@@ -77,7 +71,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
 		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
-		{s.TemplatesPath, "templates-path", &reconfigure.TemplatesPath},
+		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
 	}
 
@@ -124,7 +118,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "C", &reconfigure.ServiceColor},
 		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
-		{s.TemplatesPath, "t", &reconfigure.TemplatesPath},
+		{"templatesPathFromArgs", "t", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},
 	}
 
@@ -200,6 +194,53 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 		os.Setenv(d.key, d.expected)
 	}
 	Args{}.Parse()
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+// Parse > Remove
+
+func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
+	os.Args = []string{"myProgram", "remove"}
+	data := []struct{
+		expected	string
+		key 		string
+		value		*string
+	}{
+		{"serviceNameFromArgs", "service-name", &remove.ServiceName},
+		{"templatesPathFromArgs", "templates-path", &remove.TemplatesPath},
+		{"configsPathFromArgs", "configs-path", &remove.ConfigsPath},
+	}
+
+	for _, d := range data {
+		os.Args = append(os.Args, fmt.Sprintf("--%s", d.key), d.expected)
+	}
+	err := Args{}.Parse()
+	s.NoError(err)
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+
+func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
+	os.Args = []string{"myProgram", "remove"}
+	data := []struct{
+		expected	string
+		key 		string
+		value		*string
+	}{
+		{"serviceNameFromArgs", "s", &remove.ServiceName},
+		{"templatesPathFromArgs", "t", &remove.TemplatesPath},
+		{"configsPathFromArgs", "c", &remove.ConfigsPath},
+	}
+
+	for _, d := range data {
+		os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), d.expected)
+	}
+	err := Args{}.Parse()
+	s.NoError(err)
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -285,9 +326,16 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	}
 }
 
+
+
 // Suite
 
 func TestArgsTestSuite(t *testing.T) {
+	proxyOrig := proxy
+	defer func() {
+		proxy = proxyOrig
+	}()
+	proxy = getProxyMock("")
 	suite.Run(t, new(ArgsTestSuite))
 }
 
