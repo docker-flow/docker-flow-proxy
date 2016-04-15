@@ -5,6 +5,10 @@ Docker Flow: Proxy
 * [Examples](#examples)
 * [Containers Definition](#containers-definition)
 * [Usage](#usage)
+
+  * [Reconfigure](#reconfigure)
+  * [Remove](#remove)
+
 * [Feedback and Contribution](#feedback-and-contribution)
 
 Introduction

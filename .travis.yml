@@ -19,3 +19,6 @@ after_success:
   - docker push vfarcic/docker-flow-proxy:${VERSION}
   - docker push vfarcic/docker-flow-proxy
 
+branches:
+  only:
+    - master
