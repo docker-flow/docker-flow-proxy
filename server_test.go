@@ -135,6 +135,10 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
 		Status: "OK",
 		ServiceName: s.ServiceName,
+		ServiceColor: s.ServiceColor,
+		ServicePath: s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		PathType: s.PathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
@@ -143,11 +147,15 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 }
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
-	s.ServiceReconfigure.PathType = "path_reg"
+	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&pathType=path_reg", nil)
 	expected, _ := json.Marshal(Response{
 		Status: "OK",
 		ServiceName: s.ServiceName,
+		ServiceColor: s.ServiceColor,
+		ServicePath: s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		PathType: pathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -258,18 +266,6 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	s.Equal(expected, actual)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
-
-//func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
-//	mockObj := getReconfigureMock("Execute")
-//	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
-//	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-//		return mockObj
-//	}
-//
-//	Server{}.ServeHTTP(s.ResponseWriter, s.Request)
-//
-//	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
-//}
 
 // Suite
 

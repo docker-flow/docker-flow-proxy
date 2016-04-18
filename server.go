@@ -22,9 +22,13 @@ type Server struct {
 var server = Server{}
 
 type Response struct {
-	Status    	string
-	Message 	string
-	ServiceName	string
+	Status    		string
+	Message 		string
+	ServiceName		string
+	ServiceColor  	string
+	ServicePath   	[]string
+	ServiceDomain 	string
+	PathType      	string
 }
 
 func (m Server) Execute(args []string) error {
@@ -49,6 +53,10 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		response := Response{
 			Status: "OK",
 			ServiceName: sr.ServiceName,
+			ServiceColor: sr.ServiceColor,
+			ServicePath: sr.ServicePath,
+			ServiceDomain: sr.ServiceDomain,
+			PathType: sr.PathType,
 		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
 			response.Status = "NOK"
