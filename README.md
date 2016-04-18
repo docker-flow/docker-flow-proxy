@@ -185,7 +185,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |serviceName  |The name of the service. It must match the name stored in Consul            |Yes     |books-ms  |
 |servicePath  |The URL path of the service                                                 |Yes     |domain.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No|path_beg|
-|serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com).|No|my-service.ecme.com|
+|serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain (e.g. my-domain.com).|No|ecme.com|
 
 ### Remove
 
