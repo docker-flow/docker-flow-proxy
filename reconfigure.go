@@ -25,6 +25,7 @@ type ServiceReconfigure struct {
 	ServicePath   		[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServiceDomain 		string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 	PathType      		string
+	SkipCheck			bool
 	Acl           		string
 	AclCondition  		string
 	FullServiceName		string
@@ -116,7 +117,7 @@ func (m *Reconfigure) getConsulTemplate() string {
 
 backend {{.ServiceName}}-be
 	{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
-	server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check"}}
+	server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
 	{{"{{end}}"}}`
 	tmpl, _ := template.New("consulTemplate").Parse(src)
 	var ct bytes.Buffer

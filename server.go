@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"strings"
+	"strconv"
 )
 
 type Serverable interface {
@@ -29,6 +30,7 @@ type Response struct {
 	ServicePath   	[]string
 	ServiceDomain 	string
 	PathType      	string
+	SkipCheck		bool
 }
 
 func (m Server) Execute(args []string) error {
@@ -50,6 +52,9 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ServiceDomain: req.URL.Query().Get("serviceDomain"),
 			PathType: req.URL.Query().Get("pathType"),
 		}
+		if len(req.URL.Query().Get("skipCheck")) > 0 {
+			sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
+		}
 		response := Response{
 			Status: "OK",
 			ServiceName: sr.ServiceName,
@@ -57,6 +62,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ServicePath: sr.ServicePath,
 			ServiceDomain: sr.ServiceDomain,
 			PathType: sr.PathType,
+			SkipCheck: sr.SkipCheck,
 		}
 		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
 			response.Status = "NOK"

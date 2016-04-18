@@ -148,7 +148,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&pathType=path_reg", nil)
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&pathType=" + pathType, nil)
 	expected, _ := json.Marshal(Response{
 		Status: "OK",
 		ServiceName: s.ServiceName,
@@ -156,6 +156,23 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 		ServicePath: s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
 		PathType: pathType,
+	})
+
+	Server{}.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&skipCheck=true", nil)
+	expected, _ := json.Marshal(Response{
+		Status: "OK",
+		ServiceName: s.ServiceName,
+		ServiceColor: s.ServiceColor,
+		ServicePath: s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		PathType: s.PathType,
+		SkipCheck: true,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)

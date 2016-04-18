@@ -111,6 +111,14 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsColor() {
 	s.Contains(actual, expected)
 }
 
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_DoesNotSetCheckWhenSkipCheckIsTrue() {
+	s.ConsulTemplate = strings.Replace(s.ConsulTemplate, " check", "", -1)
+	s.reconfigure.SkipCheck = true
+	actual := s.reconfigure.getConsulTemplate()
+
+	s.Equal(s.ConsulTemplate, actual)
+}
+
 // Execute
 
 func (s ReconfigureTestSuite) Test_Execute_CreatesConsulTemplate() {
