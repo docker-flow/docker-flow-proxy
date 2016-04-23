@@ -180,13 +180,13 @@ Usage
 
 The following query arguments can be used to send as a *reconfigure* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**.
 
-|Query        |Description                                                                 |Required|Default|Example   |
-|-------------|----------------------------------------------------------------------------|--------|-------|----------|
-|serviceName  |The name of the service. It must match the name stored in Consul.           |Yes     |       |books-ms  |
-|servicePath  |The URL path of the service.                                                |Yes     |       |domain.com|
+|Query        |Description                                                                 |Required|Default|Example      |
+|-------------|----------------------------------------------------------------------------|--------|-------|-------------|
+|serviceName  |The name of the service. It must match the name stored in Consul.           |Yes     |       |books-ms     |
+|servicePath  |The URL path of the service. Multiple values can be divided by comma (,)    |Yes     |       |/api/v1/books|
 |serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain (e.g. my-domain.com).|No||ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
-|skipCheck    |Whether to skip adding proxy checks.                                        |No      |false  |true      |
+|skipCheck    |Whether to skip adding proxy checks.                                        |No      |false  |true         |
 
 ### Remove
 
