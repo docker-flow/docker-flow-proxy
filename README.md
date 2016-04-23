@@ -21,7 +21,7 @@ Prerequisite for the *Docker Flow: Proxy* container is, at least, one [Consul](h
 Examples
 --------
 
-For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article. Besides providing more information, the article has a benefit or being OS agnostic. It will work on Linux, OS X, and Windows and do not have any requirement besides Vagrant.
+For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article. Besides providing more information, the article has a benefit or being OS agnostic. It will work on Linux, OS X, and Windows and does not have any requirement besides Vagrant.
 
 The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). The examples will not run on Windows. Please see the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article for an OS agnostic walkthrough.
 
