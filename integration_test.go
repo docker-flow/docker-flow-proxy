@@ -16,11 +16,11 @@ package main
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"os/exec"
 	"net/http"
-	"strings"
 	"os"
+	"os/exec"
+	"strings"
+	"testing"
 )
 
 type IntegrationTestSuite struct {
@@ -33,7 +33,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 // Integration
 
 func (s IntegrationTestSuite) Test_Reconfigure_SingleInstance() {
-	s.reconfigure("","/v1/test")
+	s.reconfigure("", "/v1/test")
 
 	s.verifyReconfigure(1)
 }

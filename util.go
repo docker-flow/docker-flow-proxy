@@ -2,10 +2,10 @@ package main
 
 import (
 	"io/ioutil"
-	"os/exec"
-	"net/http"
 	"log"
+	"net/http"
 	"os"
+	"os/exec"
 )
 
 var readPidFile = ioutil.ReadFile

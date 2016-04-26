@@ -3,9 +3,9 @@
 package main
 
 import (
-"github.com/stretchr/testify/suite"
-"testing"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"testing"
 )
 
 type RunTestSuite struct {
@@ -46,7 +46,7 @@ func TestRunTestSuite(t *testing.T) {
 
 // Mock
 
-type RunMock struct{
+type RunMock struct {
 	mock.Mock
 }
 

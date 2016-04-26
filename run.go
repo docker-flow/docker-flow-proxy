@@ -4,7 +4,7 @@ type Runnable interface {
 	Execute(args []string) error
 }
 
-type Run struct {}
+type Run struct{}
 
 var run Run
 
@@ -15,4 +15,3 @@ var NewRun = func() Executable {
 func (m *Run) Execute(args []string) error {
 	return HaProxy{}.RunCmd([]string{})
 }
-

@@ -3,18 +3,18 @@
 package main
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
-	"os"
-	"github.com/stretchr/testify/mock"
-	"os/exec"
-	"net/http"
 	"fmt"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"net/http"
+	"os"
+	"os/exec"
+	"testing"
 )
 
 type ArgsTestSuite struct {
 	suite.Suite
-	args            Args
+	args Args
 }
 
 func (s *ArgsTestSuite) SetupTest() {
@@ -62,10 +62,10 @@ func (s ArgsTestSuite) Test_Parse_ReturnsError_WhenFailure() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 	os.Args = []string{"myProgram", "reconfigure"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
@@ -86,10 +86,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 	os.Args = []string{"myProgram", "reconfigure"}
-	data := []struct{
-		expected	[]string
-		key 		string
-		value		*[]string
+	data := []struct {
+		expected []string
+		key      string
+		value    *[]string
 	}{
 		{[]string{"path1", "path2"}, "service-path", &reconfigure.ServicePath},
 	}
@@ -110,10 +110,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 	os.Args = []string{"myProgram", "reconfigure"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "C", &reconfigure.ServiceColor},
@@ -133,10 +133,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsSlices() {
 	os.Args = []string{"myProgram", "reconfigure"}
-	data := []struct{
-		expected	[]string
-		key 		string
-		value		*[]string
+	data := []struct {
+		expected []string
+		key      string
+		value    *[]string
 	}{
 		{[]string{"p1", "p2"}, "p", &reconfigure.ServicePath},
 	}
@@ -159,9 +159,9 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		"--service-name", "myService",
 		"--service-path", "my/service/path",
 	}
-	data := []struct{
-		expected	string
-		value		*string
+	data := []struct {
+		expected string
+		value    *string
 	}{
 		{"/cfg/tmpl", &reconfigure.TemplatesPath},
 		{"/cfg", &reconfigure.ConfigsPath},
@@ -182,10 +182,10 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 		"--service-name", "serviceName",
 		"--service-path", "servicePath",
 	}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"consulAddressFromEnv", "CONSUL_ADDRESS", &reconfigure.ConsulAddress},
 	}
@@ -203,10 +203,10 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
 	os.Args = []string{"myProgram", "remove"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"serviceNameFromArgs", "service-name", &remove.ServiceName},
 		{"templatesPathFromArgs", "templates-path", &remove.TemplatesPath},
@@ -223,13 +223,12 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
 	}
 }
 
-
 func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 	os.Args = []string{"myProgram", "remove"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"serviceNameFromArgs", "s", &remove.ServiceName},
 		{"templatesPathFromArgs", "t", &remove.TemplatesPath},
@@ -250,10 +249,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 	os.Args = []string{"myProgram", "server"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"ipFromArgs", "ip", &server.IP},
 		{"portFromArgs", "port", &server.Port},
@@ -270,10 +269,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 	os.Args = []string{"myProgram", "server"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"ipFromArgs", "i", &server.IP},
 		{"portFromArgs", "p", &server.Port},
@@ -292,9 +291,9 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 	os.Args = []string{"myProgram", "server"}
 	os.Unsetenv("IP")
 	os.Unsetenv("PORT")
-	data := []struct{
-		expected	string
-		value		*string
+	data := []struct {
+		expected string
+		value    *string
 	}{
 		{"0.0.0.0", &server.IP},
 		{"8080", &server.Port},
@@ -308,10 +307,10 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 
 func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	os.Args = []string{"myProgram", "server"}
-	data := []struct{
-		expected	string
-		key 		string
-		value		*string
+	data := []struct {
+		expected string
+		key      string
+		value    *string
 	}{
 		{"ipFromEnv", "IP", &server.IP},
 		{"portFromEnv", "PORT", &server.Port},
@@ -326,8 +325,6 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	}
 }
 
-
-
 // Suite
 
 func TestArgsTestSuite(t *testing.T) {
@@ -341,7 +338,7 @@ func TestArgsTestSuite(t *testing.T) {
 
 // Mock
 
-type ArgsMock struct{
+type ArgsMock struct {
 	mock.Mock
 }
 

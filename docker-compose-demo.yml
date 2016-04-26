@@ -7,6 +7,8 @@ services:
       - 8080
     environment:
       - DB_HOST=books-ms-db
+    depends_on:
+      - db
 
   db:
     container_name: books-ms-db

@@ -3,20 +3,20 @@
 package main
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
-	"os/exec"
-	"os"
 	"fmt"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"os"
+	"os/exec"
+	"testing"
 )
 
 // Setup
 
 type HaProxyTestSuite struct {
 	suite.Suite
-	TemplatesPath 	string
-	ConfigsPath		string
+	TemplatesPath string
+	ConfigsPath   string
 }
 
 func (s *HaProxyTestSuite) SetupTest() {
@@ -34,7 +34,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDi
 	defer func() {
 		readConfigsDir = readConfigsDirOrig
 	}()
-	readConfigsDir = func (dirname string) ([]os.FileInfo, error) {
+	readConfigsDir = func(dirname string) ([]os.FileInfo, error) {
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
@@ -70,7 +70,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesMockDataIfConfigs
 	defer func() {
 		readConfigsDir = readConfigsDirOrig
 	}()
-	readConfigsDir = func (dirname string) ([]os.FileInfo, error) {
+	readConfigsDir = func(dirname string) ([]os.FileInfo, error) {
 		return []os.FileInfo{}, nil
 	}
 	expectedData := `template content
@@ -100,7 +100,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadCo
 	defer func() {
 		readConfigsFile = readConfigsFileOrig
 	}()
-	readConfigsFile = func (dirname string) ([]byte, error) {
+	readConfigsFile = func(dirname string) ([]byte, error) {
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
@@ -187,7 +187,7 @@ func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
 	return &actualCommand
 }
 
-type ProxyMock struct{
+type ProxyMock struct {
 	mock.Mock
 }
 

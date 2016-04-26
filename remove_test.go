@@ -3,19 +3,19 @@
 package main
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
-	"os/exec"
-	"github.com/stretchr/testify/mock"
 	"fmt"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"os/exec"
+	"testing"
 )
 
 type RemoveTestSuite struct {
 	suite.Suite
-	remove			Remove
-	ServiceName 	string
-	ConfigsPath		string
-	TemplatesPath	string
+	remove        Remove
+	ServiceName   string
+	ConfigsPath   string
+	TemplatesPath string
 }
 
 func (s *RemoveTestSuite) SetupTest() {
@@ -26,8 +26,8 @@ func (s *RemoveTestSuite) SetupTest() {
 		return nil
 	}
 	s.remove = Remove{
-		ServiceName: s.ServiceName,
-		ConfigsPath: s.ConfigsPath,
+		ServiceName:   s.ServiceName,
+		ConfigsPath:   s.ConfigsPath,
 		TemplatesPath: s.TemplatesPath,
 	}
 }
@@ -128,7 +128,7 @@ func (s RemoveTestSuite) mockConsulExecCmd() *[]string {
 	return &actualCommand
 }
 
-type RemoveMock struct{
+type RemoveMock struct {
 	mock.Mock
 }
 

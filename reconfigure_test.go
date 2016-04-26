@@ -3,24 +3,24 @@
 package main
 
 import (
-	"github.com/stretchr/testify/suite"
 	"fmt"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 	"os"
 	"os/exec"
-	"testing"
-	"github.com/stretchr/testify/mock"
 	"strings"
+	"testing"
 )
 
 type ReconfigureTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
-	ConsulAddress	string
-	ConsulTemplate	string
-	ConfigsPath		string
-	TemplatesPath	string
-	reconfigure		Reconfigure
-	Pid				string
+	ConsulAddress  string
+	ConsulTemplate string
+	ConfigsPath    string
+	TemplatesPath  string
+	reconfigure    Reconfigure
+	Pid            string
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
@@ -48,11 +48,11 @@ backend myService-be
 	cmdRunConsul = func(cmd *exec.Cmd) error {
 		return nil
 	}
-	s.reconfigure = Reconfigure {
+	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddress: s.ConsulAddress,
 			TemplatesPath: s.TemplatesPath,
-			ConfigsPath: s.ConfigsPath,
+			ConfigsPath:   s.ConfigsPath,
 		},
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
@@ -317,7 +317,7 @@ func (s ReconfigureTestSuite) mockConsulExecCmd() *[]string {
 	return &actualCommand
 }
 
-type ReconfigureMock struct{
+type ReconfigureMock struct {
 	mock.Mock
 }
 
@@ -338,6 +338,3 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	}
 	return mockObj
 }
-
-
-

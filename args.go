@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
-	"fmt"
 )
 
-type Args struct {}
+type Args struct{}
 
 var NewArgs = func() Args {
 	return Args{}

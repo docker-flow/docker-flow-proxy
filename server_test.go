@@ -3,26 +3,26 @@
 package main
 
 import (
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"github.com/stretchr/testify/suite"
-	"testing"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"net/http"
 	"strings"
+	"testing"
 )
 
 type ServerTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
-	ConsulAddress      	string
-	ReconfigureBaseUrl 	string
-	RemoveBaseUrl		string
-	ReconfigureUrl     	string
-	RemoveUrl          	string
-	ResponseWriter     	*ResponseWriterMock
-	RequestReconfigure 	*http.Request
-	RequestRemove		*http.Request
+	ConsulAddress      string
+	ReconfigureBaseUrl string
+	RemoveBaseUrl      string
+	ReconfigureUrl     string
+	RemoveUrl          string
+	ResponseWriter     *ResponseWriterMock
+	RequestReconfigure *http.Request
+	RequestRemove      *http.Request
 }
 
 func (s *ServerTestSuite) SetupTest() {
@@ -67,7 +67,7 @@ func (s *ServerTestSuite) SetupTest() {
 
 func (s ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	server := Server{
-		IP: "myIp",
+		IP:   "myIp",
 		Port: "1234",
 	}
 	var actual string
@@ -105,7 +105,6 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
 }
 
-
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 	for ver := 1; ver <= 2; ver++ {
 		rw := getResponseWriterMock()
@@ -133,12 +132,12 @@ func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigu
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
-		Status: "OK",
-		ServiceName: s.ServiceName,
-		ServiceColor: s.ServiceColor,
-		ServicePath: s.ServicePath,
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
-		PathType: s.PathType,
+		PathType:      s.PathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
@@ -148,14 +147,14 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&pathType=" + pathType, nil)
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
 	expected, _ := json.Marshal(Response{
-		Status: "OK",
-		ServiceName: s.ServiceName,
-		ServiceColor: s.ServiceColor,
-		ServicePath: s.ServicePath,
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
-		PathType: pathType,
+		PathType:      pathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -164,15 +163,15 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 }
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl + "&skipCheck=true", nil)
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&skipCheck=true", nil)
 	expected, _ := json.Marshal(Response{
-		Status: "OK",
-		ServiceName: s.ServiceName,
-		ServiceColor: s.ServiceColor,
-		ServicePath: s.ServicePath,
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
-		PathType: s.PathType,
-		SkipCheck: true,
+		PathType:      s.PathType,
+		SkipCheck:     true,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -246,7 +245,7 @@ func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() 
 
 func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 	expected, _ := json.Marshal(Response{
-		Status: "OK",
+		Status:      "OK",
 		ServiceName: s.ServiceName,
 	})
 
@@ -271,9 +270,9 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	}
 	NewRemove = func(serviceName, configsPath, templatesPath string) Removable {
 		actual = Remove{
-			ServiceName: serviceName,
+			ServiceName:   serviceName,
 			TemplatesPath: templatesPath,
-			ConfigsPath: configsPath,
+			ConfigsPath:   configsPath,
 		}
 		return mockObj
 	}
@@ -292,7 +291,7 @@ func TestServerTestSuite(t *testing.T) {
 
 // Mock
 
-type ServerMock struct{
+type ServerMock struct {
 	mock.Mock
 }
 

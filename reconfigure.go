@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
+	"html/template"
 	"os"
 	"os/exec"
-	"html/template"
-	"bytes"
+	"strings"
 )
 
 type Reconfigurable interface {
@@ -20,21 +20,21 @@ type Reconfigure struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName			string		`short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor  		string		`short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePath   		[]string	`short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
-	ServiceDomain 		string		`long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	PathType      		string
-	SkipCheck			bool
-	Acl           		string
-	AclCondition  		string
-	FullServiceName		string
+	ServiceName     string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor    string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
+	ServicePath     []string `short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceDomain   string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	PathType        string
+	SkipCheck       bool
+	Acl             string
+	AclCondition    string
+	FullServiceName string
 }
 
 type BaseReconfigure struct {
-	ConsulAddress			string	`short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
-	ConfigsPath				string  `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	TemplatesPath			string  `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ConsulAddress string `short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
+	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
 var reconfigure Reconfigure
@@ -92,7 +92,7 @@ func (m *Reconfigure) runConsulTemplateCmd() error {
 func (m *Reconfigure) getConsulTemplate() string {
 	m.Acl = ""
 	m.AclCondition = ""
-	if (len(m.ServiceDomain) > 0) {
+	if len(m.ServiceDomain) > 0 {
 		m.Acl = fmt.Sprintf(`
 	acl domain_%s hdr_dom(host) -i %s`,
 			m.ServiceName,
@@ -100,12 +100,12 @@ func (m *Reconfigure) getConsulTemplate() string {
 		)
 		m.AclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
 	}
-	if (len(m.ServiceColor) > 0) {
+	if len(m.ServiceColor) > 0 {
 		m.FullServiceName = fmt.Sprintf("%s-%s", m.ServiceName, m.ServiceColor)
 	} else {
 		m.FullServiceName = m.ServiceName
 	}
-	if (len(m.PathType) == 0) {
+	if len(m.PathType) == 0 {
 		m.PathType = "path_beg"
 	}
 	src := `frontend {{.ServiceName}}-fe

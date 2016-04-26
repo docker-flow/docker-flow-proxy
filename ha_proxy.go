@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -17,7 +17,7 @@ type Proxy interface {
 
 var proxy Proxy = HaProxy{}
 
-type HaProxy struct { }
+type HaProxy struct{}
 
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{

@@ -1,4 +1,5 @@
 package main
+
 import "fmt"
 
 type Removable interface {
@@ -6,18 +7,18 @@ type Removable interface {
 }
 
 type Remove struct {
-	ServiceName		string	`short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
-	ConfigsPath		string  `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	TemplatesPath	string  `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ServiceName   string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
+	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
 var remove Remove
 
 var NewRemove = func(serviceName, configsPath, templatesPath string) Removable {
 	return &Remove{
-		ServiceName: serviceName,
+		ServiceName:   serviceName,
 		TemplatesPath: templatesPath,
-		ConfigsPath: configsPath,
+		ConfigsPath:   configsPath,
 	}
 }
 
