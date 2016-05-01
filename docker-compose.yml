@@ -18,6 +18,7 @@ services:
     command: -ip $DOCKER_IP consul://$CONSUL_IP:8500
 
   proxy:
+    build: .
     container_name: docker-flow-proxy
     image: vfarcic/docker-flow-proxy
     environment:

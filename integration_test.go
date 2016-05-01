@@ -2,16 +2,17 @@
 
 package main
 
-// To run locally on OS X
-// $ docker-machine create -d virtualbox testing
-// $ eval $(docker-machine env testing)
-// $ export DOCKER_IP=$(docker-machine ip testing)
-// $ export CONSUL_IP=$(docker-machine ip testing)
-// $ docker rm -f docker-flow-proxy
+// Without Docker Machine
+// $ export DOCKER_IP=<HOST_IP>
+// $ export CONSUL_IP=<HOST_IP>
 // $ docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
+
 // $ docker build -t vfarcic/docker-flow-proxy .
-// $ go test --tags integration
-// $ docker-machine rm -f testing
+// $ docker-compose build proxy
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-pre-deployment-dep
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-pre-deployment
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
 
 import (
 	"fmt"
@@ -32,37 +33,13 @@ func (s *IntegrationTestSuite) SetupTest() {
 
 // Integration
 
-func (s IntegrationTestSuite) Test_Reconfigure_SingleInstance() {
-	s.reconfigure("", "/v1/test")
-
-	s.verifyReconfigure(1)
-}
-
 func (s IntegrationTestSuite) Test_Reconfigure_MultipleInstances() {
-	if ok := s.runCmd(
-		"docker-compose",
-		"-p", "test-service",
-		"-f", "docker-compose-test.yml",
-		"scale", "app=3",
-	); !ok {
-		s.Fail("Failed to scale the service")
-	}
-
 	s.reconfigure("", "/v1/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_PathReg() {
-	if ok := s.runCmd(
-		"docker-compose",
-		"-p", "test-service",
-		"-f", "docker-compose-test.yml",
-		"scale", "app=3",
-	); !ok {
-		s.Fail("Failed to scale the service")
-	}
-
 	s.reconfigure("path_reg", "/.*/test")
 
 	s.verifyReconfigure(1)
@@ -131,14 +108,6 @@ func TestIntegrationTestSuite(t *testing.T) {
 	}
 	if len(os.Getenv("CONSUL_IP")) == 0 {
 		os.Setenv("CONSUL_IP", "localhost")
-	}
-	ok := s.runCmd("docker-compose", "up", "-d", "consul", "proxy", "registrator")
-	if !ok {
-		s.FailNow("Could not run consul, proxy, and registrator")
-	}
-	ok = s.runCmd("docker-compose", "-p", "test-service", "-f", "docker-compose-test.yml", "up", "-d")
-	if !ok {
-		s.FailNow("Could not run the test service")
 	}
 	suite.Run(t, s)
 }

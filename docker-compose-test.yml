@@ -1,10 +1,76 @@
 version: '2'
 
+
 services:
-  app:
+
+  tests-pre-deployment-dep:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+    ports:
+      - 80:80
+      - 8080:8080
+    depends_on:
+      - consul
+      - registrator
+      - app-1
+      - app-2
+      - app-3
+
+  tests-pre-deployment:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    image: vfarcic/docker-flow-proxy-tests
+    volumes:
+      - .:/usr/src/myapp
+      - ${GOPATH}:/go
+    environment:
+      - DOCKER_IP=${DOCKER_IP}
+      - CONSUL_IP=${CONSUL_IP}
+
+  consul:
+    image: progrium/consul
+    ports:
+      - 8500:8500
+      - 8301:8301
+      - 8300:8300
+    command: -server -bootstrap
+
+  registrator:
+    image: gliderlabs/registrator
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    command: -ip $DOCKER_IP consul://$CONSUL_IP:8500
+    depends_on:
+      - consul
+
+  app-1:
     image: vfarcic/docker-flow-proxy
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
       SERVICE_8080_NAME: test-service
     ports:
       - 8080
+    depends_on:
+      - consul
+
+  app-2:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+      SERVICE_8080_NAME: test-service
+    ports:
+      - 8080
+    depends_on:
+      - consul
+
+  app-3:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+      SERVICE_8080_NAME: test-service
+    ports:
+      - 8080
+    depends_on:
+      - consul
