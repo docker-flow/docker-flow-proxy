@@ -3,7 +3,14 @@ version: '2'
 
 services:
 
-  tests-pre-deployment-dep:
+  tests-unit:
+    image: golang:1.6
+    volumes:
+      - .:/usr/src/myapp
+      - $GOPATH:/go
+    command: bash -c "cd /usr/src/myapp && go test --cover -v ./... && go build -v -o docker-flow-proxy"
+
+  tests-staging-dep:
     image: vfarcic/docker-flow-proxy
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
@@ -17,7 +24,19 @@ services:
       - app-2
       - app-3
 
-  tests-pre-deployment:
+  tests-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    image: vfarcic/docker-flow-proxy-tests
+    volumes:
+      - .:/usr/src/myapp
+      - ${GOPATH}:/go
+    environment:
+      - DOCKER_IP=${DOCKER_IP}
+      - CONSUL_IP=${CONSUL_IP}
+
+  tests-production:
     build:
       context: .
       dockerfile: Dockerfile.tests

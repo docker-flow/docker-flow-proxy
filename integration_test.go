@@ -5,14 +5,24 @@ package main
 // Without Docker Machine
 // $ export DOCKER_IP=<HOST_IP>
 // $ export CONSUL_IP=<HOST_IP>
-// $ docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
 
-// $ docker build -t vfarcic/docker-flow-proxy .
-// $ docker-compose build proxy
+// Unit tests
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-unit
+
+// Build
+// $ docker-compose -f docker-compose.yml build proxy
+
+// Staging tests
 // $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-pre-deployment-dep
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-pre-deployment
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-staging-dep
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-staging
 // $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
+
+// Push
+// $ docker push vfarcic/docker-flow-proxy
+
+// Production tests
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-production
 
 import (
 	"fmt"
