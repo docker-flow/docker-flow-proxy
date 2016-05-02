@@ -7,8 +7,7 @@ services:
     image: golang:1.6
     volumes:
       - .:/usr/src/myapp
-      - $GOPATH:/go
-    command: bash -c "cd /usr/src/myapp && go test --cover -v ./... && go build -v -o docker-flow-proxy"
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... && go build -v -o docker-flow-proxy"
 
   tests-staging-dep:
     image: vfarcic/docker-flow-proxy
