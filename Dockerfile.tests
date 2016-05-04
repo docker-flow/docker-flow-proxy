@@ -1,8 +1,0 @@
-FROM golang:1.6
-MAINTAINER 	Viktor Farcic <viktor@farcic.com>
-
-COPY scripts/run_tests.sh /run_tests.sh
-RUN chmod +x /run_tests.sh
-WORKDIR /usr/src/myapp
-
-CMD ["/run_tests.sh"]

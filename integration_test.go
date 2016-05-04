@@ -2,15 +2,15 @@
 
 package main
 
-// Without Docker Machine
-// $ export DOCKER_IP=<HOST_IP>
-// $ export CONSUL_IP=<HOST_IP>
+// vfarcic
+// docker-flow-proxy
+// $ export HOST_IP=<HOST_IP>
 
 // Unit tests
 // $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-unit
 
 // Build
-// $ docker-compose -f docker-compose.yml build proxy
+// $ docker-compose -f docker-compose.yml build app
 
 // Staging tests
 // $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
@@ -22,6 +22,7 @@ package main
 // $ docker push vfarcic/docker-flow-proxy
 
 // Production tests
+// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-staging-dep
 // $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-production
 
 import (
@@ -35,6 +36,7 @@ import (
 )
 
 type IntegrationTestSuite struct {
+	hostIp		string
 	suite.Suite
 }
 
@@ -72,7 +74,6 @@ func (s IntegrationTestSuite) Test_Remove() {
 
 	s.NoError(err)
 	url := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
-	fmt.Println(url)
 	resp, err := http.Get(url)
 	s.NoError(err)
 	s.NotEqual(200, resp.StatusCode)
@@ -81,20 +82,23 @@ func (s IntegrationTestSuite) Test_Remove() {
 // Util
 
 func (s IntegrationTestSuite) verifyReconfigure(version int) {
-	url := fmt.Sprintf("http://%s/v%d/test", os.Getenv("DOCKER_IP"), version)
-	resp, err := http.Get(url)
+	address := fmt.Sprintf("http://%s/v%d/test", os.Getenv("DOCKER_IP"), version)
+	logPrintf("Sending verify request to %s", address)
+	resp, err := http.Get(address)
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode)
 }
 
 func (s IntegrationTestSuite) reconfigure(pathType string, paths ...string) {
-	_, err := http.Get(fmt.Sprintf(
+	address := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s&pathType=%s",
 		os.Getenv("DOCKER_IP"),
 		strings.Join(paths, ","),
 		pathType,
-	))
+	)
+	logPrintf("Sending reconfigure request to %s", address)
+	_, err := http.Get(address)
 	s.NoError(err)
 }
 

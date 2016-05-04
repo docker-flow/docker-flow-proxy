@@ -3,16 +3,17 @@ version: '2'
 
 services:
 
-  tests-unit:
+  unit:
     image: golang:1.6
     volumes:
       - .:/usr/src/myapp
+      - /tmp/go:/go
     command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... && go build -v -o docker-flow-proxy"
 
-  tests-staging-dep:
+  staging-dep:
     image: vfarcic/docker-flow-proxy
     environment:
-      CONSUL_ADDRESS: $CONSUL_IP:8500
+      CONSUL_ADDRESS: ${HOST_IP}:8500
     ports:
       - 80:80
       - 8080:8080
@@ -23,29 +24,25 @@ services:
       - app-2
       - app-3
 
-  tests-staging:
-    build:
-      context: .
-      dockerfile: Dockerfile.tests
-    image: vfarcic/docker-flow-proxy-tests
+  staging:
+    image: golang:1.6
     volumes:
       - .:/usr/src/myapp
-      - ${GOPATH}:/go
+      - /tmp/go:/go
     environment:
-      - DOCKER_IP=${DOCKER_IP}
-      - CONSUL_IP=${CONSUL_IP}
+      - DOCKER_IP=${HOST_IP}
+      - CONSUL_IP=${HOST_IP}
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration"
 
-  tests-production:
-    build:
-      context: .
-      dockerfile: Dockerfile.tests
-    image: vfarcic/docker-flow-proxy-tests
+  production:
+    image: golang:1.6
     volumes:
       - .:/usr/src/myapp
-      - ${GOPATH}:/go
+      - /tmp/go:/go
     environment:
-      - DOCKER_IP=${DOCKER_IP}
-      - CONSUL_IP=${CONSUL_IP}
+      - DOCKER_IP=${HOST_IP}
+      - CONSUL_IP=${HOST_IP}
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration"
 
   consul:
     image: progrium/consul
@@ -59,14 +56,14 @@ services:
     image: gliderlabs/registrator
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
-    command: -ip $DOCKER_IP consul://$CONSUL_IP:8500
+    command: -ip ${HOST_IP} consul://${HOST_IP}:8500
     depends_on:
       - consul
 
   app-1:
     image: vfarcic/docker-flow-proxy
     environment:
-      CONSUL_ADDRESS: $CONSUL_IP:8500
+      CONSUL_ADDRESS: ${HOST_IP}:8500
       SERVICE_8080_NAME: test-service
     ports:
       - 8080
@@ -76,7 +73,7 @@ services:
   app-2:
     image: vfarcic/docker-flow-proxy
     environment:
-      CONSUL_ADDRESS: $CONSUL_IP:8500
+      CONSUL_ADDRESS: ${HOST_IP}:8500
       SERVICE_8080_NAME: test-service
     ports:
       - 8080
@@ -86,7 +83,7 @@ services:
   app-3:
     image: vfarcic/docker-flow-proxy
     environment:
-      CONSUL_ADDRESS: $CONSUL_IP:8500
+      CONSUL_ADDRESS: ${HOST_IP}:8500
       SERVICE_8080_NAME: test-service
     ports:
       - 8080
