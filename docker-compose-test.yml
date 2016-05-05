@@ -35,14 +35,8 @@ services:
     command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration"
 
   production:
-    image: golang:1.6
-    volumes:
-      - .:/usr/src/myapp
-      - /tmp/go:/go
-    environment:
-      - DOCKER_IP=${HOST_IP}
-      - CONSUL_IP=${HOST_IP}
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration"
+    extends:
+      service: staging
 
   consul:
     image: progrium/consul

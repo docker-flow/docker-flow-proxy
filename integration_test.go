@@ -7,23 +7,23 @@ package main
 // $ export HOST_IP=<HOST_IP>
 
 // Unit tests
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-unit
+// $ docker-compose -f docker-compose-test.yml run --rm unit
 
 // Build
 // $ docker-compose -f docker-compose.yml build app
 
 // Staging tests
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-staging-dep
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-staging
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml down
+// $ docker-compose -f docker-compose-test.yml down
+// $ docker-compose -f docker-compose-test.yml up -d staging-dep
+// $ docker-compose -f docker-compose-test.yml run --rm staging
+// $ docker-compose -f docker-compose-test.yml down
 
 // Push
 // $ docker push vfarcic/docker-flow-proxy
 
 // Production tests
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml up -d tests-staging-dep
-// $ docker-compose -p docker-flow-proxy-test -f docker-compose-test.yml run --rm tests-production
+// $ docker-compose -f docker-compose-test.yml up -d staging-dep
+// $ docker-compose -f docker-compose-test.yml run --rm production
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ import (
 )
 
 type IntegrationTestSuite struct {
-	hostIp		string
+	hostIp string
 	suite.Suite
 }
 
