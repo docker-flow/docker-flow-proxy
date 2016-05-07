@@ -1,5 +1,7 @@
 package main
 
+//curl http://192.168.99.100:8500/v1/kv/books-ms?recurse | jq '.'
+
 import (
 	"bytes"
 	"fmt"
@@ -7,12 +9,27 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"net/http"
+	"encoding/json"
+	"io/ioutil"
+	"strconv"
+	"sync"
 )
+
+var mu = &sync.Mutex{}
 
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
 }
+
+const (
+	COLOR_KEY = "color"
+	PATH_KEY = "path"
+	DOMAIN_KEY = "domain"
+	PATH_TYPE_KEY = "pathtype"
+	SKIP_CHECK_KEY = "skipcheck"
+)
 
 type Reconfigure struct {
 	BaseReconfigure
@@ -44,39 +61,133 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 }
 
 func (m *Reconfigure) Execute(args []string) error {
-	if err := m.createConfig(); err != nil {
+	mu.Lock()
+	defer mu.Unlock()
+	if err := m.createConfig(m.TemplatesPath, m.ServiceReconfigure); err != nil {
 		return err
 	}
-	return proxy.Reload()
+	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+		return err
+	}
+	if err := proxy.Reload(); err != nil {
+		return err
+	}
+	if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-func (m *Reconfigure) createConfig() error {
-	templateContent := m.getConsulTemplate()
-	templatePath := fmt.Sprintf("%s/%s", m.TemplatesPath, "service-formatted.ctmpl")
-	writeConsulTemplateFile(templatePath, []byte(templateContent), 0664)
-	if err := m.runConsulTemplateCmd(); err != nil {
-		return err
+// Finish
+// TODO: Remove return
+func (m *Reconfigure) ReloadAllServices(address string) (sr []ServiceReconfigure, err error) {
+	url := fmt.Sprintf("%s/v1/catalog/services", address)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("Could not retrieve the list of services from Consul")
 	}
-	return proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	c := make(chan ServiceReconfigure)
+
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	for key, _ := range data {
+		go m.getService(address, key, c);
+	}
+	for i := 0; i < len(data); i++ {
+		s := <-c
+		if len(s.ServicePath) > 0 {
+			sr = append(sr, s)
+			m.createConfig(m.TemplatesPath, s)
+//			proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath)
+		}
+	}
+//	if err := proxy.Reload(); err != nil {
+//		return err
+//	}
+
+	return sr, nil
 }
 
-func (m *Reconfigure) runConsulTemplateCmd() error {
-	address := strings.ToLower(m.ConsulAddress)
-	address = strings.TrimLeft(address, "http://")
-	address = strings.TrimLeft(address, "https://")
+func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReconfigure) {
+	sr := ServiceReconfigure{ServiceName: serviceName}
+
+	if path, ok := m.getServiceAttribute(address, serviceName, PATH_KEY); ok {
+		sr.ServicePath = strings.Split(path, ",")
+		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, COLOR_KEY)
+		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, DOMAIN_KEY)
+		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY)
+		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY)
+		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
+	}
+	c <- sr
+}
+
+func (m *Reconfigure) getServiceAttribute(address, serviceName, key string) (string, bool) {
+	url := fmt.Sprintf("%s/v1/kv/docker-flow/%s/%s?raw", address, serviceName, key)
+	resp, _ := http.Get(url)
+	if (resp.StatusCode != http.StatusOK) {
+		return "", false
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	return string(body), true
+}
+
+func (m *Reconfigure) createConfig(templatesPath string, sr ServiceReconfigure) error {
+	logPrintf("Creating configuration for the service %s", sr.ServiceName)
+	templateContent := m.getConsulTemplate(sr)
+	path := fmt.Sprintf("%s/%s", templatesPath, "service-formatted.ctmpl")
+	writeConsulTemplateFile(path, []byte(templateContent), 0664)
+	if err := m.runConsulTemplateCmd(templatesPath, sr.ServiceName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
+	if !strings.HasPrefix(address, "http") {
+		address = fmt.Sprintf("http://%s", address)
+	}
+	c := make(chan error)
+	go m.sendPutRequest(address, sr, COLOR_KEY, sr.ServiceColor, c)
+	go m.sendPutRequest(address, sr, PATH_KEY, strings.Join(sr.ServicePath, ","), c)
+	go m.sendPutRequest(address, sr, DOMAIN_KEY, sr.ServiceDomain, c)
+	go m.sendPutRequest(address, sr, PATH_TYPE_KEY, sr.PathType, c)
+	go m.sendPutRequest(address, sr, SKIP_CHECK_KEY, fmt.Sprintf("%t", sr.SkipCheck), c)
+	for i := 0; i < 5; i++ {
+		err := <-c
+		if err != nil {
+			return fmt.Errorf("Could not send data to Consul\n%s", err.Error())
+		}
+	}
+	return nil
+}
+
+func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key string, value string, c chan error) {
+	url := fmt.Sprintf("%s/v1/kv/docker-flow/%s/%s", address, sr.ServiceName, key)
+	client := &http.Client{}
+	request, _ := http.NewRequest("PUT", url, strings.NewReader(value))
+	_, err := client.Do(request)
+	c <- err
+}
+
+func (m *Reconfigure) runConsulTemplateCmd(templatesPath, serviceName string) error {
 	template := fmt.Sprintf(
 		`%s/%s:%s/%s.cfg`,
-		m.TemplatesPath,
+		templatesPath,
 		ServiceTemplateFilename,
-		m.TemplatesPath,
-		m.ServiceName,
+		templatesPath,
+		serviceName,
 	)
 	cmdArgs := []string{
-		"-consul", address,
+		"-consul", m.getConsulAddress(m.ConsulAddress),
 		"-template", template,
 		"-once",
 	}
@@ -89,24 +200,31 @@ func (m *Reconfigure) runConsulTemplateCmd() error {
 	return nil
 }
 
-func (m *Reconfigure) getConsulTemplate() string {
-	m.Acl = ""
-	m.AclCondition = ""
-	if len(m.ServiceDomain) > 0 {
-		m.Acl = fmt.Sprintf(`
+func (m *Reconfigure) getConsulAddress(address string) string {
+	a := strings.ToLower(address)
+	a = strings.TrimLeft(a, "http://")
+	a = strings.TrimLeft(a, "https://")
+	return a
+}
+
+func (m *Reconfigure) getConsulTemplate(sr ServiceReconfigure) string {
+	sr.Acl = ""
+	sr.AclCondition = ""
+	if len(sr.ServiceDomain) > 0 {
+		sr.Acl = fmt.Sprintf(`
 	acl domain_%s hdr_dom(host) -i %s`,
-			m.ServiceName,
-			m.ServiceDomain,
+			sr.ServiceName,
+			sr.ServiceDomain,
 		)
-		m.AclCondition = fmt.Sprintf(" domain_%s", m.ServiceName)
+		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}
-	if len(m.ServiceColor) > 0 {
-		m.FullServiceName = fmt.Sprintf("%s-%s", m.ServiceName, m.ServiceColor)
+	if len(sr.ServiceColor) > 0 {
+		sr.FullServiceName = fmt.Sprintf("%s-%s", sr.ServiceName, sr.ServiceColor)
 	} else {
-		m.FullServiceName = m.ServiceName
+		sr.FullServiceName = sr.ServiceName
 	}
-	if len(m.PathType) == 0 {
-		m.PathType = "path_beg"
+	if len(sr.PathType) == 0 {
+		sr.PathType = "path_beg"
 	}
 	src := `frontend {{.ServiceName}}-fe
 	bind *:80
@@ -121,6 +239,6 @@ backend {{.ServiceName}}-be
 	{{"{{end}}"}}`
 	tmpl, _ := template.New("consulTemplate").Parse(src)
 	var ct bytes.Buffer
-	tmpl.Execute(&ct, m)
+	tmpl.Execute(&ct, sr)
 	return ct.String()
 }

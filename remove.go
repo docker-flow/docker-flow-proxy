@@ -24,6 +24,8 @@ var NewRemove = func(serviceName, configsPath, templatesPath string) Removable {
 
 func (m *Remove) Execute(args []string) error {
 	path := fmt.Sprintf("%s/%s.cfg", m.TemplatesPath, m.ServiceName)
+	mu.Lock()
+	defer mu.Unlock()
 	if err := osRemove(path); err != nil {
 		return err
 	}
