@@ -51,7 +51,7 @@ func (m HaProxy) Reload() error {
 	pidPath := "/var/run/haproxy.pid"
 	pid, err := readPidFile(pidPath)
 	if err != nil {
-		return fmt.Errorf("Could not read the %s file\n%#v", pidPath, err)
+		return fmt.Errorf("Could not read the %s file\n%s", pidPath, err.Error())
 	}
 	cmdArgs := []string{"-sf", string(pid)}
 	return HaProxy{}.RunCmd(cmdArgs)

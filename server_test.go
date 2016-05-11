@@ -80,6 +80,20 @@ func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	s.Equal(expected, actual)
 }
 
+func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenHTTPListenAndServeFails() {
+	orig := httpListenAndServe
+	defer func() {
+		httpListenAndServe = orig
+	}()
+	httpListenAndServe = func(addr string, handler http.Handler) error {
+		return fmt.Errorf("This is an error")
+	}
+
+	actual := server.Execute([]string{})
+
+	s.Error(actual)
+}
+
 func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
 	orig := NewRun
 	defer func() {
