@@ -9,7 +9,7 @@
 - name: Container is running
   docker:
     name: jenkins
-    image: jenkins
+    image: jenkins:1.642.4
     ports: "{{ jenkins_port }}:8080"
     volumes:
       - /data/jenkins:/var/jenkins_home
@@ -46,14 +46,14 @@
 - name: Container is stopped
   docker:
     name: jenkins
-    image: jenkins
+    image: jenkins:1.642.4
     state: stopped
   when: configs_result|changed or plugins_result|changed
 
 - name: Container is running
   docker:
     name: jenkins
-    image: jenkins
+    image: jenkins:1.642.4
     ports: "{{ jenkins_port }}:8080"
     volumes:
       - /data/jenkins:/var/jenkins_home
