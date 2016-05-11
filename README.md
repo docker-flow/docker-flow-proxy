@@ -117,8 +117,7 @@ curl -I $PROXY_IP/api/v1/books
 *Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example reconfiguration request could look as follows.
 
 ```bash
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books,/api/v2/books" \
-     | jq '.'
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books,/api/v2/books"
 ```
 
 The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
@@ -126,8 +125,7 @@ The result from the `curl` request is the reconfiguration of the *HAProxy* so th
 Optionally, *serviceDomain* can be used as well. If specified, the proxy will allow access only to requests coming from that domain. The example that follows sets *serviceDomain* to *my-domain-com*. After the proxy is reconfigured, only requests for that domain will be redirected to the destination service.
 
 ```bash
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/&serviceDomain=my-domain.com" \
-     | jq '.'
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/&serviceDomain=my-domain.com"
 ```
 
 For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article.
