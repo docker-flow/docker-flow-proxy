@@ -36,8 +36,17 @@ func (m Server) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
+	if err := NewReconfigure(
+		m.BaseReconfigure,
+		ServiceReconfigure{},
+	).ReloadAllServices(m.ConsulAddress); err != nil {
+		return err
+	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
-	return httpListenAndServe(address, m)
+	if err := httpListenAndServe(address, m); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {

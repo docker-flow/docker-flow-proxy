@@ -2,18 +2,16 @@
 
 package main
 
-// vfarcic
-// docker-flow-proxy
 // $ export HOST_IP=<HOST_IP>
 
 // Unit tests
 // $ docker-compose -f docker-compose-test.yml run --rm unit
 
 // Build
+// $ docker-compose -f docker-compose-test.yml down
 // $ docker-compose -f docker-compose.yml build app
 
 // Staging tests
-// $ docker-compose -f docker-compose-test.yml down
 // $ docker-compose -f docker-compose-test.yml up -d staging-dep
 // $ docker-compose -f docker-compose-test.yml run --rm staging
 // $ docker-compose -f docker-compose-test.yml down
@@ -28,6 +26,7 @@ package main
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -36,11 +35,13 @@ import (
 )
 
 type IntegrationTestSuite struct {
-	hostIp string
 	suite.Suite
+	hostIp      string
+	serviceName string
 }
 
 func (s *IntegrationTestSuite) SetupTest() {
+	s.serviceName = "test-service"
 }
 
 // Integration
@@ -79,6 +80,20 @@ func (s IntegrationTestSuite) Test_Remove() {
 	s.NotEqual(200, resp.StatusCode)
 }
 
+func (s IntegrationTestSuite) Test_PutToConsul() {
+	s.reconfigure("", "/v1/test")
+
+	url := fmt.Sprintf(
+		"http://%s:8500/v1/kv/docker-flow/%s/path?raw",
+		os.Getenv("DOCKER_IP"),
+		s.serviceName,
+	)
+	resp, _ := http.Get(url)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	s.Equal("/v1/test", string(body))
+}
+
 // Util
 
 func (s IntegrationTestSuite) verifyReconfigure(version int) {
@@ -92,8 +107,9 @@ func (s IntegrationTestSuite) verifyReconfigure(version int) {
 
 func (s IntegrationTestSuite) reconfigure(pathType string, paths ...string) {
 	address := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s&pathType=%s",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&pathType=%s",
 		os.Getenv("DOCKER_IP"),
+		s.serviceName,
 		strings.Join(paths, ","),
 		pathType,
 	)

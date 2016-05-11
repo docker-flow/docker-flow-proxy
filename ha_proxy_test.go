@@ -164,6 +164,7 @@ func (s ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
 // Suite
 
 func TestHaProxyTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(HaProxyTestSuite))
 }
 
@@ -202,8 +203,8 @@ func (m *ProxyMock) CreateConfigFromTemplates(templatesPath string, configsPath 
 }
 
 func (m *ProxyMock) Reload() error {
-	m.Called()
-	return nil
+	params := m.Called()
+	return params.Error(0)
 }
 
 func getProxyMock(skipMethod string) *ProxyMock {

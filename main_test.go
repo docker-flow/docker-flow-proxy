@@ -32,5 +32,6 @@ func (s MainTestSuite) Test_Main_InvokesArgsParse() {
 // Suite
 
 func TestMainSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(MainTestSuite))
 }
