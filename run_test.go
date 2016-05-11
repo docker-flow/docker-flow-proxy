@@ -13,6 +13,7 @@ type RunTestSuite struct {
 }
 
 func (s *RunTestSuite) SetupTest() {
+	logPrintf = func(format string, v ...interface{}) {}
 }
 
 // Execute

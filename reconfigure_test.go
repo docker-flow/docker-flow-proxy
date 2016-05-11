@@ -3,31 +3,31 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
-	"net/http/httptest"
-	"net/http"
-	"io/ioutil"
-	"strconv"
-	"encoding/json"
 )
 
 type ReconfigureTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
-	ConsulAddress  string
-	ConsulTemplate string
-	ConfigsPath    string
-	TemplatesPath  string
-	reconfigure    Reconfigure
-	Pid            string
-	Server         *httptest.Server
-	PutPathResponse string
+	ConsulAddress     string
+	ConsulTemplate    string
+	ConfigsPath       string
+	TemplatesPath     string
+	reconfigure       Reconfigure
+	Pid               string
+	Server            *httptest.Server
+	PutPathResponse   string
 	ConsulRequestBody ServiceReconfigure
 }
 
@@ -71,7 +71,7 @@ backend myService-be
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
 			ServicePath: s.ServicePath,
-			PathType: s.PathType,
+			PathType:    s.PathType,
 		},
 	}
 	proxy = getProxyMock("")
@@ -289,7 +289,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsColorToConsul() {
 	s.reconfigure.ServiceDomain = s.ServiceDomain
 	s.reconfigure.Execute([]string{})
 
-	type data struct {key, value, expected string}
+	type data struct{ key, value, expected string }
 
 	d := []data{
 		data{"color", s.ConsulRequestBody.ServiceColor, s.ServiceColor},
@@ -408,9 +408,17 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloa
 	s.Error(actual)
 }
 
+func (s ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
+	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
+	err := s.reconfigure.ReloadAllServices(address)
+
+	s.NoError(err)
+}
+
 // Suite
 
 func TestReconfigureTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	s := new(ReconfigureTestSuite)
 	s.ServiceName = "myService"
 	s.PutPathResponse = "PUT_PATH_OK"

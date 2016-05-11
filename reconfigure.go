@@ -4,15 +4,15 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
-	"strings"
-	"net/http"
-	"encoding/json"
-	"io/ioutil"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -25,10 +25,10 @@ type Reconfigurable interface {
 }
 
 const (
-	COLOR_KEY = "color"
-	PATH_KEY = "path"
-	DOMAIN_KEY = "domain"
-	PATH_TYPE_KEY = "pathtype"
+	COLOR_KEY      = "color"
+	PATH_KEY       = "path"
+	DOMAIN_KEY     = "domain"
+	PATH_TYPE_KEY  = "pathtype"
 	SKIP_CHECK_KEY = "skipcheck"
 )
 
@@ -80,25 +80,31 @@ func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-// TODO: Integration tests
 func (m *Reconfigure) ReloadAllServices(address string) error {
-	url := fmt.Sprintf("%s/v1/catalog/services", address)
-	resp, err := http.Get(url)
+	logPrintf("Configuring existing services")
+	address = strings.ToLower(address)
+	if !strings.HasPrefix(address, "http") {
+		address = fmt.Sprintf("http://%s", address)
+	}
+	servicesUrl := fmt.Sprintf("%s/v1/catalog/services", address)
+	resp, err := http.Get(servicesUrl)
 	if err != nil {
-		return fmt.Errorf("Could not retrieve the list of services from Consul")
+		return fmt.Errorf("Could not retrieve the list of services from Consul running on %s\n%s", address, err.Error())
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
+	logPrintf("\tFound %d services", len(data))
 
 	c := make(chan ServiceReconfigure)
 	for key, _ := range data {
-		go m.getService(address, key, c);
+		go m.getService(address, key, c)
 	}
 	for i := 0; i < len(data); i++ {
 		s := <-c
 		if len(s.ServicePath) > 0 {
+			logPrintf("\tConfiguring %s", s.ServiceName)
 			m.createConfig(m.TemplatesPath, s)
 		}
 	}
@@ -126,7 +132,7 @@ func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReco
 func (m *Reconfigure) getServiceAttribute(address, serviceName, key string) (string, bool) {
 	url := fmt.Sprintf("%s/v1/kv/docker-flow/%s/%s?raw", address, serviceName, key)
 	resp, _ := http.Get(url)
-	if (resp.StatusCode != http.StatusOK) {
+	if resp.StatusCode != http.StatusOK {
 		return "", false
 	}
 	defer resp.Body.Close()

@@ -10,13 +10,14 @@ RUN apk add --no-cache --virtual .build-deps curl unzip && \
 
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 RUN mkdir -p /cfg/tmpl
-COPY haproxy.cfg /cfg/haproxy.cfg
-COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
-COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy
-RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 ENV CONSUL_ADDRESS ""
 EXPOSE 80
 EXPOSE 8080
 
 CMD ["docker-flow-proxy", "server"]
+
+COPY haproxy.cfg /cfg/haproxy.cfg
+COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
+COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy
+RUN chmod +x /usr/local/bin/docker-flow-proxy

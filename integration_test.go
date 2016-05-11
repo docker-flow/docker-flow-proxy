@@ -26,17 +26,17 @@ package main
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
-	"io/ioutil"
 )
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	hostIp string
+	hostIp      string
 	serviceName string
 }
 

@@ -114,6 +114,7 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
 // Suite
 
 func TestRemoveTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(RemoveTestSuite))
 }
 

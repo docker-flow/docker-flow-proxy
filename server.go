@@ -33,11 +33,12 @@ type Response struct {
 }
 
 func (m Server) Execute(args []string) error {
-	logPrintf("Configuring existing services")
-	NewReconfigure(
+	if err := NewReconfigure(
 		m.BaseReconfigure,
 		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddress)
+	).ReloadAllServices(m.ConsulAddress); err != nil {
+		return err
+	}
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)

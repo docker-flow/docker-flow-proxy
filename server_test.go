@@ -3,13 +3,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"strings"
 	"testing"
-	"encoding/json"
 )
 
 type ServerTestSuite struct {
@@ -104,6 +104,18 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	server.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress)
+}
+
+func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
+	mockObj := getReconfigureMock("ReloadAllServices")
+	mockObj.On("ReloadAllServices", mock.Anything).Return(fmt.Errorf("This is an error"))
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+
+	actual := server.Execute([]string{})
+
+	s.Error(actual)
 }
 
 // ServeHTTP
@@ -297,6 +309,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 // Suite
 
 func TestServerTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(ServerTestSuite))
 }
 

@@ -164,6 +164,7 @@ func (s ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
 // Suite
 
 func TestHaProxyTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(HaProxyTestSuite))
 }
 

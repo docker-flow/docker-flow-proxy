@@ -37,7 +37,6 @@ func (s *ArgsTestSuite) SetupTest() {
 		return nil
 	}
 	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
-	logPrintf = func(format string, v ...interface{}) {}
 }
 
 // NewArgs
@@ -328,6 +327,7 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 // Suite
 
 func TestArgsTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
 	proxyOrig := proxy
 	defer func() {
 		proxy = proxyOrig
