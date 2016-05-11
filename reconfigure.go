@@ -21,6 +21,7 @@ var mu = &sync.Mutex{}
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
+	ReloadAllServices(address string) error
 }
 
 const (
@@ -72,47 +73,40 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure); err != nil {
-		return err
-	}
-	return nil
+	return m.putToConsul(m.ConsulAddress, m.ServiceReconfigure)
 }
 
 func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-// Finish
-// TODO: Remove return
-func (m *Reconfigure) ReloadAllServices(address string) (sr []ServiceReconfigure, err error) {
+// TODO: Integration tests
+func (m *Reconfigure) ReloadAllServices(address string) error {
 	url := fmt.Sprintf("%s/v1/catalog/services", address)
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("Could not retrieve the list of services from Consul")
+		return fmt.Errorf("Could not retrieve the list of services from Consul")
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-
-	c := make(chan ServiceReconfigure)
-
 	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
+
+	c := make(chan ServiceReconfigure)
 	for key, _ := range data {
 		go m.getService(address, key, c);
 	}
 	for i := 0; i < len(data); i++ {
 		s := <-c
 		if len(s.ServicePath) > 0 {
-			sr = append(sr, s)
 			m.createConfig(m.TemplatesPath, s)
-//			proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath)
 		}
 	}
-//	if err := proxy.Reload(); err != nil {
-//		return err
-//	}
 
-	return sr, nil
+	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+		return err
+	}
+	return proxy.Reload()
 }
 
 func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReconfigure) {
@@ -151,6 +145,7 @@ func (m *Reconfigure) createConfig(templatesPath string, sr ServiceReconfigure) 
 	return nil
 }
 
+// TODO: Integration tests
 func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)

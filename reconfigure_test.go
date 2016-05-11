@@ -74,6 +74,7 @@ backend myService-be
 			PathType: s.PathType,
 		},
 	}
+	proxy = getProxyMock("")
 }
 
 // getConsulTemplate
@@ -193,6 +194,7 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
+	fmt.Println(s.ConsulAddress)
 	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
 	expected := []string{
 		"consul-template",
@@ -249,25 +251,22 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateComman
 	s.Error(err)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_SavesConfigsToTheFile() {
-	var actualFilename string
-	var actualData string
-	expected := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
-	writeFile = func(fileName string, data []byte, perm os.FileMode) error {
-		actualFilename = fileName
-		actualData = string(data)
-		return nil
-	}
+func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
+	mockObj := getProxyMock("")
+	proxy = mockObj
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, actualFilename)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenGetConfigsFail() {
-	s.reconfigure.TemplatesPath = "/this/path/does/not/exist"
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
+	mockObj := getProxyMock("CreateConfigFromTemplates")
+	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	proxy = mockObj
 
 	err := s.reconfigure.Execute([]string{})
+
 	s.Error(err)
 }
 
@@ -353,17 +352,9 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 // ReloadAllServices
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	_, err := s.reconfigure.ReloadAllServices("this/address/does/not/exist")
+	err := s.reconfigure.ReloadAllServices("this/address/does/not/exist")
 
 	s.Error(err)
-}
-
-func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsServiceReconfigure() {
-	s.ServiceColor = "orange"
-	actual, _ := s.reconfigure.ReloadAllServices(s.ConsulAddress)
-
-	s.Len(actual, 1)
-	s.Equal(s.ServiceReconfigure, actual[0])
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
@@ -377,6 +368,44 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
 	s.reconfigure.ReloadAllServices(s.ConsulAddress)
 
 	s.Equal(expected, actual)
+}
+
+func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
+	mockObj := getProxyMock("")
+	proxy = mockObj
+
+	s.reconfigure.ReloadAllServices(s.ConsulAddress)
+
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+}
+
+func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
+	mockObj := getProxyMock("CreateConfigFromTemplates")
+	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	proxy = mockObj
+
+	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress)
+
+	s.Error(actual)
+}
+
+func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
+	mockObj := getProxyMock("")
+	proxy = mockObj
+
+	s.reconfigure.ReloadAllServices(s.ConsulAddress)
+
+	mockObj.AssertCalled(s.T(), "Reload")
+}
+
+func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
+	mockObj := getProxyMock("Reload")
+	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
+	proxy = mockObj
+
+	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress)
+
+	s.Error(actual)
 }
 
 // Suite
@@ -470,10 +499,21 @@ func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return BaseReconfigure{}, ServiceReconfigure{}
 }
 
+func (m *ReconfigureMock) ReloadAllServices(address string) error {
+	params := m.Called(address)
+	return params.Error(0)
+}
+
 func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	mockObj := new(ReconfigureMock)
 	if skipMethod != "Execute" {
 		mockObj.On("Execute", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetData" {
+		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "ReloadAllServices" {
+		mockObj.On("ReloadAllServices", mock.Anything).Return(nil)
 	}
 	return mockObj
 }

@@ -202,8 +202,8 @@ func (m *ProxyMock) CreateConfigFromTemplates(templatesPath string, configsPath 
 }
 
 func (m *ProxyMock) Reload() error {
-	m.Called()
-	return nil
+	params := m.Called()
+	return params.Error(0)
 }
 
 func getProxyMock(skipMethod string) *ProxyMock {

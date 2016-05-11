@@ -3,13 +3,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"strings"
 	"testing"
+	"encoding/json"
 )
 
 type ServerTestSuite struct {
@@ -65,7 +65,7 @@ func (s *ServerTestSuite) SetupTest() {
 
 // Execute
 
-func (s ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
+func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	server := Server{
 		IP:   "myIp",
 		Port: "1234",
@@ -80,7 +80,7 @@ func (s ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	s.Equal(expected, actual)
 }
 
-func (s ServerTestSuite) Test_Execute_InvokesRunExecute() {
+func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
 	orig := NewRun
 	defer func() {
 		NewRun = orig
@@ -95,9 +95,20 @@ func (s ServerTestSuite) Test_Execute_InvokesRunExecute() {
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
+func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
+	mockObj := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+
+	server.Execute([]string{})
+
+	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress)
+}
+
 // ServeHTTP
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	req, _ := http.NewRequest("GET", "/this/url/does/not/exist", nil)
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -105,7 +116,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 	for ver := 1; ver <= 2; ver++ {
 		rw := getResponseWriterMock()
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
@@ -118,7 +129,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 
 // ServeHTTP > Reconfigure
 
-func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigure() {
+func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigure() {
 	var actual string
 	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 		actual = value
@@ -130,7 +141,7 @@ func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigu
 	s.Equal("application/json", actual)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
 		ServiceName:   s.ServiceName,
@@ -145,7 +156,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
 	expected, _ := json.Marshal(Response{
@@ -162,7 +173,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&skipCheck=true", nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
@@ -179,7 +190,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureBaseUrl, nil)
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -187,7 +198,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAnd
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
 	url := fmt.Sprintf("%s?serviceName=%s", s.ReconfigureBaseUrl, s.ServiceName[0])
 	req, _ := http.NewRequest("GET", url, nil)
 
@@ -196,7 +207,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsN
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
@@ -217,7 +228,7 @@ func (s ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
 	mockObj := getReconfigureMock("Execute")
 	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -231,7 +242,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteF
 
 // ServeHTTP > Remove
 
-func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() {
+func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() {
 	var actual string
 	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 		actual = value
@@ -243,7 +254,7 @@ func (s ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() 
 	s.Equal("application/json", actual)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 	expected, _ := json.Marshal(Response{
 		Status:      "OK",
 		ServiceName: s.ServiceName,
@@ -254,7 +265,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServiceNameQueryIsNotPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.RemoveBaseUrl, nil)
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -262,7 +273,7 @@ func (s ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServi
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
 	var actual Remove
 	expected := Remove{
