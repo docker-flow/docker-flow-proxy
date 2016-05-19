@@ -22,15 +22,15 @@ type Server struct {
 var server = Server{}
 
 type Response struct {
-	Status        string
-	Message       string
-	ServiceName   string
-	ServiceColor  string
-	ServicePath   []string
-	ServiceDomain string
+	Status             string
+	Message            string
+	ServiceName        string
+	ServiceColor       string
+	ServicePath        []string
+	ServiceDomain      string
 	ConsulTemplatePath string
-	PathType      string
-	SkipCheck     bool
+	PathType           string
+	SkipCheck          bool
 }
 
 func (m Server) Execute(args []string) error {
@@ -55,11 +55,11 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
 		sr := ServiceReconfigure{
-			ServiceName:   req.URL.Query().Get("serviceName"),
-			ServiceColor:  req.URL.Query().Get("serviceColor"),
-			ServiceDomain: req.URL.Query().Get("serviceDomain"),
+			ServiceName:        req.URL.Query().Get("serviceName"),
+			ServiceColor:       req.URL.Query().Get("serviceColor"),
+			ServiceDomain:      req.URL.Query().Get("serviceDomain"),
 			ConsulTemplatePath: req.URL.Query().Get("consulTemplatePath"),
-			PathType:      req.URL.Query().Get("pathType"),
+			PathType:           req.URL.Query().Get("pathType"),
 		}
 		if len(req.URL.Query().Get("servicePath")) > 0 {
 			sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
@@ -68,14 +68,14 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
 		}
 		response := Response{
-			Status:        "OK",
-			ServiceName:   sr.ServiceName,
-			ServiceColor:  sr.ServiceColor,
-			ServicePath:   sr.ServicePath,
-			ServiceDomain: sr.ServiceDomain,
+			Status:             "OK",
+			ServiceName:        sr.ServiceName,
+			ServiceColor:       sr.ServiceColor,
+			ServicePath:        sr.ServicePath,
+			ServiceDomain:      sr.ServiceDomain,
 			ConsulTemplatePath: sr.ConsulTemplatePath,
-			PathType:      sr.PathType,
-			SkipCheck:     sr.SkipCheck,
+			PathType:           sr.PathType,
+			SkipCheck:          sr.SkipCheck,
 		}
 		if len(sr.ServiceName) > 0 && (len(sr.ServicePath) > 0 || len(sr.ConsulTemplatePath) > 0) {
 			action := NewReconfigure(

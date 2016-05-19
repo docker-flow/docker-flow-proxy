@@ -26,12 +26,12 @@ package main
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
-	"io/ioutil"
 )
 
 type IntegrationTestSuite struct {
@@ -120,7 +120,7 @@ func (s IntegrationTestSuite) reconfigure(pathType, consulTemplatePath string, p
 			s.serviceName,
 			consulTemplatePath,
 		)
- 	} else {
+	} else {
 		address = fmt.Sprintf(
 			"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&pathType=%s",
 			os.Getenv("DOCKER_IP"),

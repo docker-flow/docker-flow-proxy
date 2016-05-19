@@ -26,11 +26,11 @@ type Reconfigurable interface {
 }
 
 const (
-	COLOR_KEY      = "color"
-	PATH_KEY       = "path"
-	DOMAIN_KEY     = "domain"
-	PATH_TYPE_KEY  = "pathtype"
-	SKIP_CHECK_KEY = "skipcheck"
+	COLOR_KEY                = "color"
+	PATH_KEY                 = "path"
+	DOMAIN_KEY               = "domain"
+	PATH_TYPE_KEY            = "pathtype"
+	SKIP_CHECK_KEY           = "skipcheck"
 	CONSUL_TEMPLATE_PATH_KEY = "consultemplatepath"
 )
 
@@ -40,16 +40,16 @@ type Reconfigure struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName     string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor    string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePath     []string `short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
-	ServiceDomain   string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ConsulTemplatePath string `long:"consul-template-path" description:"The name of the Consul Template."`
-	PathType        string
-	SkipCheck       bool
-	Acl             string
-	AclCondition    string
-	FullServiceName string
+	ServiceName        string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor       string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
+	ServicePath        []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceDomain      string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ConsulTemplatePath string   `long:"consul-template-path" description:"The path to the Consul Template. If specified, template will be loaded from the specified file instead generating it automatically."`
+	PathType           string
+	SkipCheck          bool
+	Acl                string
+	AclCondition       string
+	FullServiceName    string
 }
 
 type BaseReconfigure struct {

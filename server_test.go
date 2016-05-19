@@ -274,10 +274,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		nil,
 	)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName: s.ServiceName,
+		Status:             "OK",
+		ServiceName:        s.ServiceName,
 		ConsulTemplatePath: path,
-		PathType:      s.PathType,
+		PathType:           s.PathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -293,9 +293,9 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		ConsulAddress: s.ConsulAddress,
 	}
 	expectedService := ServiceReconfigure{
-		ServiceName: s.ServiceName,
+		ServiceName:        s.ServiceName,
 		ConsulTemplatePath: path,
-		PathType:      s.PathType,
+		PathType:           s.PathType,
 	}
 	var actualService ServiceReconfigure
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
