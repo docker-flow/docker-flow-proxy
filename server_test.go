@@ -266,6 +266,55 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecute
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPresent() {
+	path := "/path/to/consul/template"
+	req, _ := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s?consulTemplatePath=%s", s.ReconfigureBaseUrl, path),
+		nil,
+	)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ConsulTemplatePath: path,
+		PathType:      s.PathType,
+	})
+
+	Server{}.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+	path := "/path/to/consul/template"
+	mockObj := getReconfigureMock("")
+	var actualBase BaseReconfigure
+	expectedBase := BaseReconfigure{
+		ConsulAddress: s.ConsulAddress,
+	}
+	expectedService := ServiceReconfigure{
+		ConsulTemplatePath: path,
+		PathType:      s.PathType,
+	}
+	var actualService ServiceReconfigure
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		actualBase = baseData
+		actualService = serviceData
+		return mockObj
+	}
+	server := Server{BaseReconfigure: expectedBase}
+	req, _ := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s?consulTemplatePath=%s", s.ReconfigureBaseUrl, path),
+		nil,
+	)
+
+	server.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal(expectedBase, actualBase)
+	s.Equal(expectedService, actualService)
+	mockObj.AssertCalled(s.T(), "Execute", []string{})
+}
+
 // ServeHTTP > Remove
 
 func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() {

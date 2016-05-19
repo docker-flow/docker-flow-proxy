@@ -1,0 +1,11 @@
+frontend test-service-fe
+	bind *:80
+	bind *:443
+	option http-server-close
+	acl url_test-service {{$.PathType}} {{.}}{{end}}{{.Acl}}
+	use_backend test-service-be if url_test-service{{.AclCondition}}
+
+backend test-service-be
+	{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
+	server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
+	{{"{{end}}"}}

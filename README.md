@@ -203,3 +203,30 @@ Feedback and Contribution
 -------------------------
 
 I'd appreciate any feedback you might give (both positive and negative). Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues), send a pull request, or tell me about any feature you might be missing. You can find my contact information in the [About](http://technologyconversations.com/about/) section of my [blog](http://technologyconversations.com/).
+
+
+
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+	path := "/path/to/consul/template"
+	mockObj := getReconfigureMock("")
+	var actualBase BaseReconfigure
+	expectedBase := BaseReconfigure{
+		ConsulAddress: s.ConsulAddress,
+	}
+	var actualService ServiceReconfigure
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		actualBase = baseData
+		actualService = serviceData
+		return mockObj
+	}
+	url := fmt.Sprintf("%s?consulTemplatePath=%s", s.ReconfigureBaseUrl, path)
+	req, _ := http.NewRequest("GET", url, nil)
+	server := Server{BaseReconfigure: expectedBase}
+
+	server.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal(expectedBase, actualBase)
+	s.Equal(s.ServiceReconfigure, actualService)
+	mockObj.AssertCalled(s.T(), "Execute", []string{})
+}

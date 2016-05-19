@@ -28,6 +28,7 @@ type Response struct {
 	ServiceColor  string
 	ServicePath   []string
 	ServiceDomain string
+	ConsulTemplatePath string
 	PathType      string
 	SkipCheck     bool
 }
@@ -56,9 +57,12 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		sr := ServiceReconfigure{
 			ServiceName:   req.URL.Query().Get("serviceName"),
 			ServiceColor:  req.URL.Query().Get("serviceColor"),
-			ServicePath:   strings.Split(req.URL.Query().Get("servicePath"), ","),
 			ServiceDomain: req.URL.Query().Get("serviceDomain"),
+			ConsulTemplatePath: req.URL.Query().Get("consulTemplatePath"),
 			PathType:      req.URL.Query().Get("pathType"),
+		}
+		if len(req.URL.Query().Get("servicePath")) > 0 {
+			sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
 		}
 		if len(req.URL.Query().Get("skipCheck")) > 0 {
 			sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
@@ -69,14 +73,11 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ServiceColor:  sr.ServiceColor,
 			ServicePath:   sr.ServicePath,
 			ServiceDomain: sr.ServiceDomain,
+			ConsulTemplatePath: sr.ConsulTemplatePath,
 			PathType:      sr.PathType,
 			SkipCheck:     sr.SkipCheck,
 		}
-		if len(sr.ServiceName) == 0 || len(sr.ServicePath) == 0 {
-			response.Status = "NOK"
-			response.Message = "The following queries are mandatory: serviceName and servicePath"
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
+		if (len(sr.ServiceName) > 0 && len(sr.ServicePath) > 0) || len(sr.ConsulTemplatePath) > 0 {
 			action := NewReconfigure(
 				m.BaseReconfigure,
 				sr,
@@ -86,6 +87,10 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				response.Message = fmt.Sprintf("%s", err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 			}
+		} else {
+			response.Status = "NOK"
+			response.Message = "The following queries are mandatory: (serviceName and servicePath) or consulTemplatePath"
+			w.WriteHeader(http.StatusBadRequest)
 		}
 		httpWriterSetContentType(w, "application/json")
 		js, _ := json.Marshal(response)

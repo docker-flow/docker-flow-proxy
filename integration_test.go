@@ -47,25 +47,25 @@ func (s *IntegrationTestSuite) SetupTest() {
 // Integration
 
 func (s IntegrationTestSuite) Test_Reconfigure_MultipleInstances() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_PathReg() {
-	s.reconfigure("path_reg", "/.*/test")
+	s.reconfigure("path_reg", "", "/.*/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
-	s.reconfigure("", "/v1/test", "/v2/test")
+	s.reconfigure("", "", "/v1/test", "/v2/test")
 
 	s.verifyReconfigure(2)
 }
 
 func (s IntegrationTestSuite) Test_Remove() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 	s.verifyReconfigure(1)
 
 	_, err := http.Get(fmt.Sprintf(
@@ -81,7 +81,7 @@ func (s IntegrationTestSuite) Test_Remove() {
 }
 
 func (s IntegrationTestSuite) Test_PutToConsul() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 
 	url := fmt.Sprintf(
 		"http://%s:8500/v1/kv/docker-flow/%s/path?raw",
@@ -92,6 +92,12 @@ func (s IntegrationTestSuite) Test_PutToConsul() {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	s.Equal("/v1/test", string(body))
+}
+
+func (s IntegrationTestSuite) Test_Reconfigure_ConsulTemplatePath() {
+	s.reconfigure("", "/test_configs/my-service.tmpl", "")
+
+	s.verifyReconfigure(1)
 }
 
 // Util
@@ -105,12 +111,13 @@ func (s IntegrationTestSuite) verifyReconfigure(version int) {
 	s.Equal(200, resp.StatusCode)
 }
 
-func (s IntegrationTestSuite) reconfigure(pathType string, paths ...string) {
+func (s IntegrationTestSuite) reconfigure(pathType, consulTemplatePath string, paths ...string) {
 	address := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&pathType=%s",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&consulTemplatePath=%s&pathType=%s",
 		os.Getenv("DOCKER_IP"),
 		s.serviceName,
 		strings.Join(paths, ","),
+		consulTemplatePath,
 		pathType,
 	)
 	logPrintf("Sending reconfigure request to %s", address)
