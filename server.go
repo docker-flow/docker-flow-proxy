@@ -77,7 +77,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			PathType:      sr.PathType,
 			SkipCheck:     sr.SkipCheck,
 		}
-		if (len(sr.ServiceName) > 0 && len(sr.ServicePath) > 0) || len(sr.ConsulTemplatePath) > 0 {
+		if len(sr.ServiceName) > 0 && (len(sr.ServicePath) > 0 || len(sr.ConsulTemplatePath) > 0) {
 			action := NewReconfigure(
 				m.BaseReconfigure,
 				sr,

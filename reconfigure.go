@@ -97,7 +97,7 @@ func (m *Reconfigure) ReloadAllServices(address string) error {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
+	json.Unmarshal(body, &data)
 	logPrintf("\tFound %d services", len(data))
 
 	c := make(chan ServiceReconfigure)
@@ -128,7 +128,7 @@ func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReco
 		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY)
 		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
-//		sr.ConsulTemplatePath, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY)
+		sr.ConsulTemplatePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_PATH_KEY)
 	}
 	c <- sr
 }
@@ -150,9 +150,10 @@ func (m *Reconfigure) createConfig(templatesPath string, sr ServiceReconfigure) 
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("%s/%s", templatesPath, "service-formatted.ctmpl")
-	writeConsulTemplateFile(path, []byte(templateContent), 0664)
-	if err := m.runConsulTemplateCmd(templatesPath, sr.ServiceName); err != nil {
+	src := fmt.Sprintf("%s/%s", templatesPath, "service-formatted.ctmpl")
+	writeConsulTemplateFile(src, []byte(templateContent), 0664)
+	dest := fmt.Sprintf("%s/%s", templatesPath, sr.ServiceName)
+	if err := m.runConsulTemplateCmd(src, dest); err != nil {
 		return err
 	}
 	return nil
@@ -186,14 +187,8 @@ func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key 
 	c <- err
 }
 
-func (m *Reconfigure) runConsulTemplateCmd(templatesPath, serviceName string) error {
-	template := fmt.Sprintf(
-		`%s/%s:%s/%s.cfg`,
-		templatesPath,
-		ServiceTemplateFilename,
-		templatesPath,
-		serviceName,
-	)
+func (m *Reconfigure) runConsulTemplateCmd(src, dest string) error {
+	template := fmt.Sprintf(`%s:%s.cfg`, src, dest)
 	cmdArgs := []string{
 		"-consul", m.getConsulAddress(m.ConsulAddress),
 		"-template", template,

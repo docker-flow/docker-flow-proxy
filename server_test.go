@@ -270,11 +270,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 	path := "/path/to/consul/template"
 	req, _ := http.NewRequest(
 		"GET",
-		fmt.Sprintf("%s?consulTemplatePath=%s", s.ReconfigureBaseUrl, path),
+		fmt.Sprintf("%s?serviceName=%s&consulTemplatePath=%s", s.ReconfigureBaseUrl, s.ServiceName, path),
 		nil,
 	)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
+		ServiceName: s.ServiceName,
 		ConsulTemplatePath: path,
 		PathType:      s.PathType,
 	})
@@ -292,6 +293,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		ConsulAddress: s.ConsulAddress,
 	}
 	expectedService := ServiceReconfigure{
+		ServiceName: s.ServiceName,
 		ConsulTemplatePath: path,
 		PathType:      s.PathType,
 	}
@@ -304,7 +306,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 	server := Server{BaseReconfigure: expectedBase}
 	req, _ := http.NewRequest(
 		"GET",
-		fmt.Sprintf("%s?consulTemplatePath=%s", s.ReconfigureBaseUrl, path),
+		fmt.Sprintf("%s?serviceName=%s&consulTemplatePath=%s", s.ReconfigureBaseUrl, s.ServiceName, path),
 		nil,
 	)
 
