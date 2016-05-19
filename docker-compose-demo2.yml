@@ -9,3 +9,14 @@ services:
 
   db:
     image: mongo
+
+  proxy:
+    container_name: docker-flow-proxy
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: $CONSUL_IP:8500
+    volumes:
+      - ./test_configs/:/test_configs/
+    ports:
+      - 80:80
+      - 8080:8080
