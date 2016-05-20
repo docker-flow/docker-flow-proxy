@@ -11,6 +11,7 @@ import (
 var readPidFile = ioutil.ReadFile
 var readConfigsDir = ioutil.ReadDir
 var readConfigsFile = ioutil.ReadFile
+var readTemplateFile = ioutil.ReadFile
 var cmdRunConsul = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }

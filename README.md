@@ -3,6 +3,11 @@ Docker Flow: Proxy
 
 * [Introduction](#introduction)
 * [Examples](#examples)
+  * [Setup](#setup)
+  * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
+  * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
+  * [Reconfiguring the Proxy Using Custom Consul Templates](#reconfiguring-the-proxy-using-custom-consul-templates)
+  * [Proxy Failover](#proxy-failover)
 * [Containers Definition](#containers-definition)
 * [Usage](#usage)
 
@@ -28,6 +33,8 @@ For a more detailed walkthrough and examples, please read the following articles
 
 The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). The examples will not run on Windows. Please see the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article for an OS agnostic walkthrough.
 
+### Setup
+
 To setup an example environment using Docker Machine, please run the commands that follow.
 
 ```bash
@@ -44,13 +51,15 @@ Right now we have four machines running. The first one is called *proxy* and run
 
 Now we're ready to deploy a service.
 
+### Automatically Reconfiguring the Proxy
+
 ```bash
 eval "$(docker-machine env --swarm swarm-master)"
 
 docker-compose \
-    -p books-ms \
-    -f docker-compose-demo.yml \
-    up -d
+    -p go-demo \
+    -f docker-compose-demo2.yml \
+    up -d db app
 ```
 
 The details of the service we deployed are irrelevant for this exercise. What matters is that it was deployed somewhere inside the cluster and is running on a random port.
@@ -62,7 +71,7 @@ eval "$(docker-machine env proxy)"
 
 export PROXY_IP=$(docker-machine ip proxy)
 
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo"
 ```
 
 That's it. All we had to do is send an HTTP request to `reconfigure` the proxy. The `serviceName` query contains the name of the service we want to integrate with the proxy. The `servicePath` is the unique URL that identifies the service.
@@ -73,28 +82,34 @@ The output of the `curl` command is as follows (formatted for better readability
 {
   "Status": "OK",
   "Message": "",
-  "ServiceName": "books-ms",
-  "ServicePath": "/api/v1/books"
+  "ServiceName": "go-demo",
+  "ServiceColor": "",
+  "ServicePath": [
+    "/demo"
+  ],
+  "ServiceDomain": "",
+  "PathType": "",
+  "SkipCheck": false
 }
 ```
 
-*Docker Flow: Proxy* responded saying that reconfiguration of the service *books-ms* running on the path */api/v1/books* was performed successfully.
+*Docker Flow: Proxy* responded saying that reconfiguration of the service *go-demo* running on the path */demo* was performed successfully.
 
 Let's see whether the service is indeed accessible through the proxy.
 
 ```bash
-curl -I $PROXY_IP/api/v1/books
+curl -i $PROXY_IP/demo/hello
 ```
 
 The output of the `curl` command is as follows.
 
 ```bash
 HTTP/1.1 200 OK
-Server: spray-can/1.3.1
-Date: Mon, 14 Mar 2016 22:08:11 GMT
-Access-Control-Allow-Origin: *
-Content-Type: application/json; charset=UTF-8
-Content-Length: 2
+Date: Thu, 19 May 2016 19:21:55 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
 ```
 
 The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service.
@@ -105,30 +120,139 @@ The response is *200 OK*, meaning that our service is indeed accessible through 
 eval "$(docker-machine env --swarm swarm-master)"
 
 docker-compose \
-    -f docker-compose-demo.yml \
-    -p books-ms \
+    -f docker-compose-demo2.yml \
+    -p go-demo \
     scale app=3
 
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello"
 
-curl -I $PROXY_IP/api/v1/books
+curl -i $PROXY_IP/demo/hello
 ```
 
 *Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example reconfiguration request could look as follows.
 
 ```bash
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books,/api/v2/books"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello,/demo/person"
 ```
 
-The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
+The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *go-demo* service can be accessed through both the */demo/hello* and the */demo/person* paths.
 
 Optionally, *serviceDomain* can be used as well. If specified, the proxy will allow access only to requests coming from that domain. The example that follows sets *serviceDomain* to *my-domain-com*. After the proxy is reconfigured, only requests for that domain will be redirected to the destination service.
 
 ```bash
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/&serviceDomain=my-domain.com"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&serviceDomain=my-domain.com"
 ```
 
 For a more detailed example, please read the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article.
+
+### Removing a Service From the Proxy
+
+We can use *Docker Flow: Proxy* to also remove a service. An example that removes the service *go-demo* is as follows.
+
+```bash
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/remove?serviceName=go-demo"
+```
+
+From this moment on, the service *go-demo* is not available through the proxy.
+
+### Reconfiguring the Proxy Using Custom Consul Templates
+
+In some cases, you might have a special need that requires a custom [Consul Template](https://github.com/hashicorp/consul-template). In such a case, you can expose the container volume and store your templates on the host. An example template can be found in the [test_configs/tmpl/go-demo.tmpl](https://github.com/vfarcic/docker-flow-proxy/tree/master/test_configs/tmpl/go-demo.tmpl) file. Its content is as follows.
+
+```
+frontend go-demo-fe
+	bind *:80
+	bind *:443
+	option http-server-close
+	acl url_go-demo path_beg /demo
+	use_backend go-demo-be if url_go-demo
+
+backend go-demo-be
+	{{ range $i, $e := service "go-demo" "any" }}
+	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+	{{end}}
+```
+
+This is a segment of an [HAProxy](http://www.haproxy.org/) configuration with a few Consul Template tags (those surrounded with `{{` and `}}`). Please consult HAProxy and Consul Template for more information.
+
+This configuration file is available inside the container through a volume shared with the host. Please see the [Containers Definition](#containers-definition) for more info.
+
+In this case, the path to the template residing inside the container is `/consul_templates/tmpl/go-demo.tmpl`. The request that would reconfigure the proxy using this template is as follows.
+
+```bash
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&consulTemplatePath=/consul_templates/tmpl/go-demo.tmpl"
+```
+
+### Proxy Failover
+
+Consul is distributed service registry meant to run on multiple services (possible all servers in the cluster) and synchronize data across all instances. What that means is that as long as one Consul instance is available, data is available to whoever needs it.
+
+Since *Docker Flow: Proxy* is designed to utilize information stored in Consul, it can recuperate its state from a failure without the need to persist data on disk.
+
+Let's take a look at an example.
+
+Before we simulate a failure, let's configure it (again) with the *go-demo* service we used throughout examples.
+
+```bash
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello"
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The first command sent a reconfigure request and the second confirmed that the service is indeed available through the proxy.
+
+We'll simulate a proxy failure by removing the container.
+
+```bash
+eval "$(docker-machine env proxy)"
+
+docker-compose stop proxy
+
+docker-compose rm -f proxy
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The output of the last command is as follows.
+
+```bash
+curl: (7) Failed to connect to 192.168.99.100 port 80: Connection refused
+```
+
+We proved that the proxy is indeed not running and that the *go-demo* service is not accessible.
+
+We'll imagine that the whole node the proxy was running is down. In such a situation, we could try to fix the failing server or start the proxy somewhere else. In this example, we'll use the later option and start the proxy on *swarm-node-2*.
+
+```bash
+export CONSUL_IP=$(docker-machine ip proxy)
+
+eval "$(docker-machine env swarm-node-2)"
+
+docker-compose up -d proxy
+```
+
+The Docker Compose file we're using expects `CONSUL_IP` environment variable, so we set it up. Next, we run the proxy inside the *swarm-node-2* node.
+
+Let's see whether our service is not accessible through the proxy.
+
+```bash
+export PROXY_IP=$(docker-machine ip swarm-node-2)
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The output of the request is as follows.
+
+```
+HTTP/1.1 200 OK
+Date: Fri, 20 May 2016 12:07:34 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
+```
+
+On startup, *Docker Flow: Proxy* retrieved the information about all running services from Consul and recreated the configuration. It restored itself to the same state as it was before the failure.
 
 Containers Definition
 ---------------------
@@ -139,14 +263,14 @@ The complete definition of the containers we run can be found in the [docker-com
 version: '2'
 
 services:
-  consul:
+
+  consul-server:
     container_name: consul
-    image: progrium/consul
-    ports:
-      - 8500:8500
-      - 8301:8301
-      - 8300:8300
-    command: -server -bootstrap
+    image: consul
+    network_mode: host
+    environment:
+      - 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}'
+    command: agent -server -bind=$DOCKER_IP -bootstrap-expect=1 -client=$DOCKER_IP
 
   registrator:
     container_name: registrator
@@ -160,6 +284,8 @@ services:
     image: vfarcic/docker-flow-proxy
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
+    volumes:
+      - ./test_configs/:/consul_templates/
     ports:
       - 80:80
       - 443:443
@@ -170,7 +296,7 @@ Please note that this definition is compatible only with Docker Compose version 
 
 As you can see, all three targets are pretty simple and straightforward. In the examples, Consul was run on the *proxy* node. However, in production, you should probably run it on all servers in the cluster. Registrator was deployed to all Swarm nodes. Its `command` points to the *Consul* instance. Please note that *consul* and *registrator* targets are for demonstration purposes only. The only important requirement for the *proxy* target is the *CONSUL_ADDRESS* variable.
 
-Finally, *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
+Finally, the *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
 
 Usage
 -----
@@ -184,9 +310,10 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
 |serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
-|servicePath  |The URL path of the service. Multiple values should be separated with comma (,).|Yes     |       |/api/v1/books|
+|servicePath  |The URL path of the service. Multiple values should be separated with comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
 |serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
+|consulTemplatePath|The path to the Consul Template. If specified, template will be loaded from the specified file instead generating it automatically.|Yes (unless servicePath is present)||/consul_templates/tmpl/go-demo.tmpl|
 |skipCheck    |Whether to skip adding proxy checks.                                            |No      |false  |true         |
 
 ### Remove

@@ -22,14 +22,16 @@ type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
 	ReloadAllServices(address string) error
+	GetConsulTemplate(sr ServiceReconfigure) (string, error)
 }
 
 const (
-	COLOR_KEY      = "color"
-	PATH_KEY       = "path"
-	DOMAIN_KEY     = "domain"
-	PATH_TYPE_KEY  = "pathtype"
-	SKIP_CHECK_KEY = "skipcheck"
+	COLOR_KEY                = "color"
+	PATH_KEY                 = "path"
+	DOMAIN_KEY               = "domain"
+	PATH_TYPE_KEY            = "pathtype"
+	SKIP_CHECK_KEY           = "skipcheck"
+	CONSUL_TEMPLATE_PATH_KEY = "consultemplatepath"
 )
 
 type Reconfigure struct {
@@ -38,15 +40,16 @@ type Reconfigure struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName     string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor    string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePath     []string `short:"p" long:"service-path" required:"true" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
-	ServiceDomain   string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	PathType        string
-	SkipCheck       bool
-	Acl             string
-	AclCondition    string
-	FullServiceName string
+	ServiceName        string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor       string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
+	ServicePath        []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServiceDomain      string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ConsulTemplatePath string   `long:"consul-template-path" description:"The path to the Consul Template. If specified, template will be loaded from the specified file instead generating it automatically."`
+	PathType           string
+	SkipCheck          bool
+	Acl                string
+	AclCondition       string
+	FullServiceName    string
 }
 
 type BaseReconfigure struct {
@@ -94,7 +97,7 @@ func (m *Reconfigure) ReloadAllServices(address string) error {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
+	json.Unmarshal(body, &data)
 	logPrintf("\tFound %d services", len(data))
 
 	c := make(chan ServiceReconfigure)
@@ -125,6 +128,7 @@ func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReco
 		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY)
 		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
+		sr.ConsulTemplatePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_PATH_KEY)
 	}
 	c <- sr
 }
@@ -142,16 +146,19 @@ func (m *Reconfigure) getServiceAttribute(address, serviceName, key string) (str
 
 func (m *Reconfigure) createConfig(templatesPath string, sr ServiceReconfigure) error {
 	logPrintf("Creating configuration for the service %s", sr.ServiceName)
-	templateContent := m.getConsulTemplate(sr)
-	path := fmt.Sprintf("%s/%s", templatesPath, "service-formatted.ctmpl")
-	writeConsulTemplateFile(path, []byte(templateContent), 0664)
-	if err := m.runConsulTemplateCmd(templatesPath, sr.ServiceName); err != nil {
+	templateContent, err := m.GetConsulTemplate(sr)
+	if err != nil {
+		return err
+	}
+	src := fmt.Sprintf("%s/%s", templatesPath, "service-formatted.ctmpl")
+	writeConsulTemplateFile(src, []byte(templateContent), 0664)
+	dest := fmt.Sprintf("%s/%s", templatesPath, sr.ServiceName)
+	if err := m.runConsulTemplateCmd(src, dest); err != nil {
 		return err
 	}
 	return nil
 }
 
-// TODO: Integration tests
 func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)
@@ -162,7 +169,8 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
 	go m.sendPutRequest(address, sr, DOMAIN_KEY, sr.ServiceDomain, c)
 	go m.sendPutRequest(address, sr, PATH_TYPE_KEY, sr.PathType, c)
 	go m.sendPutRequest(address, sr, SKIP_CHECK_KEY, fmt.Sprintf("%t", sr.SkipCheck), c)
-	for i := 0; i < 5; i++ {
+	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_PATH_KEY, sr.ConsulTemplatePath, c)
+	for i := 0; i < 6; i++ {
 		err := <-c
 		if err != nil {
 			return fmt.Errorf("Could not send data to Consul\n%s", err.Error())
@@ -179,14 +187,8 @@ func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key 
 	c <- err
 }
 
-func (m *Reconfigure) runConsulTemplateCmd(templatesPath, serviceName string) error {
-	template := fmt.Sprintf(
-		`%s/%s:%s/%s.cfg`,
-		templatesPath,
-		ServiceTemplateFilename,
-		templatesPath,
-		serviceName,
-	)
+func (m *Reconfigure) runConsulTemplateCmd(src, dest string) error {
+	template := fmt.Sprintf(`%s:%s.cfg`, src, dest)
 	cmdArgs := []string{
 		"-consul", m.getConsulAddress(m.ConsulAddress),
 		"-template", template,
@@ -208,7 +210,14 @@ func (m *Reconfigure) getConsulAddress(address string) string {
 	return a
 }
 
-func (m *Reconfigure) getConsulTemplate(sr ServiceReconfigure) string {
+func (m *Reconfigure) GetConsulTemplate(sr ServiceReconfigure) (string, error) {
+	if len(sr.ConsulTemplatePath) > 0 {
+		return m.getConsulTemplateFromFile(sr.ConsulTemplatePath)
+	}
+	return m.getConsulTemplateFromGo(sr), nil
+}
+
+func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) string {
 	sr.Acl = ""
 	sr.AclCondition = ""
 	if len(sr.ServiceDomain) > 0 {
@@ -242,4 +251,12 @@ backend {{.ServiceName}}-be
 	var ct bytes.Buffer
 	tmpl.Execute(&ct, sr)
 	return ct.String()
+}
+
+func (m *Reconfigure) getConsulTemplateFromFile(path string) (string, error) {
+	content, err := readTemplateFile(path)
+	if err != nil {
+		return "", fmt.Errorf("Could not read the file %s\n%s", path, err.Error())
+	}
+	return string(content), nil
 }

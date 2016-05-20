@@ -3,12 +3,12 @@
 package main
 
 // $ export HOST_IP=<HOST_IP>
+// $ docker-compose -f docker-compose-test.yml down
 
 // Unit tests
 // $ docker-compose -f docker-compose-test.yml run --rm unit
 
 // Build
-// $ docker-compose -f docker-compose-test.yml down
 // $ docker-compose -f docker-compose.yml build app
 
 // Staging tests
@@ -47,25 +47,25 @@ func (s *IntegrationTestSuite) SetupTest() {
 // Integration
 
 func (s IntegrationTestSuite) Test_Reconfigure_MultipleInstances() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_PathReg() {
-	s.reconfigure("path_reg", "/.*/test")
+	s.reconfigure("path_reg", "", "/.*/test")
 
 	s.verifyReconfigure(1)
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
-	s.reconfigure("", "/v1/test", "/v2/test")
+	s.reconfigure("", "", "/v1/test", "/v2/test")
 
 	s.verifyReconfigure(2)
 }
 
 func (s IntegrationTestSuite) Test_Remove() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 	s.verifyReconfigure(1)
 
 	_, err := http.Get(fmt.Sprintf(
@@ -81,7 +81,7 @@ func (s IntegrationTestSuite) Test_Remove() {
 }
 
 func (s IntegrationTestSuite) Test_PutToConsul() {
-	s.reconfigure("", "/v1/test")
+	s.reconfigure("", "", "/v1/test")
 
 	url := fmt.Sprintf(
 		"http://%s:8500/v1/kv/docker-flow/%s/path?raw",
@@ -92,6 +92,12 @@ func (s IntegrationTestSuite) Test_PutToConsul() {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	s.Equal("/v1/test", string(body))
+}
+
+func (s IntegrationTestSuite) Test_Reconfigure_ConsulTemplatePath() {
+	s.reconfigure("", "/test_configs/tmpl/my-service.tmpl", "")
+
+	s.verifyReconfigure(1)
 }
 
 // Util
@@ -105,14 +111,24 @@ func (s IntegrationTestSuite) verifyReconfigure(version int) {
 	s.Equal(200, resp.StatusCode)
 }
 
-func (s IntegrationTestSuite) reconfigure(pathType string, paths ...string) {
-	address := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&pathType=%s",
-		os.Getenv("DOCKER_IP"),
-		s.serviceName,
-		strings.Join(paths, ","),
-		pathType,
-	)
+func (s IntegrationTestSuite) reconfigure(pathType, consulTemplatePath string, paths ...string) {
+	var address string
+	if len(consulTemplatePath) > 0 {
+		address = fmt.Sprintf(
+			"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&consulTemplatePath=%s",
+			os.Getenv("DOCKER_IP"),
+			s.serviceName,
+			consulTemplatePath,
+		)
+	} else {
+		address = fmt.Sprintf(
+			"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&pathType=%s",
+			os.Getenv("DOCKER_IP"),
+			s.serviceName,
+			strings.Join(paths, ","),
+			pathType,
+		)
+	}
 	logPrintf("Sending reconfigure request to %s", address)
 	_, err := http.Get(address)
 	s.NoError(err)
