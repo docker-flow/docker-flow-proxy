@@ -157,7 +157,7 @@ From this moment on, the service *go-demo* is not available through the proxy.
 
 ### Reconfiguring the Proxy Using Custom Consul Templates
 
-In some cases, you might have a special need that requires a custom [Consul Template](https://github.com/hashicorp/consul-template). In such a case, you can expose the container volume and store your own templates on the host. An example template can be found in the [test_configs/tmpl/go-demo.tmpl](https://github.com/vfarcic/docker-flow-proxy/tree/master/test_configs/tmpl/go-demo.tmpl) file. Its content is as follows.
+In some cases, you might have a special need that requires a custom [Consul Template](https://github.com/hashicorp/consul-template). In such a case, you can expose the container volume and store your templates on the host. An example template can be found in the [test_configs/tmpl/go-demo.tmpl](https://github.com/vfarcic/docker-flow-proxy/tree/master/test_configs/tmpl/go-demo.tmpl) file. Its content is as follows.
 
 ```
 frontend go-demo-fe
@@ -185,7 +185,74 @@ curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&consul
 
 ### Proxy Failover
 
-TODO
+Consul is distributed service registry meant to run on multiple services (possible all servers in the cluster) and synchronize data across all instances. What that means is that as long as one Consul instance is available, data is available to whoever needs it.
+
+Since *Docker Flow: Proxy* is designed to utilize information stored in Consul, it can recuperate its state from a failure without the need to persist data on disk.
+
+Let's take a look at an example.
+
+Before we simulate a failure, let's configure it (again) with the *go-demo* service we used throughout examples.
+
+```bash
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello"
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The first command sent a reconfigure request and the second confirmed that the service is indeed available through the proxy.
+
+We'll simulate a proxy failure by removing the container.
+
+```bash
+eval "$(docker-machine env proxy)"
+
+docker-compose stop proxy
+
+docker-compose rm -f proxy
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The output of the last command is as follows.
+
+```bash
+curl: (7) Failed to connect to 192.168.99.100 port 80: Connection refused
+```
+
+We proved that the proxy is indeed not running and that the *go-demo* service is not accessible.
+
+We'll imagine that the whole node the proxy was running is down. In such a situation, we could try to fix the failing server or start the proxy somewhere else. In this example, we'll use the later option and start the proxy on *swarm-node-2*.
+
+```bash
+export CONSUL_IP=$(docker-machine ip proxy)
+
+eval "$(docker-machine env swarm-node-2)"
+
+docker-compose up -d proxy
+```
+
+The Docker Compose file we're using expects `CONSUL_IP` environment variable, so we set it up. Next, we run the proxy inside the *swarm-node-2* node.
+
+Let's see whether our service is not accessible through the proxy.
+
+```bash
+export PROXY_IP=$(docker-machine ip swarm-node-2)
+
+curl -i $PROXY_IP/demo/hello
+```
+
+The output of the request is as follows.
+
+```
+HTTP/1.1 200 OK
+Date: Fri, 20 May 2016 12:07:34 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
+```
+
+On startup, *Docker Flow: Proxy* retrieved the information about all running services from Consul and recreated the configuration. It restored itself to the same state as it was before the failure.
 
 Containers Definition
 ---------------------
@@ -229,7 +296,7 @@ Please note that this definition is compatible only with Docker Compose version 
 
 As you can see, all three targets are pretty simple and straightforward. In the examples, Consul was run on the *proxy* node. However, in production, you should probably run it on all servers in the cluster. Registrator was deployed to all Swarm nodes. Its `command` points to the *Consul* instance. Please note that *consul* and *registrator* targets are for demonstration purposes only. The only important requirement for the *proxy* target is the *CONSUL_ADDRESS* variable.
 
-Finally, *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
+Finally, the *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
 
 Usage
 -----
