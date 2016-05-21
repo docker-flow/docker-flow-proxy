@@ -117,8 +117,6 @@ The response is *200 OK*, meaning that our service is indeed accessible through 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances.
 
 ```bash
-eval "$(docker-machine env --swarm swarm-master)"
-
 docker-compose \
     -f docker-compose-demo2.yml \
     -p go-demo \
