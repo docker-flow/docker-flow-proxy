@@ -10,7 +10,11 @@ export CONSUL_IP=$(docker-machine ip proxy)
 
 eval "$(docker-machine env proxy)"
 
-docker-compose up -d consul-server proxy
+docker-compose up -d consul-server
+
+sleep 2
+
+docker-compose up -d proxy
 
 docker-machine create -d virtualbox \
     --swarm --swarm-master \
