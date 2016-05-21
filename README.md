@@ -31,7 +31,9 @@ For a more detailed walkthrough and examples, please read the following articles
 * [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/)
 * [Docker Networking and DNS: The Good, The Bad, And The Ugly](https://technologyconversations.com/2016/04/25/docker-networking-and-dns-the-good-the-bad-and-the-ugly/)
 
-The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox). The examples will not run on Windows. Please see the [Docker Flow: Proxy – On-Demand HAProxy Service Discovery and Reconfiguration](http://technologyconversations.com/2016/03/21/docker-flow-proxy-on-demand-haproxy-service-discovery-and-reconfiguration/) article for an OS agnostic walkthrough.
+The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
+
+> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
 
 ### Setup
 
@@ -67,8 +69,6 @@ The details of the service we deployed are irrelevant for this exercise. What ma
 The only thing missing now is to reconfigure the proxy so that our newly deployed service is accessible on a standard HTTP port 80. That is the problem *Docker Flow: Proxy* is solving.
 
 ```bash
-eval "$(docker-machine env proxy)"
-
 export PROXY_IP=$(docker-machine ip proxy)
 
 curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo"
@@ -313,7 +313,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
 |serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
-|consulTemplatePath|The path to the Consul Template. If specified, template will be loaded from the specified file instead generating it automatically.|Yes (unless servicePath is present)||/consul_templates/tmpl/go-demo.tmpl|
+|consulTemplatePath|The path to the Consul Template. If specified, proxy template will be loaded from the specified file.|Yes (unless servicePath is present)||/consul_templates/tmpl/go-demo.tmpl|
 |skipCheck    |Whether to skip adding proxy checks.                                            |No      |false  |true         |
 
 ### Remove
