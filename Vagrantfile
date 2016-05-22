@@ -18,6 +18,14 @@ Vagrant.configure(2) do |config|
       v.memory = 1024
     end
   end
+  config.vm.define "services" do |d|
+    d.vm.box = "ubuntu/trusty64"
+    d.vm.hostname = "services"
+    d.vm.network "private_network", ip: "10.100.198.201"
+    d.vm.provider "virtualbox" do |v|
+      v.memory = 1024
+    end
+  end
   config.vm.define "jenkins" do |d|
     d.vm.box = "ubuntu/trusty64"
     d.vm.hostname = "jenkins"

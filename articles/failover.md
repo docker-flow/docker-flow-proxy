@@ -26,12 +26,14 @@ Do I hear backup? We'll, unless you backup proxy configurations every time they 
 
 How about distributed key/value stores like [Zookeeper](https://zookeeper.apache.org/), [etcd](https://github.com/coreos/etcd), or [Consul](https://www.consul.io/). They can, most of the time, guarantee that the information is stored across the cluster or even across multiple clusters. If we can store proxy configuration or, even better, elements of the configuration, those tools can provide a safe and secure way to restore the data we need. Since those tools propagate the information across all their instances, as long as one node with, let's say, Consul is running, our data is safe. Unlike traditional databases, they do not suffer from performance problems (assuming that we don't exaggerate with the amount of information we feed them). We can easily run one Consul instance on each cluster node without noticing any degradation in hardware usage.
 
-Equipped with that idea, and armed with scripts and templates I used to accomplish with objective in the past, I decided to add such a feature to the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project. Let's see it in action.
+Equipped with that idea, and armed with scripts and templates I used to accomplish this objective in the past, I decided to add such a feature to the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project.
+
+Let's see it in action.
 
 Docker Flow: Proxy - Failover Example
 -------------------------------------
 
-
+Please note that we'll use Vagrant to create simulated environments. Please consult the [Docker Flow: Proxy project](https://github.com/vfarcic/docker-flow-proxy) if you prefer examples with *Docker Machine*. It's worth noting that the examples in the [project README](https://github.com/vfarcic/docker-flow-proxy) are limited and with less description than what you'll find in this article.
 
 ```bash
 # Setup Proxy

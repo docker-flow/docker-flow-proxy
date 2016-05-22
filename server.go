@@ -89,7 +89,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 		} else {
 			response.Status = "NOK"
-			response.Message = "The following queries are mandatory: (serviceName and servicePath) or consulTemplatePath"
+			response.Message = "The following queries are mandatory: serviceName and (servicePath or consulTemplatePath)"
 			w.WriteHeader(http.StatusBadRequest)
 		}
 		httpWriterSetContentType(w, "application/json")

@@ -44,7 +44,7 @@ type ServiceReconfigure struct {
 	ServiceColor       string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath        []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServiceDomain      string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ConsulTemplatePath string   `long:"consul-template-path" description:"The path to the Consul Template. If specified, template will be loaded from the specified file instead generating it automatically."`
+	ConsulTemplatePath string   `long:"consul-template-path" description:"The path to the Consul Template. If specified, proxy template will be loaded from the specified file."`
 	PathType           string
 	SkipCheck          bool
 	Acl                string
