@@ -160,7 +160,7 @@ The output of the `curl` command is as follows.
 ]
 ```
 
-We can see that, in this case, the service is running in *10.100.192.201* (*swarm-node-1*) on the port *32768*. The name of the service (*books-ms*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
+We can see that, in this case, the service is running in *10.100.192.201* (*swarm-node-1*) on the port *32770*. The name of the service (*go-demo*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
 
 ```bash
 curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo" \
@@ -187,7 +187,7 @@ The output of the `curl` command is as follows.
 }
 ```
 
-*Docker Flow: Proxy* responded saying that reconfiguration of the service *books-ms* running on the path */api/v1/books* was performed successfully.
+*Docker Flow: Proxy* responded saying that reconfiguration of the service *go-demo* running on the path */demo* was performed successfully.
 
 Let's see whether the service is indeed accessible through the proxy.
 
@@ -301,7 +301,7 @@ curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePat
      | jq '.'
 ```
 
-The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
+The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *go-demo* service can be accessed through both the */demo/hello* and the */demo/person* paths.
 
 Reconfiguring Proxy Limited to a Specific Domain
 ------------------------------------------------
