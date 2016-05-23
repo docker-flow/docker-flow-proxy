@@ -125,7 +125,7 @@ That's it. All we had to do is send an HTTP request to `reconfigure` the proxy. 
 
 The output of the `curl` command is as follows (formatted for readability).
 
-```json
+```
 {
   "Status": "OK",
   "Message": "",

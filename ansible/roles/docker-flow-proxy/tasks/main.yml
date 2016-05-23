@@ -5,6 +5,8 @@
     state: running
     env:
       CONSUL_ADDRESS: "{{ consul_ip }}:8500"
+    volumes:
+      - /vagrant/test_configs/:/consul_templates/
     ports:
       - 80:80
       - "{{ docker_flow_proxy_port }}:8080"

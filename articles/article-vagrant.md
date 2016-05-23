@@ -69,7 +69,7 @@ Let's enter the *proxy* VM and take a quick look at the cluster status.
 ```bash
 vagrant ssh proxy
 
-export DOCKER_HOST=tcp://10.100.192.200:2375
+export DOCKER_HOST=tcp://swarm-master:2375
 
 docker info
 ```
@@ -130,12 +130,10 @@ We'll run a service defined in the [docker-compose-demo.yml](https://github.com/
 ```bash
 cd /vagrant
 
-export DOCKER_HOST=tcp://swarm-master:2375
-
-docker-compose
-    -p books-ms
-    -f docker-compose-demo.yml
-    up -d
+docker-compose \
+    -p go-demo \
+    -f docker-compose-demo2.yml \
+    up -d db app
 ```
 
 We just run a service that exposes HTTP API. The details of the service are not important for this article. What matters is that it is running on a random port exposed by Docker Engine. Since we're using Swarm, it might be running on any of its nodes. In other words, both IP and port of the service are determined by Swarm instead being controlled by us. That is a good thing since Swarm takes away tedious task of managing services in a (potentially huge) cluster. However, not knowing IP and port in advance poses a few questions, most important one being how to access the service if we don't know where it is.
@@ -143,44 +141,49 @@ We just run a service that exposes HTTP API. The details of the service are not 
 This is the moment when *Registrator* comes into play. It detected that a new container is running and stored its data into Consul. We can confirm that by running the following request.
 
 ```bash
-curl proxy:8500/v1/catalog/service/books-ms
-    | jq '.'
+curl proxy:8500/v1/catalog/service/go-demo?pretty
 ```
 
 The output of the `curl` command is as follows.
 
 ```
 [
-  {
-    "ServicePort": 32768,
-    "ServiceAddress": "10.100.192.201",
-    "ServiceTags": null,
-    "ServiceName": "books-ms",
-    "ServiceID": "swarm-node-1:booksms_app_1:8080",
-    "Address": "10.100.198.200",
-    "Node": "proxy"
-  }
+    {
+        "Node": "proxy",
+        "Address": "10.100.198.200",
+        "ServiceID": "swarm-node-1:godemo_app_1:8080",
+        "ServiceName": "go-demo",
+        "ServiceTags": null,
+        "ServiceAddress": "10.100.192.201",
+        "ServicePort": 32770
+    }
 ]
 ```
 
 We can see that, in this case, the service is running in *10.100.192.201* (*swarm-node-1*) on the port *32768*. The name of the service (*books-ms*) is the same as the name of the container we deployed. All we have to do now is reload the proxy.
 
 ```bash
-curl
-    "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
-     | jq '.'
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo" \
+    | jq '.'
 ```
 
 That's it. All we had to do is send an HTTP request to `reconfigure` the proxy. The `serviceName` query contains the name of the service we want to integrate with the proxy. It needs to match the *ServiceName* value stored in Consul. The `servicePath` is the unique URL that identifies the service. HAProxy will redirect all requests with URL that begin with that value.
 
 The output of the `curl` command is as follows.
 
-```json
+```
 {
-  "ServicePath": "/api/v1/books",
-  "ServiceName": "books-ms",
+  "SkipCheck": false,
+  "Status": "OK",
   "Message": "",
-  "Status": "OK"
+  "ServiceName": "go-demo",
+  "ServiceColor": "",
+  "ServicePath": [
+    "/demo"
+  ],
+  "ServiceDomain": "",
+  "ConsulTemplatePath": "",
+  "PathType": ""
 }
 ```
 
@@ -189,18 +192,18 @@ The output of the `curl` command is as follows.
 Let's see whether the service is indeed accessible through the proxy.
 
 ```bash
-curl -I proxy/api/v1/books
+curl -i proxy/demo/hello
 ```
 
 The output of the `curl` command is as follows.
 
 ```bash
 HTTP/1.1 200 OK
-Server: spray-can/1.3.1
-Date: Mon, 14 Mar 2016 22:08:11 GMT
-Access-Control-Allow-Origin: *
-Content-Type: application/json; charset=UTF-8
-Content-Length: 2
+Date: Mon, 23 May 2016 12:32:32 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
 ```
 
 The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service and its base URL.
@@ -213,37 +216,36 @@ Reconfiguring Proxy With a Multiple Instances of a Service
 As an example, let's scale the service to three instances.
 
 ```bash
-docker-compose
-    -p books-ms
-    -f docker-compose-demo.yml
+docker-compose \
+    -f docker-compose-demo2.yml \
+    -p go-demo \
     scale app=3
 ```
 
 Let's see the result.
 
 ```bash
-docker-compose
-    -p books-ms
-    -f docker-compose-demo.yml
+docker-compose \
+    -f docker-compose-demo2.yml \
+    -p go-demo \
     ps
 ```
 
 The result of the `docker-compose ps` command is as follows.
 
 ```
-    Name               Command          State               Ports
-------------------------------------------------------------------------------
-books-ms-db     /entrypoint.sh mongod   Up      27017/tcp
-booksms_app_1   /run.sh                 Up      10.100.192.202:32768->8080/tcp
-booksms_app_2   /run.sh                 Up      10.100.192.201:32768->8080/tcp
-booksms_app_3   /run.sh                 Up      10.100.192.202:32769->8080/tcp
+    Name                  Command              State               Ports
+-------------------------------------------------------------------------------------
+godemo_app_1   /docker-entrypoint.sh go-demo   Up      10.100.192.201:32770->8080/tcp
+godemo_app_2   /docker-entrypoint.sh go-demo   Up      10.100.192.201:32771->8080/tcp
+godemo_app_3   /docker-entrypoint.sh go-demo   Up      10.100.192.202:32768->8080/tcp
+godemo_db_1    /entrypoint.sh mongod           Up      27017/tcp
 ```
 
 We can also confirm that Registrator picked up the events and stored the information to Consul.
 
 ```bash
-curl proxy:8500/v1/catalog/service/books-ms
-    | jq '.'
+curl proxy:8500/v1/catalog/service/go-demo | jq '.'
 ```
 
 This time, Consul returned different results.
@@ -251,20 +253,20 @@ This time, Consul returned different results.
 ```
 [
   {
-    "ServicePort": 32768,
+    "ServicePort": 32770,
     "ServiceAddress": "10.100.192.201",
     "ServiceTags": null,
-    "ServiceName": "books-ms",
-    "ServiceID": "swarm-node-1:booksms_app_1:8080",
+    "ServiceName": "go-demo",
+    "ServiceID": "swarm-node-1:godemo_app_1:8080",
     "Address": "10.100.198.200",
     "Node": "proxy"
   },
   {
-    "ServicePort": 32769,
+    "ServicePort": 32771,
     "ServiceAddress": "10.100.192.201",
     "ServiceTags": null,
-    "ServiceName": "books-ms",
-    "ServiceID": "swarm-node-1:booksms_app_2:8080",
+    "ServiceName": "go-demo",
+    "ServiceID": "swarm-node-1:godemo_app_2:8080",
     "Address": "10.100.198.200",
     "Node": "proxy"
   },
@@ -272,8 +274,8 @@ This time, Consul returned different results.
     "ServicePort": 32768,
     "ServiceAddress": "10.100.192.202",
     "ServiceTags": null,
-    "ServiceName": "books-ms",
-    "ServiceID": "swarm-node-2:booksms_app_3:8080",
+    "ServiceName": "go-demo",
+    "ServiceID": "swarm-node-2:godemo_app_3:8080",
     "Address": "10.100.198.200",
     "Node": "proxy"
   }
@@ -283,8 +285,8 @@ This time, Consul returned different results.
 As you can see, the service is scaled to three instances (not counting the database). One of them are running on *swarm-node-1* (*10.100.192.201*) while the other two were deployed to *swarm-node-2* (*10.100.192.202*). Even though three instances are running, the proxy continues redirecting all requests to the first instance. We can change that by re-running the `reconfigure` command.
 
 ```bash
-curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books"
-     | jq '.'
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo" \
+    | jq '.'
 ```
 
 From this moment on, *HAProxy* is configured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as we send the `reconfigure` request, the proxy will load-balance requests across all instances. They can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
@@ -295,11 +297,132 @@ Reconfiguring Proxy With Multiple Service Paths
 *Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example reconfiguration request could look as follows.
 
 ```bash
-curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePath=/api/v1/books,/api/v2/books"
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello,/demo/person" \
      | jq '.'
 ```
 
 The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
+
+Reconfiguring Proxy Limited to a Specific Domain
+------------------------------------------------
+
+Optionally, serviceDomain can be used as well. If specified, the proxy will allow access only to requests coming from that domain. The example that follows sets *serviceDomain* to *my-domain-com*. After the proxy is reconfigured, only requests for that domain will be redirected to the destination service.
+
+```bash
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&serviceDomain=my-domain.com" \
+    | jq '.'
+```
+
+Removing a Service From the Proxy
+---------------------------------
+
+We can use *Docker Flow: Proxy* to also remove a service. An example that removes the service *go-demo* is as follows.
+
+```bash
+curl "proxy:8080/v1/docker-flow-proxy/remove?serviceName=go-demo" \
+    | jq '.'
+```
+
+From this moment on, the service *go-demo* is not available through the proxy.
+
+Reconfiguring the Proxy Using Custom Consul Templates
+-----------------------------------------------------
+
+In some cases, you might have a special need that requires a custom [Consul Template](https://github.com/hashicorp/consul-template). In such a case, you can expose the container volume and store your templates on the host. An example template can be found in the [test_configs/tmpl/go-demo.tmpl](https://github.com/vfarcic/docker-flow-proxy/tree/master/test_configs/tmpl/go-demo.tmpl) file. Its content is as follows.
+
+```
+frontend go-demo-fe
+	bind *:80
+	bind *:443
+	option http-server-close
+	acl url_go-demo path_beg /demo
+	use_backend go-demo-be if url_go-demo
+
+backend go-demo-be
+	{{ range $i, $e := service "go-demo" "any" }}
+	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+	{{end}}
+```
+
+This is a segment of an [HAProxy](http://www.haproxy.org/) configuration with a few Consul Template tags (those surrounded with `{{` and `}}`). Please consult HAProxy and Consul Template for more information.
+
+This configuration file is available inside the container through a volume shared with the host. Please see the [Containers Definition](#containers-definition) for more info.
+
+In this case, the path to the template residing inside the container is `/consul_templates/tmpl/go-demo.tmpl`. The request that would reconfigure the proxy using this template is as follows.
+
+```bash
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&consulTemplatePath=/consul_templates/tmpl/go-demo.tmpl" \
+    | jq '.'
+```
+
+Proxy Failover
+--------------
+
+Consul is distributed service registry meant to run on multiple services (possible all servers in the cluster) and synchronize data across all instances. What that means is that as long as one Consul instance is available, data is available to whoever needs it.
+
+Since *Docker Flow: Proxy* is designed to utilize information stored in Consul, it can recuperate its state from a failure without the need to persist data on disk.
+
+Let's take a look at an example.
+
+Before we simulate a failure, let's configure it (again) with the *go-demo* service we used throughout examples.
+
+```bash
+curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo/hello" \
+    | jq '.'
+
+curl -i proxy/demo/hello
+```
+
+The first command sent a reconfigure request and the second confirmed that the service is indeed available through the proxy.
+
+We'll simulate a proxy failure by removing the container.
+
+```bash
+export DOCKER_HOST=tcp://proxy:2375
+
+docker rm -f docker-flow-proxy
+
+curl -i proxy/demo/hello
+```
+
+The output of the last command is as follows.
+
+```bash
+curl: (7) Failed to connect to 192.168.99.100 port 80: Connection refused
+```
+
+We proved that the proxy is indeed not running and that the *go-demo* service is not accessible.
+
+We'll imagine that the whole node the proxy was running is down. In such a situation, we could try to fix the failing server or start the proxy somewhere else. In this example, we'll use the later option and start the proxy on *swarm-node-2*.
+
+```bash
+export CONSUL_IP=10.100.198.200
+
+export DOCKER_HOST=tcp://swarm-node-2:2375
+
+docker-compose up -d proxy
+```
+
+The Docker Compose file we're using expects `CONSUL_IP` environment variable, so we set it up. Next, we run the proxy inside the *swarm-node-2* node.
+
+Let's see whether our service is not accessible through the proxy.
+
+```bash
+curl -i swarm-node-2/demo/hello
+```
+
+The output of the request is as follows.
+
+```
+HTTP/1.1 200 OK
+Date: Fri, 20 May 2016 12:07:34 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
+```
+
+On startup, *Docker Flow: Proxy* retrieved the information about all running services from Consul and recreated the configuration. It restored itself to the same state as it was before the failure.
 
 Call For Action
 ---------------
@@ -313,3 +436,15 @@ exit
 
 vagrant destroy -f
 ```
+
+The DevOps 2.0 Toolkit
+----------------------
+
+<a href="https://leanpub.com/the-devops-2-toolkit" rel="attachment wp-att-3017"><img src="https://technologyconversations.files.wordpress.com/2014/04/the-devops-2-0-toolkit.png?w=188" alt="The DevOps 2.0 Toolkit" width="188" height="300" class="alignright size-medium wp-image-3017" /></a>If you liked this article, you might be interested in [The DevOps 2.0 Toolkit: Automating the Continuous Deployment Pipeline with Containerized Microservices](https://leanpub.com/the-devops-2-toolkit) book. Among many other subjects, it explores Docker, clustering, deployment, and scaling in much more detail.
+
+The book is about different techniques that help us architect software in a better and more efficient way with *microservices* packed as *immutable containers*, *tested* and *deployed continuously* to servers that are *automatically provisioned* with *configuration management* tools. It's about fast, reliable and continuous deployments with *zero-downtime* and ability to *roll-back*. It's about *scaling* to any number of servers, the design of *self-healing systems* capable of recuperation from both hardware and software failures and about *centralized logging and monitoring* of the cluster.
+
+In other words, this book envelops the whole *microservices development and deployment lifecycle* using some of the latest and greatest practices and tools. We'll use *Docker, Kubernetes, Ansible, Ubuntu, Docker Swarm and Docker Compose, Consul, etcd, Registrator, confd, Jenkins*, and so on. We'll go through many practices and, even more, tools.
+
+The book is available from Amazon ([Amazon.com](http://www.amazon.com/dp/B01BJ4V66M) and other worldwide sites) and [LeanPub](https://leanpub.com/the-devops-2-toolkit).
+
