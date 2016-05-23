@@ -1,12 +1,10 @@
-Docker Flow: Proxy - On-Demand HAProxy Service Discovery and Reconfiguration (Vagrant)
-======================================================================================
-
 The goal of the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project is to provide a simple way to reconfigure proxy every time a new service is deployed or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and combine them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and [Consul](https://www.consul.io/) as service registry. On top of those two, it adds custom logic that allows on-demand reconfiguration of the proxy.
+<!--more-->
 
 Before we jump into examples, let us discuss the need to use a dynamic proxy.
 
 The Need for a Dynamic Proxy
-----------------------------
+============================
 
 I will assume that you are already using Docker to deploy your services and applications or, at least, that you know how it works. Among many benefits, Docker allows us to deploy immutable and easy to scale containers. When implementing containers with scaling in mind, one of the first things you should learn is that we should let Docker decide the port that will be exposed to the host. For example, if your service listens on the port 8080, that port should be defined internally inside the container but not exposed to a fixed number to the host. In other words, you should run the container with the flag `-p 8080` and not `-p 8080:8080`. The reason behind that is scaling. If the port exposed to the host is "hard-coded", we cannot scale that container due to potential conflicts. After all, two processes cannot listen to the same port. Even if you decide never to scale on the same server, hard-coding the port would mean that you need to keep a tight control over which ports are dedicated to each service. If you adopt microservices approach, the number of services will increase making ports management a nightmare. The second reason for not using pre-defined ports is proxy. It should be in charge or redirection of requests and load balancing ([HAProxy](http://www.haproxy.org/) and [nginx](http://nginx.org/) tend to be most common choices). Whenever a new container is deployed, the proxy needs to be reconfigured as well.
 
@@ -26,7 +24,7 @@ That is where [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy)
 Let's see it in action.
 
 Setting Up the Environments
----------------------------
+===========================
 
 > If you prefer using Docker Machine instead of Vagrant, please consult the example from the [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) project. If you have a problem, suggestion, or an opinion regarding the project, please send me an email (my info is in the [About](http://technologyconversations.com/about/) section) or create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues)).
 
@@ -123,7 +121,7 @@ The other three nodes constitute our Docker Swarm cluster. The *swarm-master* is
 Now that everything is set up let's run a few services.
 
 Reconfiguring Proxy With a Single Instance of a Service
--------------------------------------------------------
+=======================================================
 
 We'll run a service defined in the [docker-compose-demo.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-demo.yml) file.
 
@@ -206,7 +204,7 @@ Content-Length: 2
 The response is *200 OK*, meaning that our service is indeed accessible through the proxy. All we had to do is tell *docker-flow-proxy* the name of the service and its base URL.
 
 Reconfiguring Proxy With a Multiple Instances of a Service
-----------------------------------------------------------
+==========================================================
 
 *Docker Flow: Proxy* is not limited to a single instance. It will reconfigure proxy to perform load balancing among all currently deployed instances of a service.
 
@@ -290,7 +288,7 @@ curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePa
 From this moment on, *HAProxy* is configured to perform load balancing across all three instances. We can continue scaling (and de-scaling) the service and, as long as we send the `reconfigure` request, the proxy will load-balance requests across all instances. They can be distributed among any number of servers, or even across different datacenters (as long as they are accessible from the proxy server).
 
 Reconfiguring Proxy With Multiple Service Paths
------------------------------------------------
+===============================================
 
 *Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example reconfiguration request could look as follows.
 
@@ -302,7 +300,7 @@ curl "proxy:8080/v1/docker-flow-proxy/reconfigure?serviceName=books-ms&servicePa
 The result from the `curl` request is the reconfiguration of the *HAProxy* so that the *books-ms* service can be accessed through both the */api/v1/books* and the */api/v2/books* paths.
 
 Call For Action
----------------
+===============
 
 Please give *Docker Flow: Proxy* a try. Deploy multiple services, scale them, destroy them, and so on. More information can be found in the project [README](https://github.com/vfarcic/docker-flow-proxy). Please contact me if you have a problem, suggestion, or an opinion regarding the project (my info is in the [About](http://technologyconversations.com/about/) section). Feel free to create a [New Issue](https://github.com/vfarcic/docker-flow-proxy/issues) or send a pull request.
 
