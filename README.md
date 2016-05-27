@@ -178,7 +178,7 @@ This configuration file is available inside the container through a volume share
 In this case, the path to the template residing inside the container is `/consul_templates/tmpl/go-demo.tmpl`. The request that would reconfigure the proxy using this template is as follows.
 
 ```bash
-curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&consulTemplatePath=/consul_templates/tmpl/go-demo.tmpl"
+curl "$PROXY_IP:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&consulTemplateFePath=/consul_templates/tmpl/go-demo-fe.tmpl&consulTemplateBePath=/consul_templates/tmpl/go-demo-be.tmpl"
 ```
 
 ### Proxy Failover
@@ -311,7 +311,8 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
 |serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
-|consulTemplatePath|The path to the Consul Template. If specified, proxy template will be loaded from the specified file.|Yes (unless servicePath is present)||/consul_templates/tmpl/go-demo.tmpl|
+|consulTemplateFePath|The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file.||/consul_templates/tmpl/go-demo-fe.tmpl|
+|consulTemplateBePath|The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file.||/consul_templates/tmpl/go-demo-be.tmpl|
 |skipCheck    |Whether to skip adding proxy checks.                                            |No      |false  |true         |
 
 ### Remove

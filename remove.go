@@ -23,11 +23,16 @@ var NewRemove = func(serviceName, configsPath, templatesPath string) Removable {
 }
 
 func (m *Remove) Execute(args []string) error {
-	path := fmt.Sprintf("%s/%s.cfg", m.TemplatesPath, m.ServiceName)
+	paths := []string{
+		fmt.Sprintf("%s/%s-fe.cfg", m.TemplatesPath, m.ServiceName),
+		fmt.Sprintf("%s/%s-be.cfg", m.TemplatesPath, m.ServiceName),
+	}
 	mu.Lock()
 	defer mu.Unlock()
-	if err := osRemove(path); err != nil {
-		return err
+	for _, path := range paths {
+		if err := osRemove(path); err != nil {
+			return err
+		}
 	}
 	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
 		return err

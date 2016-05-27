@@ -22,15 +22,16 @@ type Server struct {
 var server = Server{}
 
 type Response struct {
-	Status             string
-	Message            string
-	ServiceName        string
-	ServiceColor       string
-	ServicePath        []string
-	ServiceDomain      string
-	ConsulTemplatePath string
-	PathType           string
-	SkipCheck          bool
+	Status               string
+	Message              string
+	ServiceName          string
+	ServiceColor         string
+	ServicePath          []string
+	ServiceDomain        string
+	ConsulTemplateFePath string
+	ConsulTemplateBePath string
+	PathType             string
+	SkipCheck            bool
 }
 
 func (m Server) Execute(args []string) error {
@@ -55,11 +56,12 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
 		sr := ServiceReconfigure{
-			ServiceName:        req.URL.Query().Get("serviceName"),
-			ServiceColor:       req.URL.Query().Get("serviceColor"),
-			ServiceDomain:      req.URL.Query().Get("serviceDomain"),
-			ConsulTemplatePath: req.URL.Query().Get("consulTemplatePath"),
-			PathType:           req.URL.Query().Get("pathType"),
+			ServiceName:          req.URL.Query().Get("serviceName"),
+			ServiceColor:         req.URL.Query().Get("serviceColor"),
+			ServiceDomain:        req.URL.Query().Get("serviceDomain"),
+			ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
+			ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
+			PathType:             req.URL.Query().Get("pathType"),
 		}
 		if len(req.URL.Query().Get("servicePath")) > 0 {
 			sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
@@ -68,16 +70,17 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
 		}
 		response := Response{
-			Status:             "OK",
-			ServiceName:        sr.ServiceName,
-			ServiceColor:       sr.ServiceColor,
-			ServicePath:        sr.ServicePath,
-			ServiceDomain:      sr.ServiceDomain,
-			ConsulTemplatePath: sr.ConsulTemplatePath,
-			PathType:           sr.PathType,
-			SkipCheck:          sr.SkipCheck,
+			Status:               "OK",
+			ServiceName:          sr.ServiceName,
+			ServiceColor:         sr.ServiceColor,
+			ServicePath:          sr.ServicePath,
+			ServiceDomain:        sr.ServiceDomain,
+			ConsulTemplateFePath: sr.ConsulTemplateFePath,
+			ConsulTemplateBePath: sr.ConsulTemplateBePath,
+			PathType:             sr.PathType,
+			SkipCheck:            sr.SkipCheck,
 		}
-		if len(sr.ServiceName) > 0 && (len(sr.ServicePath) > 0 || len(sr.ConsulTemplatePath) > 0) {
+		if len(sr.ServiceName) > 0 && (len(sr.ServicePath) > 0 || len(sr.ConsulTemplateFePath) > 0) {
 			action := NewReconfigure(
 				m.BaseReconfigure,
 				sr,
@@ -89,7 +92,7 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 		} else {
 			response.Status = "NOK"
-			response.Message = "The following queries are mandatory: serviceName and (servicePath or consulTemplatePath)"
+			response.Message = "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)"
 			w.WriteHeader(http.StatusBadRequest)
 		}
 		httpWriterSetContentType(w, "application/json")

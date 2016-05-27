@@ -72,7 +72,8 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
-		{"consulTemplatePath", "consul-template-path", &reconfigure.ConsulTemplatePath},
+		{"consulTemplateFePath", "consul-template-fe-path", &reconfigure.ConsulTemplateFePath},
+		{"consulTemplateBePath", "consul-template-be-path", &reconfigure.ConsulTemplateBePath},
 	}
 
 	for _, d := range data {

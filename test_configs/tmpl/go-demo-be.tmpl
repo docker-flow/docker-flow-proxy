@@ -1,10 +1,3 @@
-frontend go-demo-fe
-	bind *:80
-	bind *:443
-	option http-server-close
-	acl url_go-demo path_beg /demo
-	use_backend go-demo-be if url_go-demo
-
 backend go-demo-be
 	{{ range $i, $e := service "go-demo" "any" }}
 	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check

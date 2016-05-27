@@ -35,10 +35,13 @@ func (s *RemoveTestSuite) SetupTest() {
 // Execute
 
 func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFile() {
-	var actual string
-	expected := fmt.Sprintf("%s/%s.cfg", s.TemplatesPath, s.ServiceName)
+	var actual []string
+	expected := []string{
+		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName),
+		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName),
+	}
 	osRemove = func(name string) error {
-		actual = name
+		actual = append(actual, name)
 		return nil
 	}
 

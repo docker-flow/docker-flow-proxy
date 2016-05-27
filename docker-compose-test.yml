@@ -25,6 +25,7 @@ services:
       - app-1
       - app-2
       - app-3
+      - app-4
 
   staging:
     image: golang:1.6
@@ -34,7 +35,7 @@ services:
     environment:
       - DOCKER_IP=${HOST_IP}
       - CONSUL_IP=${HOST_IP}
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration"
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration -v"
 
   production:
     extends:
@@ -81,6 +82,16 @@ services:
     environment:
       CONSUL_ADDRESS: ${HOST_IP}:8500
       SERVICE_8080_NAME: test-service
+    ports:
+      - 8080
+    depends_on:
+      - consul
+
+  app-4:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      CONSUL_ADDRESS: ${HOST_IP}:8500
+      SERVICE_8080_NAME: test-other-service
     ports:
       - 8080
     depends_on:

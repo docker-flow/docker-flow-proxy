@@ -267,17 +267,21 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecute
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPresent() {
-	path := "/path/to/consul/template"
-	req, _ := http.NewRequest(
-		"GET",
-		fmt.Sprintf("%s?serviceName=%s&consulTemplatePath=%s", s.ReconfigureBaseUrl, s.ServiceName, path),
-		nil,
-	)
+	pathFe := "/path/to/consul/fe/template"
+	pathBe := "/path/to/consul/fe/template"
+	address := fmt.Sprintf(
+		"%s?serviceName=%s&consulTemplateFePath=%s&consulTemplateBePath=%s",
+		s.ReconfigureBaseUrl,
+		s.ServiceName,
+		pathFe,
+		pathBe)
+	req, _ := http.NewRequest("GET", address, nil)
 	expected, _ := json.Marshal(Response{
-		Status:             "OK",
-		ServiceName:        s.ServiceName,
-		ConsulTemplatePath: path,
-		PathType:           s.PathType,
+		Status:               "OK",
+		ServiceName:          s.ServiceName,
+		ConsulTemplateFePath: pathFe,
+		ConsulTemplateBePath: pathBe,
+		PathType:             s.PathType,
 	})
 
 	Server{}.ServeHTTP(s.ResponseWriter, req)
@@ -286,16 +290,18 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
-	path := "/path/to/consul/template"
+	pathFe := "/path/to/consul/fe/template"
+	pathBe := "/path/to/consul/be/template"
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
 		ConsulAddress: s.ConsulAddress,
 	}
 	expectedService := ServiceReconfigure{
-		ServiceName:        s.ServiceName,
-		ConsulTemplatePath: path,
-		PathType:           s.PathType,
+		ServiceName:          s.ServiceName,
+		ConsulTemplateFePath: pathFe,
+		ConsulTemplateBePath: pathBe,
+		PathType:             s.PathType,
 	}
 	var actualService ServiceReconfigure
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -304,11 +310,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		return mockObj
 	}
 	server := Server{BaseReconfigure: expectedBase}
-	req, _ := http.NewRequest(
-		"GET",
-		fmt.Sprintf("%s?serviceName=%s&consulTemplatePath=%s", s.ReconfigureBaseUrl, s.ServiceName, path),
-		nil,
-	)
+	address := fmt.Sprintf(
+		"%s?serviceName=%s&consulTemplateFePath=%s&consulTemplateBePath=%s",
+		s.ReconfigureBaseUrl,
+		s.ServiceName,
+		pathFe,
+		pathBe)
+	req, _ := http.NewRequest("GET", address, nil)
 
 	server.ServeHTTP(s.ResponseWriter, req)
 

@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const ServiceTemplateFilename = "service-formatted.ctmpl"
-
 type Proxy interface {
 	RunCmd(extraArgs []string) error
 	CreateConfigFromTemplates(templatesPath string, configsPath string) error
@@ -32,7 +30,8 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmdRunHa(cmd); err != nil {
-		return fmt.Errorf("Command %v\n%v\n", cmd, err)
+		configData, _ := readConfigsFile("/cfg/haproxy.cfg")
+		return fmt.Errorf("Command %v\n%s\n%s", cmd, err.Error(), string(configData))
 	}
 	return nil
 }
@@ -65,7 +64,12 @@ func (m HaProxy) getConfigs(templatesPath string) (string, error) {
 		return "", fmt.Errorf("Could not read the directory %s\n%s", templatesPath, err.Error())
 	}
 	for _, fi := range configs {
-		if strings.HasSuffix(fi.Name(), ".cfg") {
+		if strings.HasSuffix(fi.Name(), "-fe.cfg") {
+			configsFiles = append(configsFiles, fi.Name())
+		}
+	}
+	for _, fi := range configs {
+		if strings.HasSuffix(fi.Name(), "-be.cfg") {
 			configsFiles = append(configsFiles, fi.Name())
 		}
 	}

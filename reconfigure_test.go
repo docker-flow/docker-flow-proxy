@@ -21,7 +21,8 @@ type ReconfigureTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
 	ConsulAddress     string
-	ConsulTemplate    string
+	ConsulTemplateFe  string
+	ConsulTemplateBe  string
 	ConfigsPath       string
 	TemplatesPath     string
 	reconfigure       Reconfigure
@@ -37,17 +38,13 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ServiceDomain = "my-domain.com"
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
-	s.ConsulTemplate = `frontend myService-fe
-	bind *:80
-	bind *:443
-	option http-server-close
-	acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-	use_backend myService-be if url_myService
-
-backend myService-be
-	{{range $i, $e := service "myService" "any"}}
-	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-	{{end}}`
+	s.ConsulTemplateFe = `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    use_backend myService-be if url_myService`
+	s.ConsulTemplateBe = `backend myService-be
+    {{range $i, $e := service "myService" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}`
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return nil
 	}
@@ -79,53 +76,46 @@ backend myService-be
 // GetConsulTemplate
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
-	actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+	front, back, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
-	s.Equal(s.ConsulTemplate, actual)
+	s.Equal(s.ConsulTemplateFe, front)
+	s.Equal(s.ConsulTemplateBe, back)
 }
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
-	s.ConsulTemplate = `frontend myService-fe
-	bind *:80
-	bind *:443
-	option http-server-close
-	acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-	acl domain_myService hdr_dom(host) -i my-domain.com
-	use_backend myService-be if url_myService domain_myService
-
-backend myService-be
-	{{range $i, $e := service "myService" "any"}}
-	server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-	{{end}}`
+	s.ConsulTemplateFe = `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    acl domain_myService hdr_dom(host) -i my-domain.com
+    use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = s.ServiceDomain
-	actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
-	s.Equal(s.ConsulTemplate, actual)
+	s.Equal(s.ConsulTemplateFe, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesPathReg() {
-	s.ConsulTemplate = strings.Replace(s.ConsulTemplate, "path_beg", "path_reg", -1)
+	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
 	s.reconfigure.PathType = "path_reg"
-	actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+	front, _, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
-	s.Equal(s.ConsulTemplate, actual)
+	s.Equal(s.ConsulTemplateFe, front)
 }
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
-	actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
 	s.Contains(actual, expected)
 }
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_DoesNotSetCheckWhenSkipCheckIsTrue() {
-	s.ConsulTemplate = strings.Replace(s.ConsulTemplate, " check", "", -1)
+	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
-	actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
-	s.Equal(s.ConsulTemplate, actual)
+	s.Equal(s.ConsulTemplateBe, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
@@ -135,9 +125,10 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFileContent_WhenCons
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return []byte(expected), nil
 	}
-	s.ServiceReconfigure.ConsulTemplatePath = "/path/to/my/consul/template"
+	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	actual, _ := s.reconfigure.GetConsulTemplate(s.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetConsulTemplate(s.ServiceReconfigure)
 
 	s.Equal(expected, actual)
 }
@@ -148,9 +139,10 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsError_WhenConsulTemp
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
-	s.ServiceReconfigure.ConsulTemplatePath = "/path/to/my/consul/template"
+	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, actual := s.reconfigure.GetConsulTemplate(s.ServiceReconfigure)
+	_, _, actual := s.reconfigure.GetConsulTemplate(s.ServiceReconfigure)
 
 	s.Error(actual)
 }
@@ -158,30 +150,33 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsError_WhenConsulTemp
 // Execute
 
 func (s ReconfigureTestSuite) Test_Execute_CreatesConsulTemplate() {
-	var actual string
+	var actual []string
 	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		if len(actual) == 0 {
-			actual = string(data)
-		}
+		actual = append(actual, string(data))
 		return nil
 	}
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(s.ConsulTemplate, actual)
+	s.Equal(2, len(actual))
+	s.Equal(s.ConsulTemplateFe, actual[0])
+	s.Equal(s.ConsulTemplateBe, actual[1])
 }
 
 func (s ReconfigureTestSuite) Test_Execute_WritesTemplateToFile() {
-	var actual string
-	expected := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFilename)
+	var actual []string
+	expectedFe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFeFilename)
+	expectedBe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateBeFilename)
 	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = filename
+		actual = append(actual, filename)
 		return nil
 	}
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, actual)
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
 }
 
 func (s ReconfigureTestSuite) Test_Execute_SetsFilePermissions() {
@@ -198,16 +193,34 @@ func (s ReconfigureTestSuite) Test_Execute_SetsFilePermissions() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
-	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
-	expected := []string{
+	var actual [][]string
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
 		"consul-template",
 		"-consul",
 		strings.Replace(s.ConsulAddress, "http://", "", -1),
 		"-template",
 		fmt.Sprintf(
-			`%s/%s:%s/%s.cfg`,
+			`%s/%s:%s/%s-fe.cfg`,
 			s.TemplatesPath,
-			ServiceTemplateFilename,
+			ServiceTemplateFeFilename,
+			s.TemplatesPath,
+			s.ServiceName,
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.ConsulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-be.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateBeFilename,
 			s.TemplatesPath,
 			s.ServiceName,
 		),
@@ -216,20 +229,40 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, *actual)
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
-	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
-	expected := []string{
+	var actual [][]string
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
 		"consul-template",
 		"-consul",
 		strings.Replace(s.ConsulAddress, "http://", "", -1),
 		"-template",
 		fmt.Sprintf(
-			`%s/%s:%s/%s.cfg`,
+			`%s/%s:%s/%s-fe.cfg`,
 			s.TemplatesPath,
-			ServiceTemplateFilename,
+			ServiceTemplateFeFilename,
+			s.TemplatesPath,
+			s.ServiceName,
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.ConsulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-be.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateBeFilename,
 			s.TemplatesPath,
 			s.ServiceName,
 		),
@@ -239,20 +272,40 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, *actual)
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
 }
 
 func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttps() {
-	actual := ReconfigureTestSuite{}.mockConsulExecCmd()
-	expected := []string{
+	var actual [][]string
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
 		"consul-template",
 		"-consul",
 		strings.Replace(s.ConsulAddress, "http://", "", -1),
 		"-template",
 		fmt.Sprintf(
-			`%s/%s:%s/%s.cfg`,
+			`%s/%s:%s/%s-fe.cfg`,
 			s.TemplatesPath,
-			ServiceTemplateFilename,
+			ServiceTemplateFeFilename,
+			s.TemplatesPath,
+			s.ServiceName,
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.ConsulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-be.cfg`,
+			s.TemplatesPath,
+			ServiceTemplateBeFilename,
 			s.TemplatesPath,
 			s.ServiceName,
 		),
@@ -263,12 +316,30 @@ func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttps() 
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(expected, *actual)
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
 }
 
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateCommandFails() {
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFeCommandFails() {
 	cmdRunConsul = func(cmd *exec.Cmd) error {
-		return fmt.Errorf("This is an error")
+		if strings.Contains(cmd.Args[4], "fe.ctmpl") {
+			return fmt.Errorf("This is an error")
+		}
+		return nil
+	}
+
+	err := s.reconfigure.Execute([]string{})
+
+	s.Error(err)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateBeCommandFails() {
+	cmdRunConsul = func(cmd *exec.Cmd) error {
+		if strings.Contains(cmd.Args[4], "be.ctmpl") {
+			return fmt.Errorf("This is an error")
+		}
+		return nil
 	}
 
 	err := s.reconfigure.Execute([]string{})
@@ -309,11 +380,13 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
-	consulTemplatePath := "test_configs/tmpl/my-service.tmpl"
+	consulTemplateFePath := "test_configs/tmpl/my-service-fe.tmpl"
+	consulTemplateBePath := "test_configs/tmpl/my-service-be.tmpl"
 	s.SkipCheck = true
 	s.reconfigure.SkipCheck = true
 	s.reconfigure.ServiceDomain = s.ServiceDomain
-	s.reconfigure.ConsulTemplatePath = consulTemplatePath
+	s.reconfigure.ConsulTemplateFePath = consulTemplateFePath
+	s.reconfigure.ConsulTemplateBePath = consulTemplateBePath
 	s.reconfigure.Execute([]string{})
 
 	type data struct{ key, value, expected string }
@@ -324,7 +397,8 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		data{"domain", s.ConsulRequestBody.ServiceDomain, s.ServiceDomain},
 		data{"pathType", s.ConsulRequestBody.PathType, s.PathType},
 		data{"skipCheck", fmt.Sprintf("%t", s.ConsulRequestBody.SkipCheck), fmt.Sprintf("%t", s.SkipCheck)},
-		data{"consulTemplatePath", s.ConsulRequestBody.ConsulTemplatePath, consulTemplatePath},
+		data{"consulTemplateFePath", s.ConsulRequestBody.ConsulTemplateFePath, consulTemplateFePath},
+		data{"consulTemplateBePath", s.ConsulRequestBody.ConsulTemplateBePath, consulTemplateBePath},
 	}
 	for _, e := range d {
 		s.Equal(e.expected, e.value)
@@ -357,7 +431,8 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileIs
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
-	s.reconfigure.ServiceReconfigure.ConsulTemplatePath = "/path/to/my/consul/template"
+	s.reconfigure.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.reconfigure.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
 	err := s.reconfigure.Execute([]string{})
 
@@ -399,16 +474,19 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
-	var actual string
-	expected := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFilename)
+	var actual []string
+	expectedFe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFeFilename)
+	expectedBe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateBeFilename)
 	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = filename
+		actual = append(actual, filename)
 		return nil
 	}
 
 	s.reconfigure.ReloadAllServices(s.ConsulAddress)
 
-	s.Equal(expected, actual)
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
@@ -480,8 +558,10 @@ func TestReconfigureTestSuite(t *testing.T) {
 			case fmt.Sprintf("/v1/kv/docker-flow/%s/skipcheck", s.ServiceName):
 				v, _ := strconv.ParseBool(string(body))
 				s.ConsulRequestBody.SkipCheck = v
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/consultemplatepath", s.ServiceName):
-				s.ConsulRequestBody.ConsulTemplatePath = string(body)
+			case fmt.Sprintf("/v1/kv/docker-flow/%s/consultemplatefepath", s.ServiceName):
+				s.ConsulRequestBody.ConsulTemplateFePath = string(body)
+			case fmt.Sprintf("/v1/kv/docker-flow/%s/consultemplatebepath", s.ServiceName):
+				s.ConsulRequestBody.ConsulTemplateBePath = string(body)
 			}
 		} else if r.Method == "GET" {
 			switch actualPath {
@@ -527,15 +607,6 @@ func TestReconfigureTestSuite(t *testing.T) {
 
 // Mock
 
-func (s ReconfigureTestSuite) mockConsulExecCmd() *[]string {
-	var actualCommand []string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		actualCommand = cmd.Args
-		return nil
-	}
-	return &actualCommand
-}
-
 type ReconfigureMock struct {
 	mock.Mock
 }
@@ -555,9 +626,9 @@ func (m *ReconfigureMock) ReloadAllServices(address string) error {
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetConsulTemplate(sr ServiceReconfigure) (string, error) {
+func (m *ReconfigureMock) GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error) {
 	params := m.Called(sr)
-	return params.String(0), params.Error(1)
+	return params.String(0), params.String(1), params.Error(2)
 }
 
 func getReconfigureMock(skipMethod string) *ReconfigureMock {
@@ -572,7 +643,7 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 		mockObj.On("ReloadAllServices", mock.Anything).Return(nil)
 	}
 	if skipMethod != "GetConsulTemplate" {
-		mockObj.On("GetConsulTemplate", mock.Anything).Return("", nil)
+		mockObj.On("GetConsulTemplate", mock.Anything).Return("", "", nil)
 	}
 	return mockObj
 }

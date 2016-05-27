@@ -1,0 +1,2 @@
+	acl url_test-service path_beg /v1/test
+	use_backend test-service-be if url_test-service
