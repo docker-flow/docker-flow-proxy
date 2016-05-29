@@ -3,16 +3,13 @@ env:
 
 sudo: required
 
-language: go
-
 services:
   - docker
 
 script:
-  - go test --cover -v ./...
+  - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... && go build -v -o docker-flow-proxy"
 
 after_success:
-  - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v $GOPATH:/go golang:1.6 go build -v -o docker-flow-proxy
   - docker build -t vfarcic/docker-flow-proxy:${VERSION} .
   - docker tag vfarcic/docker-flow-proxy:${VERSION} vfarcic/docker-flow-proxy
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || false'
