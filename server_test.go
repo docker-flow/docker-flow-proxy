@@ -365,13 +365,19 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
 	var actual Remove
 	expected := Remove{
-		ServiceName: s.ServiceName,
+		ServiceName:   s.ServiceName,
+		TemplatesPath: "",
+		ConfigsPath:   "",
+		ConsulAddress: s.ConsulAddress,
+		InstanceName:  s.InstanceName,
 	}
-	NewRemove = func(serviceName, configsPath, templatesPath string) Removable {
+	NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName string) Removable {
 		actual = Remove{
 			ServiceName:   serviceName,
 			TemplatesPath: templatesPath,
 			ConfigsPath:   configsPath,
+			ConsulAddress: consulAddress,
+			InstanceName:  instanceName,
 		}
 		return mockObj
 	}

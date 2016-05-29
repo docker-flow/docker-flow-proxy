@@ -113,6 +113,8 @@ func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				serviceName,
 				m.BaseReconfigure.ConfigsPath,
 				m.BaseReconfigure.TemplatesPath,
+				m.ConsulAddress,
+				m.InstanceName,
 			)
 			action.Execute([]string{})
 		}

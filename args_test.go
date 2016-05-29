@@ -70,11 +70,11 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
 		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
+		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
 		{"consulTemplateFePath", "consul-template-fe-path", &reconfigure.ConsulTemplateFePath},
 		{"consulTemplateBePath", "consul-template-be-path", &reconfigure.ConsulTemplateBePath},
-		{"proxyInstanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 	}
 
 	for _, d := range data {
@@ -214,6 +214,8 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
 		{"serviceNameFromArgs", "service-name", &remove.ServiceName},
 		{"templatesPathFromArgs", "templates-path", &remove.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &remove.ConfigsPath},
+		{"http://consul", "consul-address", &remove.ConsulAddress},
+		{"instanceNameFromArgs", "proxy-instance-name", &remove.InstanceName},
 	}
 
 	for _, d := range data {
@@ -236,6 +238,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 		{"serviceNameFromArgs", "s", &remove.ServiceName},
 		{"templatesPathFromArgs", "t", &remove.TemplatesPath},
 		{"configsPathFromArgs", "c", &remove.ConfigsPath},
+		{"consulAddressFromArgs", "a", &remove.ConsulAddress},
 	}
 
 	for _, d := range data {
@@ -243,6 +246,26 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 	}
 	err := Args{}.Parse()
 	s.NoError(err)
+	for _, d := range data {
+		s.Equal(d.expected, *d.value)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_RemoveDefaultsToEnvVars() {
+	os.Args = []string{"myProgram", "remove"}
+	data := []struct {
+		expected string
+		key      string
+		value    *string
+	}{
+		{"consulAddressFromEnv", "CONSUL_ADDRESS", &remove.ConsulAddress},
+		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &remove.InstanceName},
+	}
+
+	for _, d := range data {
+		os.Setenv(d.key, d.expected)
+	}
+	Args{}.Parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -331,6 +354,10 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 // Suite
 
 func TestArgsTestSuite(t *testing.T) {
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
 	logPrintf = func(format string, v ...interface{}) {}
 	proxyOrig := proxy
 	defer func() {

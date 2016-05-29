@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"testing"
+	"./registry"
 )
 
 type ReconfigureTestSuite struct {
@@ -383,29 +382,29 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
-	consulTemplateFePath := "test_configs/tmpl/my-service-fe.tmpl"
-	consulTemplateBePath := "test_configs/tmpl/my-service-be.tmpl"
 	s.SkipCheck = true
 	s.reconfigure.SkipCheck = true
 	s.reconfigure.ServiceDomain = s.ServiceDomain
-	s.reconfigure.ConsulTemplateFePath = consulTemplateFePath
-	s.reconfigure.ConsulTemplateBePath = consulTemplateBePath
+	s.reconfigure.ConsulTemplateFePath = s.ConsulTemplateFePath
+	s.reconfigure.ConsulTemplateBePath = s.ConsulTemplateBePath
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+	r := registry.Registry{
+		ServiceName: s.ServiceName,
+		ServiceColor: s.ServiceColor,
+		ServicePath: s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		PathType: s.PathType,
+		SkipCheck: s.SkipCheck,
+		ConsulTemplateFePath: s.ConsulTemplateFePath,
+		ConsulTemplateBePath: s.ConsulTemplateBePath,
+	}
+
 	s.reconfigure.Execute([]string{})
 
-	type data struct{ key, value, expected string }
-
-	d := []data{
-		data{"color", s.ConsulRequestBody.ServiceColor, s.ServiceColor},
-		data{"path", strings.Join(s.ConsulRequestBody.ServicePath, ","), strings.Join(s.ServicePath, ",")},
-		data{"domain", s.ConsulRequestBody.ServiceDomain, s.ServiceDomain},
-		data{"pathType", s.ConsulRequestBody.PathType, s.PathType},
-		data{"skipCheck", fmt.Sprintf("%t", s.ConsulRequestBody.SkipCheck), fmt.Sprintf("%t", s.SkipCheck)},
-		data{"consulTemplateFePath", s.ConsulRequestBody.ConsulTemplateFePath, consulTemplateFePath},
-		data{"consulTemplateBePath", s.ConsulRequestBody.ConsulTemplateBePath, consulTemplateBePath},
-	}
-	for _, e := range d {
-		s.Equal(e.expected, e.value)
-	}
+	mockObj.AssertCalled(s.T(), "PutService", s.ConsulAddress, s.InstanceName, r)
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() {
@@ -546,27 +545,7 @@ func TestReconfigureTestSuite(t *testing.T) {
 	s.PutPathResponse = "PUT_PATH_OK"
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actualPath := r.URL.Path
-		if r.Method == "PUT" {
-			defer r.Body.Close()
-			body, _ := ioutil.ReadAll(r.Body)
-			switch actualPath {
-			case fmt.Sprintf("/v1/kv/%s/%s/color", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.ServiceColor = string(body)
-			case fmt.Sprintf("/v1/kv/%s/%s/path", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.ServicePath = strings.Split(string(body), ",")
-			case fmt.Sprintf("/v1/kv/%s/%s/domain", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.ServiceDomain = string(body)
-			case fmt.Sprintf("/v1/kv/%s/%s/pathtype", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.PathType = string(body)
-			case fmt.Sprintf("/v1/kv/%s/%s/skipcheck", s.InstanceName, s.ServiceName):
-				v, _ := strconv.ParseBool(string(body))
-				s.ConsulRequestBody.SkipCheck = v
-			case fmt.Sprintf("/v1/kv/%s/%s/consultemplatefepath", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.ConsulTemplateFePath = string(body)
-			case fmt.Sprintf("/v1/kv/%s/%s/consultemplatebepath", s.InstanceName, s.ServiceName):
-				s.ConsulRequestBody.ConsulTemplateBePath = string(body)
-			}
-		} else if r.Method == "GET" {
+		if r.Method == "GET" {
 			switch actualPath {
 			case "/v1/catalog/services":
 				w.WriteHeader(http.StatusOK)
@@ -574,27 +553,27 @@ func TestReconfigureTestSuite(t *testing.T) {
 				data := map[string][]string{"service1": []string{}, "service2": []string{}, s.ServiceName: []string{}}
 				js, _ := json.Marshal(data)
 				w.Write(js)
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, PATH_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(strings.Join(s.ServicePath, ",")))
 				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, COLOR_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte("orange"))
 				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, DOMAIN_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(s.ServiceDomain))
 				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, PATH_TYPE_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(s.PathType))
 				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, SKIP_CHECK_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
@@ -647,6 +626,45 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	}
 	if skipMethod != "GetConsulTemplate" {
 		mockObj.On("GetConsulTemplate", mock.Anything).Return("", "", nil)
+	}
+	return mockObj
+}
+
+type RegistrarableMock struct {
+	mock.Mock
+}
+
+func (m *RegistrarableMock) PutService(address, instanceName string, r registry.Registry) error {
+	m.Called(address, instanceName, r)
+	return nil
+}
+
+func (m *RegistrarableMock) SendPutRequest(address, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(address, serviceName, key, value, instanceName, c)
+}
+
+func (m *RegistrarableMock) DeleteService(address, serviceName, instanceName string) error {
+	params := m.Called(address, serviceName, instanceName)
+	return params.Error(0)
+}
+
+func (m *RegistrarableMock) SendDeleteRequest(address, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(address, serviceName, key, value, instanceName, c)
+}
+
+func getRegistrarableMock(skipMethod string) *RegistrarableMock {
+	mockObj := new(RegistrarableMock)
+	if skipMethod != "PutService" {
+		mockObj.On("PutService", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "SendPutRequest" {
+		mockObj.On("SendPutRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	}
+	if skipMethod != "DeleteService" {
+		mockObj.On("DeleteService", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "SendDeleteRequest" {
+		mockObj.On("SendDeleteRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	}
 	return mockObj
 }

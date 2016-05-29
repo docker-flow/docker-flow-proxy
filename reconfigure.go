@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"./registry"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -25,16 +26,6 @@ type Reconfigurable interface {
 	ReloadAllServices(address, instanceName string) error
 	GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error)
 }
-
-const (
-	COLOR_KEY                   = "color"
-	PATH_KEY                    = "path"
-	DOMAIN_KEY                  = "domain"
-	PATH_TYPE_KEY               = "pathtype"
-	SKIP_CHECK_KEY              = "skipcheck"
-	CONSUL_TEMPLATE_FE_PATH_KEY = "consultemplatefepath"
-	CONSUL_TEMPLATE_BE_PATH_KEY = "consultemplatebepath"
-)
 
 type Reconfigure struct {
 	BaseReconfigure
@@ -80,6 +71,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
+	// TODO: Extend to other registries
 	return m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName)
 }
 
@@ -125,15 +117,15 @@ func (m *Reconfigure) ReloadAllServices(address, instanceName string) error {
 func (m *Reconfigure) getService(address, serviceName, instanceName string, c chan ServiceReconfigure) {
 	sr := ServiceReconfigure{ServiceName: serviceName}
 
-	if path, ok := m.getServiceAttribute(address, serviceName, PATH_KEY, instanceName); ok {
+	if path, ok := m.getServiceAttribute(address, serviceName, registry.PATH_KEY, instanceName); ok {
 		sr.ServicePath = strings.Split(path, ",")
-		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, COLOR_KEY, instanceName)
-		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, DOMAIN_KEY, instanceName)
-		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY, instanceName)
-		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY, instanceName)
+		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, registry.COLOR_KEY, instanceName)
+		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, registry.DOMAIN_KEY, instanceName)
+		sr.PathType, _ = m.getServiceAttribute(address, serviceName, registry.PATH_TYPE_KEY, instanceName)
+		skipCheck, _ := m.getServiceAttribute(address, serviceName, registry.SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
-		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
-		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
+		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
+		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
 	}
 	c <- sr
 }
@@ -175,32 +167,20 @@ func (m *Reconfigure) createConfig(templatesPath, file, template, serviceName, c
 }
 
 func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanceName string) error {
-	if !strings.HasPrefix(address, "http") {
-		address = fmt.Sprintf("http://%s", address)
+	r := registry.Registry{
+		ServiceName: sr.ServiceName,
+		ServiceColor: sr.ServiceColor,
+		ServicePath: sr.ServicePath,
+		ServiceDomain: sr.ServiceDomain,
+		PathType: sr.PathType,
+		SkipCheck: sr.SkipCheck,
+		ConsulTemplateFePath: sr.ConsulTemplateFePath,
+		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 	}
-	c := make(chan error)
-	go m.sendPutRequest(address, sr, COLOR_KEY, sr.ServiceColor, instanceName, c)
-	go m.sendPutRequest(address, sr, PATH_KEY, strings.Join(sr.ServicePath, ","), instanceName, c)
-	go m.sendPutRequest(address, sr, DOMAIN_KEY, sr.ServiceDomain, instanceName, c)
-	go m.sendPutRequest(address, sr, PATH_TYPE_KEY, sr.PathType, instanceName, c)
-	go m.sendPutRequest(address, sr, SKIP_CHECK_KEY, fmt.Sprintf("%t", sr.SkipCheck), instanceName, c)
-	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_FE_PATH_KEY, sr.ConsulTemplateFePath, instanceName, c)
-	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_BE_PATH_KEY, sr.ConsulTemplateBePath, instanceName, c)
-	for i := 0; i < 6; i++ {
-		err := <-c
-		if err != nil {
-			return fmt.Errorf("Could not send data to Consul\n%s", err.Error())
-		}
+	if err := registryInstance.PutService(address, instanceName, r); err != nil {
+		return err
 	}
 	return nil
-}
-
-func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key, value, instanceName string, c chan error) {
-	url := fmt.Sprintf("%s/v1/kv/%s/%s/%s", address, instanceName, sr.ServiceName, key)
-	client := &http.Client{}
-	request, _ := http.NewRequest("PUT", url, strings.NewReader(value))
-	_, err := client.Do(request)
-	c <- err
 }
 
 func (m *Reconfigure) runConsulTemplateCmd(src, dest string) error {
