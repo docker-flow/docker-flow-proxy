@@ -13,7 +13,8 @@ services:
   staging-dep:
     image: vfarcic/docker-flow-proxy
     environment:
-      CONSUL_ADDRESS: ${HOST_IP}:8500
+      - CONSUL_ADDRESS=${HOST_IP}:8500
+      - PROXY_INSTANCE_NAME=proxy-test-instance
     ports:
       - 80:80
       - 8080:8080

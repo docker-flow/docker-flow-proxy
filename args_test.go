@@ -74,6 +74,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
 		{"consulTemplateFePath", "consul-template-fe-path", &reconfigure.ConsulTemplateFePath},
 		{"consulTemplateBePath", "consul-template-be-path", &reconfigure.ConsulTemplateBePath},
+		{"proxyInstanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 	}
 
 	for _, d := range data {
@@ -189,6 +190,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 		value    *string
 	}{
 		{"consulAddressFromEnv", "CONSUL_ADDRESS", &reconfigure.ConsulAddress},
+		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &reconfigure.InstanceName},
 	}
 
 	for _, d := range data {

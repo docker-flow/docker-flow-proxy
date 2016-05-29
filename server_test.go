@@ -23,9 +23,11 @@ type ServerTestSuite struct {
 	ResponseWriter     *ResponseWriterMock
 	RequestReconfigure *http.Request
 	RequestRemove      *http.Request
+	InstanceName       string
 }
 
 func (s *ServerTestSuite) SetupTest() {
+	s.InstanceName = "proxy-test-instance"
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
 	s.ServiceColor = "pink"
@@ -55,6 +57,7 @@ func (s *ServerTestSuite) SetupTest() {
 	server = Server{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddress: s.ConsulAddress,
+			InstanceName: s.InstanceName,
 		},
 	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -117,12 +120,12 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 
 	server.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress)
+	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName)
 }
 
 func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
-	mockObj.On("ReloadAllServices", mock.Anything).Return(fmt.Errorf("This is an error"))
+	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return mockObj
 	}

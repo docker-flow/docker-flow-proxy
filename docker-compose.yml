@@ -38,6 +38,7 @@ services:
     image: vfarcic/docker-flow-proxy
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
+      PROXY_INSTANCE_NAME: docker-flow
     volumes:
       - ./test_configs/:/consul_templates/
     ports:

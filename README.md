@@ -296,6 +296,8 @@ As you can see, all three targets are pretty simple and straightforward. In the 
 
 Finally, the *proxy* target was also deployed to the *proxy* node. In production, you might want to run two instances of the *docker-flow-proxy* container and make sure that your DNS registries point to both of them. That way your traffic will not get affected in case one of those two nodes fail. The `CONSUL_ADDRESS` environment variable is mandatory and should contain the address of the Consul instance. Internal ports *80*, *443*, and *8080* can be exposed to any other port you prefer. HAProxy (inside the *docker-flow-proxy* container) is listening Ports *80* (HTTP) and *443* (HTTPS). The port *8080* is used to send *reconfigure* requests.
 
+If you choose to run multiple proxies that should work independently from each other, please use the *PROXY_INSTANCE_NAME* environment variable to distinguish them.
+
 Usage
 -----
 

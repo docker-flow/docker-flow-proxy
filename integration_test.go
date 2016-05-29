@@ -93,7 +93,7 @@ func (s IntegrationTestSuite) Test_PutToConsul() {
 	s.reconfigure("", "", "", "/v1/test")
 
 	url := fmt.Sprintf(
-		"http://%s:8500/v1/kv/docker-flow/%s/path?raw",
+		"http://%s:8500/v1/kv/proxy-test-instance/%s/path?raw",
 		os.Getenv("DOCKER_IP"),
 		s.serviceName,
 	)

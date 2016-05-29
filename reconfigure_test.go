@@ -30,9 +30,11 @@ type ReconfigureTestSuite struct {
 	Server            *httptest.Server
 	PutPathResponse   string
 	ConsulRequestBody ServiceReconfigure
+	InstanceName      string
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
+	s.InstanceName = "proxy-test-instance"
 	s.Pid = "123"
 	s.ServicePath = []string{"path/to/my/service/api", "path/to/my/other/service/api"}
 	s.ServiceDomain = "my-domain.com"
@@ -63,6 +65,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 			ConsulAddress: s.ConsulAddress,
 			TemplatesPath: s.TemplatesPath,
 			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  s.InstanceName,
 		},
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
@@ -468,7 +471,7 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 // ReloadAllServices
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	err := s.reconfigure.ReloadAllServices("this/address/does/not/exist")
+	err := s.reconfigure.ReloadAllServices("this/address/does/not/exist", s.InstanceName)
 
 	s.Error(err)
 }
@@ -482,7 +485,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
 		return nil
 	}
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress)
+	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
 	s.Equal(2, len(actual))
 	s.Equal(expectedFe, actual[0])
@@ -493,7 +496,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFro
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress)
+	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
 }
@@ -503,7 +506,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreat
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress)
+	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
 	s.Error(actual)
 }
@@ -512,7 +515,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress)
+	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
@@ -522,14 +525,14 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloa
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress)
+	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
 	s.Error(actual)
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
-	err := s.reconfigure.ReloadAllServices(address)
+	err := s.reconfigure.ReloadAllServices(address, s.InstanceName)
 
 	s.NoError(err)
 }
@@ -547,20 +550,20 @@ func TestReconfigureTestSuite(t *testing.T) {
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			switch actualPath {
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/color", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/color", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.ServiceColor = string(body)
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/path", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/path", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.ServicePath = strings.Split(string(body), ",")
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/domain", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/domain", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.ServiceDomain = string(body)
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/pathtype", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/pathtype", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.PathType = string(body)
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/skipcheck", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/skipcheck", s.InstanceName, s.ServiceName):
 				v, _ := strconv.ParseBool(string(body))
 				s.ConsulRequestBody.SkipCheck = v
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/consultemplatefepath", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/consultemplatefepath", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.ConsulTemplateFePath = string(body)
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/consultemplatebepath", s.ServiceName):
+			case fmt.Sprintf("/v1/kv/%s/%s/consultemplatebepath", s.InstanceName, s.ServiceName):
 				s.ConsulRequestBody.ConsulTemplateBePath = string(body)
 			}
 		} else if r.Method == "GET" {
@@ -571,27 +574,27 @@ func TestReconfigureTestSuite(t *testing.T) {
 				data := map[string][]string{"service1": []string{}, "service2": []string{}, s.ServiceName: []string{}}
 				js, _ := json.Marshal(data)
 				w.Write(js)
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/%s", s.ServiceName, PATH_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, PATH_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(strings.Join(s.ServicePath, ",")))
 				}
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/%s", s.ServiceName, COLOR_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, COLOR_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte("orange"))
 				}
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/%s", s.ServiceName, DOMAIN_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, DOMAIN_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(s.ServiceDomain))
 				}
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/%s", s.ServiceName, PATH_TYPE_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, PATH_TYPE_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(s.PathType))
 				}
-			case fmt.Sprintf("/v1/kv/docker-flow/%s/%s", s.ServiceName, SKIP_CHECK_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, SKIP_CHECK_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
@@ -621,8 +624,8 @@ func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return BaseReconfigure{}, ServiceReconfigure{}
 }
 
-func (m *ReconfigureMock) ReloadAllServices(address string) error {
-	params := m.Called(address)
+func (m *ReconfigureMock) ReloadAllServices(address, instanceName string) error {
+	params := m.Called(address, instanceName)
 	return params.Error(0)
 }
 
@@ -640,7 +643,7 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
 	}
 	if skipMethod != "ReloadAllServices" {
-		mockObj.On("ReloadAllServices", mock.Anything).Return(nil)
+		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything).Return(nil)
 	}
 	if skipMethod != "GetConsulTemplate" {
 		mockObj.On("GetConsulTemplate", mock.Anything).Return("", "", nil)

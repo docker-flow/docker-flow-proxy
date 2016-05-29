@@ -13,6 +13,8 @@ RUN mkdir -p /cfg/tmpl
 RUN mkdir /consul_templates
 
 ENV CONSUL_ADDRESS ""
+ENV PROXY_INSTANCE_NAME "docker-flow"
+
 EXPOSE 80
 EXPOSE 8080
 

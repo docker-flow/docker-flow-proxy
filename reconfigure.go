@@ -22,7 +22,7 @@ var mu = &sync.Mutex{}
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
-	ReloadAllServices(address string) error
+	ReloadAllServices(address, instanceName string) error
 	GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error)
 }
 
@@ -58,6 +58,7 @@ type ServiceReconfigure struct {
 type BaseReconfigure struct {
 	ConsulAddress string `short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
 	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
 	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
@@ -79,14 +80,14 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	return m.putToConsul(m.ConsulAddress, m.ServiceReconfigure)
+	return m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName)
 }
 
 func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-func (m *Reconfigure) ReloadAllServices(address string) error {
+func (m *Reconfigure) ReloadAllServices(address, instanceName string) error {
 	logPrintf("Configuring existing services")
 	address = strings.ToLower(address)
 	if !strings.HasPrefix(address, "http") {
@@ -105,7 +106,7 @@ func (m *Reconfigure) ReloadAllServices(address string) error {
 
 	c := make(chan ServiceReconfigure)
 	for key, _ := range data {
-		go m.getService(address, key, c)
+		go m.getService(address, key, instanceName, c)
 	}
 	for i := 0; i < len(data); i++ {
 		s := <-c
@@ -121,24 +122,24 @@ func (m *Reconfigure) ReloadAllServices(address string) error {
 	return proxy.Reload()
 }
 
-func (m *Reconfigure) getService(address, serviceName string, c chan ServiceReconfigure) {
+func (m *Reconfigure) getService(address, serviceName, instanceName string, c chan ServiceReconfigure) {
 	sr := ServiceReconfigure{ServiceName: serviceName}
 
-	if path, ok := m.getServiceAttribute(address, serviceName, PATH_KEY); ok {
+	if path, ok := m.getServiceAttribute(address, serviceName, PATH_KEY, instanceName); ok {
 		sr.ServicePath = strings.Split(path, ",")
-		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, COLOR_KEY)
-		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, DOMAIN_KEY)
-		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY)
-		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY)
+		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, COLOR_KEY, instanceName)
+		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, DOMAIN_KEY, instanceName)
+		sr.PathType, _ = m.getServiceAttribute(address, serviceName, PATH_TYPE_KEY, instanceName)
+		skipCheck, _ := m.getServiceAttribute(address, serviceName, SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
-		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_FE_PATH_KEY)
-		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_BE_PATH_KEY)
+		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
+		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
 	}
 	c <- sr
 }
 
-func (m *Reconfigure) getServiceAttribute(address, serviceName, key string) (string, bool) {
-	url := fmt.Sprintf("%s/v1/kv/docker-flow/%s/%s?raw", address, serviceName, key)
+func (m *Reconfigure) getServiceAttribute(address, serviceName, key, instanceName string) (string, bool) {
+	url := fmt.Sprintf("%s/v1/kv/%s/%s/%s?raw", address, instanceName, serviceName, key)
 	resp, _ := http.Get(url)
 	if resp.StatusCode != http.StatusOK {
 		return "", false
@@ -173,18 +174,18 @@ func (m *Reconfigure) createConfig(templatesPath, file, template, serviceName, c
 	return nil
 }
 
-func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
+func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanceName string) error {
 	if !strings.HasPrefix(address, "http") {
 		address = fmt.Sprintf("http://%s", address)
 	}
 	c := make(chan error)
-	go m.sendPutRequest(address, sr, COLOR_KEY, sr.ServiceColor, c)
-	go m.sendPutRequest(address, sr, PATH_KEY, strings.Join(sr.ServicePath, ","), c)
-	go m.sendPutRequest(address, sr, DOMAIN_KEY, sr.ServiceDomain, c)
-	go m.sendPutRequest(address, sr, PATH_TYPE_KEY, sr.PathType, c)
-	go m.sendPutRequest(address, sr, SKIP_CHECK_KEY, fmt.Sprintf("%t", sr.SkipCheck), c)
-	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_FE_PATH_KEY, sr.ConsulTemplateFePath, c)
-	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_BE_PATH_KEY, sr.ConsulTemplateBePath, c)
+	go m.sendPutRequest(address, sr, COLOR_KEY, sr.ServiceColor, instanceName, c)
+	go m.sendPutRequest(address, sr, PATH_KEY, strings.Join(sr.ServicePath, ","), instanceName, c)
+	go m.sendPutRequest(address, sr, DOMAIN_KEY, sr.ServiceDomain, instanceName, c)
+	go m.sendPutRequest(address, sr, PATH_TYPE_KEY, sr.PathType, instanceName, c)
+	go m.sendPutRequest(address, sr, SKIP_CHECK_KEY, fmt.Sprintf("%t", sr.SkipCheck), instanceName, c)
+	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_FE_PATH_KEY, sr.ConsulTemplateFePath, instanceName, c)
+	go m.sendPutRequest(address, sr, CONSUL_TEMPLATE_BE_PATH_KEY, sr.ConsulTemplateBePath, instanceName, c)
 	for i := 0; i < 6; i++ {
 		err := <-c
 		if err != nil {
@@ -194,8 +195,8 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure) error {
 	return nil
 }
 
-func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key string, value string, c chan error) {
-	url := fmt.Sprintf("%s/v1/kv/docker-flow/%s/%s", address, sr.ServiceName, key)
+func (m *Reconfigure) sendPutRequest(address string, sr ServiceReconfigure, key, value, instanceName string, c chan error) {
+	url := fmt.Sprintf("%s/v1/kv/%s/%s/%s", address, instanceName, sr.ServiceName, key)
 	client := &http.Client{}
 	request, _ := http.NewRequest("PUT", url, strings.NewReader(value))
 	_, err := client.Do(request)
