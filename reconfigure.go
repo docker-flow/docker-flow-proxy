@@ -214,7 +214,7 @@ func (m *Reconfigure) runConsulTemplateCmd(src, dest string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmdRunConsul(cmd); err != nil {
-		return fmt.Errorf("Command %v\n%v\n", cmd, err)
+		return fmt.Errorf("Command %s\n%s\n", strings.Join(cmd.Args, " "), err.Error())
 	}
 	return nil
 }
