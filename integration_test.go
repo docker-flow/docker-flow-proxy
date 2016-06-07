@@ -2,26 +2,41 @@
 
 package main
 
-// $ export HOST_IP=<HOST_IP>
-// $ docker-compose -f docker-compose-test.yml down
+/*
+Setup
+$ docker-machine create -d virtualbox docker-flow-proxy-tests
+$ eval $(docker-machine env docker-flow-proxy-tests)
+$ export HOST_IP=$(docker-machine ip docker-flow-proxy-tests)
+$ docker-compose -f docker-compose-test.yml down
 
-// Unit tests
-// $ docker-compose -f docker-compose-test.yml run --rm unit
+Unit tests
+$ docker-compose -f docker-compose-test.yml run --rm unit
 
-// Build
-// $ docker-compose build app
+Build
+$ docker-compose build app
 
-// Staging tests
-// $ docker-compose -f docker-compose-test.yml up -d staging-dep
-// $ docker-compose -f docker-compose-test.yml run --rm staging
-// $ docker-compose -f docker-compose-test.yml down
+Staging tests
+$ docker-compose -f docker-compose-test.yml up -d staging-dep
+$ docker-compose -f docker-compose-test.yml run --rm staging
+$ docker-compose -f docker-compose-test.yml down
 
-// Push
-// $ docker push vfarcic/docker-flow-proxy
+Push
+$ docker push vfarcic/docker-flow-proxy
 
-// Production tests
-// $ docker-compose -f docker-compose-test.yml up -d staging-dep
-// $ docker-compose -f docker-compose-test.yml run --rm production
+Production tests
+$ docker-compose -f docker-compose-test.yml up -d staging-dep
+$ docker-compose -f docker-compose-test.yml run --rm production
+
+Manual tests
+$ docker-compose -f docker-compose-test.yml up -d staging-dep
+$ curl -i "localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=/v1/test"
+$ curl -i localhost/v1/test
+$ curl -i "localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=^/v1/.*es.*&pathType=path_reg"
+$ docker-compose -f docker-compose-test.yml down
+
+Cleanup
+$ docker-machine rm -f docker-flow-proxy-tests
+ */
 
 import (
 	"fmt"

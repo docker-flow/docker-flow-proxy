@@ -26,4 +26,5 @@ type Registrarable interface {
 	SendPutRequest(address, serviceName, key, value, instanceName string, c chan error)
 	DeleteService(address, serviceName, instanceName string) error
 	SendDeleteRequest(address, serviceName, key, value, instanceName string, c chan error)
+	CreateConfigs(args CreateConfigsArgs) error
 }

@@ -30,15 +30,16 @@ type ReconfigureTestSuite struct {
 	PutPathResponse   string
 	ConsulRequestBody ServiceReconfigure
 	InstanceName      string
+	SkipCheck         bool
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
 	s.InstanceName = "proxy-test-instance"
 	s.Pid = "123"
 	s.ServicePath = []string{"path/to/my/service/api", "path/to/my/other/service/api"}
-	s.ServiceDomain = "my-domain.com"
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
+	s.SkipCheck = false
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend myService-be if url_myService`
@@ -70,6 +71,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 			ServiceName: s.ServiceName,
 			ServicePath: s.ServicePath,
 			PathType:    s.PathType,
+			SkipCheck:   false,
 		},
 	}
 	proxy = getProxyMock("")
@@ -89,7 +91,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     acl domain_myService hdr_dom(host) -i my-domain.com
     use_backend myService-be if url_myService domain_myService`
-	s.reconfigure.ServiceDomain = s.ServiceDomain
+	s.reconfigure.ServiceDomain = "my-domain.com"
 	actual, _, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
@@ -151,202 +153,46 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsError_WhenConsulTemp
 
 // Execute
 
-func (s ReconfigureTestSuite) Test_Execute_CreatesConsulTemplate() {
-	var actual []string
-	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = append(actual, string(data))
-		return nil
+func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+	expectedArgs := registry.CreateConfigsArgs{
+		Address: s.ConsulAddress,
+		TemplatesPath: s.TemplatesPath,
+		FeFile: ServiceTemplateFeFilename,
+		FeTemplate: s.ConsulTemplateFe,
+		BeFile: ServiceTemplateBeFilename,
+		BeTemplate: s.ConsulTemplateBe,
+		ServiceName: s.ServiceName,
+		Monitor: false,
 	}
 
 	s.reconfigure.Execute([]string{})
 
-	s.Equal(2, len(actual))
-	s.Equal(s.ConsulTemplateFe, actual[0])
-	s.Equal(s.ConsulTemplateBe, actual[1])
+	mockObj.AssertCalled(s.T(), "CreateConfigs", expectedArgs)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_WritesTemplateToFile() {
-	var actual []string
-	expectedFe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFeFilename)
-	expectedBe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateBeFilename)
-	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = append(actual, filename)
-		return nil
-	}
+func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateConfigsFails() {
+	mockObj := getRegistrarableMock("CreateConfigs")
+	mockObj.On(
+		"CreateConfigs",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(fmt.Errorf("This is an error"))
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
 
-	s.reconfigure.Execute([]string{})
+	actual := s.reconfigure.Execute([]string{})
 
-	s.Equal(2, len(actual))
-	s.Equal(expectedFe, actual[0])
-	s.Equal(expectedBe, actual[1])
-}
-
-func (s ReconfigureTestSuite) Test_Execute_SetsFilePermissions() {
-	var actual os.FileMode
-	var expected os.FileMode = 0664
-	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = perm
-		return nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(expected, actual)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplate() {
-	var actual [][]string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		actual = append(actual, cmd.Args)
-		return nil
-	}
-	expectedFe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-fe.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateFeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-	expectedBe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-be.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateBeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(2, len(actual))
-	s.Equal(expectedFe, actual[0])
-	s.Equal(expectedBe, actual[1])
-}
-
-func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttp() {
-	var actual [][]string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		actual = append(actual, cmd.Args)
-		return nil
-	}
-	expectedFe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-fe.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateFeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-	expectedBe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-be.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateBeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-	s.reconfigure.ConsulAddress = fmt.Sprintf("HttP://%s", s.ConsulAddress)
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(2, len(actual))
-	s.Equal(expectedFe, actual[0])
-	s.Equal(expectedBe, actual[1])
-}
-
-func (s ReconfigureTestSuite) Test_Execute_RunsConsulTemplateWithTrimmedHttps() {
-	var actual [][]string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		actual = append(actual, cmd.Args)
-		return nil
-	}
-	expectedFe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-fe.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateFeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-	expectedBe := []string{
-		"consul-template",
-		"-consul",
-		strings.Replace(s.ConsulAddress, "http://", "", -1),
-		"-template",
-		fmt.Sprintf(
-			`%s/%s:%s/%s-be.cfg`,
-			s.TemplatesPath,
-			ServiceTemplateBeFilename,
-			s.TemplatesPath,
-			s.ServiceName,
-		),
-		"-once",
-	}
-	s.reconfigure.ConsulAddress = fmt.Sprintf("HttPs://%s", s.ConsulAddress)
-	s.reconfigure.ConsulAddress = s.ConsulAddress
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(2, len(actual))
-	s.Equal(expectedFe, actual[0])
-	s.Equal(expectedBe, actual[1])
-}
-
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFeCommandFails() {
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		if strings.Contains(cmd.Args[4], "fe.ctmpl") {
-			return fmt.Errorf("This is an error")
-		}
-		return nil
-	}
-
-	err := s.reconfigure.Execute([]string{})
-
-	s.Error(err)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateBeCommandFails() {
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		if strings.Contains(cmd.Args[4], "be.ctmpl") {
-			return fmt.Errorf("This is an error")
-		}
-		return nil
-	}
-
-	err := s.reconfigure.Execute([]string{})
-
-	s.Error(err)
+	s.Error(actual)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
@@ -408,7 +254,12 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() {
-	s.reconfigure.ConsulAddress = "http:///THIS/URL/DOES/NOT/EXIST"
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	mockObj := getRegistrarableMock("PutService")
+	mockObj.On("PutService", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	registryInstance = mockObj
+
 	actual := s.reconfigure.Execute([]string{})
 
 	s.Error(actual)
@@ -476,19 +327,28 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
-	var actual []string
-	expectedFe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateFeFilename)
-	expectedBe := fmt.Sprintf("%s/%s", s.TemplatesPath, ServiceTemplateBeFilename)
-	writeConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
-		actual = append(actual, filename)
-		return nil
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+	s.ConsulTemplateBe = `backend myService-be
+    {{range $i, $e := service "myService-orange" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}`
+	expectedArgs := registry.CreateConfigsArgs{
+		Address: s.ConsulAddress,
+		TemplatesPath: s.TemplatesPath,
+		FeFile: ServiceTemplateFeFilename,
+		FeTemplate: s.ConsulTemplateFe,
+		BeFile: ServiceTemplateBeFilename,
+		BeTemplate: s.ConsulTemplateBe,
+		ServiceName: s.ServiceName,
+		Monitor: false,
 	}
 
 	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)
 
-	s.Equal(2, len(actual))
-	s.Equal(expectedFe, actual[0])
-	s.Equal(expectedBe, actual[1])
+	mockObj.AssertCalled(s.T(), "CreateConfigs", expectedArgs)
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
@@ -584,6 +444,9 @@ func TestReconfigureTestSuite(t *testing.T) {
 		}
 	}))
 	defer s.Server.Close()
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = getRegistrarableMock("")
 	suite.Run(t, s)
 }
 
@@ -635,8 +498,8 @@ type RegistrarableMock struct {
 }
 
 func (m *RegistrarableMock) PutService(address, instanceName string, r registry.Registry) error {
-	m.Called(address, instanceName, r)
-	return nil
+	params := m.Called(address, instanceName, r)
+	return params.Error(0)
 }
 
 func (m *RegistrarableMock) SendPutRequest(address, serviceName, key, value, instanceName string, c chan error) {
@@ -652,6 +515,11 @@ func (m *RegistrarableMock) SendDeleteRequest(address, serviceName, key, value, 
 	m.Called(address, serviceName, key, value, instanceName, c)
 }
 
+func (m *RegistrarableMock) CreateConfigs(args registry.CreateConfigsArgs) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
 func getRegistrarableMock(skipMethod string) *RegistrarableMock {
 	mockObj := new(RegistrarableMock)
 	if skipMethod != "PutService" {
@@ -665,6 +533,9 @@ func getRegistrarableMock(skipMethod string) *RegistrarableMock {
 	}
 	if skipMethod != "SendDeleteRequest" {
 		mockObj.On("SendDeleteRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	}
+	if skipMethod != "CreateConfigs" {
+		mockObj.On("CreateConfigs", mock.Anything).Return(nil)
 	}
 	return mockObj
 }

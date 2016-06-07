@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
 	"./registry"
+	"html/template"
+	"bytes"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -147,20 +145,17 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr ServiceReconfigure)
 	if err != nil {
 		return err
 	}
-	if err = m.createConfig(templatesPath, ServiceTemplateFeFilename, feTemplate, sr.ServiceName, "fe"); err != nil {
-		return err
+	args := registry.CreateConfigsArgs{
+		Address: m.ConsulAddress,
+		TemplatesPath: templatesPath,
+		FeFile: ServiceTemplateFeFilename,
+		FeTemplate: feTemplate,
+		BeFile: ServiceTemplateBeFilename,
+		BeTemplate: beTemplate,
+		ServiceName: sr.ServiceName,
+		Monitor: false,
 	}
-	if err = m.createConfig(templatesPath, ServiceTemplateBeFilename, beTemplate, sr.ServiceName, "be"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Reconfigure) createConfig(templatesPath, file, template, serviceName, confType string) error {
-	src := fmt.Sprintf("%s/%s", templatesPath, file)
-	writeConsulTemplateFile(src, []byte(template), 0664)
-	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
-	if err := m.runConsulTemplateCmd(src, dest); err != nil {
+	if err = registryInstance.CreateConfigs(args); err != nil {
 		return err
 	}
 	return nil
@@ -183,44 +178,20 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 	return nil
 }
 
-func (m *Reconfigure) runConsulTemplateCmd(src, dest string) error {
-	template := fmt.Sprintf(`%s:%s.cfg`, src, dest)
-	cmdArgs := []string{
-		"-consul", m.getConsulAddress(m.ConsulAddress),
-		"-template", template,
-		"-once",
-	}
-	cmd := exec.Command("consul-template", cmdArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmdRunConsul(cmd); err != nil {
-		return fmt.Errorf("Command %s\n%s\n", strings.Join(cmd.Args, " "), err.Error())
-	}
-	return nil
-}
-
-func (m *Reconfigure) getConsulAddress(address string) string {
-	a := strings.ToLower(address)
-	a = strings.TrimLeft(a, "http://")
-	a = strings.TrimLeft(a, "https://")
-	return a
-}
-
 func (m *Reconfigure) GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error) {
 	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
-		frontend, err := m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
+		front, err := m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
 		if err != nil {
 			return "", "", err
 		}
-		backend, err := m.getConsulTemplateFromFile(sr.ConsulTemplateBePath)
+		back, err := m.getConsulTemplateFromFile(sr.ConsulTemplateBePath)
 		if err != nil {
 			return "", "", err
 		}
-		// TODO: Return front as well
-		return frontend, backend, err
+		return front, back, err
 	}
-	front, backend := m.getConsulTemplateFromGo(sr)
-	return front, backend, nil
+	front, back = m.getConsulTemplateFromGo(sr)
+	return front, back, nil
 }
 
 func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {

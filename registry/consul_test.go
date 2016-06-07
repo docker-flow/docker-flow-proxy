@@ -9,12 +9,53 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"os/exec"
+	"os"
 )
 
 type ConsulTestSuite struct {
 	suite.Suite
 	registry Registry
+	templatesPath string
+	feTemplateName string
+	beTemplateName string
+	serviceName string
+	consulAddress string
+	feTemplate string
+	beTemplate string
+	createConfigsArgs CreateConfigsArgs
 }
+
+func (s *ConsulTestSuite) SetupTest() {
+	s.templatesPath = "/path/to/templates"
+	s.feTemplateName = "my-fe-template.ctmpl"
+	s.beTemplateName = "my-be-template.ctmpl"
+	s.serviceName = "my-service"
+	s.consulAddress = "http://consul.io"
+	s.feTemplate = "this is a FE template"
+	s.beTemplate = "this is a BE template"
+	s.createConfigsArgs = CreateConfigsArgs{
+		Address: "http://consul.io",
+		TemplatesPath: "/path/to/templates",
+		FeFile: "my-fe-template.ctmpl",
+		FeTemplate: "this is a FE template",
+		BeFile: "my-be-template.ctmpl",
+		BeTemplate: "this is a BE template",
+		ServiceName: "my-service",
+		Monitor: false,
+	}
+	cmdRunConsulTemplateOrig := cmdRunConsulTemplate
+	defer func() { cmdRunConsulTemplate = cmdRunConsulTemplateOrig }()
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		return nil
+	}
+	writeConsulTemplateFileOrig := WriteConsulTemplateFile
+	defer func() { WriteConsulTemplateFile = writeConsulTemplateFileOrig }()
+	WriteConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
+		return nil
+	}
+}
+
 
 // PutService
 
@@ -160,6 +201,211 @@ func (s *ConsulTestSuite) Test_SendDeleteRequest_DeletesDataFromConsul() {
 	s.Equal(fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, serviceName, key), actualUrl)
 	s.Equal(value, actualBody)
 	s.Equal("DELETE", actualMethod)
+}
+
+// CreateConfigs
+
+func (s *ConsulTestSuite) Test_CreateConfigs_ReturnsError_WhenConsulTemplateFeCommandFails() {
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		return fmt.Errorf("This is an error")
+	}
+
+	err := Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_ReturnsError_WhenConsulTemplateBeCommandFails() {
+	counter := 0
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		if counter == 0 {
+			counter = counter + 1
+			return nil
+		} else {
+			return fmt.Errorf("This is an error")
+		}
+	}
+
+	err := Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplate() {
+	var actual [][]string
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.feTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"fe",
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.beTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"be",
+		),
+		"-once",
+	}
+
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_CreatesConsulTemplate() {
+	var actual string
+	WriteConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
+		actual = string(data)
+		return nil
+	}
+
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(s.feTemplate, actual)
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttp() {
+	var actual [][]string
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.feTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"fe",
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.beTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"be",
+		),
+		"-once",
+	}
+
+	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTtP://", -1)
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttps() {
+	var actual [][]string
+	cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
+		actual = append(actual, cmd.Args)
+		return nil
+	}
+	expectedFe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.feTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"fe",
+		),
+		"-once",
+	}
+	expectedBe := []string{
+		"consul-template",
+		"-consul",
+		strings.Replace(s.consulAddress, "http://", "", -1),
+		"-template",
+		fmt.Sprintf(
+			`%s/%s:%s/%s-%s.cfg`,
+			s.templatesPath,
+			s.beTemplateName,
+			s.templatesPath,
+			s.serviceName,
+			"be",
+		),
+		"-once",
+	}
+
+	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTTPs://", -1)
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(2, len(actual))
+	s.Equal(expectedFe, actual[0])
+	s.Equal(expectedBe, actual[1])
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_WritesTemplateToFile() {
+	var actual []string
+	expected := []string{
+		fmt.Sprintf("%s/%s", s.templatesPath, s.feTemplateName),
+		fmt.Sprintf("%s/%s", s.templatesPath, s.beTemplateName),
+	}
+	WriteConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
+		actual = append(actual, filename)
+		return nil
+	}
+
+	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(expected, actual)
+}
+
+func (s *ConsulTestSuite) Test_CreateConfigs_SetsFilePermissions() {
+	var actual os.FileMode
+	var expected os.FileMode = 0664
+	WriteConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
+		actual = perm
+		return nil
+	}
+
+	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
+	Consul{}.CreateConfigs(s.createConfigsArgs)
+
+	s.Equal(expected, actual)
 }
 
 // Suite
