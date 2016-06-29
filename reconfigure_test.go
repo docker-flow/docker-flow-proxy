@@ -326,7 +326,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 	s.Error(err)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_WriteTemplateToFile() {
+func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()

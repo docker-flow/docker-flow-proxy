@@ -282,6 +282,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 	}{
 		{"ipFromArgs", "ip", &server.IP},
 		{"portFromArgs", "port", &server.Port},
+		{"modeFromArgs", "mode", &server.Mode},
 	}
 
 	for _, d := range data {
@@ -302,6 +303,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 	}{
 		{"ipFromArgs", "i", &server.IP},
 		{"portFromArgs", "p", &server.Port},
+		{"modeFromArgs", "m", &server.Mode},
 	}
 
 	for _, d := range data {
@@ -340,6 +342,7 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	}{
 		{"ipFromEnv", "IP", &server.IP},
 		{"portFromEnv", "PORT", &server.Port},
+		{"modeFromEnv", "MODE", &server.Mode},
 	}
 
 	for _, d := range data {

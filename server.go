@@ -8,18 +8,19 @@ import (
 	"strings"
 )
 
-type Serverable interface {
+type Server interface {
 	Execute(args []string) error
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
 }
 
-type Server struct {
+type Serve struct {
 	IP   string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
 	Port string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
+	Mode string `short:"m" long:"mode" env:"MODE" description:"If set to service, proxy will operate assuming that Docker service from v1.12+ is used."`
 	BaseReconfigure
 }
 
-var server = Server{}
+var server = Serve{}
 
 type Response struct {
 	Status               string
@@ -34,15 +35,17 @@ type Response struct {
 	SkipCheck            bool
 }
 
-func (m Server) Execute(args []string) error {
+func (m Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if err := NewReconfigure(
-		m.BaseReconfigure,
-		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
-		return err
+	if len(m.ConsulAddress) > 0 || strings.ToLower(m.Mode) != "service" {
+		if err := NewReconfigure(
+			m.BaseReconfigure,
+			ServiceReconfigure{},
+		).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
+			return err
+		}
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	if err := httpListenAndServe(address, m); err != nil {
@@ -51,7 +54,7 @@ func (m Server) Execute(args []string) error {
 	return nil
 }
 
-func (m Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logPrintf("Processing request %s", req.URL)
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":

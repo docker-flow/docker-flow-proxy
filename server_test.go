@@ -54,7 +54,7 @@ func (s *ServerTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
-	server = Server{
+	server = Serve{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddress: s.ConsulAddress,
 			InstanceName: s.InstanceName,
@@ -69,7 +69,7 @@ func (s *ServerTestSuite) SetupTest() {
 // Execute
 
 func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
-	server := Server{
+	server := Serve{
 		IP:   "myIp",
 		Port: "1234",
 	}
@@ -123,6 +123,19 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName)
 }
 
+func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsServiceAndConsulAddressIsEmpty() {
+	mockObj := getReconfigureMock("")
+	server.ConsulAddress = ""
+	server.Mode = "seRviCe"
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+
+	server.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", mock.Anything, mock.Anything)
+}
+
 func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
 	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
@@ -140,7 +153,7 @@ func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails()
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	req, _ := http.NewRequest("GET", "/this/url/does/not/exist", nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
 }
@@ -150,7 +163,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 		rw := getResponseWriterMock()
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
 
-		Server{}.ServeHTTP(rw, req)
+		Serve{}.ServeHTTP(rw, req)
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
 	}
@@ -165,7 +178,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal("application/json", actual)
 }
@@ -180,7 +193,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		PathType:      s.PathType,
 	})
 
-	Server{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -197,7 +210,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 		PathType:      pathType,
 	})
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -214,7 +227,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 		SkipCheck:     true,
 	})
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -222,7 +235,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureBaseUrl, nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -231,7 +244,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIs
 	url := fmt.Sprintf("%s?serviceName=%s", s.ReconfigureBaseUrl, s.ServiceName[0])
 	req, _ := http.NewRequest("GET", url, nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -248,7 +261,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 		actualService = serviceData
 		return mockObj
 	}
-	server := Server{BaseReconfigure: expectedBase}
+	server := Serve{BaseReconfigure: expectedBase}
 
 	server.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
 
@@ -264,7 +277,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecute
 		return mockObj
 	}
 
-	Server{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
@@ -287,7 +300,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		PathType:             s.PathType,
 	})
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -312,7 +325,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		actualService = serviceData
 		return mockObj
 	}
-	server := Server{BaseReconfigure: expectedBase}
+	server := Serve{BaseReconfigure: expectedBase}
 	address := fmt.Sprintf(
 		"%s?serviceName=%s&consulTemplateFePath=%s&consulTemplateBePath=%s",
 		s.ReconfigureBaseUrl,
@@ -337,7 +350,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove()
 	}
 	req, _ := http.NewRequest("GET", s.RemoveUrl, nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal("application/json", actual)
 }
@@ -348,7 +361,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 		ServiceName: s.ServiceName,
 	})
 
-	Server{}.ServeHTTP(s.ResponseWriter, s.RequestRemove)
+	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestRemove)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -356,7 +369,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.RemoveBaseUrl, nil)
 
-	Server{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }

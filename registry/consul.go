@@ -23,7 +23,7 @@ type CreateConfigsArgs struct {
 	BeFile        string
 	BeTemplate    string
 	ServiceName   string
-	Monitor       bool
+	Monitor       bool // TODO: Not in use, remove
 }
 
 func (m Consul) PutService(address, instanceName string, r Registry) error {
