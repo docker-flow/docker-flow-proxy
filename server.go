@@ -33,6 +33,8 @@ type Response struct {
 	ConsulTemplateBePath string
 	PathType             string
 	SkipCheck            bool
+	Mode                 string
+	Port                 string
 }
 
 func (m Serve) Execute(args []string) error {
@@ -58,72 +60,9 @@ func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logPrintf("Processing request %s", req.URL)
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
-		sr := ServiceReconfigure{
-			ServiceName:          req.URL.Query().Get("serviceName"),
-			ServiceColor:         req.URL.Query().Get("serviceColor"),
-			ServiceDomain:        req.URL.Query().Get("serviceDomain"),
-			ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
-			ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
-			PathType:             req.URL.Query().Get("pathType"),
-		}
-		if len(req.URL.Query().Get("servicePath")) > 0 {
-			sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
-		}
-		if len(req.URL.Query().Get("skipCheck")) > 0 {
-			sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
-		}
-		response := Response{
-			Status:               "OK",
-			ServiceName:          sr.ServiceName,
-			ServiceColor:         sr.ServiceColor,
-			ServicePath:          sr.ServicePath,
-			ServiceDomain:        sr.ServiceDomain,
-			ConsulTemplateFePath: sr.ConsulTemplateFePath,
-			ConsulTemplateBePath: sr.ConsulTemplateBePath,
-			PathType:             sr.PathType,
-			SkipCheck:            sr.SkipCheck,
-		}
-		if len(sr.ServiceName) > 0 && (len(sr.ServicePath) > 0 || len(sr.ConsulTemplateFePath) > 0) {
-			action := NewReconfigure(
-				m.BaseReconfigure,
-				sr,
-			)
-			if err := action.Execute([]string{}); err != nil {
-				response.Status = "NOK"
-				response.Message = fmt.Sprintf("%s", err.Error())
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-		} else {
-			response.Status = "NOK"
-			response.Message = "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)"
-			w.WriteHeader(http.StatusBadRequest)
-		}
-		httpWriterSetContentType(w, "application/json")
-		js, _ := json.Marshal(response)
-		w.Write(js)
+		m.reconfigure(w, req)
 	case "/v1/docker-flow-proxy/remove":
-		serviceName := req.URL.Query().Get("serviceName")
-		response := Response{
-			Status:      "OK",
-			ServiceName: serviceName,
-		}
-		if len(serviceName) == 0 {
-			response.Status = "NOK"
-			response.Message = "The following queries are mandatory: serviceName and servicePath"
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			action := NewRemove(
-				serviceName,
-				m.BaseReconfigure.ConfigsPath,
-				m.BaseReconfigure.TemplatesPath,
-				m.ConsulAddress,
-				m.InstanceName,
-			)
-			action.Execute([]string{})
-		}
-		httpWriterSetContentType(w, "application/json")
-		js, _ := json.Marshal(response)
-		w.Write(js)
+		m.remove(w, req)
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
@@ -133,4 +72,89 @@ func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
+}
+
+func (m Serve) isValidReconf(name string, path []string, templateFePath string) bool {
+	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
+}
+
+func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
+	sr := ServiceReconfigure{
+		ServiceName:          req.URL.Query().Get("serviceName"),
+		ServiceColor:         req.URL.Query().Get("serviceColor"),
+		ServiceDomain:        req.URL.Query().Get("serviceDomain"),
+		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
+		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
+		PathType:             req.URL.Query().Get("pathType"),
+		Port:                 req.URL.Query().Get("port"),
+	}
+	if len(req.URL.Query().Get("servicePath")) > 0 {
+		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
+	}
+	if len(req.URL.Query().Get("skipCheck")) > 0 {
+		sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
+	}
+	response := Response{
+		Status:               "OK",
+		ServiceName:          sr.ServiceName,
+		ServiceColor:         sr.ServiceColor,
+		ServicePath:          sr.ServicePath,
+		ServiceDomain:        sr.ServiceDomain,
+		ConsulTemplateFePath: sr.ConsulTemplateFePath,
+		ConsulTemplateBePath: sr.ConsulTemplateBePath,
+		PathType:             sr.PathType,
+		SkipCheck:            sr.SkipCheck,
+		Mode:                 m.Mode,
+		Port:                 sr.Port,
+	}
+	if (m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath)) {
+		if strings.ToLower(m.Mode) == "service" && len(sr.Port) == 0 {
+			response.Status = "NOK"
+			response.Message = `When MODE is set to "service", the port query is mandatory`
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			action := NewReconfigure(
+				m.BaseReconfigure,
+				sr,
+			)
+			if err := action.Execute([]string{}); err != nil {
+				response.Status = "NOK"
+				response.Message = fmt.Sprintf("%s", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.WriteHeader(http.StatusOK)
+		}
+	} else {
+		response.Status = "NOK"
+		response.Message = "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)"
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	httpWriterSetContentType(w, "application/json")
+	js, _ := json.Marshal(response)
+	w.Write(js)
+}
+
+func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
+	serviceName := req.URL.Query().Get("serviceName")
+	response := Response{
+		Status:      "OK",
+		ServiceName: serviceName,
+	}
+	if len(serviceName) == 0 {
+		response.Status = "NOK"
+		response.Message = "The following queries are mandatory: serviceName and servicePath"
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		action := NewRemove(
+			serviceName,
+			m.BaseReconfigure.ConfigsPath,
+			m.BaseReconfigure.TemplatesPath,
+			m.ConsulAddress,
+			m.InstanceName,
+		)
+		action.Execute([]string{})
+	}
+	httpWriterSetContentType(w, "application/json")
+	js, _ := json.Marshal(response)
+	w.Write(js)
 }

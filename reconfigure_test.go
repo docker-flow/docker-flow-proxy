@@ -86,6 +86,18 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
 	s.Equal(s.ConsulTemplateBe, back)
 }
 
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedServiceContent() {
+	s.reconfigure.ServiceReconfigure.Mode = "service"
+	expected := `backend myService-be
+    {{range $i, $e := nodes}}
+    server {{$e.Node}}_{{$i}} {{$e.Address}}:{{.Port}} check
+    {{end}}`
+
+	_, actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, actual)
+}
+
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api

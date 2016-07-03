@@ -331,3 +331,10 @@ Feedback and Contribution
 -------------------------
 
 I'd appreciate any feedback you might give (both positive and negative). Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues), send a pull request, or tell me about any feature you might be missing. You can find my contact information in the [About](http://technologyconversations.com/about/) section of my [blog](http://technologyconversations.com/).
+
+
+TODO
+----
+
+* Add *MODE* env. variable
+* Add *port* to the reconfigure query

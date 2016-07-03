@@ -34,14 +34,17 @@ type ServiceReconfigure struct {
 	ServiceName          string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+	ServicePort          string
 	ServiceDomain        string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
 	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	PathType             string
+	Port                 string
 	SkipCheck            bool
 	Acl                  string
 	AclCondition         string
 	FullServiceName      string
+	Mode 				 string
 }
 
 type BaseReconfigure struct {
@@ -178,22 +181,24 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 	return nil
 }
 
+// TODO: Move to registry package
 func (m *Reconfigure) GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error) {
 	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
-		front, err := m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
+		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
 		if err != nil {
 			return "", "", err
 		}
-		back, err := m.getConsulTemplateFromFile(sr.ConsulTemplateBePath)
+		back, err = m.getConsulTemplateFromFile(sr.ConsulTemplateBePath)
 		if err != nil {
 			return "", "", err
 		}
-		return front, back, err
+	} else {
+		front, back = m.getConsulTemplateFromGo(sr)
 	}
-	front, back = m.getConsulTemplateFromGo(sr)
 	return front, back, nil
 }
 
+// TODO: Move to registry package
 func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
 	sr.Acl = ""
 	sr.AclCondition = ""
@@ -217,8 +222,15 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
     use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.ServiceName}}-be
-    {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
+    `
+	if strings.ToLower(sr.Mode) == "service" {
+		srcBack += `{{"{{"}}range $i, $e := nodes{{"}}"}}
+    server {{"{{$e.Node}}_{{$i}} {{$e.Address}}:{{.Port}}"}}{{if eq .SkipCheck false}} check{{end}}`
+	} else {
+		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
+    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}`
+	}
+	srcBack += `
     {{"{{end}}"}}`
 	tmplFront, _ := template.New("consulTemplate").Parse(srcFront)
 	tmplBack, _ := template.New("consulTemplate").Parse(srcBack)
@@ -229,6 +241,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
 	return ctFront.String(), ctBack.String()
 }
 
+// TODO: Move to registry package
 func (m *Reconfigure) getConsulTemplateFromFile(path string) (string, error) {
 	content, err := readTemplateFile(path)
 	if err != nil {
