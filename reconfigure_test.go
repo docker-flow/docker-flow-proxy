@@ -3,6 +3,7 @@
 package main
 
 import (
+	"./registry"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
@@ -13,7 +14,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"./registry"
 )
 
 type ReconfigureTestSuite struct {
@@ -88,9 +88,10 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
 
 func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedServiceContent() {
 	s.reconfigure.ServiceReconfigure.Mode = "service"
+	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
     {{range $i, $e := nodes}}
-    server {{$e.Node}}_{{$i}} {{$e.Address}}:{{.Port}} check
+    server {{$e.Node}}_{{$i}} {{$e.Address}}:1234 check
     {{end}}`
 
 	_, actual, _ := s.reconfigure.GetConsulTemplate(s.reconfigure.ServiceReconfigure)
@@ -171,14 +172,14 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	expectedArgs := registry.CreateConfigsArgs{
-		Address: s.ConsulAddress,
+		Address:       s.ConsulAddress,
 		TemplatesPath: s.TemplatesPath,
-		FeFile: ServiceTemplateFeFilename,
-		FeTemplate: s.ConsulTemplateFe,
-		BeFile: ServiceTemplateBeFilename,
-		BeTemplate: s.ConsulTemplateBe,
-		ServiceName: s.ServiceName,
-		Monitor: false,
+		FeFile:        ServiceTemplateFeFilename,
+		FeTemplate:    s.ConsulTemplateFe,
+		BeFile:        ServiceTemplateBeFilename,
+		BeTemplate:    s.ConsulTemplateBe,
+		ServiceName:   s.ServiceName,
+		Monitor:       false,
 	}
 
 	s.reconfigure.Execute([]string{})
@@ -250,12 +251,12 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	r := registry.Registry{
-		ServiceName: s.ServiceName,
-		ServiceColor: s.ServiceColor,
-		ServicePath: s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType: s.PathType,
-		SkipCheck: s.SkipCheck,
+		ServiceName:          s.ServiceName,
+		ServiceColor:         s.ServiceColor,
+		ServicePath:          s.ServicePath,
+		ServiceDomain:        s.ServiceDomain,
+		PathType:             s.PathType,
+		SkipCheck:            s.SkipCheck,
 		ConsulTemplateFePath: s.ConsulTemplateFePath,
 		ConsulTemplateBePath: s.ConsulTemplateBePath,
 	}
@@ -348,14 +349,14 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
 	expectedArgs := registry.CreateConfigsArgs{
-		Address: s.ConsulAddress,
+		Address:       s.ConsulAddress,
 		TemplatesPath: s.TemplatesPath,
-		FeFile: ServiceTemplateFeFilename,
-		FeTemplate: s.ConsulTemplateFe,
-		BeFile: ServiceTemplateBeFilename,
-		BeTemplate: s.ConsulTemplateBe,
-		ServiceName: s.ServiceName,
-		Monitor: false,
+		FeFile:        ServiceTemplateFeFilename,
+		FeTemplate:    s.ConsulTemplateFe,
+		BeFile:        ServiceTemplateBeFilename,
+		BeTemplate:    s.ConsulTemplateBe,
+		ServiceName:   s.ServiceName,
+		Monitor:       false,
 	}
 
 	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName)

@@ -34,7 +34,7 @@ func (s *RemoveTestSuite) SetupTest() {
 		ConfigsPath:   s.ConfigsPath,
 		TemplatesPath: s.TemplatesPath,
 		ConsulAddress: s.ConsulAddress,
-		InstanceName: s.InstanceName,
+		InstanceName:  s.InstanceName,
 	}
 }
 

@@ -36,7 +36,7 @@ $ docker-compose -f docker-compose-test.yml down
 
 Cleanup
 $ docker-machine rm -f docker-flow-proxy-tests
- */
+*/
 
 import (
 	"fmt"

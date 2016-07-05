@@ -57,7 +57,7 @@ func (s *ServerTestSuite) SetupTest() {
 	server = Serve{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddress: s.ConsulAddress,
-			InstanceName: s.InstanceName,
+			InstanceName:  s.InstanceName,
 		},
 	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -121,19 +121,6 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	server.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName)
-}
-
-func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsServiceAndConsulAddressIsEmpty() {
-	mockObj := getReconfigureMock("")
-	server.ConsulAddress = ""
-	server.Mode = "seRviCe"
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-		return mockObj
-	}
-
-	server.Execute([]string{})
-
-	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", mock.Anything, mock.Anything)
 }
 
 func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
@@ -217,6 +204,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 	port := "1234"
+	mode := "service"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&port="+port, nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
@@ -225,9 +213,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 		ServicePath:   s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
 		Port:          port,
+		Mode:          mode,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	Serve{Mode: mode}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }

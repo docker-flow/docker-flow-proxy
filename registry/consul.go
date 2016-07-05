@@ -92,7 +92,7 @@ func (m Consul) createConfig(address, templatesPath, file, template, serviceName
 	WriteConsulTemplateFile(src, []byte(template), 0664)
 	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
 	if err := m.runConsulTemplateCmd(src, dest, address, monitor); err != nil {
-		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
+		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src,  err.Error())
 	}
 	return nil
 }
@@ -119,13 +119,8 @@ func (m Consul) runConsulTemplateCmd(src, dest, address string, monitor bool) er
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmdRunConsulTemplate(cmd); err != nil {
-		return fmt.Errorf("Command %s\n%s\n", strings.Join(cmd.Args, " "), err.Error())
+		return fmt.Errorf("Command: %s\n%s\n", strings.Join(cmd.Args, " "), err.Error())
 	}
-//	if monitor {
-//		monitorArgs = []string{
-//
-//		}
-//	}
 	return nil
 }
 

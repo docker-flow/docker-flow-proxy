@@ -41,13 +41,11 @@ func (m Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if len(m.ConsulAddress) > 0 || strings.ToLower(m.Mode) != "service" {
-		if err := NewReconfigure(
-			m.BaseReconfigure,
-			ServiceReconfigure{},
-		).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
-			return err
-		}
+	if err := NewReconfigure(
+		m.BaseReconfigure,
+		ServiceReconfigure{},
+	).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
+		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	if err := httpListenAndServe(address, m); err != nil {
@@ -87,6 +85,7 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
 		PathType:             req.URL.Query().Get("pathType"),
 		Port:                 req.URL.Query().Get("port"),
+		Mode:                 m.Mode,
 	}
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
@@ -104,10 +103,10 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
-		Mode:                 m.Mode,
+		Mode:                 sr.Mode,
 		Port:                 sr.Port,
 	}
-	if (m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath)) {
+	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath) {
 		if strings.ToLower(m.Mode) == "service" && len(sr.Port) == 0 {
 			response.Status = "NOK"
 			response.Message = `When MODE is set to "service", the port query is mandatory`
@@ -117,6 +116,8 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 				m.BaseReconfigure,
 				sr,
 			)
+			fmt.Println("!!!")
+			fmt.Println(sr.Mode)
 			if err := action.Execute([]string{}); err != nil {
 				response.Status = "NOK"
 				response.Message = fmt.Sprintf("%s", err.Error())

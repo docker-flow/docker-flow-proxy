@@ -1,16 +1,16 @@
 package main
 
 import (
+	"./registry"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
-	"./registry"
-	"html/template"
-	"bytes"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -35,16 +35,16 @@ type ServiceReconfigure struct {
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
-	ServiceDomain        string   `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
-	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
+	ServiceDomain        string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ConsulTemplateFePath string `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
+	ConsulTemplateBePath string `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	PathType             string
 	Port                 string
 	SkipCheck            bool
 	Acl                  string
 	AclCondition         string
 	FullServiceName      string
-	Mode 				 string
+	Mode                 string
 }
 
 type BaseReconfigure struct {
@@ -61,6 +61,8 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 }
 
 func (m *Reconfigure) Execute(args []string) error {
+	fmt.Println("!!!")
+	fmt.Println(m.ServiceReconfigure.Mode)
 	mu.Lock()
 	defer mu.Unlock()
 	if err := m.createConfigs(m.TemplatesPath, m.ServiceReconfigure); err != nil {
@@ -149,14 +151,14 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr ServiceReconfigure)
 		return err
 	}
 	args := registry.CreateConfigsArgs{
-		Address: m.ConsulAddress,
+		Address:       m.ConsulAddress,
 		TemplatesPath: templatesPath,
-		FeFile: ServiceTemplateFeFilename,
-		FeTemplate: feTemplate,
-		BeFile: ServiceTemplateBeFilename,
-		BeTemplate: beTemplate,
-		ServiceName: sr.ServiceName,
-		Monitor: false,
+		FeFile:        ServiceTemplateFeFilename,
+		FeTemplate:    feTemplate,
+		BeFile:        ServiceTemplateBeFilename,
+		BeTemplate:    beTemplate,
+		ServiceName:   sr.ServiceName,
+		Monitor:       false,
 	}
 	if err = registryInstance.CreateConfigs(args); err != nil {
 		return err
@@ -166,12 +168,12 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr ServiceReconfigure)
 
 func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanceName string) error {
 	r := registry.Registry{
-		ServiceName: sr.ServiceName,
-		ServiceColor: sr.ServiceColor,
-		ServicePath: sr.ServicePath,
-		ServiceDomain: sr.ServiceDomain,
-		PathType: sr.PathType,
-		SkipCheck: sr.SkipCheck,
+		ServiceName:          sr.ServiceName,
+		ServiceColor:         sr.ServiceColor,
+		ServicePath:          sr.ServicePath,
+		ServiceDomain:        sr.ServiceDomain,
+		PathType:             sr.PathType,
+		SkipCheck:            sr.SkipCheck,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 	}
@@ -225,7 +227,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     `
 	if strings.ToLower(sr.Mode) == "service" {
 		srcBack += `{{"{{"}}range $i, $e := nodes{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}} {{$e.Address}}:{{.Port}}"}}{{if eq .SkipCheck false}} check{{end}}`
+    server {{"{{$e.Node}}_{{$i}} {{$e.Address}}:"}}{{.Port}}{{if eq .SkipCheck false}} check{{end}}`
 	} else {
 		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}`
