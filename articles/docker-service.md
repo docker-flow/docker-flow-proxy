@@ -5,7 +5,7 @@ git clone https://github.com/vfarcic/docker-flow-proxy.git
 
 cd docker-flow-proxy
 
-docker-machine create -d virtualbox node-1
+docker-machine create -d virtualbox --engine-label proxy=yes node-1
 
 eval $(docker-machine env node-1)
 
@@ -83,30 +83,29 @@ docker service tasks go-demo
 
 export CONSUL_IP=$(docker-machine ip node-1)
 
-docker service create --name docker-flow-proxy \
+docker service create --name proxy \
     -p 80:80 \
     -p 443:443 \
     -p 8080:8080 \
     --network proxy \
-    --constraint NAME:node-1 \
+    --constraint node.id==$(docker node inspect node-1 --format "{{.ID}}") \
     -e CONSUL_ADDRESS=$CONSUL_IP:8500 \
-    -e PROXY_INSTANCE_NAME=docker-flow \
     -e MODE=service \
-    vfarcic/docker-flow-proxy
+    vfarcic/docker-flow-proxy:1.1-beta
 
-docker service ls # Repeat until docker-flow-proxy REPLICAS is set to 1/1
-
-docker service tasks docker-flow-proxy
-
-# docker-compose up -d proxy-service
-
-curl $(docker-machine ip node-1)/demo/hello
-
-curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&port=8080"
+# TODO: Change IPs to service names
+# TODO: Remove 1.1-beta
+# TODO: Figure out why it doesn't work with "--constraint node.hostname==node-1"
 
 docker service ls # Repeat until proxy REPLICAS is set to 1/1
 
 docker service tasks proxy
+
+curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&port=8080"
+
+curl $(docker-machine ip node-1)/demo/hello
+
+
 
 
 docker service update --replicas 3 go-demo

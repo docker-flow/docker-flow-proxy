@@ -8,7 +8,7 @@ services:
     volumes:
       - .:/usr/src/myapp
       - /tmp/go:/go
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... && go build -v -o docker-flow-proxy"
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v --run UnitTest ./... && go build -v -o docker-flow-proxy"
 
   staging-dep:
     image: vfarcic/docker-flow-proxy
@@ -21,12 +21,24 @@ services:
     volumes:
       - ./test_configs/:/test_configs/
     depends_on:
+      - staging-service-proxy
       - consul
       - registrator
       - app-1
       - app-2
       - app-3
       - app-4
+
+  staging-service-proxy:
+    image: vfarcic/docker-flow-proxy
+    environment:
+      - PROXY_INSTANCE_NAME=proxy-service-test-instance
+      - MODE=service
+    ports:
+      - 9000:80
+      - 9080:8080
+    volumes:
+      - ./test_configs/:/test_configs/
 
   staging:
     image: golang:1.6
@@ -36,7 +48,17 @@ services:
     environment:
       - DOCKER_IP=${HOST_IP}
       - CONSUL_IP=${HOST_IP}
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --tags integration -v"
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test -v --run IntegrationTest ./..."
+
+  staging-general:
+    extends:
+      service: staging
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test -v --run GeneralIntegrationTest ./..."
+
+  staging-service:
+    extends:
+      service: staging
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test -v --run ServiceIntegrationTest ./..."
 
   production:
     extends:

@@ -18,13 +18,7 @@ type ArgsTestSuite struct {
 }
 
 func (s *ArgsTestSuite) SetupTest() {
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		return nil
-	}
 	cmdRunHa = func(cmd *exec.Cmd) error {
-		return nil
-	}
-	writeConsulTemplateFile = func(fileName string, data []byte, perm os.FileMode) error {
 		return nil
 	}
 	httpListenAndServe = func(addr string, handler http.Handler) error {
@@ -356,7 +350,7 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 
 // Suite
 
-func TestArgsTestSuite(t *testing.T) {
+func TestArgsUnitTestSuite(t *testing.T) {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()

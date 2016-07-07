@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"os/exec"
 	"testing"
 )
 
@@ -145,7 +144,7 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenDeleteRequestToRegistryFa
 
 // Suite
 
-func TestRemoveTestSuite(t *testing.T) {
+func TestRemoveUnitTestSuite(t *testing.T) {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()
@@ -155,15 +154,6 @@ func TestRemoveTestSuite(t *testing.T) {
 }
 
 // Mock
-
-func (s RemoveTestSuite) mockConsulExecCmd() *[]string {
-	var actualCommand []string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
-		actualCommand = cmd.Args
-		return nil
-	}
-	return &actualCommand
-}
 
 type RemoveMock struct {
 	mock.Mock

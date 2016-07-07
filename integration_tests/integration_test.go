@@ -1,6 +1,4 @@
-// +build integration
-
-package main
+package integration_test
 
 /*
 Setup
@@ -44,9 +42,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
+	"log"
 )
 
 type IntegrationTestSuite struct {
@@ -132,7 +130,7 @@ func (s IntegrationTestSuite) Test_Reconfigure_ConsulTemplatePath() {
 
 func (s IntegrationTestSuite) verifyReconfigure(version int) {
 	address := fmt.Sprintf("http://%s/v%d/test", os.Getenv("DOCKER_IP"), version)
-	logPrintf("Sending verify request to %s", address)
+	log.Printf(">> Sending verify request to %s", address)
 	resp, err := http.Get(address)
 
 	s.NoError(err)
@@ -158,25 +156,14 @@ func (s IntegrationTestSuite) reconfigure(pathType, consulTemplateFePath, consul
 			pathType,
 		)
 	}
-	logPrintf("Sending reconfigure request to %s", address)
+	log.Printf(">> Sending reconfigure request to %s", address)
 	_, err := http.Get(address)
 	s.NoError(err)
 }
 
-func (s IntegrationTestSuite) runCmd(command string, args ...string) bool {
-	cmd := exec.Command(command, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("%s %s\n%s\n", command, strings.Join(args, " "), err.Error())
-		return false
-	}
-	return true
-}
-
 // Suite
 
-func TestIntegrationTestSuite(t *testing.T) {
+func TestGeneralIntegrationTestSuite(t *testing.T) {
 	s := new(IntegrationTestSuite)
 	if len(os.Getenv("DOCKER_IP")) == 0 {
 		os.Setenv("DOCKER_IP", "localhost")

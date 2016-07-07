@@ -41,7 +41,7 @@ func (s RunTestSuite) Test_NewRun_ReturnsNewStruct() {
 
 // Suite
 
-func TestRunTestSuite(t *testing.T) {
+func TestRunUnitTestSuite(t *testing.T) {
 	suite.Run(t, new(RunTestSuite))
 }
 

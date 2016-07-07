@@ -163,7 +163,7 @@ func (s ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
 
 // Suite
 
-func TestHaProxyTestSuite(t *testing.T) {
+func TestHaProxyUnitTestSuite(t *testing.T) {
 	logPrintf = func(format string, v ...interface{}) {}
 	suite.Run(t, new(HaProxyTestSuite))
 }
@@ -173,15 +173,6 @@ func TestHaProxyTestSuite(t *testing.T) {
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string
 	cmdRunHa = func(cmd *exec.Cmd) error {
-		actualCommand = cmd.Args
-		return nil
-	}
-	return &actualCommand
-}
-
-func (s HaProxyTestSuite) mockConsulExecCmd() *[]string {
-	var actualCommand []string
-	cmdRunConsul = func(cmd *exec.Cmd) error {
 		actualCommand = cmd.Args
 		return nil
 	}

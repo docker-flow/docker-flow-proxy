@@ -41,11 +41,13 @@ func (m Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if err := NewReconfigure(
-		m.BaseReconfigure,
-		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
-		return err
+	if !strings.EqualFold(m.Mode, "service") {
+		if err := NewReconfigure(
+			m.BaseReconfigure,
+			ServiceReconfigure{},
+		).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
+			return err
+		}
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	if err := httpListenAndServe(address, m); err != nil {
@@ -116,8 +118,6 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 				m.BaseReconfigure,
 				sr,
 			)
-			fmt.Println("!!!")
-			fmt.Println(sr.Mode)
 			if err := action.Execute([]string{}); err != nil {
 				response.Status = "NOK"
 				response.Message = fmt.Sprintf("%s", err.Error())

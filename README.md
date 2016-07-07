@@ -338,3 +338,4 @@ TODO
 
 * Add *MODE* env. variable
 * Add *port* to the reconfigure query
+* Node that skipCheck does not apply to the service mode

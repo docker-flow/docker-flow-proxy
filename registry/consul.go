@@ -69,7 +69,7 @@ func (m Consul) SendDeleteRequest(address, serviceName, key, value, instanceName
 	c <- m.sendRequest("DELETE", address, serviceName, key, value, instanceName)
 }
 
-func (m Consul) CreateConfigs(args CreateConfigsArgs) error {
+func (m Consul) CreateConfigs(args *CreateConfigsArgs) error {
 	if err := m.createConfig(args.Address, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe", false); err != nil {
 		return err
 	}

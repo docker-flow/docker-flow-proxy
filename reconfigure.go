@@ -22,7 +22,7 @@ type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
 	ReloadAllServices(address, instanceName string) error
-	GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error)
+	GetTemplates(sr ServiceReconfigure) (front, back string, err error)
 }
 
 type Reconfigure struct {
@@ -61,11 +61,9 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 }
 
 func (m *Reconfigure) Execute(args []string) error {
-	fmt.Println("!!!")
-	fmt.Println(m.ServiceReconfigure.Mode)
 	mu.Lock()
 	defer mu.Unlock()
-	if err := m.createConfigs(m.TemplatesPath, m.ServiceReconfigure); err != nil {
+	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
 	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
@@ -74,8 +72,12 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	// TODO: Extend to other registries
-	return m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName)
+	if !strings.EqualFold(m.Mode, "service") {
+		if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
@@ -107,7 +109,7 @@ func (m *Reconfigure) ReloadAllServices(address, instanceName string) error {
 		s := <-c
 		if len(s.ServicePath) > 0 {
 			logPrintf("\tConfiguring %s", s.ServiceName)
-			m.createConfigs(m.TemplatesPath, s)
+			m.createConfigs(m.TemplatesPath, &s)
 		}
 	}
 
@@ -144,24 +146,31 @@ func (m *Reconfigure) getServiceAttribute(address, serviceName, key, instanceNam
 	return string(body), true
 }
 
-func (m *Reconfigure) createConfigs(templatesPath string, sr ServiceReconfigure) error {
+func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure) error {
 	logPrintf("Creating configuration for the service %s", sr.ServiceName)
-	feTemplate, beTemplate, err := m.GetConsulTemplate(sr)
+	feTemplate, beTemplate, err := m.GetTemplates(*sr)
 	if err != nil {
 		return err
 	}
-	args := registry.CreateConfigsArgs{
-		Address:       m.ConsulAddress,
-		TemplatesPath: templatesPath,
-		FeFile:        ServiceTemplateFeFilename,
-		FeTemplate:    feTemplate,
-		BeFile:        ServiceTemplateBeFilename,
-		BeTemplate:    beTemplate,
-		ServiceName:   sr.ServiceName,
-		Monitor:       false,
-	}
-	if err = registryInstance.CreateConfigs(args); err != nil {
-		return err
+	if strings.EqualFold(sr.Mode, "service") {
+		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.ServiceName)
+		writeFeTemplate(destFe, []byte(feTemplate), 0664)
+		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.ServiceName)
+		writeBeTemplate(destBe, []byte(beTemplate), 0664)
+	} else {
+		args := registry.CreateConfigsArgs{
+			Address:       m.ConsulAddress,
+			TemplatesPath: templatesPath,
+			FeFile:        ServiceTemplateFeFilename,
+			FeTemplate:    feTemplate,
+			BeFile:        ServiceTemplateBeFilename,
+			BeTemplate:    beTemplate,
+			ServiceName:   sr.ServiceName,
+			Monitor:       false,
+		}
+		if err = registryInstance.CreateConfigs(&args); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -184,7 +193,7 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 }
 
 // TODO: Move to registry package
-func (m *Reconfigure) GetConsulTemplate(sr ServiceReconfigure) (front, back string, err error) {
+func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
 	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
 		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
 		if err != nil {
@@ -225,15 +234,13 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.ServiceName}}-be
     `
-	if strings.ToLower(sr.Mode) == "service" {
-		srcBack += `{{"{{"}}range $i, $e := nodes{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}} {{$e.Address}}:"}}{{.Port}}{{if eq .SkipCheck false}} check{{end}}`
+	if strings.EqualFold(sr.Mode, "service") {
+		srcBack += `server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
 	} else {
 		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}`
-	}
-	srcBack += `
+    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
+	}
 	tmplFront, _ := template.New("consulTemplate").Parse(srcFront)
 	tmplBack, _ := template.New("consulTemplate").Parse(srcBack)
 	var ctFront bytes.Buffer

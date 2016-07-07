@@ -210,7 +210,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_ReturnsError_WhenConsulTemplateFeCo
 		return fmt.Errorf("This is an error")
 	}
 
-	err := Consul{}.CreateConfigs(s.createConfigsArgs)
+	err := Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Error(err)
 }
@@ -226,7 +226,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_ReturnsError_WhenConsulTemplateBeCo
 		}
 	}
 
-	err := Consul{}.CreateConfigs(s.createConfigsArgs)
+	err := Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Error(err)
 }
@@ -268,7 +268,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplate() {
 		"-once",
 	}
 
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(2, len(actual))
 	s.Equal(expectedFe, actual[0])
@@ -282,7 +282,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_CreatesConsulTemplate() {
 		return nil
 	}
 
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(s.feTemplate, actual)
 }
@@ -325,7 +325,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttp()
 	}
 
 	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTtP://", -1)
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(2, len(actual))
 	s.Equal(expectedFe, actual[0])
@@ -370,7 +370,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttps(
 	}
 
 	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTTPs://", -1)
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(2, len(actual))
 	s.Equal(expectedFe, actual[0])
@@ -389,7 +389,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_WritesTemplateToFile() {
 	}
 
 	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(expected, actual)
 }
@@ -403,14 +403,14 @@ func (s *ConsulTestSuite) Test_CreateConfigs_SetsFilePermissions() {
 	}
 
 	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
-	Consul{}.CreateConfigs(s.createConfigsArgs)
+	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(expected, actual)
 }
 
 // Suite
 
-func TestTestTestSuite(t *testing.T) {
+func TestConsulUnitTestSuite(t *testing.T) {
 	s := new(ConsulTestSuite)
 	s.registry = Registry{
 		ServiceName: "my-service",
