@@ -5,29 +5,11 @@ git clone https://github.com/vfarcic/docker-flow-proxy.git
 
 cd docker-flow-proxy
 
-docker-machine create -d virtualbox --engine-label proxy=yes node-1
-
-eval $(docker-machine env node-1)
-
-DOCKER_IP=$(docker-machine ip node-1) docker-compose up -d consul-server
+docker-machine create -d virtualbox node-1
 
 docker-machine create -d virtualbox node-2
 
-eval $(docker-machine env node-2)
-
-DOCKER_IP=$(docker-machine ip node-2) \
-    CONSUL_IP=$(docker-machine ip node-2) \
-    CONSUL_SERVER_IP=$(docker-machine ip node-1) \
-    docker-compose up -d consul-agent
-
 docker-machine create -d virtualbox node-3
-
-eval $(docker-machine env node-3)
-
-DOCKER_IP=$(docker-machine ip node-3) \
-    CONSUL_IP=$(docker-machine ip node-3) \
-    CONSUL_SERVER_IP=$(docker-machine ip node-1) \
-    docker-compose up -d consul-agent
 
 # Swarm Setup
 
@@ -52,6 +34,8 @@ docker swarm join $(docker-machine ip node-1):2377
 eval $(docker-machine env node-1)
 
 docker node ls
+
+# Deployment
 
 docker network create --driver overlay proxy
 
@@ -81,15 +65,12 @@ docker service ls # Repeat until go-demo REPLICAS is set to 1/1
 
 docker service tasks go-demo
 
-export CONSUL_IP=$(docker-machine ip node-1)
-
 docker service create --name proxy \
     -p 80:80 \
     -p 443:443 \
     -p 8080:8080 \
     --network proxy \
     --constraint node.id==$(docker node inspect node-1 --format "{{.ID}}") \
-    -e CONSUL_ADDRESS=$CONSUL_IP:8500 \
     -e MODE=service \
     vfarcic/docker-flow-proxy:1.1-beta
 
@@ -101,67 +82,19 @@ docker service ls # Repeat until proxy REPLICAS is set to 1/1
 
 docker service tasks proxy
 
+curl $(docker-machine ip node-1)/demo/hello
+
 curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&port=8080"
 
 curl $(docker-machine ip node-1)/demo/hello
 
-
-
-
-docker service update --replicas 3 go-demo
+docker service update --replicas 5 go-demo
 
 docker service ls
 
 docker service tasks go-demo
 
-```
-
-
-
-
-```bash
-docker service create --name debug \
-    --network proxy \
-    --mode global \
-    alpine sleep 1000000000
-
-docker service create --name debug \
-    --network go-demo \
-    --mode global \
-    alpine sleep 1000000000
-
-docker service tasks debug
-
-CID=$(docker ps -q --filter label=com.docker.swarm.service.name=debug)
-
-docker exec -ti $CID sh
-
-apk add --update curl apache2-utils drill
-
-drill go-demo
-
-curl go-demo:8080/demo/hello
-
-exit
-
-docker service rm debug
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-./consul-template -consul $(docker-machine ip node-1):8500 -template "nodes.ctmpl:nodes.txt" -once
+curl $(docker-machine ip node-1)/demo/hello
 ```
 
 TODO
