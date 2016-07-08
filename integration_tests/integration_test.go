@@ -5,7 +5,6 @@ Setup
 $ docker-machine create -d virtualbox docker-flow-proxy-tests
 $ eval $(docker-machine env docker-flow-proxy-tests)
 $ export HOST_IP=$(docker-machine ip docker-flow-proxy-tests)
-$ docker-compose -f docker-compose-test.yml down
 
 Unit tests
 $ docker-compose -f docker-compose-test.yml run --rm unit
