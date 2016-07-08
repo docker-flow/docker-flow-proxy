@@ -19,9 +19,9 @@ The goal of the *Docker Flow: Proxy* project is to provide an easy way to reconf
 Modes
 -----
 
-Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **service** mode is designed to leverage the benefits that come with *Docker Service* and new networking introduced in the 1.12 release. The later mode (*service*) does not have any dependency but Docker Engine. The *service* mode is recommended for all who use *Docker Service* features.
+Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **service** mode aims to leverage the benefits that come with *Docker Service* and new networking introduced in the 1.12 release. The later mode (*service*) does not have any dependency but Docker Engine. The *service* mode is recommended for all who use *Docker Service* features (the new Swarm).
 
-### [The Service Mode](articles/service-mode.md)
+### [The Service Mode (Docker 1.12+)](articles/service-mode.md)
 ### [The Default Mode](articles/standard-mode.md)
 
 Usage
@@ -43,28 +43,28 @@ The following environment variable can be used to configure the *Docker Flow: Pr
 
 > Reconfigures the proxy using information stored in Consul
 
-The following query arguments can be used to send as a *reconfigure* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**.
+The following query arguments can be used to send as a *reconfigure* request to *Docker Flow: Proxy*. They should be added to the base address **<PROXY_IP>:<PROXY_PORT>/v1/docker-flow-proxy/reconfigure**.
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
-|consulTemplateBePath|The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
-|consulTemplateFePath|The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
+|consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
+|consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
 |port         |The internal port of a service that should be reconfigured. The port is used only in the *service* mode|Only in *service* mode|||8080|
-|serviceDomain|The domain of the service. If specified, proxy will allow access only to requests coming to that domain.|No||ecme.com|
+|serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
-|servicePath  |The URL path of the service. Multiple values should be separated with comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
-|skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode|No      |false  |true         |
+|servicePath  |The URL path of the service. Multiple values should be separated by a comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
+|skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 
 ### Remove
 
 > Removes a service from the proxy
 
-The following query arguments can be used to send as a *remove* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/remove**.
+The following query arguments can be used to send a *remove* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/remove**.
 
-|Query      |Description                                                                 |Required|Example   |
-|-----------|----------------------------------------------------------------------------|--------|----------|
-|serviceName|The name of the service. It must match the name stored in Consul            |Yes     |books-ms  |
+|Query      |Description                                                                 |Required|Example|
+|-----------|----------------------------------------------------------------------------|--------|-------|
+|serviceName|The name of the service. It must match the name stored in Consul            |Yes     |go-demo|
 
 Feedback and Contribution
 -------------------------

@@ -1,5 +1,5 @@
-Docker Flow Standard Mode
-=========================
+Docker Flow Service Mode (Docker 1.12+)
+=======================================
 
 Examples
 --------
