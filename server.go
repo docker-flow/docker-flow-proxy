@@ -143,15 +143,17 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 	}
 	if len(serviceName) == 0 {
 		response.Status = "NOK"
-		response.Message = "The following queries are mandatory: serviceName and servicePath"
+		response.Message = "The serviceName query is mandatory"
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		logPrintf("Processing remove request %s", req.URL.Path)
 		action := NewRemove(
 			serviceName,
 			m.BaseReconfigure.ConfigsPath,
 			m.BaseReconfigure.TemplatesPath,
 			m.ConsulAddress,
 			m.InstanceName,
+			m.Mode,
 		)
 		action.Execute([]string{})
 	}

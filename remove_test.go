@@ -130,6 +130,18 @@ func (s RemoveTestSuite) Test_Execute_InvokesRegistryDeleteService() {
 	mockObj.AssertCalled(s.T(), "DeleteService", s.ConsulAddress, s.ServiceName, s.InstanceName)
 }
 
+func (s RemoveTestSuite) Test_Execute_DoesNotInvokeRegistryDeleteService_WhenModeIsService() {
+	mockObj := getRegistrarableMock("")
+	s.remove.Mode = "SerVIcE"
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+
+	s.remove.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "DeleteService", mock.Anything, mock.Anything, mock.Anything)
+}
+
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenDeleteRequestToRegistryFails() {
 	mockObj := getRegistrarableMock("DeleteService")
 	mockObj.On("DeleteService", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error form Consul"))

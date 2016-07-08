@@ -27,6 +27,8 @@ scripts/service-cluster.sh
 Right now we have three machines running (*node-1*, *node-2*, and *node-3*). Each of those machines runs Docker Engine. Together, they form a Swarm cluster. Docker Engine running in the first node (*node-1*) is the leader. We can see the status by running the following command.
 
 ```bash
+eval $(docker-machine env node-1)
+
 docker node ls
 ```
 
@@ -144,7 +146,9 @@ Since *Docker Flow: Proxy* uses new networking features added to Docker 1.12, it
 ```bash
 docker service update --replicas 5 go-demo
 
-curl $(docker-machine ip node-1)/demo/hello
+docker service ls
+
+curl -i $(docker-machine ip node-1)/demo/hello
 ```
 
 Feel free to repeat this request a few more times. Once done, check the logs of any of the replicas and you'll notice that it received approximately one fifth of the requests. No matter how many instances are running and with which frequency they change, swarm network will make sure that requests load balanced across all currently running instances.
@@ -172,8 +176,6 @@ We can as easily remove a service from the *Docker Flow: Proxy*. An example that
 ```bash
 curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/remove?serviceName=go-demo"
 ```
-
-TODO: Test
 
 From this moment on, the service *go-demo* is not available through the proxy.
 

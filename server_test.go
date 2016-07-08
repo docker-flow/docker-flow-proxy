@@ -410,13 +410,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		ConsulAddress: s.ConsulAddress,
 		InstanceName:  s.InstanceName,
 	}
-	NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName string) Removable {
+	NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName, mode string) Removable {
 		actual = Remove{
 			ServiceName:   serviceName,
 			TemplatesPath: templatesPath,
 			ConfigsPath:   configsPath,
 			ConsulAddress: consulAddress,
 			InstanceName:  instanceName,
+			Mode:          mode,
 		}
 		return mockObj
 	}

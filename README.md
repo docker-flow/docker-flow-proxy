@@ -2,12 +2,7 @@ Docker Flow: Proxy
 ==================
 
 * [Introduction](#introduction)
-* [Examples](#examples)
-  * [Setup](#setup)
-  * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
-  * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
-  * [Reconfiguring the Proxy Using Custom Consul Templates](#reconfiguring-the-proxy-using-custom-consul-templates)
-  * [Proxy Failover](#proxy-failover)
+* [Modes](#modes)
 * [Containers Definition](#containers-definition)
 * [Usage](#usage)
 

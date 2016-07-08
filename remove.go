@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Removable interface {
 	Executable
@@ -12,22 +15,25 @@ type Remove struct {
 	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
 	ServiceName   string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
 	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	Mode          string
 }
 
 var remove Remove
 
-var NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName string) Removable {
+var NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName, mode string) Removable {
 	return &Remove{
 		ServiceName:   serviceName,
 		TemplatesPath: templatesPath,
 		ConfigsPath:   configsPath,
 		ConsulAddress: consulAddress,
 		InstanceName:  instanceName,
+		Mode:          mode,
 	}
 }
 
 func (m *Remove) Execute(args []string) error {
-	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.ConsulAddress, m.InstanceName); err != nil {
+	logPrintf("Removing %s configuration", m.ServiceName)
+	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.ConsulAddress, m.InstanceName, m.Mode); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
@@ -42,7 +48,8 @@ func (m *Remove) Execute(args []string) error {
 	return nil
 }
 
-func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instanceName string) error {
+func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instanceName, mode string) error {
+	logPrintf("Removing the %s configuration files", serviceName)
 	paths := []string{
 		fmt.Sprintf("%s/%s-fe.cfg", templatesPath, serviceName),
 		fmt.Sprintf("%s/%s-be.cfg", templatesPath, serviceName),
@@ -54,8 +61,10 @@ func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instan
 			return err
 		}
 	}
-	if err := registryInstance.DeleteService(registryAddress, serviceName, instanceName); err != nil {
-		return fmt.Errorf("Could not remove the service from Consul\n%s", err.Error())
+	if !strings.EqualFold(mode, "service") {
+		if err := registryInstance.DeleteService(registryAddress, serviceName, instanceName); err != nil {
+			return fmt.Errorf("Could not remove the service from Consul\n%s", err.Error())
+		}
 	}
 	return nil
 }
