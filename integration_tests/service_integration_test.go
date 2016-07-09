@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"io/ioutil"
+	"time"
 )
 
 type ServiceIntegrationTestSuite struct {
@@ -42,6 +43,7 @@ func (s ServiceIntegrationTestSuite) Test_Remove() {
 	status, _ := s.sendRequest(removeUrl)
 	s.Equal(200, status)
 	url := fmt.Sprintf("http://%s:9000/v1/test", os.Getenv("DOCKER_IP"))
+	time.Sleep(time.Millisecond * 100)
 	resp, err := http.Get(url)
 	s.NoError(err)
 	b, _ := ioutil.ReadAll(resp.Body)

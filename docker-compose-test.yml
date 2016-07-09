@@ -33,7 +33,7 @@ services:
     image: vfarcic/docker-flow-proxy
     environment:
       - PROXY_INSTANCE_NAME=proxy-service-test-instance
-      - MODE=service
+      - MODE=swarm
     ports:
       - 9000:80
       - 9080:8080

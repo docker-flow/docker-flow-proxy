@@ -20,15 +20,14 @@ docker-machine create -d virtualbox node-1
 docker-machine create -d virtualbox node-2
 
 docker-machine create -d virtualbox node-3
+
+docker-machine ls
 ```
 
-Please make sure that you are running Docker version 1.12 or higher.
+The output of the `ls` command should be as follows.
 
-```bash
-eval $(docker-machine env node-1)
+TODO
 
-docker --version
-```
 
 With the machines up and running and environment variables pointing to the *node-1*, we can proceed and setup the (new) Swarm cluster.
 
