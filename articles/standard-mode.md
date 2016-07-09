@@ -1,7 +1,9 @@
-Docker Flow Standard Mode
-=========================
+Docker Flow: Proxy - Standard Mode
+==================================
 
-Prerequisite for the *Docker Flow: Proxy* container running in the default mode is, at least, one [Consul](https://www.consul.io/) instance and the ability to put services information. The easiest way to store services data in Consul is through [Registrator]([Registrator](https://github.com/gliderlabs/registrator)). That does not mean that Registrator is the requirement. Any other method that will put the information into Consul will do.
+Prerequisite for the *Docker Flow: Proxy* container running in the *default* mode is, at least, one [Consul](https://www.consul.io/) instance and the ability to put services information. The easiest way to store services data in Consul is through [Registrator]([Registrator](https://github.com/gliderlabs/registrator)). That does not mean that Registrator is the requirement. Any other method that will put the information into Consul will do.
+
+If you are running Docker v1.12, you might want to explore the [Docker Flow: Proxy - Service Mode](service-mode.md) article.
 
 Examples
 --------
