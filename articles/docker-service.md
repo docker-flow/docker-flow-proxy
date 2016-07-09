@@ -72,11 +72,7 @@ docker service create --name proxy \
     --network proxy \
     --constraint node.id==$(docker node inspect node-1 --format "{{.ID}}") \
     -e MODE=service \
-    vfarcic/docker-flow-proxy:1.1-beta
-
-# TODO: Change IPs to service names
-# TODO: Remove 1.1-beta
-# TODO: Figure out why it doesn't work with "--constraint node.hostname==node-1"
+    vfarcic/docker-flow-proxy
 
 docker service ls # Repeat until proxy REPLICAS is set to 1/1
 
