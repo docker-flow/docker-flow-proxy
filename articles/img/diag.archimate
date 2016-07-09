@@ -85,7 +85,7 @@
           <sourceConnection xsi:type="archimate:Connection" id="b25c7334" source="c291734c" target="20e8c278" relationship="be70df76"/>
         </child>
       </child>
-      <child xsi:type="archimate:DiagramObject" id="20e8c278" textAlignment="2" targetConnections="e263bcf7 b25c7334 4dc5d968 92bcbae2 0c6da5c8 25d53040" archimateElement="56954d1b">
+      <child xsi:type="archimate:DiagramObject" id="20e8c278" textAlignment="2" targetConnections="b25c7334 e263bcf7 92bcbae2 4dc5d968 25d53040 0c6da5c8" archimateElement="56954d1b">
         <bounds x="36" y="48" width="733" height="25"/>
       </child>
     </element>

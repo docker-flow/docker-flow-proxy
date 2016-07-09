@@ -121,6 +121,8 @@ eafx9zd0czuu        ingress             overlay             swarm
 
 As you can see, we have two networks that have the *swarm* scope. The one named *ingress* was created by default when we set up the cluster. The second (*go-demo*) was created with the `network create` command. We'll assign all containers that constitute the *go-demo* service to that network.
 
+![Docker Swarm cluster with Docker network (SDN)](img/swarm-node-sdn.png)
+
 The *go-demo* service requires two containers. Data will be stored in MongoDB. The back-end that uses that DB is defined as *vfarcic/go-demo* container.
 
 Let's start by deploying the *mongo* container somewhere within the cluster. Normally, we'd use constraints to specify the requirements for the container (e.g. HD type, the amount of memory and CPU, and so on). We'll skip that and, simply, tell Swarm to deploy it anywhere within the cluster.
@@ -168,6 +170,8 @@ docker service create --name go-demo \
 There's nothing new about that command. Internally, it exposes port 8080 and it belongs to the network *go-demo*. The environment variable *DB* is an internal requirement of the *go-demo* service that tells the code the address of the database.
 
 At this point, we have two containers (*mongo* and *go-demo*) running inside the cluster and communicating with each other through the *go-demo* network. Please note that none of them is (yet) accessible from outside the network. At this point, your users do not have access to the service API. We'll discuss this in more details in the next article. Until then, I'll give you only a hint: *you need a proxy* capable of utilizing the new Swarm networking.
+
+![Docker Swarm cluster containers communicating through the go-demo SDN](img/swarm-nodes-single-container.png)
 
 What happens if we want to scale one of the containers?
 
@@ -217,12 +221,14 @@ b7689aieyfdrea8lbvecn8gzl  go-demo.4  go-demo  vfarcic/go-demo  Running 4 minute
 
 We can see that the *go-demo* service is running five instances distributed across the three nodes. Since they all belong to the same *go-demo* network, they can communicate with each other no matter where they run inside the cluster. At the same time, none of them is accessible from "outside".
 
-What happens if one of the containers is stopped or if the whole node fails? After all, processes and nodes to do fail every once in a while. We need to be prepared for such situations.
+![Docker Swarm cluster with go-demo service scaled to five replicas](img/swarm-nodes-replicas.png)
+
+What happens if one of the containers is stopped or if the whole node fails? After all, processes and nodes do fail sooner or later. Nothing is perfect and we need to be prepared for such situations.
 
 Failover
 --------
 
-Fortunately, failover strategies are part of Docker Swarm. Remember, when we execute a `service` command, we are not telling it what to do but the state we desire. In turn, Swarm will do it's best to maintain the desired state no matter what happens.
+Fortunately, failover strategies are part of Docker Swarm. Remember, when we execute a `service` command, we are not telling Swarm what to do but the state we desire. In turn, Swarm will do it's best to maintain the specified state no matter what happens.
 
 In order to test a failure scenario, we'll destroy one of the nodes.
 
@@ -252,4 +258,4 @@ As you can see, after a short period of time, Swarm rescheduled containers among
 What Now?
 ---------
 
-This concludes the exploration of basic concepts of the new Swarm features we got with Docker v1.12. Is this everything there is to know to successfully run a Swarm cluster? Not even close! What we explored by now is only the beginning. There are quite a few questions to be answered. How do we expose our services to public? How do we deploy new releases without downtime? Are there any additional tools we should use? I'll try to give answers to those and quite a few other questions in future articles. The next one will be dedicated to exploration of the ways we can expose our services to the public. We'll try to integrate a proxy with a Swarm cluster.
+This concludes the exploration of basic concepts of the new Swarm features we got with Docker v1.12. Is this everything there is to know to successfully run a Swarm cluster? Not even close! What we explored by now is only the beginning. There are quite a few questions to waiting to be answered. How do we expose our services to public? How do we deploy new releases without downtime? Are there any additional tools we should use? I'll try to give answers to those and quite a few other questions in future articles. The next one will be dedicated to exploration of the ways we can expose our services to the public. We'll try to integrate a proxy with a Swarm cluster.
