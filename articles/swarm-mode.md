@@ -1,7 +1,7 @@
-Docker Flow: Proxy - Service Mode (Docker 1.12+)
-================================================
+Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
+==============================================
 
-*Docker Flow: Proxy* running in the *service* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
+*Docker Flow: Proxy* running in the *swarm* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
 
 Examples
 --------
@@ -21,9 +21,9 @@ git clone https://github.com/vfarcic/docker-flow-proxy.git
 
 cd docker-flow-proxy
 
-chmod +x scripts/service-cluster.sh
+chmod +x scripts/swarm-cluster.sh
 
-scripts/service-cluster.sh
+scripts/swarm-cluster.sh
 ```
 
 Right now we have three machines running (*node-1*, *node-2*, and *node-3*). Each of those machines runs Docker Engine. Together, they form a Swarm cluster. Docker Engine running in the first node (*node-1*) is the leader.
@@ -91,7 +91,7 @@ docker service create --name proxy \
     vfarcic/docker-flow-proxy
 ```
 
-We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *service*. Finally, we're using the `--constraint` argument as a way to ensure that the proxy is running on a specific server.
+We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *swarm*. Finally, we're using the `--constraint` argument as a way to ensure that the proxy is running on a specific server.
 
 As before, please use the `docker service ls` command to check that the container is running (replicas set to 1/1) before proceeding with the rest of the article.
 

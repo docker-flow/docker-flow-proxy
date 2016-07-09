@@ -72,7 +72,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	if !strings.EqualFold(m.Mode, "service") {
+	if !strings.EqualFold(m.Mode, "service") && !strings.EqualFold(m.Mode, "swarm") {
 		if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName); err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 	if err != nil {
 		return err
 	}
-	if strings.EqualFold(sr.Mode, "service") {
+	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.ServiceName)
 		writeFeTemplate(destFe, []byte(feTemplate), 0664)
 		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.ServiceName)
@@ -234,7 +234,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.ServiceName}}-be
     `
-	if strings.EqualFold(sr.Mode, "service") {
+	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
 	} else {
 		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}

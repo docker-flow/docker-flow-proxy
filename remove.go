@@ -61,7 +61,7 @@ func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instan
 			return err
 		}
 	}
-	if !strings.EqualFold(mode, "service") {
+	if !strings.EqualFold(mode, "service") && !strings.EqualFold(mode, "swarm") {
 		if err := registryInstance.DeleteService(registryAddress, serviceName, instanceName); err != nil {
 			return fmt.Errorf("Could not remove the service from Consul\n%s", err.Error())
 		}

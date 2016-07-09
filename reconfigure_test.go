@@ -80,8 +80,19 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
 	s.Equal(s.ConsulTemplateBe, back)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedServiceContent() {
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_WhenModeIsService() {
 	s.reconfigure.ServiceReconfigure.Mode = "service"
+	s.reconfigure.ServiceReconfigure.Port = "1234"
+	expected := `backend myService-be
+    server myService myService:1234`
+
+	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, actual)
+}
+
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_WhenModeIsSwarm() {
+	s.reconfigure.ServiceReconfigure.Mode = "sWARm"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
     server myService myService:1234`
@@ -197,8 +208,46 @@ func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplate_WhenModeIsService() 
 	s.Equal(s.ConsulTemplateFe, actualData)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplate_WhenModeIsSwarm() {
+	s.reconfigure.Mode = "sWarm"
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName)
+	writeFeTemplateOrig := writeFeTemplate
+	defer func() { writeFeTemplate = writeFeTemplateOrig }()
+	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(s.ConsulTemplateFe, actualData)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() {
 	s.reconfigure.Mode = "SerVIce"
+	s.reconfigure.Port = "1234"
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
+	expectedData := fmt.Sprintf("backend %s-be\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
+	s.reconfigure.Mode = "sWArm"
 	s.reconfigure.Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
@@ -223,6 +272,18 @@ func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfi
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	s.reconfigure.Mode = "seRviCe"
+
+	s.reconfigure.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "CreateConfigs", mock.Anything)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfigs_WhenModeIsSwarm() {
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+	s.reconfigure.Mode = "sWaRm"
 
 	s.reconfigure.Execute([]string{})
 
@@ -310,6 +371,18 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 
 func (s *ReconfigureTestSuite) Test_Execute_DoesNotPutDataToConsul_WhenModeIsService() {
 	s.reconfigure.Mode = "seRViCe"
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+
+	s.reconfigure.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "PutService", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (s *ReconfigureTestSuite) Test_Execute_DoesNotPutDataToConsul_WhenModeIsSwarm() {
+	s.reconfigure.Mode = "SWARm"
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()

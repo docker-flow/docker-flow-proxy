@@ -135,6 +135,18 @@ func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIs
 	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName)
 }
 
+func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsSwarm() {
+	server.Mode = "SWarM"
+	mockObj := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+
+	server.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName)
+}
+
 func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
 	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
@@ -216,7 +228,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 	port := "1234"
-	mode := "service"
+	mode := "swaRM"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&port="+port, nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
@@ -271,6 +283,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsServiceAndPo
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
 	Serve{Mode: "service"}.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
+
+	Serve{Mode: "swARM"}.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }

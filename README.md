@@ -19,9 +19,9 @@ The goal of the *Docker Flow: Proxy* project is to provide an easy way to reconf
 Modes
 -----
 
-Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **service** mode aims to leverage the benefits that come with *Docker Service* and new networking introduced in the 1.12 release. The later mode (*service*) does not have any dependency but Docker Engine. The *service* mode is recommended for all who use *Docker Service* features (the new Swarm).
+Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **swarm** mode aims to leverage the benefits that come with *Docker Swarm* and new networking introduced in the 1.12 release. The later mode (*swarm*) does not have any dependency but Docker Engine. The *swarm* mode is recommended for all who use *Docker Swarm* features introduced in v1.12.
 
-### [The Service Mode (Docker 1.12+)](articles/service-mode.md)
+### [The Swarm Mode (Docker 1.12+)](articles/swarm-mode.md)
 ### [The Default Mode](articles/standard-mode.md)
 
 Usage
@@ -37,7 +37,7 @@ The following environment variable can be used to configure the *Docker Flow: Pr
 |-------------------|----------------------------------------------------------|--------|-------|-------|
 |CONSUL_ADDRESS     |The address of a Consul instance used for storing proxy information and discovering running nodes.|Only in *default* mode||192.168.0.10:8500|
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
-|MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *service* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|service|
+|MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
 
 ### Reconfigure
 
@@ -50,7 +50,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
 |consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
-|port         |The internal port of a service that should be reconfigured. The port is used only in the *service* mode|Only in *service* mode|||8080|
+|port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode|Only in *swarm* mode|||8080|
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
 |servicePath  |The URL path of the service. Multiple values should be separated by a comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|

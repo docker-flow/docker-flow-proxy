@@ -41,7 +41,7 @@ func (m Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if !strings.EqualFold(m.Mode, "service") {
+	if !strings.EqualFold(m.Mode, "service") && !strings.EqualFold(m.Mode, "swarm") {
 		if err := NewReconfigure(
 			m.BaseReconfigure,
 			ServiceReconfigure{},
@@ -109,7 +109,7 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Port:                 sr.Port,
 	}
 	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath) {
-		if strings.ToLower(m.Mode) == "service" && len(sr.Port) == 0 {
+		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {
 			response.Status = "NOK"
 			response.Message = `When MODE is set to "service", the port query is mandatory`
 			w.WriteHeader(http.StatusBadRequest)
