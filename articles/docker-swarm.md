@@ -1,19 +1,19 @@
-Tour Around Docker 1.12: Docker Swarm
-=====================================
+Docker Swarm introduction (Tour Around Docker 1.12 Series)
+==========================================================
 
 ![Docker Swarm](img/swarm.png)
 
-Docker just published a new Docker Engine v1.12. It is the most important release since v1.9. Back then, we got Docker networking that, finally, made containers ready for use in clusters. With v1.12, Docker is reinventing itself with a completely new approach to cluster orchestration. Say good bye to Swarm as a separate container that depends on an external data registry and please welcome the **new Docker Swarm**. Everything you'll need to manage your cluster is now incorporated into Docker Engine. Swarm is there. Service discovery is there. Improved networking is there.
+Docker just published a new Docker Engine v1.12. It is the most significant release since v1.9. Back then, we got Docker networking that, finally, made containers ready for use in clusters. With v1.12, Docker is reinventing itself with a whole new approach to cluster orchestration. Say goodbye to Swarm as a separate container that depends on an external data registry and welcome the **new Docker Swarm**. Everything you'll need to manage your cluster is now incorporated into Docker Engine. Swarm is there. Service discovery is there. Improved networking is there.
 
-The old Swarm (prior to Docker v1.12) used **fire-and-forget principle**. We would send a command to Swarm master and it would execute that command. For example, if we would send it something like `docker-compose scale go-demo=5`, the old Swarm would evaluate the current state of the cluster, discover that, for example, only one instance is currently running, and decide that it should run four more. Once such a decision is made, the old Swarm would send commands to Docker Engines. As a result, we would have five containers running inside the cluster. In order for all that to work, we were required to set up Swarm agents (as separate containers) on all the nodes that form the cluster and hook them into one of the supported data registries (Consul, etcd, and Zookeeper). The problem was that Swarm was executing commands we send it. It was not maintaining the desired state. We were, effectively, telling it what we want to happen (e.g. scale up), not the state we desired (make sure that five instances are running). Later on, the old Swarm got the feature that would reschedule containers from failed nodes. However, that feature had a few problems that prevented it from being a reliable solution (e.g. failed containers were not removed from the overlay network).
+The old Swarm (before Docker v1.12) used **fire-and-forget principle**. We would send a command to Swarm master, and it would execute that command. For example, if we would send it something like `docker-compose scale go-demo=5`, the old Swarm would evaluate the current state of the cluster, discover that, for example, only one instance is currently running, and decide that it should run four more. Once such a decision is made, the old Swarm would send commands to Docker Engines. As a result, we would have five containers running inside the cluster. For all that to work, we were required to set up Swarm agents (as separate containers) on all the nodes that form the cluster and hook them into one of the supported data registries (Consul, etcd, and Zookeeper). The problem was that Swarm was executing commands we send it. It was not maintaining the desired state. We were, effectively, telling it what we want to happen (e.g. scale up), not the state we desired (make sure that five instances are running). Later on, the old Swarm got the feature that would reschedule containers from failed nodes. However, that feature had a few problems that prevented it from being a reliable solution (e.g. failed containers were not removed from the overlay network).
 
-Now we got a brand new Swarm. It is part of Docker Engine (no need to run it as separate containers), it has incorporated service discovery (no need to set up Consul or whatever is your data registry of choice), it is designed from ground up to accept and maintain a desired state, and so on. It is a truly major change in how we deal with cluster orchestration.
+Now we got a brand new Swarm. It is part of Docker Engine (no need to run it as separate containers), it has incorporated service discovery (no need to set up Consul or whatever is your data registry of choice), it is designed from the ground up to accept and maintain the desired state, and so on. It is a truly major change in how we deal with cluster orchestration.
 
-In the past, I was inclined towards the old Swarm more than Kubernetes. However, that inclination was only slight. There were pros and cons for using either solution. Kubernetes had a few features Swarm was missing (e.g. the concept of the desired state), the old Swarm shined with it's simplicity and low usage of resources. With the new Swarm (the one that comes with v1.12), I have no more doubts which one to use. **The new Swarm is a better choice than Kubernetes**. It is part of Docker Engine so the whole setup is a single command that tells an engine to join the cluster. The new networking works like a charm. The bundle that can be used to define services can be created from Docker Compose files, so there is no need maintain two sets of configurations (Docker Compose for development and a different one for orchestration). Most importantly, the new Docker Swarm continues being simple to use. From the very beginning, Docker community pledged that they are committed to simplicity and, with this release, they, once again, proved that to be true.
+In the past, I was inclined towards the old Swarm more than Kubernetes. However, that inclination was only slight. There were pros and cons for using either solution. Kubernetes had a few features Swarm was missing (e.g. the concept of the desired state), the old Swarm shined with its simplicity and low usage of resources. With the new Swarm (the one that comes with v1.12), I have no more doubts which one to use. **The new Swarm is a better choice than Kubernetes**. It is part of Docker Engine, so the whole setup is a single command that tells an engine to join the cluster. The new networking works like a charm. The bundle that can be used to define services can be created from Docker Compose files, so there is no need maintain two sets of configurations (Docker Compose for development and a different one for orchestration). Most importantly, the new Docker Swarm continues being simple to use. From the very beginning, Docker community pledged that they are committed to simplicity and, with this release, they, once again, proved that to be true.
 
 And that's not all. The new release comes with a lot of other features that are not directly related with Swarm. However, the exploration of those features would require much more than one article. Therefore, today I'll focus on Swarm and leave the rest for one of the next articles.
 
-Since I believe that code (or in this case commands), explain things better then words, we'll start with a demo of some of the new features introduced in version 1.12. Specifically, we'll explore the new command *service*.
+Since I believe that code (or in this case commands), explain things better than words, we'll start with a demo of some of the new features introduced in version 1.12. Specifically, we'll explore the new command *service*.
 
 Environment Setup
 -----------------
@@ -24,7 +24,7 @@ The examples that follow assume that you have [Docker Machine](https://www.docke
 
 We'll start by creating three machines that will simulate a cluster.
 
-```
+```bash
 docker-machine create -d virtualbox node-1
 
 docker-machine create -d virtualbox node-2
@@ -47,12 +47,15 @@ Please note that Docker version **MUST** be 1.12 or higher. If it isn't, please 
 
 ![Machines running Docker Engines](img/nodes.png)
 
-With the machines up and running we can proceed and setup the Swarm cluster.
+With the machines up and running we can proceed and set up the Swarm cluster.
 
 ```bash
 eval $(docker-machine env node-1)
 
-docker swarm init --listen-addr $(docker-machine ip node-1):2377
+docker swarm init \
+    --secret my-secret \
+    --auto-accept worker \
+    --listen-addr $(docker-machine ip node-1):2377
 ```
 
 The first command set environment variables so that local Docker Engine is pointing to the *node-1*. The second initialized Swarm on that machine. Right now, our Swarm cluster consists of only one VM.
@@ -62,11 +65,15 @@ Let's add the other two nodes to the cluster.
 ```bash
 eval $(docker-machine env node-2)
 
-docker swarm join $(docker-machine ip node-1):2377
+docker swarm join \
+    --secret my-secret \
+    $(docker-machine ip node-1):2377
 
 eval $(docker-machine env node-3)
 
-docker swarm join $(docker-machine ip node-1):2377
+docker swarm join \
+    --secret my-secret \
+    $(docker-machine ip node-1):2377
 ```
 
 The other two machines joined the cluster as agents. We can confirm that by sending the `node ls` command to the *Leader* node (*node-1*).
@@ -86,11 +93,11 @@ c2tykql7a2zd8tj0b88geu45i    node-2    Accepted    Ready   Active
 ejsjwyw5y92560179pk5drid4    node-3    Accepted    Ready   Active
 ```
 
-The star tells us which node we can currently using. The *manager status* indicates that *node-1* is the *leader*.
+The star tells us which node we can currently using. The *manager status* indicates that the *node-1* is the *leader*.
 
 ![Docker Swarm cluster with three nodes](img/swarm-nodes.png)
 
-In production environment we would probably set more than one node to be a leader and, thus, avoid deployment downtime if one of them fails. For the purpose of this demo, having one leader should suffice.
+In a production environment, we would probably set more than one node to be a leader and, thus, avoid deployment downtime if one of them fails. For the purpose of this demo, having one leader should suffice.
 
 Deploying Container To The Cluster
 ----------------------------------
@@ -121,11 +128,11 @@ eafx9zd0czuu        ingress             overlay             swarm
 
 As you can see, we have two networks that have the *swarm* scope. The one named *ingress* was created by default when we set up the cluster. The second (*go-demo*) was created with the `network create` command. We'll assign all containers that constitute the *go-demo* service to that network.
 
-![Docker Swarm cluster with Docker network (SDN)](img/swarm-node-sdn.png)
+![Docker Swarm cluster with Docker network (SDN)](img/swarm-nodes-sdn.png)
 
 The *go-demo* service requires two containers. Data will be stored in MongoDB. The back-end that uses that DB is defined as *vfarcic/go-demo* container.
 
-Let's start by deploying the *mongo* container somewhere within the cluster. Normally, we'd use constraints to specify the requirements for the container (e.g. HD type, the amount of memory and CPU, and so on). We'll skip that and, simply, tell Swarm to deploy it anywhere within the cluster.
+Let's start by deploying the *mongo* container somewhere within the cluster. Usually, we'd use constraints to specify the requirements for the container (e.g. HD type, the amount of memory and CPU, and so on). We'll skip that and, simply, tell Swarm to deploy it anywhere within the cluster.
 
 ```bash
 docker service create --name go-demo-db \
@@ -134,7 +141,7 @@ docker service create --name go-demo-db \
   mongo
 ```
 
-The `-p` argument sets the port to *27017*. Please note that, when it contains only a single value, the port will be reachable only through networks the container belongs to. In this case, we set network to be *go-demo* (the one we created earlier). As you can see, the way we use `service create` is similar to the Docker `run` command you are probably already used to.
+The `-p` argument sets the port to *27017*. Please note that, when it contains only a single value, the port will be reachable only through networks the container belongs to. In this case, we set the network to be *go-demo* (the one we created earlier). As you can see, the way we use `service create` is similar to the Docker `run` command you are, probably, already used to.
 
 We can list all the running services.
 
@@ -142,7 +149,7 @@ We can list all the running services.
 docker service ls
 ```
 
-Depending on how much time passed between `service create` and `service ls` commands, you'll see value of the *Replicas* column being zero or one. Immediately after creating the service, the value should be *0/1*, meaning that there are zero replicas running and the objective is to have one. Once the *mongo* image is downloaded and the container is running, the value should change to *1/1*.
+Depending on how much time passed between `service create` and `service ls` commands, you'll see the value of the *Replicas* column being zero or one. Immediately after creating the service, the value should be *0/1*, meaning that zero replicas are running and the objective is to have one. Once the *mongo* image is downloaded, and the container is running, the value should change to *1/1*.
 
 The final output of the `service ls` command should be as follows.
 
@@ -184,7 +191,7 @@ We can, for example, tell Swarm that we want to run five replicas of the *go-dem
 docker service update --replicas 5 go-demo
 ```
 
-With the `service update` command we scheduled five replicas. After a short period of time, Swarm will make sure that five instances of go-demo are running somewhere inside the cluster.
+With the `service update` command, we scheduled five replicas. After a short some time, Swarm will make sure that five instances of go-demo are running somewhere inside the cluster.
 
 We can confirm that, indeed, five replicas are running through the, already familiar, `service ls` command.
 
@@ -223,14 +230,14 @@ We can see that the *go-demo* service is running five instances distributed acro
 
 ![Docker Swarm cluster with go-demo service scaled to five replicas](img/swarm-nodes-replicas.png)
 
-What happens if one of the containers is stopped or if the whole node fails? After all, processes and nodes do fail sooner or later. Nothing is perfect and we need to be prepared for such situations.
+What happens if one of the containers is stopped or if the entire node fails? After all, processes and nodes do fail sooner or later. Nothing is perfect, and we need to be prepared for such situations.
 
 Failover
 --------
 
 Fortunately, failover strategies are part of Docker Swarm. Remember, when we execute a `service` command, we are not telling Swarm what to do but the state we desire. In turn, Swarm will do it's best to maintain the specified state no matter what happens.
 
-In order to test a failure scenario, we'll destroy one of the nodes.
+To test a failure scenario, we'll destroy one of the nodes.
 
 ```bash
 docker-machine rm -f node-3
@@ -258,4 +265,4 @@ As you can see, after a short period of time, Swarm rescheduled containers among
 What Now?
 ---------
 
-This concludes the exploration of basic concepts of the new Swarm features we got with Docker v1.12. Is this everything there is to know to successfully run a Swarm cluster? Not even close! What we explored by now is only the beginning. There are quite a few questions to waiting to be answered. How do we expose our services to public? How do we deploy new releases without downtime? Are there any additional tools we should use? I'll try to give answers to those and quite a few other questions in future articles. The next one will be dedicated to exploration of the ways we can expose our services to the public. We'll try to integrate a proxy with a Swarm cluster.
+That concludes the exploration of basic concepts of the new Swarm features we got with Docker v1.12. Is this everything there is to know to run a Swarm cluster successfully? Not even close! What we explored by now is only the beginning. There are quite a few questions waiting to be answered. How do we expose our services to the public? How do we deploy new releases without downtime? Are there any additional tools we should use? I'll try to give answers to those and quite a few other questions in future articles. The next one will be dedicated to the exploration of the ways we can expose our services to the public. We'll try to integrate a proxy with a Swarm cluster.
