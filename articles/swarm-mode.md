@@ -86,7 +86,7 @@ docker service create --name proxy \
     -p 443:443 \
     -p 8080:8080 \
     --network proxy \
-    -e MODE=service \
+    -e MODE=swarm \
     --constraint node.id==$(docker node inspect node-1 --format "{{.ID}}") \
     vfarcic/docker-flow-proxy
 ```
@@ -119,7 +119,7 @@ The output of the reconfigure request is as follows (formatted for better readab
   "ConsulTemplateBePath": "",
   "PathType": "",
   "SkipCheck": false,
-  "Mode": "service",
+  "Mode": "swarm",
   "Port": "8080"
 }
 ```
