@@ -39,6 +39,13 @@ The following environment variable can be used to configure the *Docker Flow: Pr
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
 
+The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be extended by create a new container. An example *Dockerfile* is as follows.
+
+```
+FROM vfarcic/docker-flow-proxy
+COPY haproxy.cfg /cfg/haproxy.cfg
+```
+
 ### Reconfigure
 
 > Reconfigures the proxy using information stored in Consul
