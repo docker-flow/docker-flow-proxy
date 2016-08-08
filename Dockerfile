@@ -17,6 +17,7 @@ ENV PROXY_INSTANCE_NAME "docker-flow"
 ENV MODE "default"
 
 EXPOSE 80
+EXPOSE 443
 EXPOSE 8080
 
 CMD ["docker-flow-proxy", "server"]
