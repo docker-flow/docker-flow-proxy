@@ -56,12 +56,10 @@ Let's deploy the demo service. It consists of two containers; *mongo* is the dat
 
 ```bash
 docker service create --name go-demo-db \
-  -p 27017 \
   --network go-demo \
   mongo
 
 docker service create --name go-demo \
-  -p 8080 \
   -e DB=go-demo-db \
   --network go-demo \
   --network proxy \
