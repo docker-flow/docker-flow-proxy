@@ -58,7 +58,17 @@ Let's deploy the demo service. It consists of two containers; *mongo* is the dat
 docker service create --name go-demo-db \
   --network go-demo \
   mongo
+```
 
+We can see the status of the service by executing the `service ls` command. Please wait until it has replicas set to *1/1*.
+
+```bash
+docker service ls
+```
+
+Let's run up the second service.
+
+```bash
 docker service create --name go-demo \
   -e DB=go-demo-db \
   --network go-demo \
@@ -66,13 +76,7 @@ docker service create --name go-demo \
   vfarcic/go-demo
 ```
 
-We can see the status of those containers by executing the `service ls` command.
-
-```bash
-docker service ls
-```
-
-Please wait until both services are having replicas set to *1/1*.
+Please wait until it has replicas set to *1/1*.
 
 The details of the *go-demo* service are irrelevant for this exercise. What matters is that it was deployed somewhere inside the cluster and that it does not have any port exposed outside of the networks *go-demo* and *proxy*.
 
