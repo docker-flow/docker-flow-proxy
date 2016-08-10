@@ -89,11 +89,10 @@ docker service create --name proxy \
     -p 8080:8080 \
     --network proxy \
     -e MODE=swarm \
-    --constraint node.id==$(docker node inspect node-1 --format "{{.ID}}") \
     vfarcic/docker-flow-proxy
 ```
 
-We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *swarm*. Finally, we're using the `--constraint` argument as a way to ensure that the proxy is running on a specific server.
+We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *swarm*.
 
 As before, please use the `docker service ls` command to check that the container is running (replicas set to 1/1) before proceeding with the rest of the article.
 
@@ -103,7 +102,7 @@ Now that the proxy is running, we can tell it to include the *go-demo* service i
 curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&port=8080"
 ```
 
-That's it. All we had to do is send an HTTP request to `reconfigure` the proxy. The `serviceName` query contains the name of the service we want to integrate with the proxy. The `servicePath` is the unique URL that identifies the service. Finally, the `port` should match the internal port of the service.
+That's it. All we had to do is send an HTTP request to `reconfigure` the proxy. The `serviceName` query contains the name of the service we want to integrate with the proxy. The `servicePath` is the unique URL that identifies the service. Finally, the `port` should match the internal port of the service. Please note that it does not matter which server we hit with the request. The routing mesh will make sure that it is redirected to the destination container.
 
 The output of the reconfigure request is as follows (formatted for better readability).
 
