@@ -36,7 +36,7 @@ eval $(docker-machine env node-1)
 docker node ls
 ```
 
-We'll skip a detailed explanation of the Swarm cluster that is incorporated into Docker Engine 1.12. If you're new to it, please read [TODO](TODO). The rest of this article will assume that you have, at least, basic Docker 1.12+ knowledge.
+We'll skip a detailed explanation of the Swarm cluster that is incorporated into Docker Engine 1.12. If you're new to it, please read [Docker Swarm Introduction](https://technologyconversations.com/2016/07/29/docker-swarm-introduction-tour-around-docker-1-12-series/). The rest of this article will assume that you have, at least, basic Docker 1.12+ knowledge.
 
 Now we're ready to deploy a service.
 
@@ -169,7 +169,7 @@ Optionally, *serviceDomain* can be used as well. If specified, the proxy will al
 curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&serviceDomain=my-domain.com&port=8080"
 ```
 
-For a more detailed example, please read the [TODO](TODO) article.
+For a more detailed example, please read the [Integrating Proxy With Docker Swarm](https://technologyconversations.com/2016/08/01/integrating-proxy-with-docker-swarm-tour-around-docker-1-12-series/) article.
 
 ### Removing a Service From the Proxy
 
