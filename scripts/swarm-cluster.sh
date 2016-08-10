@@ -11,20 +11,17 @@ docker-machine create -d virtualbox node-3
 eval $(docker-machine env node-1)
 
 docker swarm init \
-    --secret my-secret \
-    --auto-accept worker \
+    --advertise-addr $(docker-machine ip node-1) \
     --listen-addr $(docker-machine ip node-1):2377
+
+TOKEN=$(docker swarm join-token -q worker)
 
 eval $(docker-machine env node-2)
 
-docker swarm join \
-    --secret my-secret \
-    $(docker-machine ip node-1):2377
+docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
 
 eval $(docker-machine env node-3)
 
-docker swarm join \
-    --secret my-secret \
-    $(docker-machine ip node-1):2377
+docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
 
 eval $(docker-machine env node-1)
