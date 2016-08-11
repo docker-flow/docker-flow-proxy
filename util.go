@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"net"
 )
 
 var readPidFile = ioutil.ReadFile
@@ -29,5 +30,6 @@ var logPrintf = log.Printf
 type Executable interface {
 	Execute(args []string) error
 }
+var lookupHost = net.LookupHost
 
 var registryInstance registry.Registrarable = registry.Consul{}

@@ -45,6 +45,7 @@ type ServiceReconfigure struct {
 	AclCondition         string
 	FullServiceName      string
 	Mode                 string
+	Distribute           bool
 }
 
 type BaseReconfigure struct {

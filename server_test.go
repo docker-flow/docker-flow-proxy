@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"net/http/httptest"
+	"net/url"
 )
 
 type ServerTestSuite struct {
@@ -24,6 +26,8 @@ type ServerTestSuite struct {
 	RequestReconfigure *http.Request
 	RequestRemove      *http.Request
 	InstanceName       string
+	DnsIps             []string
+	Server             *httptest.Server
 }
 
 func (s *ServerTestSuite) SetupTest() {
@@ -202,6 +206,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		ServicePath:   s.ServicePath,
 		ServiceDomain: s.ServiceDomain,
 		PathType:      s.PathType,
+
 	})
 
 	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
@@ -262,6 +267,23 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&distribute=true", nil)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		PathType:      s.PathType,
+		Distribute:    true,
+	})
+
+	Serve{}.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureBaseUrl, nil)
 
@@ -296,24 +318,16 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsSwarmAndPort
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
-	mockObj := getReconfigureMock("")
-	var actualBase BaseReconfigure
-	expectedBase := BaseReconfigure{
-		ConsulAddress: s.ConsulAddress,
-	}
-	var actualService ServiceReconfigure
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-		actualBase = baseData
-		actualService = serviceData
-		return mockObj
-	}
-	server := Serve{BaseReconfigure: expectedBase}
+	s.invokesReconfigure(s.RequestReconfigure, true)
+}
 
-	server.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
-
-	s.Equal(expectedBase, actualBase)
-	s.Equal(s.ServiceReconfigure, actualService)
-	mockObj.AssertCalled(s.T(), "Execute", []string{})
+func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeReconfigureExecute_WhenDistributeIsTrue() {
+	req, _ := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s&distribute=true", s.ReconfigureUrl),
+		nil,
+	)
+	s.invokesReconfigure(req, false)
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
@@ -448,11 +462,114 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
+// SendDistributeRequests
+
+func (s *ServerTestSuite) Test_SendDistributeRequests_InvokesLookupHost() {
+	var actualHost string
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		actualHost = host
+		return []string{}, nil
+	}
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
+
+	server.SendDistributeRequests(req, s.ServiceName)
+
+	s.Assert().Equal(fmt.Sprintf("tasks.%s", s.ServiceName), actualHost)
+}
+
+func (s *ServerTestSuite) Test_SednDistributeRequests_ReturnsError_WhenLookupHostFails() {
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		return []string{}, fmt.Errorf("This is an LookupHost error")
+	}
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
+
+	status, err := server.SendDistributeRequests(req, s.ServiceName)
+
+	s.Assertions.Equal(http.StatusBadRequest, status)
+	s.Assertions.Error(err)
+}
+
+func (s *ServerTestSuite) Test_SendDistributeRequests_SendsHttpRequestForEachIp() {
+	var actualPath string
+	var actualQuery url.Values
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actualQuery = r.URL.Query()
+		actualPath = r.URL.Path
+	}))
+	defer func(){ testServer.Close() }()
+
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	dnsIpsOrig := s.DnsIps
+	defer func(){ s.DnsIps = dnsIpsOrig }()
+	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
+	portOrig := server.Port
+	defer func(){ server.Port = portOrig }()
+	server.Port = strings.Split(tsAddr, ":")[1]
+
+	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", server.Port, s.ReconfigureUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	server.SendDistributeRequests(req, s.ServiceName)
+
+	s.Assert().Equal(s.ReconfigureBaseUrl, actualPath)
+	s.Assert().Equal("false", actualQuery.Get("distribute"))
+}
+
+func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenRequestFail() {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer func(){ testServer.Close() }()
+
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	dnsIpsOrig := s.DnsIps
+	defer func(){ s.DnsIps = dnsIpsOrig }()
+	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
+	portOrig := server.Port
+	defer func(){ server.Port = portOrig }()
+	server.Port = strings.Split(tsAddr, ":")[1]
+
+	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", server.Port, s.ReconfigureUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	status, err := server.SendDistributeRequests(req, s.ServiceName)
+
+	s.Assertions.Equal(http.StatusBadRequest, status)
+	s.Assertions.Error(err)
+}
+
 // Suite
 
 func TestServerUnitTestSuite(t *testing.T) {
+	s := new(ServerTestSuite)
 	logPrintf = func(format string, v ...interface{}) {}
-	suite.Run(t, new(ServerTestSuite))
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actualPath := r.URL.Path
+		if r.Method == "GET" {
+			switch actualPath {
+			case "/v1/docker-flow-proxy/reconfigure":
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}
+	}))
+	defer func(){ s.Server.Close() }()
+	addr := strings.Replace(s.Server.URL, "http://", "", -1)
+	s.DnsIps = []string{strings.Split(addr, ":")[0]}
+	lookupHost = func(host string) (addrs []string, err error) {
+		return s.DnsIps, nil
+	}
+	server.Port = strings.Split(addr, ":")[1]
+
+	suite.Run(t, s)
 }
 
 // Mock
@@ -501,4 +618,31 @@ func getResponseWriterMock() *ResponseWriterMock {
 	mockObj.On("Write", mock.Anything).Return(0, nil)
 	mockObj.On("WriteHeader", mock.Anything)
 	return mockObj
+}
+
+// Util
+
+func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
+	mockObj := getReconfigureMock("")
+	var actualBase BaseReconfigure
+	expectedBase := BaseReconfigure{
+		ConsulAddress: s.ConsulAddress,
+	}
+	var actualService ServiceReconfigure
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		actualBase = baseData
+		actualService = serviceData
+		return mockObj
+	}
+	server := Serve{BaseReconfigure: expectedBase}
+
+	server.ServeHTTP(s.ResponseWriter, req)
+
+	if invoke {
+		s.Equal(expectedBase, actualBase)
+		s.Equal(s.ServiceReconfigure, actualService)
+		mockObj.AssertCalled(s.T(), "Execute", []string{})
+	} else {
+		mockObj.AssertNotCalled(s.T(), "Execute", []string{})
+	}
 }

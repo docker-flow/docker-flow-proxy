@@ -35,6 +35,7 @@ type Response struct {
 	SkipCheck            bool
 	Mode                 string
 	Port                 string
+	Distribute           bool
 }
 
 func (m Serve) Execute(args []string) error {
@@ -95,6 +96,9 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(req.URL.Query().Get("skipCheck")) > 0 {
 		sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
 	}
+	if strings.EqualFold(req.URL.Query().Get("distribute"), "true") {
+		sr.Distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
+	}
 	response := Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
@@ -107,32 +111,61 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		SkipCheck:            sr.SkipCheck,
 		Mode:                 sr.Mode,
 		Port:                 sr.Port,
+		Distribute:           sr.Distribute,
 	}
 	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath) {
 		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {
-			response.Status = "NOK"
-			response.Message = `When MODE is set to "service", the port query is mandatory`
-			w.WriteHeader(http.StatusBadRequest)
+			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
+		} else if sr.Distribute {
+//			if err := m.SendDistributeRequests(req, sr.ServiceName); err != nil {
+//				m.writeBadRequest(w, &response, err.Error())
+//			} else {
+//				w.WriteHeader(http.StatusOK)
+//			}
 		} else {
-			action := NewReconfigure(
-				m.BaseReconfigure,
-				sr,
-			)
+			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
 				response.Status = "NOK"
-				response.Message = fmt.Sprintf("%s", err.Error())
+				response.Message = err.Error()
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 			w.WriteHeader(http.StatusOK)
 		}
 	} else {
-		response.Status = "NOK"
-		response.Message = "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)"
-		w.WriteHeader(http.StatusBadRequest)
+		m.writeBadRequest(w, &response, "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)")
 	}
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
+	values := req.URL.Query()
+	values.Set("distribute", "false")
+	req.URL.RawQuery = values.Encode()
+	dns := fmt.Sprintf("tasks.%s", serviceName)
+	failedDns := []string{}
+	if ips, err := lookupHost(dns); err == nil {
+		for i := 0; i < len(ips); i++ {
+			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], m.Port)
+			client := &http.Client{}
+			if resp, err := client.Do(req); err != nil || resp.StatusCode >= 300 {
+				failedDns = append(failedDns, ips[i])
+			}
+		}
+	} else {
+		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup", dns)
+	}
+	if len(failedDns) > 0 {
+		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
+	}
+	return http.StatusOK, err
+}
+
+func (m Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
@@ -161,3 +194,4 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 	js, _ := json.Marshal(response)
 	w.Write(js)
 }
+
