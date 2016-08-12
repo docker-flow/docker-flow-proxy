@@ -8,15 +8,20 @@ import (
 	"strings"
 )
 
+const (
+	DISTRIBUTED = "Distributed to all instances"
+)
+
 type Server interface {
 	Execute(args []string) error
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
 }
 
 type Serve struct {
-	IP   string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
-	Port string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
-	Mode string `short:"m" long:"mode" env:"MODE" description:"If set to service, proxy will operate assuming that Docker service from v1.12+ is used."`
+	IP          string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	Port        string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
+	Mode        string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	ServiceName string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
 	BaseReconfigure
 }
 
@@ -42,13 +47,11 @@ func (m Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if !strings.EqualFold(m.Mode, "service") && !strings.EqualFold(m.Mode, "swarm") {
-		if err := NewReconfigure(
-			m.BaseReconfigure,
-			ServiceReconfigure{},
-		).ReloadAllServices(m.ConsulAddress, m.InstanceName); err != nil {
-			return err
-		}
+	if err := NewReconfigure(
+		m.BaseReconfigure,
+		ServiceReconfigure{},
+	).ReloadAllServices(m.ConsulAddress, m.InstanceName, m.Mode); err != nil {
+		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	if err := httpListenAndServe(address, m); err != nil {
@@ -96,7 +99,7 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(req.URL.Query().Get("skipCheck")) > 0 {
 		sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
 	}
-	if strings.EqualFold(req.URL.Query().Get("distribute"), "true") {
+	if len(req.URL.Query().Get("distribute")) > 0 {
 		sr.Distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
 	}
 	response := Response{
@@ -117,17 +120,16 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
-//			if err := m.SendDistributeRequests(req, sr.ServiceName); err != nil {
-//				m.writeBadRequest(w, &response, err.Error())
-//			} else {
-//				w.WriteHeader(http.StatusOK)
-//			}
+			if status, err := m.SendDistributeRequests(req, sr.ServiceName); err != nil || status >= 300 {
+				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				response.Message = DISTRIBUTED
+				w.WriteHeader(http.StatusOK)
+			}
 		} else {
 			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
-				response.Status = "NOK"
-				response.Message = err.Error()
-				w.WriteHeader(http.StatusInternalServerError)
+				m.writeInternalServerError(w, &response, err.Error())
 			}
 			w.WriteHeader(http.StatusOK)
 		}
@@ -143,13 +145,21 @@ func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (st
 	values := req.URL.Query()
 	values.Set("distribute", "false")
 	req.URL.RawQuery = values.Encode()
-	dns := fmt.Sprintf("tasks.%s", serviceName)
+	dns := fmt.Sprintf("tasks.%s", m.ServiceName)
 	failedDns := []string{}
 	if ips, err := lookupHost(dns); err == nil {
 		for i := 0; i < len(ips); i++ {
 			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], m.Port)
 			client := &http.Client{}
-			if resp, err := client.Do(req); err != nil || resp.StatusCode >= 300 {
+			addr := fmt.Sprintf("http://%s:%s%s?%s", ips[i], m.Port, req.URL.Path, req.URL.RawQuery)
+			logPrintf("Sending distribution request to %s", addr)
+			if resp, err := client.Get(addr); err != nil || resp.StatusCode >= 300 {
+				if resp != nil {
+					logPrintf("Return status code: %d\n%s", resp.StatusCode)
+				}
+				if err != nil {
+					logPrintf(err.Error())
+				}
 				failedDns = append(failedDns, ips[i])
 			}
 		}
@@ -166,6 +176,12 @@ func (m Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (m Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusInternalServerError)
 }
 
 func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
@@ -194,4 +210,3 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 	js, _ := json.Marshal(response)
 	w.Write(js)
 }
-

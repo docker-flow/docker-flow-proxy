@@ -8,7 +8,7 @@ services:
     volumes:
       - .:/usr/src/myapp
       - /tmp/go:/go
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v --run UnitTest ./... && go build -v -o docker-flow-proxy"
+    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover --run UnitTest ./... && go build -v -o docker-flow-proxy"
 
   staging-dep:
     image: vfarcic/docker-flow-proxy

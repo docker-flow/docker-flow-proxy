@@ -41,10 +41,11 @@ func (m Consul) PutService(address, instanceName string, r Registry) error {
 	for _, e := range d {
 		go m.SendPutRequest(address, r.ServiceName, e.key, e.value, instanceName, consulChannel)
 	}
-	for i := 0; i < len(d); i++ {
+	go m.SendPutRequest(address, "service", r.ServiceName, "swarm", instanceName, consulChannel)
+	for i := 0; i < len(d) + 1; i++ {
 		err := <-consulChannel
 		if err != nil {
-			return fmt.Errorf("Could not send data to Consul\n%s", err.Error())
+			return fmt.Errorf("Could not send KV data to Consul\n%s", err.Error())
 		}
 	}
 	return nil

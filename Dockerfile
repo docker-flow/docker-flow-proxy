@@ -15,6 +15,7 @@ RUN mkdir /consul_templates
 ENV CONSUL_ADDRESS ""
 ENV PROXY_INSTANCE_NAME "docker-flow"
 ENV MODE "default"
+ENV SERVICE_NAME "proxy"
 
 EXPOSE 80
 EXPOSE 443

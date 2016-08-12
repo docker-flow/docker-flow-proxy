@@ -4,10 +4,11 @@ import (
 	"./registry"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"net"
+	"strings"
 )
 
 var readPidFile = ioutil.ReadFile
@@ -29,6 +30,9 @@ var logPrintf = log.Printf
 
 type Executable interface {
 	Execute(args []string) error
+}
+func isSwarm(mode string) bool {
+	return strings.EqualFold(mode, "service") || strings.EqualFold(mode, "swarm")
 }
 var lookupHost = net.LookupHost
 
