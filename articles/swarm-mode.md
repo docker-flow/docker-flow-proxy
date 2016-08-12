@@ -3,11 +3,11 @@ Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
 
 * [Examples](#examples)
 
-** [Setup](#setup)
-** [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
-** [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
-** [Scaling the Proxy](#scaling-the-proxy)
-** [Usage](../README.md#usage)
+  * [Setup](#setup)
+  * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
+  * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
+  * [Scaling the Proxy](#scaling-the-proxy)
+  * [Usage](../README.md#usage)
 
 *Docker Flow: Proxy* running in the *swarm* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
 
