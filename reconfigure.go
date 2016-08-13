@@ -131,6 +131,7 @@ func (m *Reconfigure) ReloadAllServices(address, instanceName, mode string) erro
 
 		for i := 0; i < count; i++ {
 			s := <-c
+			s.Mode = mode
 			if len(s.ServicePath) > 0 {
 				logPrintf("\tConfiguring %s", s.ServiceName)
 				m.createConfigs(m.TemplatesPath, &s)
