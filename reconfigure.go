@@ -157,6 +157,7 @@ func (m *Reconfigure) getService(address, serviceName, instanceName string, c ch
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
 		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
 		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
+		sr.Port, _ = m.getServiceAttribute(address, serviceName, registry.PORT, instanceName)
 	}
 	c <- sr
 }

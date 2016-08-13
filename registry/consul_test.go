@@ -1,28 +1,28 @@
 package registry
 
 import (
-	"testing"
-	"github.com/stretchr/testify/suite"
-	"net/http/httptest"
-	"net/http"
-	"io/ioutil"
 	"fmt"
+	"github.com/stretchr/testify/suite"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
 	"strings"
 	"sync"
-	"os/exec"
-	"os"
+	"testing"
 )
 
 type ConsulTestSuite struct {
 	suite.Suite
-	registry Registry
-	templatesPath string
-	feTemplateName string
-	beTemplateName string
-	serviceName string
-	consulAddress string
-	feTemplate string
-	beTemplate string
+	registry          Registry
+	templatesPath     string
+	feTemplateName    string
+	beTemplateName    string
+	serviceName       string
+	consulAddress     string
+	feTemplate        string
+	beTemplate        string
 	createConfigsArgs CreateConfigsArgs
 }
 
@@ -35,14 +35,14 @@ func (s *ConsulTestSuite) SetupTest() {
 	s.feTemplate = "this is a FE template"
 	s.beTemplate = "this is a BE template"
 	s.createConfigsArgs = CreateConfigsArgs{
-		Address: "http://consul.io",
+		Address:       "http://consul.io",
 		TemplatesPath: "/path/to/templates",
-		FeFile: "my-fe-template.ctmpl",
-		FeTemplate: "this is a FE template",
-		BeFile: "my-be-template.ctmpl",
-		BeTemplate: "this is a BE template",
-		ServiceName: "my-service",
-		Monitor: false,
+		FeFile:        "my-fe-template.ctmpl",
+		FeTemplate:    "this is a FE template",
+		BeFile:        "my-be-template.ctmpl",
+		BeTemplate:    "this is a BE template",
+		ServiceName:   "my-service",
+		Monitor:       false,
 	}
 	cmdRunConsulTemplateOrig := cmdRunConsulTemplate
 	defer func() { cmdRunConsulTemplate = cmdRunConsulTemplateOrig }()
@@ -55,7 +55,6 @@ func (s *ConsulTestSuite) SetupTest() {
 		return nil
 	}
 }
-
 
 // PutService
 
@@ -87,6 +86,7 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 		data{"skipcheck", fmt.Sprintf("%t", s.registry.SkipCheck)},
 		data{"consultemplatefepath", s.registry.ConsulTemplateFePath},
 		data{"consultemplatebepath", s.registry.ConsulTemplateBePath},
+		data{"port", s.registry.Port},
 	}
 	for _, e := range d {
 		s.Contains(actualUrl, fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, s.registry.ServiceName, e.key))
@@ -413,12 +413,12 @@ func (s *ConsulTestSuite) Test_CreateConfigs_SetsFilePermissions() {
 func TestConsulUnitTestSuite(t *testing.T) {
 	s := new(ConsulTestSuite)
 	s.registry = Registry{
-		ServiceName: "my-service",
-		ServiceColor: "ServiceColor",
-		ServicePath: []string{"pat1", "path2"},
-		ServiceDomain: "ServiceDomain",
-		PathType: "PathType",
-		SkipCheck: true,
+		ServiceName:          "my-service",
+		ServiceColor:         "ServiceColor",
+		ServicePath:          []string{"pat1", "path2"},
+		ServiceDomain:        "ServiceDomain",
+		PathType:             "PathType",
+		SkipCheck:            true,
 		ConsulTemplateFePath: "ConsulTemplateFePath",
 		ConsulTemplateBePath: "ConsulTemplateBePath",
 	}

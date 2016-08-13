@@ -1,14 +1,15 @@
 package registry
+
 import (
 	"fmt"
-	"net/http"
-	"strings"
-	"os/exec"
-	"os"
 	"io/ioutil"
+	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 )
 
-type Consul struct {}
+type Consul struct{}
 
 var cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
 	return cmd.Run()
@@ -37,12 +38,13 @@ func (m Consul) PutService(address, instanceName string, r Registry) error {
 		data{SKIP_CHECK_KEY, fmt.Sprintf("%t", r.SkipCheck)},
 		data{CONSUL_TEMPLATE_FE_PATH_KEY, r.ConsulTemplateFePath},
 		data{CONSUL_TEMPLATE_BE_PATH_KEY, r.ConsulTemplateBePath},
+		data{PORT, r.Port},
 	}
 	for _, e := range d {
 		go m.SendPutRequest(address, r.ServiceName, e.key, e.value, instanceName, consulChannel)
 	}
 	go m.SendPutRequest(address, "service", r.ServiceName, "swarm", instanceName, consulChannel)
-	for i := 0; i < len(d) + 1; i++ {
+	for i := 0; i < len(d)+1; i++ {
 		err := <-consulChannel
 		if err != nil {
 			return fmt.Errorf("Could not send KV data to Consul\n%s", err.Error())
@@ -93,7 +95,7 @@ func (m Consul) createConfig(address, templatesPath, file, template, serviceName
 	WriteConsulTemplateFile(src, []byte(template), 0664)
 	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
 	if err := m.runConsulTemplateCmd(src, dest, address, monitor); err != nil {
-		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src,  err.Error())
+		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
 	}
 	return nil
 }
