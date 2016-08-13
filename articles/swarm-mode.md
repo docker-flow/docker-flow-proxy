@@ -7,7 +7,9 @@ Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
   * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
   * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
   * [Scaling the Proxy](#scaling-the-proxy)
-  * [Usage](../README.md#usage)
+
+* [The Flow Explained](#the-flow-explained)
+* [Usage](../README.md#usage)
 
 *Docker Flow: Proxy* running in the *swarm* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
 
@@ -230,6 +232,8 @@ docker service create --name proxy \
 
 The major difference is that, this time, we used the `--replicas` argument to specify that three instances should run inside the Swarm cluster. The second difference is the environment variable `CONSUL_ADDRESS`. Proxy will use it to store its data.
 
+![The proxy scaled to three instances](img/proxy-scaled.png)
+
 We should wait for a few moments until all three instances are running. The status can be seen by executing the `service ps` command.
 
 ```bash
@@ -243,6 +247,8 @@ curl "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/reconfigure?serviceN
 ```
 
 Please note that the request we just sent contains an additional query parameter `distribute`. When set to `true`, the proxy will discover the IPs of all its instances and update them. That way, no matter how many instances are running, all will have the same configuration.
+
+![The proxy instance that received the request, resent it to all others](img/proxy-scaled-reconfigure.png)
 
 It is assumed that the name of the service (`--name` argument) is set to `proxy`. If you prefer to name the service differently, please make sure that the environment variable `SERVICE_NAME` is set as well (e.g. `-e SERVICE_NAME=my-other-proxy`).
 
@@ -266,6 +272,8 @@ eval $(docker service ps proxy | \
 
 I won't go into details of the command we just run but only say that it removed one of the instances of the proxy.
 
+![One of the proxy instances failed](img/proxy-scaled-failed.png)
+
 > I haven't had time to test the command in Windows. Please let me know if you experience any problems.
 
 We can see the result with the `service ps` command.
@@ -284,7 +292,13 @@ b0k8xtc7cga636fymwl6nxmno  proxy.1      vfarcic/docker-flow-proxy  node-2  Runni
 2neh3skl5pb8npk05i61q35h9   \_ proxy.3  vfarcic/docker-flow-proxy  node-2  Shutdown       Failed 3 minutes ago    "task: non-zero exit (137)"
 ```
 
-Docker Swarm detected that one of the instances failed and created a new one. Since the proxy is connected to Consul, the new instance consulted it and retrieved all the configurations we created so far. In other words, even though it is a new instance, it continued where the old stopped.
+Docker Swarm detected that one of the instances failed and created a new one.
+
+![Swarm detected the failed instance and instantiated a new one](img/proxy-scaled-recuperated.png)
+
+Since the proxy is connected to Consul, the new instance consulted it and retrieved all the configurations we created so far. In other words, even though it is a new instance, it continued where the old stopped.
+
+![The new instance used Consul to recuperate information and recreate the configuration](img/proxy-scaled-recuperated-reconfigured.png)
 
 Feel free to run the *go-demo* request a couple of times and confirm that the new instance indeed has all the configuration.
 
@@ -296,6 +310,38 @@ curl -i $(docker-machine ip node-1)/demo/hello
 
 To summarize, *Docker Flow: Proxy* allows you to run multiple instances. If `distribute` parameter is set to true, when a `reconfigure` request reaches one of the instances, the proxy will propagate it to all the others. Every request is stored in Consul. When a new instance is created, the proxy consults Consul and recreates *HAProxy* configuration. With those features combined, we have a proxy that exploits Docker networking, is dynamic, and is tolerant to failures. If an instance fails or a node stops, Swarm will create new containers on healthy nodes and the proxy will make sure that all the configuration created by failed instance(s) is retrieved.
 
-### Usage
+The Flow Explained
+------------------
+
+Let's go over the flow of a request to one of the services in the Swarm cluster.
+
+A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port 80 or HTTPS on the port 443.
+
+![A request is sent to a DNS on the port 80 or 443](img/proxy-scaled-dns.png)
+
+DNS resolves the domain to one of the servers inside the cluster. We do not need to register all the nodes. A few is enough (more than one in the case of a failure).
+
+![DNS resolves the domain to one of the registered servers](img/proxy-scaled-routing-mesh.png)
+
+The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances. It uses a round robin load balancing so that all instances share the load (more or less) equally.
+
+![Docker's routing mesh re-sends the request to one of the instances](img/proxy-scaled-routing-mesh.png)
+
+The proxy inspects the request path (e.g. */demo/hello*) and sends it the end-point with the same name as the destination service (e.g. go-demo). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. *proxy*). The port of the request is changed to the port of the destination service (e.g. *8080*).
+
+![The proxy re-sends the request to the service end-point and modifies the port](img/proxy-scaled-proxy-sdn.png)
+
+The routing mesh kicks in, performs load balancing among all the instances of the destination service, and resends the request to one of them.
+
+![Routing mesh re-sends the request to one of the service instances](img/proxy-scaled-request-to-service.png)
+
+The whole process sounds complicated (it actually is from the engineering point of view). But, as a user, all this is transparent.
+
+One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
+
+A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
+
+Usage
+-----
 
 Please explore [Usage](../README.md#usage) for more information.
