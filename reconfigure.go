@@ -212,6 +212,7 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 		SkipCheck:            sr.SkipCheck,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
+		Port:                 sr.Port,
 	}
 	if err := registryInstance.PutService(address, instanceName, r); err != nil {
 		return err
