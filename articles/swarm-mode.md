@@ -325,13 +325,13 @@ DNS resolves the domain to one of the servers inside the cluster. We do not need
 
 The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances. It uses a round robin load balancing so that all instances share the load (more or less) equally.
 
-![Docker's routing mesh re-sends the request to one of the instances](img/proxy-scaled-routing-mesh.png)
+![Docker's routing mesh re-sends the request to one of the instances](img/proxy-scaled-routing-proxy.png)
 
-The proxy inspects the request path (e.g. */demo/hello*) and sends it the end-point with the same name as the destination service (e.g. go-demo). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. *proxy*). The port of the request is changed to the port of the destination service (e.g. *8080*).
+The proxy inspects the request path (e.g. */demo/hello*) and sends it the end-point with the same name as the destination service (e.g. go-demo). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. *proxy*). The proxy changes the port of the destination service (e.g. *8080*).
 
 ![The proxy re-sends the request to the service end-point and modifies the port](img/proxy-scaled-proxy-sdn.png)
 
-The routing mesh kicks in, performs load balancing among all the instances of the destination service, and resends the request to one of them.
+The proxy network performs load balancing among all the instances of the destination service, and re-sends the request to one of them.
 
 ![Routing mesh re-sends the request to one of the service instances](img/proxy-scaled-request-to-service.png)
 
