@@ -272,9 +272,9 @@ eval $(docker service ps proxy | \
 
 I won't go into details of the command we just run but only say that it removed one of the instances of the proxy.
 
-![One of the proxy instances failed](img/proxy-scaled-failed.png)
-
 > I haven't had time to test the command in Windows. Please let me know if you experience any problems.
+
+![One of the proxy instances failed](img/proxy-scaled-failed.png)
 
 We can see the result with the `service ps` command.
 
