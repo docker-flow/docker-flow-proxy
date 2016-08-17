@@ -78,6 +78,37 @@ func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
+	values := req.URL.Query()
+	values.Set("distribute", "false")
+	req.URL.RawQuery = values.Encode()
+	dns := fmt.Sprintf("tasks.%s", m.ServiceName)
+	failedDns := []string{}
+	if ips, err := lookupHost(dns); err == nil {
+		for i := 0; i < len(ips); i++ {
+			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], m.Port)
+			client := &http.Client{}
+			addr := fmt.Sprintf("http://%s:%s%s?%s", ips[i], m.Port, req.URL.Path, req.URL.RawQuery)
+			logPrintf("Sending distribution request to %s", addr)
+			if resp, err := client.Get(addr); err != nil || resp.StatusCode >= 300 {
+				if resp != nil {
+					logPrintf("Return status code: %d\n%s", resp.StatusCode)
+				}
+				if err != nil {
+					logPrintf(err.Error())
+				}
+				failedDns = append(failedDns, ips[i])
+			}
+		}
+	} else {
+		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup", dns)
+	}
+	if len(failedDns) > 0 {
+		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
+	}
+	return http.StatusOK, err
+}
+
 func (m Serve) isValidReconf(name string, path []string, templateFePath string) bool {
 	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
 }
@@ -141,37 +172,6 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
-	values := req.URL.Query()
-	values.Set("distribute", "false")
-	req.URL.RawQuery = values.Encode()
-	dns := fmt.Sprintf("tasks.%s", m.ServiceName)
-	failedDns := []string{}
-	if ips, err := lookupHost(dns); err == nil {
-		for i := 0; i < len(ips); i++ {
-			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], m.Port)
-			client := &http.Client{}
-			addr := fmt.Sprintf("http://%s:%s%s?%s", ips[i], m.Port, req.URL.Path, req.URL.RawQuery)
-			logPrintf("Sending distribution request to %s", addr)
-			if resp, err := client.Get(addr); err != nil || resp.StatusCode >= 300 {
-				if resp != nil {
-					logPrintf("Return status code: %d\n%s", resp.StatusCode)
-				}
-				if err != nil {
-					logPrintf(err.Error())
-				}
-				failedDns = append(failedDns, ips[i])
-			}
-		}
-	} else {
-		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup", dns)
-	}
-	if len(failedDns) > 0 {
-		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
-	}
-	return http.StatusOK, err
-}
-
 func (m Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
@@ -186,14 +186,29 @@ func (m Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, m
 
 func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 	serviceName := req.URL.Query().Get("serviceName")
+	distribute := false
 	response := Response{
 		Status:      "OK",
 		ServiceName: serviceName,
+	}
+	if len(req.URL.Query().Get("distribute")) > 0 {
+		distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
+		if distribute {
+			response.Distribute = distribute
+			response.Message = DISTRIBUTED
+		}
 	}
 	if len(serviceName) == 0 {
 		response.Status = "NOK"
 		response.Message = "The serviceName query is mandatory"
 		w.WriteHeader(http.StatusBadRequest)
+	} else if distribute {
+		if status, err := m.SendDistributeRequests(req, serviceName); err != nil || status >= 300 {
+			m.writeInternalServerError(w, &response, err.Error())
+		} else {
+			response.Message = DISTRIBUTED
+			w.WriteHeader(http.StatusOK)
+		}
 	} else {
 		logPrintf("Processing remove request %s", req.URL.Path)
 		action := NewRemove(
@@ -205,6 +220,7 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 			m.Mode,
 		)
 		action.Execute([]string{})
+		w.WriteHeader(http.StatusOK)
 	}
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)

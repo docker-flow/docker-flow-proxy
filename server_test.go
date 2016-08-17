@@ -266,7 +266,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenReconfigureAndDistributePresent() {
 	serve := Serve{}
 	serve.Port = s.Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.ReconfigureUrl)
@@ -287,7 +287,24 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenPresent()
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenDistributeIsTrue() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenRemoveAndDistributePresent() {
+	serve := Serve{}
+	serve.Port = s.Port
+	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		Distribute:    true,
+		Message:       DISTRIBUTED,
+	})
+
+	serve.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenReconfigureAndDistributeIsTrue() {
 	serve := Serve{}
 	serve.Port = s.Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.ReconfigureUrl)
@@ -308,10 +325,38 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenDistributeIsTrue(
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenDistributeIsTrueAndError() {
+func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenRemoveAndDistributeIsTrue() {
+	serve := Serve{}
+	serve.Port = s.Port
+	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		Distribute:    true,
+		Message:       DISTRIBUTED,
+	})
+
+	serve.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
 	serve.Port = s.Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.ReconfigureUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	serve.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenRemoveDistributeIsTrueAndError() {
+	serve := Serve{}
+	serve.Port = s.Port
+	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -360,6 +405,15 @@ func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeReconfigureExecute_WhenDis
 	req, _ := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s&distribute=true", s.ReconfigureUrl),
+		nil,
+	)
+	s.invokesReconfigure(req, false)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeRemoveExecute_WhenDistributeIsTrue() {
+	req, _ := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s&distribute=true", s.RemoveUrl),
 		nil,
 	)
 	s.invokesReconfigure(req, false)
@@ -589,6 +643,13 @@ func TestServerUnitTestSuite(t *testing.T) {
 		if r.Method == "GET" {
 			switch actualPath {
 			case "/v1/docker-flow-proxy/reconfigure":
+				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
+					w.WriteHeader(http.StatusInternalServerError)
+				} else {
+					w.WriteHeader(http.StatusOK)
+					w.Header().Set("Content-Type", "application/json")
+				}
+			case "/v1/docker-flow-proxy/remove":
 				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
 					w.WriteHeader(http.StatusInternalServerError)
 				} else {
