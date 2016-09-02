@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"os"
 )
 
 const (
@@ -43,8 +44,11 @@ type Response struct {
 	Distribute           bool
 }
 
-func (m Serve) Execute(args []string) error {
+func (m *Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
+	if len(os.Getenv("CONSUL_ADDRESS")) > 0 {
+		m.ConsulAddresses = []string{os.Getenv("CONSUL_ADDRESS")}
+	}
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
 	if err := NewReconfigure(
@@ -60,7 +64,7 @@ func (m Serve) Execute(args []string) error {
 	return nil
 }
 
-func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logPrintf("Processing request %s", req.URL)
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
@@ -78,7 +82,7 @@ func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
+func (m *Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
 	values := req.URL.Query()
 	values.Set("distribute", "false")
 	req.URL.RawQuery = values.Encode()
@@ -109,11 +113,11 @@ func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (st
 	return http.StatusOK, err
 }
 
-func (m Serve) isValidReconf(name string, path []string, templateFePath string) bool {
+func (m *Serve) isValidReconf(name string, path []string, templateFePath string) bool {
 	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
 }
 
-func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	sr := ServiceReconfigure{
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -172,19 +176,19 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (m Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	serviceName := req.URL.Query().Get("serviceName")
 	distribute := false
 	response := Response{

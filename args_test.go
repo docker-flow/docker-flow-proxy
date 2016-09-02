@@ -30,7 +30,6 @@ func (s *ArgsTestSuite) SetupTest() {
 	osRemove = func(name string) error {
 		return nil
 	}
-	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
 }
 
 // NewArgs
