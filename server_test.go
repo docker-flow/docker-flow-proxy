@@ -124,7 +124,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 
 	server.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
+	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, s.Mode)
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {

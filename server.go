@@ -50,7 +50,8 @@ func (m Serve) Execute(args []string) error {
 	if err := NewReconfigure(
 		m.BaseReconfigure,
 		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddress, m.InstanceName, m.Mode); err != nil {
+		// TODO: Change to services
+	).ReloadAllServices([]string{m.ConsulAddress}, m.InstanceName, m.Mode); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)

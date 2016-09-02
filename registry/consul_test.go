@@ -42,7 +42,6 @@ func (s *ConsulTestSuite) SetupTest() {
 		BeFile:        "my-be-template.ctmpl",
 		BeTemplate:    "this is a BE template",
 		ServiceName:   "my-service",
-		Monitor:       false,
 	}
 	cmdRunConsulTemplateOrig := cmdRunConsulTemplate
 	defer func() { cmdRunConsulTemplate = cmdRunConsulTemplateOrig }()
@@ -72,7 +71,7 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 		mu.Unlock()
 	}))
 	defer server.Close()
-	err := Consul{}.PutService(server.URL, instanceName, s.registry)
+	err := Consul{}.PutService([]string{server.URL}, instanceName, s.registry)
 
 	s.NoError(err)
 
@@ -96,9 +95,20 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 }
 
 func (s *ConsulTestSuite) Test_PutService_ReturnsError_WhenFailure() {
-	err := Consul{}.PutService("http:///THIS/URL/DOES/NOT/EXIST", "my-instance", s.registry)
+	err := Consul{}.PutService([]string{"http:///THIS/URL/DOES/NOT/EXIST"}, "my-instance", s.registry)
 
 	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_PutService_DoesNotReturnError_WhenOneOfTheAddressesDoesNotFail() {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	defer server.Close()
+
+	addresses := []string{"http:///THIS/URL/DOES/NOT/EXIST", server.URL, "http:///THIS/URL/ALSO/DOES/NOT/EXIST"}
+	err := Consul{}.PutService(addresses, "my-instance", s.registry)
+
+	s.NoError(err)
 }
 
 func (s *ConsulTestSuite) Test_SendPutRequest_AddsHttp_WhenNotPresent() {
@@ -106,8 +116,9 @@ func (s *ConsulTestSuite) Test_SendPutRequest_AddsHttp_WhenNotPresent() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	}))
 	defer server.Close()
+	url := strings.Replace(server.URL, "http://", "", -1)
 
-	err := Consul{}.PutService(strings.Replace(server.URL, "http://", "", -1), instanceName, s.registry)
+	err := Consul{}.PutService([]string{url}, instanceName, s.registry)
 
 	s.NoError(err)
 }
@@ -130,13 +141,44 @@ func (s *ConsulTestSuite) Test_SendPutRequest_SendsDataToConsul() {
 	defer server.Close()
 
 	c := make(chan error)
-	go Consul{}.SendPutRequest(server.URL, serviceName, key, value, instanceName, c)
+	go Consul{}.SendPutRequest([]string{server.URL}, serviceName, key, value, instanceName, c)
 	err := <-c
 
 	s.NoError(err)
 	s.Equal(fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, serviceName, key), actualUrl)
 	s.Equal(value, actualBody)
 	s.Equal("PUT", actualMethod)
+}
+
+func (s *ConsulTestSuite) Test_SendPutRequest_ReturnsError_WhenAddressDoesNotExist() {
+	instanceName := "my-proxy-instance"
+	key := "my-key"
+	value := "my-value"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	defer server.Close()
+
+	c := make(chan error)
+	go Consul{}.SendPutRequest([]string{"http:///THIS/URL/DOES/NOT/EXIST"}, s.serviceName, key, value, instanceName, c)
+	err := <-c
+
+	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_SendPutRequest_DoesNotReturnError_WhenOneOfTheAddressesExists() {
+	instanceName := "my-proxy-instance"
+	key := "my-key"
+	value := "my-value"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	defer server.Close()
+	addresses := []string{"http:///THIS/URL/DOES/NOT/EXIST", server.URL}
+
+	c := make(chan error)
+	go Consul{}.SendPutRequest(addresses, s.serviceName, key, value, instanceName, c)
+	err := <-c
+
+	s.NoError(err)
 }
 
 // DeleteService
@@ -151,7 +193,7 @@ func (s *ConsulTestSuite) Test_DeleteService_DeletesServiceFromConsul() {
 	}))
 	defer server.Close()
 
-	err := Consul{}.DeleteService(server.URL, s.registry.ServiceName, instanceName)
+	err := Consul{}.DeleteService([]string{server.URL}, s.registry.ServiceName, instanceName)
 
 	s.NoError(err)
 	s.Equal(fmt.Sprintf("/v1/kv/%s/%s", instanceName, s.registry.ServiceName), actualUrl)
@@ -160,9 +202,19 @@ func (s *ConsulTestSuite) Test_DeleteService_DeletesServiceFromConsul() {
 }
 
 func (s *ConsulTestSuite) Test_DeleteService_ReturnsError_WhenFailure() {
-	err := Consul{}.DeleteService("http:///THIS/URL/DOES/NOT/EXIST", s.registry.ServiceName, "my-instance")
+	addresses := []string{"http:///THIS/URL/DOES/NOT/EXIST"}
+	err := Consul{}.DeleteService(addresses, s.registry.ServiceName, "my-instance")
 
 	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_DeleteService_DoesNotReturnError_WhenOneOfTheAddressesFail() {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	addresses := []string{"http:///THIS/URL/DOES/NOT/EXIST", server.URL}
+	err := Consul{}.DeleteService(addresses, s.registry.ServiceName, "my-instance")
+
+	s.NoError(err)
 }
 
 func (s *ConsulTestSuite) Test_DeleteService_AddsHttp_WhenNotPresent() {
@@ -170,37 +222,40 @@ func (s *ConsulTestSuite) Test_DeleteService_AddsHttp_WhenNotPresent() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	}))
 	defer server.Close()
+	address := strings.Replace(server.URL, "http://", "", -1)
 
-	err := Consul{}.DeleteService(strings.Replace(server.URL, "http://", "", -1), s.registry.ServiceName, instanceName)
+	err := Consul{}.DeleteService([]string{address}, s.registry.ServiceName, instanceName)
 
 	s.NoError(err)
 }
 
-// SendDeleteRequest
+// GetServiceAttribute
 
-func (s *ConsulTestSuite) Test_SendDeleteRequest_DeletesDataFromConsul() {
-	instanceName := "my-proxy-instance"
-	key := "my-key"
-	value := "my-value"
-	serviceName := "my-service"
-	var actualUrl, actualBody, actualMethod string
+func (s *ConsulTestSuite) Test_GetServiceAttribute_ReturnsError_WhenConsulReturnsError() {
+	addresses := []string{"http:///THIS/URL/DOES/NOT/EXIST"}
+	_, err := Consul{}.GetServiceAttribute(addresses, "my-instance", "my-service", "my-key")
+
+	s.Error(err)
+}
+
+func (s *ConsulTestSuite) Test_GetServiceAttribute_ReturnsError_WhenConsulReturnsNon200Code() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		body, _ := ioutil.ReadAll(r.Body)
-		actualMethod = r.Method
-		actualUrl = r.URL.Path
-		actualBody = string(body)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	_, err := Consul{}.GetServiceAttribute([]string{server.URL}, "my-instance", "my-service", "my-key")
 
-	c := make(chan error)
-	go Consul{}.SendDeleteRequest(server.URL, serviceName, key, value, instanceName, c)
-	err := <-c
+	s.Error(err)
+}
 
-	s.NoError(err)
-	s.Equal(fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, serviceName, key), actualUrl)
-	s.Equal(value, actualBody)
-	s.Equal("DELETE", actualMethod)
+func (s *ConsulTestSuite) Test_GetServiceAttribute_ReturnsConsulResponse() {
+	expected := "this is a response"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(expected))
+	}))
+	actual, _ := Consul{}.GetServiceAttribute([]string{server.URL}, "my-instance", "my-service", "my-key")
+
+	s.Equal(expected, actual)
 }
 
 // CreateConfigs

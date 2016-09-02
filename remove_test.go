@@ -127,7 +127,7 @@ func (s RemoveTestSuite) Test_Execute_InvokesRegistryDeleteService() {
 
 	s.remove.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "DeleteService", s.ConsulAddress, s.ServiceName, s.InstanceName)
+	mockObj.AssertCalled(s.T(), "DeleteService", []string{s.ConsulAddress}, s.ServiceName, s.InstanceName)
 }
 
 func (s RemoveTestSuite) Test_Execute_DoesNotInvokeRegistryDeleteService_WhenModeIsService() {

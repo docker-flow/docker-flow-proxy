@@ -11,6 +11,8 @@ import (
 
 type Consul struct{}
 
+//TODO: Cache a valid address
+
 var cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
@@ -24,10 +26,9 @@ type CreateConfigsArgs struct {
 	BeFile        string
 	BeTemplate    string
 	ServiceName   string
-	Monitor       bool // TODO: Not in use, remove
 }
 
-func (m Consul) PutService(address, instanceName string, r Registry) error {
+func (m Consul) PutService(addresses []string, instanceName string, r Registry) error {
 	consulChannel := make(chan error)
 	type data struct{ key, value string }
 	d := []data{
@@ -41,9 +42,9 @@ func (m Consul) PutService(address, instanceName string, r Registry) error {
 		data{PORT, r.Port},
 	}
 	for _, e := range d {
-		go m.SendPutRequest(address, r.ServiceName, e.key, e.value, instanceName, consulChannel)
+		go m.SendPutRequest(addresses, r.ServiceName, e.key, e.value, instanceName, consulChannel)
 	}
-	go m.SendPutRequest(address, "service", r.ServiceName, "swarm", instanceName, consulChannel)
+	go m.SendPutRequest(addresses, "service", r.ServiceName, "swarm", instanceName, consulChannel)
 	for i := 0; i < len(d)+1; i++ {
 		err := <-consulChannel
 		if err != nil {
@@ -53,27 +54,29 @@ func (m Consul) PutService(address, instanceName string, r Registry) error {
 	return nil
 }
 
-func (m Consul) SendPutRequest(address, serviceName, key, value, instanceName string, c chan error) {
-	c <- m.sendRequest("PUT", address, serviceName, key, value, instanceName)
+func (m Consul) SendPutRequest(addresses []string, serviceName, key, value, instanceName string, c chan error) {
+	c <- m.sendRequest("PUT", addresses, serviceName, key, value, instanceName)
 }
 
-func (m Consul) DeleteService(address, serviceName, instanceName string) error {
-	if !strings.HasPrefix(address, "http") {
-		address = fmt.Sprintf("http://%s", address)
+func (m Consul) DeleteService(addresses []string, serviceName, instanceName string) error {
+	var err error
+	for _, address := range addresses {
+		if !strings.HasPrefix(address, "http") {
+			address = fmt.Sprintf("http://%s", address)
+		}
+		url := fmt.Sprintf("%s/v1/kv/%s/%s?recurse", address, instanceName, serviceName)
+		client := &http.Client{}
+		request, _ := http.NewRequest("DELETE", url, nil)
+		_, err = client.Do(request)
+		if err == nil {
+			return nil
+		}
 	}
-	url := fmt.Sprintf("%s/v1/kv/%s/%s?recurse", address, instanceName, serviceName)
-	client := &http.Client{}
-	request, _ := http.NewRequest("DELETE", url, nil)
-	_, err := client.Do(request)
 	return err
 }
 
-func (m Consul) SendDeleteRequest(address, serviceName, key, value, instanceName string, c chan error) {
-	c <- m.sendRequest("DELETE", address, serviceName, key, value, instanceName)
-}
-
 func (m Consul) CreateConfigs(args *CreateConfigsArgs) error {
-	if err := m.createConfig(args.Address, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe", false); err != nil {
+	if err := m.createConfig(args.Address, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe"); err != nil {
 		return err
 	}
 	if err := m.createConfig(
@@ -83,35 +86,54 @@ func (m Consul) CreateConfigs(args *CreateConfigsArgs) error {
 		args.BeTemplate,
 		args.ServiceName,
 		"be",
-		args.Monitor,
 	); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m Consul) createConfig(address, templatesPath, file, template, serviceName, confType string, monitor bool) error {
+func (m Consul) GetServiceAttribute(addresses []string, serviceName, key, instanceName string) (string, error) {
+	var err error
+	for _, address := range addresses {
+		url := fmt.Sprintf("%s/v1/kv/%s/%s/%s?raw", address, instanceName, serviceName, key)
+		resp, err := http.Get(url)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			body, _ := ioutil.ReadAll(resp.Body)
+			return string(body), nil
+		}
+	}
+	return "", fmt.Errorf("Could not retrieve the attribute %s\n%s", key, err)
+}
+
+func (m Consul) createConfig(address, templatesPath, file, template, serviceName, confType string) error {
 	src := fmt.Sprintf("%s/%s", templatesPath, file)
 	WriteConsulTemplateFile(src, []byte(template), 0664)
 	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
-	if err := m.runConsulTemplateCmd(src, dest, address, monitor); err != nil {
+	if err := m.runConsulTemplateCmd(src, dest, address); err != nil {
 		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
 	}
 	return nil
 }
 
-func (m Consul) sendRequest(requestType, address, serviceName, key, value, instanceName string) error {
-	if !strings.HasPrefix(address, "http") {
-		address = fmt.Sprintf("http://%s", address)
+func (m Consul) sendRequest(requestType string, addresses []string, serviceName, key, value, instanceName string) error {
+	var err error
+	for _, address := range addresses {
+		if !strings.HasPrefix(address, "http") {
+			address = fmt.Sprintf("http://%s", address)
+		}
+		url := fmt.Sprintf("%s/v1/kv/%s/%s/%s", address, instanceName, serviceName, key)
+		client := &http.Client{}
+		request, _ := http.NewRequest(requestType, url, strings.NewReader(value))
+		_, err = client.Do(request)
+		if err == nil {
+			return nil
+		}
 	}
-	url := fmt.Sprintf("%s/v1/kv/%s/%s/%s", address, instanceName, serviceName, key)
-	client := &http.Client{}
-	request, _ := http.NewRequest(requestType, url, strings.NewReader(value))
-	_, err := client.Do(request)
 	return err
 }
 
-func (m Consul) runConsulTemplateCmd(src, dest, address string, monitor bool) error {
+func (m Consul) runConsulTemplateCmd(src, dest, address string) error {
 	template := fmt.Sprintf(`%s:%s.cfg`, src, dest)
 	cmdArgs := []string{
 		"-consul", m.getConsulAddress(address),
