@@ -35,7 +35,7 @@ func (s *ConsulTestSuite) SetupTest() {
 	s.feTemplate = "this is a FE template"
 	s.beTemplate = "this is a BE template"
 	s.createConfigsArgs = CreateConfigsArgs{
-		Address:       "http://consul.io",
+		Addresses:     []string{"http://consul.io"},
 		TemplatesPath: "/path/to/templates",
 		FeFile:        "my-fe-template.ctmpl",
 		FeTemplate:    "this is a FE template",
@@ -379,7 +379,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttp()
 		"-once",
 	}
 
-	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTtP://", -1)
+	s.createConfigsArgs.Addresses = []string{strings.Replace(s.consulAddress, "http://", "hTtP://", -1)}
 	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(2, len(actual))
@@ -424,7 +424,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_RunsConsulTemplateWithTrimmedHttps(
 		"-once",
 	}
 
-	s.createConfigsArgs.Address = strings.Replace(s.consulAddress, "http://", "hTTPs://", -1)
+	s.createConfigsArgs.Addresses = []string{strings.Replace(s.consulAddress, "http://", "hTTPs://", -1)}
 	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(2, len(actual))
@@ -443,7 +443,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_WritesTemplateToFile() {
 		return nil
 	}
 
-	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
+	s.createConfigsArgs.Addresses = []string{fmt.Sprintf("HttP://%s", s.consulAddress)}
 	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(expected, actual)
@@ -457,7 +457,7 @@ func (s *ConsulTestSuite) Test_CreateConfigs_SetsFilePermissions() {
 		return nil
 	}
 
-	s.createConfigsArgs.Address = fmt.Sprintf("HttP://%s", s.consulAddress)
+	s.createConfigsArgs.Addresses = []string{fmt.Sprintf("HttP://%s", s.consulAddress)}
 	Consul{}.CreateConfigs(&s.createConfigsArgs)
 
 	s.Equal(expected, actual)

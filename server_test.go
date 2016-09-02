@@ -60,7 +60,7 @@ func (s *ServerTestSuite) SetupTest() {
 	}
 	server = Serve{
 		BaseReconfigure: BaseReconfigure{
-			ConsulAddress: s.ConsulAddress,
+			ConsulAddresses: []string{s.ConsulAddress},
 			InstanceName:  s.InstanceName,
 		},
 	}
@@ -460,7 +460,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 	}
 	expectedService := ServiceReconfigure{
 		ServiceName:          s.ServiceName,
@@ -530,15 +530,15 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		ServiceName:   s.ServiceName,
 		TemplatesPath: "",
 		ConfigsPath:   "",
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 		InstanceName:  s.InstanceName,
 	}
-	NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName, mode string) Removable {
+	NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 		actual = Remove{
 			ServiceName:   serviceName,
 			TemplatesPath: templatesPath,
 			ConfigsPath:   configsPath,
-			ConsulAddress: consulAddress,
+			ConsulAddresses: consulAddresses,
 			InstanceName:  instanceName,
 			Mode:          mode,
 		}
@@ -726,7 +726,7 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 	}
 	var actualService ServiceReconfigure
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {

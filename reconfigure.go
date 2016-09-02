@@ -49,7 +49,7 @@ type ServiceReconfigure struct {
 }
 
 type BaseReconfigure struct {
-	ConsulAddress string `short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
+	ConsulAddresses []string
 	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
 	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
 	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
@@ -73,8 +73,8 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	if len(m.ConsulAddress) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
-		if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName); err != nil {
+	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
+		if err := m.putToConsul(m.ConsulAddresses, m.ServiceReconfigure, m.InstanceName); err != nil {
 			return err
 		}
 	}
@@ -110,7 +110,7 @@ func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode s
 			}
 		}
 		if !found {
-			return fmt.Errorf("Could not retrieve the list of services from Consul running on %s\n%s", addresses[0], err.Error())
+			return fmt.Errorf("Could not retrieve the list of services from Consul")
 		}
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
@@ -200,7 +200,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 		writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	} else {
 		args := registry.CreateConfigsArgs{
-			Address:       m.ConsulAddress,
+			Addresses:     m.ConsulAddresses,
 			TemplatesPath: templatesPath,
 			FeFile:        ServiceTemplateFeFilename,
 			FeTemplate:    feTemplate,
@@ -215,7 +215,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 	return nil
 }
 
-func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanceName string) error {
+func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, instanceName string) error {
 	r := registry.Registry{
 		ServiceName:          sr.ServiceName,
 		ServiceColor:         sr.ServiceColor,
@@ -227,8 +227,7 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 		Port:                 sr.Port,
 	}
-	// TODO: Change to multiple addresses
-	if err := registryInstance.PutService([]string{address}, instanceName, r); err != nil {
+	if err := registryInstance.PutService(addresses, instanceName, r); err != nil {
 		return err
 	}
 	return nil

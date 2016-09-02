@@ -11,7 +11,7 @@ type Removable interface {
 
 type Remove struct {
 	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	ConsulAddress string `short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
+	ConsulAddresses []string
 	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
 	ServiceName   string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
 	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
@@ -20,12 +20,13 @@ type Remove struct {
 
 var remove Remove
 
-var NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName, mode string) Removable {
+// TODO: Change to addresses
+var NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 	return &Remove{
 		ServiceName:   serviceName,
 		TemplatesPath: templatesPath,
 		ConfigsPath:   configsPath,
-		ConsulAddress: consulAddress,
+		ConsulAddresses: consulAddresses,
 		InstanceName:  instanceName,
 		Mode:          mode,
 	}
@@ -33,7 +34,7 @@ var NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, ins
 
 func (m *Remove) Execute(args []string) error {
 	logPrintf("Removing %s configuration", m.ServiceName)
-	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.ConsulAddress, m.InstanceName, m.Mode); err != nil {
+	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
@@ -48,7 +49,7 @@ func (m *Remove) Execute(args []string) error {
 	return nil
 }
 
-func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instanceName, mode string) error {
+func (m *Remove) removeFiles(templatesPath, serviceName string, registryAddresses []string, instanceName, mode string) error {
 	logPrintf("Removing the %s configuration files", serviceName)
 	paths := []string{
 		fmt.Sprintf("%s/%s-fe.cfg", templatesPath, serviceName),
@@ -62,8 +63,13 @@ func (m *Remove) removeFiles(templatesPath, serviceName, registryAddress, instan
 		}
 	}
 	if !strings.EqualFold(mode, "service") && !strings.EqualFold(mode, "swarm") {
-		// TODO: Change to addresses
-		if err := registryInstance.DeleteService([]string{registryAddress}, serviceName, instanceName); err != nil {
+		var err error
+		if len(registryAddresses) > 0 {
+			for _, address := range registryAddresses {
+				if err = registryInstance.DeleteService([]string{address}, serviceName, instanceName); err == nil {
+					return nil
+				}
+			}
 			return fmt.Errorf("Could not remove the service from Consul\n%s", err.Error())
 		}
 	}

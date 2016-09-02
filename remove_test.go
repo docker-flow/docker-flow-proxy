@@ -32,7 +32,7 @@ func (s *RemoveTestSuite) SetupTest() {
 		ServiceName:   s.ServiceName,
 		ConfigsPath:   s.ConfigsPath,
 		TemplatesPath: s.TemplatesPath,
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 		InstanceName:  s.InstanceName,
 	}
 }

@@ -56,7 +56,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ConsulAddress = s.Server.URL
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
-			ConsulAddress: s.ConsulAddress,
+			ConsulAddresses: []string{s.ConsulAddress},
 			TemplatesPath: s.TemplatesPath,
 			ConfigsPath:   s.ConfigsPath,
 			InstanceName:  s.InstanceName,
@@ -175,7 +175,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	expectedArgs := registry.CreateConfigsArgs{
-		Address:       s.ConsulAddress,
+		Addresses:     []string{s.ConsulAddress},
 		TemplatesPath: s.TemplatesPath,
 		FeFile:        ServiceTemplateFeFilename,
 		FeTemplate:    s.ConsulTemplateFe,
@@ -389,7 +389,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() 
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_AddsHttpIfNotPresentInPutToConsul() {
-	s.reconfigure.ConsulAddress = strings.Replace(s.ConsulAddress, "http://", "", -1)
+	s.reconfigure.ConsulAddresses = []string{strings.Replace(s.ConsulAddress, "http://", "", -1)}
 	s.reconfigure.Execute([]string{})
 
 	s.Equal(s.ServiceColor, s.ConsulRequestBody.ServiceColor)
@@ -418,7 +418,7 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileIs
 // NewReconfigure
 
 func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
-	br := BaseReconfigure{ConsulAddress: "myConsulAddress"}
+	br := BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}}
 	sr := ServiceReconfigure{ServiceName: "myService"}
 
 	r := NewReconfigure(br, sr)
@@ -430,7 +430,7 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 
 func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 	r1 := NewReconfigure(
-		BaseReconfigure{ConsulAddress: "myConsulAddress"},
+		BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}},
 		ServiceReconfigure{ServiceName: "myService"},
 	)
 	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{})
@@ -459,7 +459,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
 	expectedArgs := registry.CreateConfigsArgs{
-		Address:       s.Server.URL,
+		Addresses:     []string{s.Server.URL},
 		TemplatesPath: s.TemplatesPath,
 		FeFile:        ServiceTemplateFeFilename,
 		FeTemplate:    s.ConsulTemplateFe,
@@ -692,8 +692,8 @@ func (s ReconfigureTestSuite) verifyDoesNotPutDataToConsul(mode string) {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	consulAddress := s.ConsulAddress
-	defer func(){ s.reconfigure.ConsulAddress = consulAddress }()
-	s.reconfigure.ConsulAddress = ""
+	defer func(){ s.reconfigure.ConsulAddresses = []string{consulAddress} }()
+	s.reconfigure.ConsulAddresses = []string{}
 
 	s.reconfigure.Execute([]string{})
 

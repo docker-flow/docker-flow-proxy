@@ -19,7 +19,7 @@ var cmdRunConsulTemplate = func(cmd *exec.Cmd) error {
 var WriteConsulTemplateFile = ioutil.WriteFile
 
 type CreateConfigsArgs struct {
-	Address       string
+	Addresses     []string
 	TemplatesPath string
 	FeFile        string
 	FeTemplate    string
@@ -76,11 +76,11 @@ func (m Consul) DeleteService(addresses []string, serviceName, instanceName stri
 }
 
 func (m Consul) CreateConfigs(args *CreateConfigsArgs) error {
-	if err := m.createConfig(args.Address, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe"); err != nil {
+	if err := m.createConfig(args.Addresses, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe"); err != nil {
 		return err
 	}
 	if err := m.createConfig(
-		args.Address,
+		args.Addresses,
 		args.TemplatesPath,
 		args.BeFile,
 		args.BeTemplate,
@@ -106,14 +106,17 @@ func (m Consul) GetServiceAttribute(addresses []string, serviceName, key, instan
 	return "", fmt.Errorf("Could not retrieve the attribute %s\n%s", key, err)
 }
 
-func (m Consul) createConfig(address, templatesPath, file, template, serviceName, confType string) error {
+func (m Consul) createConfig(addresses []string, templatesPath, file, template, serviceName, confType string) error {
 	src := fmt.Sprintf("%s/%s", templatesPath, file)
 	WriteConsulTemplateFile(src, []byte(template), 0664)
 	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
-	if err := m.runConsulTemplateCmd(src, dest, address); err != nil {
-		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
+	var err error
+	for _, address := range addresses {
+		if err = m.runConsulTemplateCmd(src, dest, address); err == nil {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
 }
 
 func (m Consul) sendRequest(requestType string, addresses []string, serviceName, key, value, instanceName string) error {

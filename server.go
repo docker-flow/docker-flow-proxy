@@ -50,8 +50,7 @@ func (m Serve) Execute(args []string) error {
 	if err := NewReconfigure(
 		m.BaseReconfigure,
 		ServiceReconfigure{},
-		// TODO: Change to services
-	).ReloadAllServices([]string{m.ConsulAddress}, m.InstanceName, m.Mode); err != nil {
+	).ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
@@ -216,7 +215,7 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 			serviceName,
 			m.BaseReconfigure.ConfigsPath,
 			m.BaseReconfigure.TemplatesPath,
-			m.ConsulAddress,
+			m.ConsulAddresses,
 			m.InstanceName,
 			m.Mode,
 		)
