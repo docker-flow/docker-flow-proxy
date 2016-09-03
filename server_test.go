@@ -122,6 +122,12 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return mockObj
 	}
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
 
 	server.Execute([]string{})
 
@@ -164,6 +170,14 @@ func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails()
 	s.Error(actual)
 }
 
+func (s *ServerTestSuite) Test_Execute_SetsConsulAddressesToEmptySlice_WhenEnvVarIsNotset() {
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal([]string{}, srv.ConsulAddresses)
+}
+
 func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 	expected := "my-consul"
 	consulAddressesOrig := server.ConsulAddresses
@@ -176,9 +190,22 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 
 	srv.Execute([]string{})
 
-	fmt.Println("444")
-	fmt.Println(srv.ConsulAddresses)
 	s.Equal([]string{expected}, srv.ConsulAddresses)
+}
+
+func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
+	expected := []string{"my-consul-1", "my-consul-2"}
+	consulAddressesOrig := server.ConsulAddresses
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", strings.Join(expected, ","))
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal(expected, srv.ConsulAddresses)
 }
 
 // ServeHTTP

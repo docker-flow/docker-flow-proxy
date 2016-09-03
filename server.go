@@ -46,15 +46,11 @@ type Response struct {
 
 func (m *Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
-	if len(os.Getenv("CONSUL_ADDRESS")) > 0 {
-		m.ConsulAddresses = []string{os.Getenv("CONSUL_ADDRESS")}
-	}
+	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if err := NewReconfigure(
-		m.BaseReconfigure,
-		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
+	recon := NewReconfigure(m.BaseReconfigure, ServiceReconfigure{})
+	if err := recon.ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
@@ -229,4 +225,12 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) setConsulAddresses() {
+	if len(os.Getenv("CONSUL_ADDRESS")) > 0 {
+		m.ConsulAddresses = strings.Split(os.Getenv("CONSUL_ADDRESS"), ",")
+	} else {
+		m.ConsulAddresses = []string{}
+	}
 }
