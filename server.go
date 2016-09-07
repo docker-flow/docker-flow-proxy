@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
-	"os"
 )
 
 const (
@@ -228,9 +228,13 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Serve) setConsulAddresses() {
+	m.ConsulAddresses = []string{}
 	if len(os.Getenv("CONSUL_ADDRESS")) > 0 {
-		m.ConsulAddresses = strings.Split(os.Getenv("CONSUL_ADDRESS"), ",")
-	} else {
-		m.ConsulAddresses = []string{}
+		for _, address := range strings.Split(os.Getenv("CONSUL_ADDRESS"), ",") {
+			if !strings.HasPrefix(address, "http") {
+				address = fmt.Sprintf("http://%s", address)
+			}
+			m.ConsulAddresses = append(m.ConsulAddresses, address)
+		}
 	}
 }

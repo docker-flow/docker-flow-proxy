@@ -57,9 +57,9 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddresses: []string{s.ConsulAddress},
-			TemplatesPath: s.TemplatesPath,
-			ConfigsPath:   s.ConfigsPath,
-			InstanceName:  s.InstanceName,
+			TemplatesPath:   s.TemplatesPath,
+			ConfigsPath:     s.ConfigsPath,
+			InstanceName:    s.InstanceName,
 		},
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
@@ -692,7 +692,7 @@ func (s ReconfigureTestSuite) verifyDoesNotPutDataToConsul(mode string) {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	consulAddress := s.ConsulAddress
-	defer func(){ s.reconfigure.ConsulAddresses = []string{consulAddress} }()
+	defer func() { s.reconfigure.ConsulAddresses = []string{consulAddress} }()
 	s.reconfigure.ConsulAddresses = []string{}
 
 	s.reconfigure.Execute([]string{})
