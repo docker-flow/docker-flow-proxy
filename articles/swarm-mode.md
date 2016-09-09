@@ -234,6 +234,8 @@ The major difference is that, this time, we used the `--replicas` argument to sp
 
 ![The proxy scaled to three instances](img/proxy-scaled.png)
 
+> Please note that we should run multiple Consul instances in production. In such a case, please use the `CONSUL_ADDRESS` environment variable to set all addresses separated with comma (*,*). An example would be `-e CONSUL_ADDRESS=$(docker-machine ip node-1):8500,$(docker-machine ip node-2):8500,$(docker-machine ip node-3):8500`.
+
 We should wait for a few moments until all three instances are running. The status can be seen by executing the `service ps` command.
 
 ```bash
