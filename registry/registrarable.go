@@ -24,9 +24,9 @@ type Registry struct {
 }
 
 type Registrarable interface {
-	PutService(address, instanceName string, r Registry) error
-	SendPutRequest(address, serviceName, key, value, instanceName string, c chan error)
-	DeleteService(address, serviceName, instanceName string) error
-	SendDeleteRequest(address, serviceName, key, value, instanceName string, c chan error)
+	PutService(addresses []string, instanceName string, r Registry) error
+	SendPutRequest(addresses []string, serviceName, key, value, instanceName string, c chan error)
+	DeleteService(addresses []string, serviceName, instanceName string) error
 	CreateConfigs(args *CreateConfigsArgs) error
+	GetServiceAttribute(addresses []string, serviceName, key, instanceName string) (string, error)
 }

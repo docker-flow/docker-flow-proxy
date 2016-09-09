@@ -21,7 +21,7 @@ var mu = &sync.Mutex{}
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
-	ReloadAllServices(address, instanceName, mode string) error
+	ReloadAllServices(addresses []string, instanceName, mode string) error
 	GetTemplates(sr ServiceReconfigure) (front, back string, err error)
 }
 
@@ -49,10 +49,10 @@ type ServiceReconfigure struct {
 }
 
 type BaseReconfigure struct {
-	ConsulAddress string `short:"a" long:"consul-address" env:"CONSUL_ADDRESS" required:"true" description:"The address of the Consul service (e.g. /api/v1/my-service)."`
-	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ConsulAddresses []string
+	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
 var reconfigure Reconfigure
@@ -73,8 +73,8 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := proxy.Reload(); err != nil {
 		return err
 	}
-	if len(m.ConsulAddress) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
-		if err := m.putToConsul(m.ConsulAddress, m.ServiceReconfigure, m.InstanceName); err != nil {
+	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
+		if err := m.putToConsul(m.ConsulAddresses, m.ServiceReconfigure, m.InstanceName); err != nil {
 			return err
 		}
 	}
@@ -85,23 +85,32 @@ func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-func (m *Reconfigure) ReloadAllServices(address, instanceName, mode string) error {
-	if len(m.ConsulAddress) > 0 || !isSwarm(mode) {
+func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode string) error {
+	if len(addresses) > 0 || !isSwarm(mode) {
+		var resp *http.Response
+		var err error
 		logPrintf("Configuring existing services")
-		address = strings.ToLower(address)
-		if !strings.HasPrefix(address, "http") {
-			address = fmt.Sprintf("http://%s", address)
+		found := false
+		for _, address := range addresses {
+			var servicesUrl string
+			address = strings.ToLower(address)
+			if !strings.HasPrefix(address, "http") {
+				address = fmt.Sprintf("http://%s", address)
+			}
+			if isSwarm(mode) {
+				// TODO: Test
+				servicesUrl = fmt.Sprintf("%s/v1/kv/docker-flow/service?recurse", address)
+			} else {
+				servicesUrl = fmt.Sprintf("%s/v1/catalog/services", address)
+			}
+			resp, err = http.Get(servicesUrl)
+			if err == nil {
+				found = true
+				break
+			}
 		}
-		var servicesUrl string
-		if isSwarm(mode) {
-			// TODO: Test
-			servicesUrl = fmt.Sprintf("%s/v1/kv/docker-flow/service?recurse", address)
-		} else {
-			servicesUrl = fmt.Sprintf("%s/v1/catalog/services", address)
-		}
-		resp, err := http.Get(servicesUrl)
-		if err != nil {
-			return fmt.Errorf("Could not retrieve the list of services from Consul running on %s\n%s", address, err.Error())
+		if !found {
+			return fmt.Errorf("Could not retrieve the list of services from Consul")
 		}
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
@@ -109,25 +118,26 @@ func (m *Reconfigure) ReloadAllServices(address, instanceName, mode string) erro
 		count := 0
 		if isSwarm(mode) {
 			// TODO: Test
-			type Key struct { Value string `json:"Key"` }
+			type Key struct {
+				Value string `json:"Key"`
+			}
 			data := []Key{}
 			json.Unmarshal(body, &data)
 			count = len(data)
 			for _, key := range data {
 				parts := strings.Split(key.Value, "/")
-				serviceName := parts[len(parts) - 1]
-				go m.getService(address, serviceName, instanceName, c)
+				serviceName := parts[len(parts)-1]
+				go m.getService(addresses, serviceName, instanceName, c)
 			}
 		} else {
 			var data map[string]interface{}
 			json.Unmarshal(body, &data)
 			count = len(data)
 			for key, _ := range data {
-				go m.getService(address, key, instanceName, c)
+				go m.getService(addresses, key, instanceName, c)
 			}
 		}
 		logPrintf("\tFound %d services", count)
-
 
 		for i := 0; i < count; i++ {
 			s := <-c
@@ -146,32 +156,36 @@ func (m *Reconfigure) ReloadAllServices(address, instanceName, mode string) erro
 	return nil
 }
 
-func (m *Reconfigure) getService(address, serviceName, instanceName string, c chan ServiceReconfigure) {
+func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {
 	sr := ServiceReconfigure{ServiceName: serviceName}
 
-	if path, ok := m.getServiceAttribute(address, serviceName, registry.PATH_KEY, instanceName); ok {
+	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
+	if err == nil {
 		sr.ServicePath = strings.Split(path, ",")
-		sr.ServiceColor, _ = m.getServiceAttribute(address, serviceName, registry.COLOR_KEY, instanceName)
-		sr.ServiceDomain, _ = m.getServiceAttribute(address, serviceName, registry.DOMAIN_KEY, instanceName)
-		sr.PathType, _ = m.getServiceAttribute(address, serviceName, registry.PATH_TYPE_KEY, instanceName)
-		skipCheck, _ := m.getServiceAttribute(address, serviceName, registry.SKIP_CHECK_KEY, instanceName)
+		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
+		sr.ServiceDomain, _ = m.getServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
+		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
+		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
-		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
-		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(address, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
-		sr.Port, _ = m.getServiceAttribute(address, serviceName, registry.PORT, instanceName)
+		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
+		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
+		sr.Port, _ = m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
 	}
 	c <- sr
 }
 
-func (m *Reconfigure) getServiceAttribute(address, serviceName, key, instanceName string) (string, bool) {
-	url := fmt.Sprintf("%s/v1/kv/%s/%s/%s?raw", address, instanceName, serviceName, key)
-	resp, _ := http.Get(url)
-	if resp.StatusCode != http.StatusOK {
-		return "", false
+// TODO: Remove in favour of registry.GetServiceAttribute
+func (m *Reconfigure) getServiceAttribute(addresses []string, serviceName, key, instanceName string) (string, bool) {
+	for _, address := range addresses {
+		url := fmt.Sprintf("%s/v1/kv/%s/%s/%s?raw", address, instanceName, serviceName, key)
+		resp, err := http.Get(url)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			body, _ := ioutil.ReadAll(resp.Body)
+			return string(body), true
+		}
 	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body), true
+	return "", false
 }
 
 func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure) error {
@@ -187,14 +201,13 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 		writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	} else {
 		args := registry.CreateConfigsArgs{
-			Address:       m.ConsulAddress,
+			Addresses:     m.ConsulAddresses,
 			TemplatesPath: templatesPath,
 			FeFile:        ServiceTemplateFeFilename,
 			FeTemplate:    feTemplate,
 			BeFile:        ServiceTemplateBeFilename,
 			BeTemplate:    beTemplate,
 			ServiceName:   sr.ServiceName,
-			Monitor:       false,
 		}
 		if err = registryInstance.CreateConfigs(&args); err != nil {
 			return err
@@ -203,7 +216,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 	return nil
 }
 
-func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanceName string) error {
+func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, instanceName string) error {
 	r := registry.Registry{
 		ServiceName:          sr.ServiceName,
 		ServiceColor:         sr.ServiceColor,
@@ -215,7 +228,7 @@ func (m *Reconfigure) putToConsul(address string, sr ServiceReconfigure, instanc
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 		Port:                 sr.Port,
 	}
-	if err := registryInstance.PutService(address, instanceName, r); err != nil {
+	if err := registryInstance.PutService(addresses, instanceName, r); err != nil {
 		return err
 	}
 	return nil

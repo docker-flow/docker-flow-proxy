@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
@@ -60,8 +61,8 @@ func (s *ServerTestSuite) SetupTest() {
 	}
 	server = Serve{
 		BaseReconfigure: BaseReconfigure{
-			ConsulAddress: s.ConsulAddress,
-			InstanceName:  s.InstanceName,
+			ConsulAddresses: []string{s.ConsulAddress},
+			InstanceName:    s.InstanceName,
 		},
 	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -121,10 +122,16 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return mockObj
 	}
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
 
 	server.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
+	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, s.Mode)
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {
@@ -151,7 +158,7 @@ func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIs
 	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
 }
 
-func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails() {
+func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
 	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -163,12 +170,66 @@ func (s *ServerTestSuite) Test_Execute_ReturnsErrro_WhenReloadAllServicesFails()
 	s.Error(actual)
 }
 
+func (s *ServerTestSuite) Test_Execute_SetsConsulAddressesToEmptySlice_WhenEnvVarIsNotset() {
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal([]string{}, srv.ConsulAddresses)
+}
+
+func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
+	expected := "http://my-consul"
+	consulAddressesOrig := server.ConsulAddresses
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", expected)
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal([]string{expected}, srv.ConsulAddresses)
+}
+
+func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
+	expected := []string{"http://my-consul-1", "http://my-consul-2"}
+	consulAddressesOrig := server.ConsulAddresses
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", strings.Join(expected, ","))
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal(expected, srv.ConsulAddresses)
+}
+
+func (s *ServerTestSuite) Test_Execute_AddsHttpToConsulAddresses() {
+	expected := []string{"http://my-consul-1", "http://my-consul-2"}
+	consulAddressesOrig := server.ConsulAddresses
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", "my-consul-1,my-consul-2")
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal(expected, srv.ConsulAddresses)
+}
+
 // ServeHTTP
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
 	req, _ := http.NewRequest("GET", "/this/url/does/not/exist", nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
 }
@@ -178,7 +239,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 		rw := getResponseWriterMock()
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
 
-		Serve{}.ServeHTTP(rw, req)
+		srv := Serve{}
+		srv.ServeHTTP(rw, req)
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
 	}
@@ -193,7 +255,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal("application/json", actual)
 }
@@ -208,7 +271,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		PathType:      s.PathType,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -225,7 +289,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 		PathType:      pathType,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -244,7 +309,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 		Mode:          mode,
 	})
 
-	Serve{Mode: mode}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{Mode: mode}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -261,7 +327,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 		SkipCheck:     true,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -293,10 +360,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenRemoveAnd
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Distribute:  true,
+		Message:     DISTRIBUTED,
 	})
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -331,10 +398,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenRemoveAndDistribu
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Distribute:  true,
+		Message:     DISTRIBUTED,
 	})
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -367,7 +434,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenRemoveDistributeI
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureBaseUrl, nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -376,7 +444,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIs
 	url := fmt.Sprintf("%s?serviceName=%s", s.ReconfigureBaseUrl, s.ServiceName[0])
 	req, _ := http.NewRequest("GET", url, nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -384,7 +453,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIs
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	Serve{Mode: "service"}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{Mode: "service"}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -392,7 +462,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsServiceAndPo
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	Serve{Mode: "swARM"}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{Mode: "swARM"}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -426,7 +497,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecute
 		return mockObj
 	}
 
-	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
@@ -449,7 +521,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		PathType:             s.PathType,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -460,7 +533,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 	}
 	expectedService := ServiceReconfigure{
 		ServiceName:          s.ServiceName,
@@ -499,7 +572,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove()
 	}
 	req, _ := http.NewRequest("GET", s.RemoveUrl, nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal("application/json", actual)
 }
@@ -510,7 +584,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 		ServiceName: s.ServiceName,
 	})
 
-	Serve{}.ServeHTTP(s.ResponseWriter, s.RequestRemove)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, s.RequestRemove)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -518,7 +593,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.RemoveBaseUrl, nil)
 
-	Serve{}.ServeHTTP(s.ResponseWriter, req)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
@@ -527,20 +603,20 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
 	var actual Remove
 	expected := Remove{
-		ServiceName:   s.ServiceName,
-		TemplatesPath: "",
-		ConfigsPath:   "",
-		ConsulAddress: s.ConsulAddress,
-		InstanceName:  s.InstanceName,
+		ServiceName:     s.ServiceName,
+		TemplatesPath:   "",
+		ConfigsPath:     "",
+		ConsulAddresses: []string{s.ConsulAddress},
+		InstanceName:    s.InstanceName,
 	}
-	NewRemove = func(serviceName, configsPath, templatesPath, consulAddress, instanceName, mode string) Removable {
+	NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 		actual = Remove{
-			ServiceName:   serviceName,
-			TemplatesPath: templatesPath,
-			ConfigsPath:   configsPath,
-			ConsulAddress: consulAddress,
-			InstanceName:  instanceName,
-			Mode:          mode,
+			ServiceName:     serviceName,
+			TemplatesPath:   templatesPath,
+			ConfigsPath:     configsPath,
+			ConsulAddresses: consulAddresses,
+			InstanceName:    instanceName,
+			Mode:            mode,
 		}
 		return mockObj
 	}
@@ -726,7 +802,7 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 	mockObj := getReconfigureMock("")
 	var actualBase BaseReconfigure
 	expectedBase := BaseReconfigure{
-		ConsulAddress: s.ConsulAddress,
+		ConsulAddresses: []string{s.ConsulAddress},
 	}
 	var actualService ServiceReconfigure
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {

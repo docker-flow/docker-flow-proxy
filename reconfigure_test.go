@@ -56,10 +56,10 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ConsulAddress = s.Server.URL
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
-			ConsulAddress: s.ConsulAddress,
-			TemplatesPath: s.TemplatesPath,
-			ConfigsPath:   s.ConfigsPath,
-			InstanceName:  s.InstanceName,
+			ConsulAddresses: []string{s.ConsulAddress},
+			TemplatesPath:   s.TemplatesPath,
+			ConfigsPath:     s.ConfigsPath,
+			InstanceName:    s.InstanceName,
 		},
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
@@ -175,14 +175,13 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	expectedArgs := registry.CreateConfigsArgs{
-		Address:       s.ConsulAddress,
+		Addresses:     []string{s.ConsulAddress},
 		TemplatesPath: s.TemplatesPath,
 		FeFile:        ServiceTemplateFeFilename,
 		FeTemplate:    s.ConsulTemplateFe,
 		BeFile:        ServiceTemplateBeFilename,
 		BeTemplate:    s.ConsulTemplateBe,
 		ServiceName:   s.ServiceName,
-		Monitor:       false,
 	}
 
 	s.reconfigure.Execute([]string{})
@@ -366,7 +365,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 
 	s.reconfigure.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "PutService", s.ConsulAddress, s.InstanceName, r)
+	mockObj.AssertCalled(s.T(), "PutService", []string{s.ConsulAddress}, s.InstanceName, r)
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_DoesNotPutDataToConsul_WhenModeIsServiceAndConsulAddressIsEmpty() {
@@ -390,7 +389,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() 
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_AddsHttpIfNotPresentInPutToConsul() {
-	s.reconfigure.ConsulAddress = strings.Replace(s.ConsulAddress, "http://", "", -1)
+	s.reconfigure.ConsulAddresses = []string{strings.Replace(s.ConsulAddress, "http://", "", -1)}
 	s.reconfigure.Execute([]string{})
 
 	s.Equal(s.ServiceColor, s.ConsulRequestBody.ServiceColor)
@@ -419,7 +418,7 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileIs
 // NewReconfigure
 
 func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
-	br := BaseReconfigure{ConsulAddress: "myConsulAddress"}
+	br := BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}}
 	sr := ServiceReconfigure{ServiceName: "myService"}
 
 	r := NewReconfigure(br, sr)
@@ -431,7 +430,7 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 
 func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 	r1 := NewReconfigure(
-		BaseReconfigure{ConsulAddress: "myConsulAddress"},
+		BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}},
 		ServiceReconfigure{ServiceName: "myService"},
 	)
 	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{})
@@ -445,7 +444,7 @@ func (s ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 // ReloadAllServices
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	err := s.reconfigure.ReloadAllServices("this/address/does/not/exist", s.InstanceName, s.Mode)
+	err := s.reconfigure.ReloadAllServices([]string{"this/address/does/not/exist"}, s.InstanceName, s.Mode)
 
 	s.Error(err)
 }
@@ -460,17 +459,16 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
 	expectedArgs := registry.CreateConfigsArgs{
-		Address:       s.ConsulAddress,
+		Addresses:     []string{s.Server.URL},
 		TemplatesPath: s.TemplatesPath,
 		FeFile:        ServiceTemplateFeFilename,
 		FeTemplate:    s.ConsulTemplateFe,
 		BeFile:        ServiceTemplateBeFilename,
 		BeTemplate:    s.ConsulTemplateBe,
 		ServiceName:   s.ServiceName,
-		Monitor:       false,
 	}
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
 
 	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
 }
@@ -479,7 +477,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFro
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
 }
@@ -489,7 +487,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreat
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName, s.Mode)
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
 
 	s.Error(actual)
 }
@@ -498,7 +496,7 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
@@ -508,14 +506,14 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloa
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices(s.ConsulAddress, s.InstanceName, s.Mode)
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
 
 	s.Error(actual)
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
-	err := s.reconfigure.ReloadAllServices(address, s.InstanceName, s.Mode)
+	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode)
 
 	s.NoError(err)
 }
@@ -600,8 +598,8 @@ func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return BaseReconfigure{}, ServiceReconfigure{}
 }
 
-func (m *ReconfigureMock) ReloadAllServices(address, instanceName, mode string) error {
-	params := m.Called(address, instanceName, mode)
+func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode string) error {
+	params := m.Called(addresses, instanceName, mode)
 	return params.Error(0)
 }
 
@@ -631,27 +629,35 @@ type RegistrarableMock struct {
 	mock.Mock
 }
 
-func (m *RegistrarableMock) PutService(address, instanceName string, r registry.Registry) error {
-	params := m.Called(address, instanceName, r)
+func (m *RegistrarableMock) PutService(addresses []string, instanceName string, r registry.Registry) error {
+	params := m.Called(addresses, instanceName, r)
 	return params.Error(0)
 }
 
-func (m *RegistrarableMock) SendPutRequest(address, serviceName, key, value, instanceName string, c chan error) {
-	m.Called(address, serviceName, key, value, instanceName, c)
+func (m *RegistrarableMock) SendPutRequest(addresses []string, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(addresses, serviceName, key, value, instanceName, c)
 }
 
-func (m *RegistrarableMock) DeleteService(address, serviceName, instanceName string) error {
-	params := m.Called(address, serviceName, instanceName)
+func (m *RegistrarableMock) DeleteService(addresses []string, serviceName, instanceName string) error {
+	params := m.Called(addresses, serviceName, instanceName)
 	return params.Error(0)
 }
 
-func (m *RegistrarableMock) SendDeleteRequest(address, serviceName, key, value, instanceName string, c chan error) {
-	m.Called(address, serviceName, key, value, instanceName, c)
+func (m *RegistrarableMock) SendDeleteRequest(addresses []string, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(addresses, serviceName, key, value, instanceName, c)
 }
 
 func (m *RegistrarableMock) CreateConfigs(args *registry.CreateConfigsArgs) error {
 	params := m.Called(args)
 	return params.Error(0)
+}
+
+func (m *RegistrarableMock) GetServiceAttribute(addresses []string, instanceName, serviceName, key string) (string, error) {
+	params := m.Called(addresses, instanceName, serviceName, key)
+	if serviceName == "path" {
+		return "path/to/my/service/api,path/to/my/other/service/api", params.Error(0)
+	}
+	return "something", params.Error(0)
 }
 
 func getRegistrarableMock(skipMethod string) *RegistrarableMock {
@@ -671,6 +677,9 @@ func getRegistrarableMock(skipMethod string) *RegistrarableMock {
 	if skipMethod != "CreateConfigs" {
 		mockObj.On("CreateConfigs", mock.Anything).Return(nil)
 	}
+	if skipMethod != "GetServiceAttribute" {
+		mockObj.On("GetServiceAttribute", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
 	return mockObj
 }
 
@@ -683,8 +692,8 @@ func (s ReconfigureTestSuite) verifyDoesNotPutDataToConsul(mode string) {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	consulAddress := s.ConsulAddress
-	defer func(){ s.reconfigure.ConsulAddress = consulAddress }()
-	s.reconfigure.ConsulAddress = ""
+	defer func() { s.reconfigure.ConsulAddresses = []string{consulAddress} }()
+	s.reconfigure.ConsulAddresses = []string{}
 
 	s.reconfigure.Execute([]string{})
 

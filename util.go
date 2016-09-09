@@ -31,9 +31,11 @@ var logPrintf = log.Printf
 type Executable interface {
 	Execute(args []string) error
 }
+
 func isSwarm(mode string) bool {
 	return strings.EqualFold(mode, "service") || strings.EqualFold(mode, "swarm")
 }
+
 var lookupHost = net.LookupHost
 
 var registryInstance registry.Registrarable = registry.Consul{}

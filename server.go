@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -43,14 +44,13 @@ type Response struct {
 	Distribute           bool
 }
 
-func (m Serve) Execute(args []string) error {
+func (m *Serve) Execute(args []string) error {
 	logPrintf("Starting HAProxy")
+	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	if err := NewReconfigure(
-		m.BaseReconfigure,
-		ServiceReconfigure{},
-	).ReloadAllServices(m.ConsulAddress, m.InstanceName, m.Mode); err != nil {
+	recon := NewReconfigure(m.BaseReconfigure, ServiceReconfigure{})
+	if err := recon.ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
@@ -60,7 +60,7 @@ func (m Serve) Execute(args []string) error {
 	return nil
 }
 
-func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logPrintf("Processing request %s", req.URL)
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
@@ -78,7 +78,7 @@ func (m Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
+func (m *Serve) SendDistributeRequests(req *http.Request, serviceName string) (status int, err error) {
 	values := req.URL.Query()
 	values.Set("distribute", "false")
 	req.URL.RawQuery = values.Encode()
@@ -109,11 +109,11 @@ func (m Serve) SendDistributeRequests(req *http.Request, serviceName string) (st
 	return http.StatusOK, err
 }
 
-func (m Serve) isValidReconf(name string, path []string, templateFePath string) bool {
+func (m *Serve) isValidReconf(name string, path []string, templateFePath string) bool {
 	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
 }
 
-func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	sr := ServiceReconfigure{
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -172,19 +172,19 @@ func (m Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (m Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
+func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	serviceName := req.URL.Query().Get("serviceName")
 	distribute := false
 	response := Response{
@@ -215,7 +215,7 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 			serviceName,
 			m.BaseReconfigure.ConfigsPath,
 			m.BaseReconfigure.TemplatesPath,
-			m.ConsulAddress,
+			m.ConsulAddresses,
 			m.InstanceName,
 			m.Mode,
 		)
@@ -225,4 +225,16 @@ func (m Serve) remove(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) setConsulAddresses() {
+	m.ConsulAddresses = []string{}
+	if len(os.Getenv("CONSUL_ADDRESS")) > 0 {
+		for _, address := range strings.Split(os.Getenv("CONSUL_ADDRESS"), ",") {
+			if !strings.HasPrefix(address, "http") {
+				address = fmt.Sprintf("http://%s", address)
+			}
+			m.ConsulAddresses = append(m.ConsulAddresses, address)
+		}
+	}
 }

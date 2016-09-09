@@ -30,7 +30,6 @@ func (s *ArgsTestSuite) SetupTest() {
 	osRemove = func(name string) error {
 		return nil
 	}
-	os.Setenv("CONSUL_ADDRESS", "myConsulAddress")
 }
 
 // NewArgs
@@ -63,7 +62,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
 		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
-		{"consulAddressFromArgs", "consul-address", &reconfigure.ConsulAddress},
 		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
@@ -113,7 +111,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 	}{
 		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "C", &reconfigure.ServiceColor},
-		{"consulAddressFromArgs", "a", &reconfigure.ConsulAddress},
 		{"templatesPathFromArgs", "t", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},
 	}
@@ -162,7 +159,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		{"/cfg/tmpl", &reconfigure.TemplatesPath},
 		{"/cfg", &reconfigure.ConfigsPath},
 	}
-	reconfigure.ConsulAddress = "myConsulAddress"
+	reconfigure.ConsulAddresses = []string{"myConsulAddress"}
 	reconfigure.ServicePath = []string{"p1", "p2"}
 	reconfigure.ServiceName = "myServiceName"
 
@@ -183,7 +180,6 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"consulAddressFromEnv", "CONSUL_ADDRESS", &reconfigure.ConsulAddress},
 		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &reconfigure.InstanceName},
 	}
 
@@ -208,7 +204,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
 		{"serviceNameFromArgs", "service-name", &remove.ServiceName},
 		{"templatesPathFromArgs", "templates-path", &remove.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &remove.ConfigsPath},
-		{"http://consul", "consul-address", &remove.ConsulAddress},
 		{"instanceNameFromArgs", "proxy-instance-name", &remove.InstanceName},
 	}
 
@@ -232,7 +227,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 		{"serviceNameFromArgs", "s", &remove.ServiceName},
 		{"templatesPathFromArgs", "t", &remove.TemplatesPath},
 		{"configsPathFromArgs", "c", &remove.ConfigsPath},
-		{"consulAddressFromArgs", "a", &remove.ConsulAddress},
 	}
 
 	for _, d := range data {
@@ -252,7 +246,6 @@ func (s ArgsTestSuite) Test_Parse_RemoveDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"consulAddressFromEnv", "CONSUL_ADDRESS", &remove.ConsulAddress},
 		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &remove.InstanceName},
 	}
 
