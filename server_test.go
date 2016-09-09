@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
-	"os"
 )
 
 type ServerTestSuite struct {
@@ -62,7 +62,7 @@ func (s *ServerTestSuite) SetupTest() {
 	server = Serve{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddresses: []string{s.ConsulAddress},
-			InstanceName:  s.InstanceName,
+			InstanceName:    s.InstanceName,
 		},
 	}
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
@@ -179,7 +179,7 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddressesToEmptySlice_WhenEnvVa
 }
 
 func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
-	expected := "my-consul"
+	expected := "http://my-consul"
 	consulAddressesOrig := server.ConsulAddresses
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
@@ -194,13 +194,28 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 }
 
 func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
-	expected := []string{"my-consul-1", "my-consul-2"}
+	expected := []string{"http://my-consul-1", "http://my-consul-2"}
 	consulAddressesOrig := server.ConsulAddresses
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
 		server.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", strings.Join(expected, ","))
+	srv := Serve{}
+
+	srv.Execute([]string{})
+
+	s.Equal(expected, srv.ConsulAddresses)
+}
+
+func (s *ServerTestSuite) Test_Execute_AddsHttpToConsulAddresses() {
+	expected := []string{"http://my-consul-1", "http://my-consul-2"}
+	consulAddressesOrig := server.ConsulAddresses
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", "my-consul-1,my-consul-2")
 	srv := Serve{}
 
 	srv.Execute([]string{})
@@ -345,10 +360,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenRemoveAnd
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Distribute:  true,
+		Message:     DISTRIBUTED,
 	})
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -383,10 +398,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenRemoveAndDistribu
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Distribute:  true,
+		Message:     DISTRIBUTED,
 	})
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -588,20 +603,20 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
 	var actual Remove
 	expected := Remove{
-		ServiceName:   s.ServiceName,
-		TemplatesPath: "",
-		ConfigsPath:   "",
+		ServiceName:     s.ServiceName,
+		TemplatesPath:   "",
+		ConfigsPath:     "",
 		ConsulAddresses: []string{s.ConsulAddress},
-		InstanceName:  s.InstanceName,
+		InstanceName:    s.InstanceName,
 	}
 	NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 		actual = Remove{
-			ServiceName:   serviceName,
-			TemplatesPath: templatesPath,
-			ConfigsPath:   configsPath,
+			ServiceName:     serviceName,
+			TemplatesPath:   templatesPath,
+			ConfigsPath:     configsPath,
 			ConsulAddresses: consulAddresses,
-			InstanceName:  instanceName,
-			Mode:          mode,
+			InstanceName:    instanceName,
+			Mode:            mode,
 		}
 		return mockObj
 	}

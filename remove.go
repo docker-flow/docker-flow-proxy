@@ -10,12 +10,12 @@ type Removable interface {
 }
 
 type Remove struct {
-	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
 	ConsulAddresses []string
-	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	ServiceName   string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
-	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
-	Mode          string
+	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	ServiceName     string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
+	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	Mode            string
 }
 
 var remove Remove
@@ -23,12 +23,12 @@ var remove Remove
 // TODO: Change to addresses
 var NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 	return &Remove{
-		ServiceName:   serviceName,
-		TemplatesPath: templatesPath,
-		ConfigsPath:   configsPath,
+		ServiceName:     serviceName,
+		TemplatesPath:   templatesPath,
+		ConfigsPath:     configsPath,
 		ConsulAddresses: consulAddresses,
-		InstanceName:  instanceName,
-		Mode:          mode,
+		InstanceName:    instanceName,
+		Mode:            mode,
 	}
 }
 

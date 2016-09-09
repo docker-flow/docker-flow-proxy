@@ -29,11 +29,11 @@ func (s *RemoveTestSuite) SetupTest() {
 		return nil
 	}
 	s.remove = Remove{
-		ServiceName:   s.ServiceName,
-		ConfigsPath:   s.ConfigsPath,
-		TemplatesPath: s.TemplatesPath,
+		ServiceName:     s.ServiceName,
+		ConfigsPath:     s.ConfigsPath,
+		TemplatesPath:   s.TemplatesPath,
 		ConsulAddresses: []string{s.ConsulAddress},
-		InstanceName:  s.InstanceName,
+		InstanceName:    s.InstanceName,
 	}
 }
 

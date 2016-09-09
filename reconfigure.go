@@ -50,9 +50,9 @@ type ServiceReconfigure struct {
 
 type BaseReconfigure struct {
 	ConsulAddresses []string
-	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
 var reconfigure Reconfigure
@@ -118,13 +118,15 @@ func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode s
 		count := 0
 		if isSwarm(mode) {
 			// TODO: Test
-			type Key struct { Value string `json:"Key"` }
+			type Key struct {
+				Value string `json:"Key"`
+			}
 			data := []Key{}
 			json.Unmarshal(body, &data)
 			count = len(data)
 			for _, key := range data {
 				parts := strings.Split(key.Value, "/")
-				serviceName := parts[len(parts) - 1]
+				serviceName := parts[len(parts)-1]
 				go m.getService(addresses, serviceName, instanceName, c)
 			}
 		} else {
@@ -136,7 +138,6 @@ func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode s
 			}
 		}
 		logPrintf("\tFound %d services", count)
-
 
 		for i := 0; i < count; i++ {
 			s := <-c
