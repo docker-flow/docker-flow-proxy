@@ -44,6 +44,7 @@ import (
 	"strings"
 	"testing"
 	"log"
+	"os/exec"
 )
 
 type IntegrationTestSuite struct {
@@ -123,6 +124,21 @@ func (s IntegrationTestSuite) Test_Reconfigure_ConsulTemplatePath() {
 	s.reconfigure("", "/test_configs/tmpl/my-service-fe.tmpl", "/test_configs/tmpl/my-service-be.tmpl", "")
 
 	s.verifyReconfigure(1)
+}
+
+func (s IntegrationTestSuite) Test_Config() {
+	resp, _ := http.Get(fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/config",
+		os.Getenv("DOCKER_IP"),
+	))
+	cmdString := "docker cp dockerflowproxy_staging-dep_1:/cfg/haproxy.cfg /tmp/"
+	exec.Command("/bin/sh", "-c", cmdString).Output()
+
+	expected, _ := ioutil.ReadFile("/tmp/haproxy.cfg")
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	s.Equal(string(expected[:]), string(body))
 }
 
 // Util

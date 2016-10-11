@@ -19,6 +19,7 @@ var cmdRunHa = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 var writeFile = ioutil.WriteFile
+var readFile = ioutil.ReadFile
 var writeFeTemplate = ioutil.WriteFile
 var writeBeTemplate = ioutil.WriteFile
 var osRemove = os.Remove

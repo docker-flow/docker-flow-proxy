@@ -23,6 +23,7 @@ type ServerTestSuite struct {
 	RemoveBaseUrl      string
 	ReconfigureUrl     string
 	RemoveUrl          string
+	ConfigUrl          string
 	ResponseWriter     *ResponseWriterMock
 	RequestReconfigure *http.Request
 	RequestRemove      *http.Request
@@ -53,6 +54,7 @@ func (s *ServerTestSuite) SetupTest() {
 		s.RemoveBaseUrl,
 		s.ServiceName,
 	)
+	s.ConfigUrl = "/v1/docker-flow-proxy/config"
 	s.ResponseWriter = getResponseWriterMock()
 	s.RequestReconfigure, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
 	s.RequestRemove, _ = http.NewRequest("GET", s.RemoveUrl, nil)
@@ -625,6 +627,50 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 
 	s.Equal(expected, actual)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
+}
+
+// ServeHTTP > Config
+
+func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToText_WhenUrlIsConfig() {
+	var actual string
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal("text/html", actual)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
+	expected := "some text"
+	readFileOrig := readFile
+	defer func() { readFile = readFileOrig }()
+	readFile = func(filename string) ([]byte, error) {
+		return []byte(expected), nil
+	}
+
+	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
+	readFileOrig := readFile
+	defer func() { readFile = readFileOrig }()
+	readFile = func(filename string) ([]byte, error) {
+		return []byte(""), fmt.Errorf("This is an error")
+	}
+
+	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
 // SendDistributeRequests

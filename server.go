@@ -67,6 +67,8 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		m.reconfigure(w, req)
 	case "/v1/docker-flow-proxy/remove":
 		m.remove(w, req)
+	case "/v1/docker-flow-proxy/config":
+		m.config(w, req)
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
@@ -225,6 +227,18 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	httpWriterSetContentType(w, "text/html")
+	out, err := proxy.ReadConfig(m.BaseReconfigure.ConfigsPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+	w.Write([]byte(out))
 }
 
 func (m *Serve) setConsulAddresses() {

@@ -10,6 +10,7 @@ import (
 type Proxy interface {
 	RunCmd(extraArgs []string) error
 	CreateConfigFromTemplates(templatesPath string, configsPath string) error
+	ReadConfig(configsPath string) (string, error)
 	Reload() error
 }
 
@@ -43,6 +44,15 @@ func (m HaProxy) CreateConfigFromTemplates(templatesPath string, configsPath str
 	}
 	configPath := fmt.Sprintf("%s/haproxy.cfg", configsPath)
 	return writeFile(configPath, []byte(configsContent), 0664)
+}
+
+func (m HaProxy) ReadConfig(configsPath string) (string, error) {
+	configPath := fmt.Sprintf("%s/haproxy.cfg", configsPath)
+	out, err := readFile(configPath)
+	if err != nil {
+		return "", err
+	}
+	return string(out[:]), nil
 }
 
 func (m HaProxy) Reload() error {

@@ -68,7 +68,6 @@ func (s *ReconfigureTestSuite) SetupTest() {
 			SkipCheck:   false,
 		},
 	}
-	proxy = getProxyMock("")
 }
 
 // GetConsulTemplate
@@ -312,6 +311,8 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateC
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	s.reconfigure.Execute([]string{})
@@ -322,6 +323,8 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	err := s.reconfigure.Execute([]string{})
@@ -331,9 +334,7 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	mock := getProxyMock("")
 	proxy = mock
 
@@ -475,6 +476,8 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
@@ -485,6 +488,8 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFro
 func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
@@ -494,6 +499,8 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreat
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
@@ -504,6 +511,8 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
 	proxy = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
@@ -512,6 +521,9 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloa
 }
 
 func (s ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
+	proxyOrig := proxy
+	defer func(){ proxy = proxyOrig }()
+	proxy = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
 	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode)
 

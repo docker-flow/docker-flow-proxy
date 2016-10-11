@@ -350,9 +350,7 @@ func TestArgsUnitTestSuite(t *testing.T) {
 	registryInstance = mockObj
 	logPrintf = func(format string, v ...interface{}) {}
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	proxy = getProxyMock("")
 	suite.Run(t, new(ArgsTestSuite))
 }

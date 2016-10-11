@@ -3,6 +3,10 @@ Docker Flow: Proxy
 
 * [Introduction](#introduction)
 * [Modes](#modes)
+
+  * [The Swarm Mode (Docker 1.12+)](articles/swarm-mode.md)
+  * [The Default Mode](articles/standard-mode.md)
+
 * [Containers Definition](#containers-definition)
 * [Usage](#usage)
 

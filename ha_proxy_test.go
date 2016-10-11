@@ -109,9 +109,44 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadCo
 	s.Error(err)
 }
 
+// ReadConfig
+
+func (s *HaProxyTestSuite) Test_ReadConfig_ReturnsConfig() {
+	var actualFilename string
+	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
+	expectedData := `template content
+
+config1 content
+
+config2 content`
+	readFileOrig := readFile
+	defer func() { readFile = readFileOrig }()
+	readFile = func(filename string) ([]byte, error) {
+		actualFilename = filename
+		return []byte(expectedData), nil
+	}
+
+	actualData, _ := HaProxy{}.ReadConfig(s.ConfigsPath)
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s *HaProxyTestSuite) Test_ReadConfig_ReturnsError_WhenReadFileFails() {
+	readFileOrig := readFile
+	defer func() { readFile = readFileOrig }()
+	readFile = func(filename string) ([]byte, error) {
+		return []byte{}, fmt.Errorf("This is an error")
+	}
+
+	_, actual := HaProxy{}.ReadConfig(s.ConfigsPath)
+
+	s.Error(actual)
+}
+
 // Reload
 
-func (s HaProxyTestSuite) Test_Reload_ReadsPidFile() {
+func (s *HaProxyTestSuite) Test_Reload_ReadsPidFile() {
 	var actual string
 	readPidFile = func(fileName string) ([]byte, error) {
 		actual = fileName
@@ -123,7 +158,7 @@ func (s HaProxyTestSuite) Test_Reload_ReadsPidFile() {
 	s.Equal("/var/run/haproxy.pid", actual)
 }
 
-func (s HaProxyTestSuite) Test_Reload_ReturnsError_WhenHaCommandFails() {
+func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenHaCommandFails() {
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return fmt.Errorf("This is an error")
 	}
@@ -133,7 +168,7 @@ func (s HaProxyTestSuite) Test_Reload_ReturnsError_WhenHaCommandFails() {
 	s.Error(err)
 }
 
-func (s HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
+func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
 	readPidFile = func(fileName string) ([]byte, error) {
 		return []byte(""), fmt.Errorf("This is an error")
 	}
@@ -143,7 +178,7 @@ func (s HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
 	s.Error(err)
 }
 
-func (s ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
+func (s *ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
 	actual := HaProxyTestSuite{}.mockHaExecCmd()
 	expected := []string{
 		"haproxy",
@@ -193,6 +228,11 @@ func (m *ProxyMock) CreateConfigFromTemplates(templatesPath string, configsPath 
 	return params.Error(0)
 }
 
+func (m *ProxyMock) ReadConfig(configsPath string) (string, error) {
+	params := m.Called(configsPath)
+	return params.String(0), params.Error(1)
+}
+
 func (m *ProxyMock) Reload() error {
 	params := m.Called()
 	return params.Error(0)
@@ -205,6 +245,9 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "CreateConfigFromTemplates" {
 		mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "ReadConfig" {
+		mockObj.On("ReadConfig", mock.Anything).Return("", nil)
 	}
 	if skipMethod != "Reload" {
 		mockObj.On("Reload").Return(nil)

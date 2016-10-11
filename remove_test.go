@@ -67,9 +67,7 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates() {
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
@@ -80,9 +78,7 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates()
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTemplatesFails() {
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
@@ -94,9 +90,7 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTe
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	mockObj := getProxyMock("")
 	proxy = mockObj
 
@@ -107,9 +101,7 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
 	proxyOrig := proxy
-	defer func() {
-		proxy = proxyOrig
-	}()
+	defer func() { proxy = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	proxy = mockObj
