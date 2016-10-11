@@ -12,6 +12,7 @@ Docker Flow: Proxy
 
   * [Reconfigure](#reconfigure)
   * [Remove](#remove)
+  * [Config](#config)
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
