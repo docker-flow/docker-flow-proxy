@@ -80,6 +80,12 @@ The following query arguments can be used to send a *remove* request to *Docker 
 |serviceName|The name of the service. It must match the name stored in Consul            |Yes     |       |go-demo|
 |distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 
+### Config
+
+> Outputs HAProxy configuration
+
+The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/config**
+
 Feedback and Contribution
 -------------------------
 
