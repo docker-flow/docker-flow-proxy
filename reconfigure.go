@@ -46,13 +46,16 @@ type ServiceReconfigure struct {
 	AclCondition         string
 	FullServiceName      string
 	Distribute           bool
+	LookupRetry          int
+	LookupRetryInterval  int
 }
 
 type BaseReconfigure struct {
-	ConsulAddresses []string
-	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ConsulAddresses       []string
+	ConfigsPath           string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName          string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	TemplatesPath         string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	skipAddressValidation bool
 }
 
 var reconfigure Reconfigure
@@ -64,6 +67,11 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
+	if isSwarm(m.ServiceReconfigure.Mode) && !m.skipAddressValidation {
+		if _, err := lookupHost(m.ServiceName); err != nil {
+			return err
+		}
+	}
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
