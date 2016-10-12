@@ -457,13 +457,13 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 
 // ReloadAllServices
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	err := s.reconfigure.ReloadAllServices([]string{"this/address/does/not/exist"}, s.InstanceName, s.Mode)
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
+	err := s.reconfigure.ReloadAllServices([]string{"this/address/does/not/exist"}, s.InstanceName, s.Mode, "")
 
 	s.Error(err)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()
@@ -482,65 +482,102 @@ func (s ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 		ServiceName:   s.ServiceName,
 	}
 
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
 	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
 	proxyOrig := proxy
 	defer func() { proxy = proxyOrig }()
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	proxyOrig := proxy
 	defer func() { proxy = proxyOrig }()
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
 	s.Error(actual)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
 	proxyOrig := proxy
 	defer func() { proxy = proxyOrig }()
 	proxy = mockObj
 
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
 	proxyOrig := proxy
 	defer func() { proxy = proxyOrig }()
 	proxy = mockObj
 
-	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode)
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
 	s.Error(actual)
 }
 
-func (s ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
 	proxyOrig := proxy
 	defer func() { proxy = proxyOrig }()
 	proxy = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
-	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode)
+	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode, "")
 
 	s.NoError(err)
+}
+
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_SendsARequestToSwarmListener_WhenListenerAddressIsDefined() {
+	actual := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actual = r.URL.Path
+	}))
+	defer func(){ srv.Close() }()
+
+	s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
+
+	s.Equal("/v1/docker-flow-swarm-listener/notify-services", actual)
+}
+
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmListenerStatusIsNot200() {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer func(){ srv.Close() }()
+
+	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
+
+	s.Error(err)
+}
+
+func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmListenerFails() {
+	httpGetOrig := httpGet
+	defer func() { httpGet = httpGetOrig }()
+	httpGet = func(url string) (*http.Response, error) {
+		resp := http.Response{
+			StatusCode: http.StatusOK,
+		}
+		return &resp, fmt.Errorf("This is an error")
+	}
+	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, "http://google.com")
+
+	s.Error(err)
 }
 
 // Suite
@@ -623,8 +660,8 @@ func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return BaseReconfigure{}, ServiceReconfigure{}
 }
 
-func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode string) error {
-	params := m.Called(addresses, instanceName, mode)
+func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+	params := m.Called(addresses, instanceName, mode, listenerAddress)
 	return params.Error(0)
 }
 
@@ -642,7 +679,7 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
 	}
 	if skipMethod != "ReloadAllServices" {
-		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 	if skipMethod != "GetTemplates" {
 		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)

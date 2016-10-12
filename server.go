@@ -50,7 +50,7 @@ func (m *Serve) Execute(args []string) error {
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
 	recon := NewReconfigure(m.BaseReconfigure, ServiceReconfigure{})
-	if err := recon.ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
+	if err := recon.ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode, ""); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)

@@ -21,7 +21,7 @@ var mu = &sync.Mutex{}
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
-	ReloadAllServices(addresses []string, instanceName, mode string) error
+	ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error
 	GetTemplates(sr ServiceReconfigure) (front, back string, err error)
 }
 
@@ -93,75 +93,88 @@ func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
 	return m.BaseReconfigure, m.ServiceReconfigure
 }
 
-func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode string) error {
-	if len(addresses) > 0 || !isSwarm(mode) {
-		var resp *http.Response
-		var err error
-		logPrintf("Configuring existing services")
-		found := false
-		for _, address := range addresses {
-			var servicesUrl string
-			address = strings.ToLower(address)
-			if !strings.HasPrefix(address, "http") {
-				address = fmt.Sprintf("http://%s", address)
-			}
-			if isSwarm(mode) {
-				// TODO: Test
-				servicesUrl = fmt.Sprintf("%s/v1/kv/docker-flow/service?recurse", address)
-			} else {
-				servicesUrl = fmt.Sprintf("%s/v1/catalog/services", address)
-			}
-			resp, err = http.Get(servicesUrl)
-			if err == nil {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("Could not retrieve the list of services from Consul")
-		}
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		c := make(chan ServiceReconfigure)
-		count := 0
-		if isSwarm(mode) {
-			// TODO: Test
-			type Key struct {
-				Value string `json:"Key"`
-			}
-			data := []Key{}
-			json.Unmarshal(body, &data)
-			count = len(data)
-			for _, key := range data {
-				parts := strings.Split(key.Value, "/")
-				serviceName := parts[len(parts)-1]
-				go m.getService(addresses, serviceName, instanceName, c)
-			}
-		} else {
-			var data map[string]interface{}
-			json.Unmarshal(body, &data)
-			count = len(data)
-			for key, _ := range data {
-				go m.getService(addresses, key, instanceName, c)
-			}
-		}
-		logPrintf("\tFound %d services", count)
-
-		for i := 0; i < count; i++ {
-			s := <-c
-			s.Mode = mode
-			if len(s.ServicePath) > 0 {
-				logPrintf("\tConfiguring %s", s.ServiceName)
-				m.createConfigs(m.TemplatesPath, &s)
-			}
-		}
-
-		if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+	if len(listenerAddress) > 0 {
+		fullAddress := fmt.Sprintf("%s/v1/docker-flow-swarm-listener/notify-services", listenerAddress)
+		resp, err := httpGet(fullAddress)
+		if err != nil {
 			return err
+		} else if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("Swarm Listener responded with the status code %d", resp.StatusCode)
 		}
-		return proxy.Reload()
+		logPrintf("A request was sent to the Swarm listener running on %s. The proxy will be reconfigured soon.", listenerAddress)
+	} else if len(addresses) > 0 || !isSwarm(mode) {
+		return m.reloadFromRegistry(addresses, instanceName, mode)
 	}
 	return nil
+}
+
+func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode string) error {
+	var resp *http.Response
+	var err error
+	logPrintf("Configuring existing services")
+	found := false
+	for _, address := range addresses {
+		var servicesUrl string
+		address = strings.ToLower(address)
+		if !strings.HasPrefix(address, "http") {
+			address = fmt.Sprintf("http://%s", address)
+		}
+		if isSwarm(mode) {
+			// TODO: Test
+			servicesUrl = fmt.Sprintf("%s/v1/kv/docker-flow/service?recurse", address)
+		} else {
+			servicesUrl = fmt.Sprintf("%s/v1/catalog/services", address)
+		}
+		resp, err = http.Get(servicesUrl)
+		if err == nil {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("Could not retrieve the list of services from Consul")
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	c := make(chan ServiceReconfigure)
+	count := 0
+	if isSwarm(mode) {
+		// TODO: Test
+		type Key struct {
+			Value string `json:"Key"`
+		}
+		data := []Key{}
+		json.Unmarshal(body, &data)
+		count = len(data)
+		for _, key := range data {
+			parts := strings.Split(key.Value, "/")
+			serviceName := parts[len(parts)-1]
+			go m.getService(addresses, serviceName, instanceName, c)
+		}
+	} else {
+		var data map[string]interface{}
+		json.Unmarshal(body, &data)
+		count = len(data)
+		for key, _ := range data {
+			go m.getService(addresses, key, instanceName, c)
+		}
+	}
+	logPrintf("\tFound %d services", count)
+
+	for i := 0; i < count; i++ {
+		s := <-c
+		s.Mode = mode
+		if len(s.ServicePath) > 0 {
+			logPrintf("\tConfiguring %s", s.ServiceName)
+			m.createConfigs(m.TemplatesPath, &s)
+		}
+	}
+
+	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+		return err
+	}
+	return proxy.Reload()
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {

@@ -27,6 +27,7 @@ var httpListenAndServe = http.ListenAndServe
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 	w.Header().Set("Content-Type", value)
 }
+var httpGet = http.Get
 var logPrintf = log.Printf
 
 type Executable interface {
