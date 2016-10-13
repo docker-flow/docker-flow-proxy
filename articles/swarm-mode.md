@@ -4,7 +4,7 @@ Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
 * [Examples](#examples)
 
   * [Setup](#setup)
-  * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
+  * [Reconfiguring the Proxy](#reconfiguring-the-proxy)
   * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
   * [Scaling the Proxy](#scaling-the-proxy)
 
@@ -50,7 +50,7 @@ We'll skip a detailed explanation of the Swarm cluster that is incorporated into
 
 Now we're ready to deploy a service.
 
-### Automatically Reconfiguring the Proxy
+### Reconfiguring the Proxy
 
 We'll start by creating two networks.
 

@@ -548,7 +548,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_SendsARequestToSwarmListen
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actual = r.URL.Path
 	}))
-	defer func(){ srv.Close() }()
+	defer func() { srv.Close() }()
 
 	s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
 
@@ -559,7 +559,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmList
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer func(){ srv.Close() }()
+	defer func() { srv.Close() }()
 
 	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
 

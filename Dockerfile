@@ -16,14 +16,13 @@ ENV CONSUL_ADDRESS ""
 ENV PROXY_INSTANCE_NAME "docker-flow"
 ENV MODE "default"
 ENV SERVICE_NAME "proxy"
+ENV LISTENER_ADDRESS ""
 
 EXPOSE 80
 EXPOSE 443
 EXPOSE 8080
 
 CMD ["docker-flow-proxy", "server"]
-
-HEALTHCHECK --interval=10s CMD wget -qO- localhost:8080/v1/test
 
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl

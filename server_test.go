@@ -86,7 +86,9 @@ func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 		actual = addr
 		return nil
 	}
+
 	server.Execute([]string{})
+
 	s.Equal(expected, actual)
 }
 
@@ -134,6 +136,33 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	server.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+}
+
+func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
+	listenerAddress := "swarm-listener"
+	mockObj := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+		return mockObj
+	}
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		os.Unsetenv("LISTENER_ADDRESS")
+		server.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
+	server.ListenerAddress = listenerAddress
+
+	server.Execute([]string{})
+
+	mockObj.AssertCalled(
+		s.T(),
+		"ReloadAllServices",
+		[]string{s.ConsulAddress},
+		s.InstanceName,
+		s.Mode,
+		fmt.Sprintf("http://%s:8080", listenerAddress),
+	)
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {

@@ -20,8 +20,9 @@ type Server interface {
 
 type Serve struct {
 	IP          string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
-	Port        string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
 	Mode        string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
+	Port        string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
 	ServiceName string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
 	BaseReconfigure
 }
@@ -50,7 +51,16 @@ func (m *Serve) Execute(args []string) error {
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
 	recon := NewReconfigure(m.BaseReconfigure, ServiceReconfigure{})
-	if err := recon.ReloadAllServices(m.ConsulAddresses, m.InstanceName, m.Mode, ""); err != nil {
+	lAddr := ""
+	if len(m.ListenerAddress) > 0 {
+		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
+	}
+	if err := recon.ReloadAllServices(
+		m.ConsulAddresses,
+		m.InstanceName,
+		m.Mode,
+		lAddr,
+	); err != nil {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
@@ -61,7 +71,9 @@ func (m *Serve) Execute(args []string) error {
 }
 
 func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	logPrintf("Processing request %s", req.URL)
+	if !strings.EqualFold(req.URL.Path, "/v1/test") {
+		logPrintf("Processing request %s", req.URL)
+	}
 	switch req.URL.Path {
 	case "/v1/docker-flow-proxy/reconfigure":
 		m.reconfigure(w, req)
@@ -72,7 +84,9 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
-		logPrintf("Invoked %s", req.URL.Path)
+		if !strings.EqualFold(req.URL.Path, "/v1/test") {
+			logPrintf("Invoked %s", req.URL.Path)
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write(js)
 	default:
