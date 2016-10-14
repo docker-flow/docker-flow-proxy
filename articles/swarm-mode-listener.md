@@ -273,7 +273,7 @@ The Flow Explained
 
 We'll go over the flow of a request to one of the services in the Swarm cluster.
 
-A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port `80` or HTTPS on the port `443``.
+A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port `80` or HTTPS on the port `443`.
 
 DNS resolves the domain to one of the servers inside the cluster. We do not need to register all the nodes. A few is enough (more than one in the case of a failure).
 
