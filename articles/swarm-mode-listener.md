@@ -11,14 +11,14 @@ Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
 * [The Flow Explained](#the-flow-explained)
 * [Usage](../README.md#usage)
 
-*Docker Flow: Proxy* running in the *swarm* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
+*Docker Flow: Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*. If you are looking for a proxy solution that would work with older Docker versions or without Swarm Mode, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
 
 Examples
 --------
 
 The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
+> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
 
 Please note that *Docker Flow: Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
@@ -60,13 +60,13 @@ docker network create --driver overlay proxy
 docker network create --driver overlay go-demo
 ```
 
-The first (*proxy*) will be dedicated to the proxy container and services that should be exposed through it. The second (*go-demo*) is the network used for communications between containers that constitute the *go-demo* service.
+The first network (*proxy*) will be dedicated to the proxy container and services that should be exposed through it. The second (*go-demo*) is the network used for communications between containers that constitute the *go-demo* service.
 
 Next, we'll create the [swarm-listener](https://github.com/vfarcic/docker-flow-swarm-listener) service. It is companion to the `Docker Flow: Proxy`. Its purpose is to monitor Swarm services and send requests to the proxy whenever a service is created or destroyed.
 
 Please note that the assumption is that Swarm manager nodes are labeled as `type == manager`. If you're running these examples on your own Swarm cluster, make sure that all manager nodes are labeled. An example command to label a node would be `docker node update --label-add type=manager node-1`.
 
-Let's create the service.
+Let's create the `swarm-listener` service.
 
 ```bash
 docker service create --name swarm-listener \
@@ -92,7 +92,7 @@ docker service create --name proxy \
     vfarcic/docker-flow-proxy
 ```
 
-We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The proxy is attached to the *proxy* network and has the mode set to *swarm*. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.
+We opened ports *80* and *443*. External requests will be routed through them towards destination services. The proxy is attached to the *proxy* network and has the mode set to *swarm*. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.
 
 Let's deploy the demo service. It consists of two containers; *mongo* is the database and *vfarcic/go-demo* is the actual service that uses it. They will communicate with each other through the *go-demo* network. Since we want to expose only *vfarcic/go-demo* to the "outside" world and keep the database "private", only the *vfarcic/go-demo* container will attach itself to the *proxy* network.
 
@@ -118,7 +118,7 @@ docker service create --name go-demo \
 
 The details of the *go-demo* service are irrelevant for this exercise. What matters is that it was deployed somewhere inside the cluster and that it does not have any port exposed outside of the networks *go-demo* and *proxy*.
 
-Please note the labels. They are a crucial part of the service definition. The `com.df.notify=true` tells the `Swarm Listener` whether to send a notifications whenever a service is created or removed. The rest of the labels match the query arguments we would use if we'd reconfigure the proxy manually. The only difference is that the labels are prefixed with `com.df`. For the list of the query arguments, please see the [Usage](../#usage) section.
+Please note the labels. They are a crucial part of the service definition. The `com.df.notify=true` tells the `Swarm Listener` whether to send a notifications whenever a service is created or removed. The rest of the labels match the query arguments we would use if we'd reconfigure the proxy manually. The only difference is that the labels are prefixed with `com.df`. For the list of the query arguments, please see the [Usage](../README.md#usage) section.
 
 Now we should wait until all the services are running. You can see their status by executing the command that follows.
 
@@ -254,15 +254,13 @@ This tells the proxy the address of the `Docker Flow: Swarm Listener` service. W
 
 If, for example, an instance of the proxy fails, Swarm will reschedule it and, soon afterwards, a new instance will be created. In that case, the process would be the same as when we scaled the proxy and, as the end result, the rescheduled instance will also have the same state as any other.
 
-To test whether all the instances are indeed having the same configuration, we can send a couple of requests to the *go-demo* service.
+To test whether all the instances are indeed having the same configuration, we can send a couple of requests to the *go-demo* service. Please run the command that follows a couple of times.
 
 ```bash
-# Please run the command that follows a couple of times
-
 curl -i $(docker-machine ip node-1)/demo/hello
 ```
 
-Since Docker's networking routing mesh is doing load balancing, each of those requests is sent to a different instance. Each request returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
+Since Docker's networking routing mesh is doing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, the destination service returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
 Now that we have three proxy instances running (and synchronized), we can test how the system behaves if one of them fails. We'll remove one of the instances and observe what happens.
 
