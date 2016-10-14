@@ -4,7 +4,8 @@ Docker Flow: Proxy
 * [Introduction](#introduction)
 * [Modes](#modes)
 
-  * [The Swarm Mode (Docker 1.12+)](articles/swarm-mode.md)
+  * [The Swarm Mode (Docker 1.12+) with automatic configuration](articles/swarm-mode-listener.md)
+  * [The Swarm Mode (Docker 1.12+) with manual configuration](articles/swarm-mode.md)
   * [The Default Mode](articles/standard-mode.md)
 
 * [Containers Definition](#containers-definition)
@@ -26,7 +27,8 @@ Modes
 
 Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **swarm** mode aims to leverage the benefits that come with *Docker Swarm* and new networking introduced in the 1.12 release. The later mode (*swarm*) does not have any dependency but Docker Engine. The *swarm* mode is recommended for all who use *Docker Swarm* features introduced in v1.12.
 
-### [The Swarm Mode (Docker 1.12+)](articles/swarm-mode.md)
+### [The Swarm Mode (Docker 1.12+) with automatic configuration](articles/swarm-mode-listener.md)
+### [The Swarm Mode (Docker 1.12+) with manual configuration](articles/swarm-mode.md)
 ### [The Default Mode](articles/standard-mode.md)
 
 Usage
@@ -36,7 +38,7 @@ Usage
 
 > The *Docker Flow: Proxy* container can be configured through environment variables
 
-The following environment variable can be used to configure the *Docker Flow: Proxy*.
+The following environment variables can be used to configure the *Docker Flow: Proxy*.
 
 |Variable           |Description                                               |Required|Default|Example|
 |-------------------|----------------------------------------------------------|--------|-------|-------|

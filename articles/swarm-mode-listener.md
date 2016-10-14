@@ -118,7 +118,7 @@ docker service create --name go-demo \
 
 The details of the *go-demo* service are irrelevant for this exercise. What matters is that it was deployed somewhere inside the cluster and that it does not have any port exposed outside of the networks *go-demo* and *proxy*.
 
-Please note the labels. They are a crucial part of the service definition. The `com.df.notify=true` tells the `Swarm Listener` whether to send a notifications whenever a service is created or removed. The rest of the labels match the query arguments we would use if we'd reconfigure the proxy manually. The only difference is that the labels are prefixed with `com.df`. For the list of the query arguments, please see the [Usage](../README.md#usage) section.
+Please note the labels. They are a crucial part of the service definition. The `com.df.notify=true` tells the `Swarm Listener` whether to send a notifications whenever a service is created or removed. The rest of the labels match the query arguments we would use if we'd reconfigure the proxy manually. The only difference is that the labels are prefixed with `com.df`. For the list of the query arguments, please see the [Reconfigure](../README.md#reconfigure) section.
 
 Now we should wait until all the services are running. You can see their status by executing the command that follows.
 
@@ -147,11 +147,11 @@ We sent a request to the proxy (the only service listening to the port 80) and g
 
 The way the process works is as follows.
 
-*Docker Flow: Swarm Listener* is running inside one of the Swarm manager nodes and queries Swarm's API in search for newly created services. Once it find a new service it looks for it's labels. If the service contains the `com.df.notify` label (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form a request parameters. Those parameters are appended to the address specified as the `DF_NOTIF_CREATE_SERVICE_URL` environment variable defined in the listener service and a request is made. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as path and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances and the `distribute` argument means that reconfiguration should be applied to all.
+*Docker Flow: Swarm Listener* is running inside one of the Swarm manager nodes and queries Swarm's API in search for newly created services. Once it finds a new service, it looks for it's labels. If the service contains the `com.df.notify` label (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIF_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service and a request is made. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as path and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances (for fault tollerance) and the `distribute` argument means that reconfiguration should be applied to all.
 
-Please see the [Usage](../#usage) section for the list of all the arguments that can be used with the proxy.
+Please see the [Reconfigure](../README.md#reconfigure) section for the list of all the arguments that can be used with the proxy.
 
-Since *Docker Flow: Proxy* uses new networking features added to Docker 1.12, it redirects all requests to the internally created SDN. As a result, Docker takes care of load balancing, so there is no need to reconfigure the proxy every time a new instance is deployed. We can confirm that by creating a few additional replicas.
+Since *Docker Flow: Proxy* uses new networking features added to Docker 1.12, it redirects all requests to the Swarm SDN (in this case called `proxy`). As a result, Docker takes care of load balancing, so there is no need to reconfigure it every time a new instance is deployed. We can confirm that by creating a few additional replicas.
 
 ```bash
 docker service update --replicas 5 go-demo
@@ -159,7 +159,7 @@ docker service update --replicas 5 go-demo
 curl -i $(docker-machine ip node-1)/demo/hello
 ```
 
-Feel free to repeat this request a few more times. Once done, check the logs of any of the replicas and you'll notice that it received approximately one-fifth of the requests. No matter how many instances are running and with which frequency they change, swarm network will make sure that requests are load balanced across all currently running instances.
+Feel free to repeat this request a few more times. Once done, check the logs of any of the replicas and you'll notice that it received approximately one-fifth of the requests. No matter how many instances are running and with which frequency they change, Swarm networking will make sure that requests are load balanced across all currently running instances.
 
 *Docker Flow: Proxy* reconfiguration is not limited to a single *service path*. Multiple values can be divided by comma (*,*). For example, our service might expose multiple versions of the API. In such a case, an example `servicePath` label attached to the `go-demo`service could be as follows.
 
@@ -185,13 +185,11 @@ Since `Swarm Listener` is monitoring docker services, if a service is removed, r
 docker service rm go-demo
 ```
 
-If you'd check the `Swarm Listener` logs, you'd see an entry similar to the one that follows.
+If you check the `Swarm Listener` logs, you'll see an entry similar to the one that follows.
 
 ```
 Sending a service removed notification to http://proxy:8080/v1/docker-flow-proxy/remove?serviceName=go-demo
 ```
-
-From this moment on, the service *go-demo* is not available through the proxy.
 
 A moment later, a new entry would appear in the proxy logs.
 
@@ -203,9 +201,11 @@ Removing the go-demo configuration files
 Reloading the proxy
 ```
 
-`Swarm Listener` detected that the service was removed, send a notification to the proxy which, in turn, changed its configuration and reloaded underlying HAPRoxy.
+From this moment on, the service *go-demo* is not available through the proxy.
 
-Now that you've seen how to automatically add and removed services from the proxy, let's take a look at scaling options.
+`Swarm Listener` detected that the service was removed, send a notification to the proxy which, in turn, changed its configuration and reloaded underlying HAProxy.
+
+Now that you've seen how to automatically add and remove services from the proxy, let's take a look at scaling options.
 
 ### Scaling the Proxy
 
@@ -213,7 +213,7 @@ Swarm is continuously monitoring containers health. If one of them fails, it wil
 
 Let's see how *Docker Flow: Proxy* behaves when scaled.
 
-But, before we scale the proxy, let's recreate the `go-demo` service we removed few moments ago.
+Before we scale the proxy, we'll recreate the `go-demo` service that we removed a few moments ago.
 
 ```bash
 docker service create --name go-demo \
@@ -242,40 +242,44 @@ Let's scale the proxy to three instances.
 docker service scale proxy=3
 ```
 
-The proxy was scaled to three instances. Normally, creating a new instance means that it starts without a state. As a result, the new instances would not have the `go-demo` service configured. Having different state among instances would produce quite a few indesirable effects. This is where the environment variable `LISTENER_ADDRESS` comes into play.
+The proxy was scaled to three instances.
 
-If you go back to the command we used to create the proxy service, you'll notice the argument that follows.
+Normally, creating a new instance means that it starts without a state. As a result, the new instances would not have the `go-demo` service configured. Having different states among instances would produce quite a few undesirable effects. This is where the environment variable `LISTENER_ADDRESS` comes into play.
+
+If you go back to the command we used to create the `proxy` service, you'll notice the argument that follows.
 
 ```bash
     -e LISTENER_ADDRESS=swarm-listener \
 ```
 
-This tells the proxy the address of the `Docker Flow: Swarm Listener` service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications about all the services. As a result, each proxy instance will soon created the same state as those created before it. As a result, every instance of the proxy will have the same state as the other.
+This tells the proxy the address of the `Docker Flow: Swarm Listener` service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications for all the services. As a result, each proxy instance will soon have the same state as the other.
 
 If, for example, an instance of the proxy fails, Swarm will reschedule it and, soon afterwards, a new instance will be created. In that case, the process would be the same as when we scaled the proxy and, as the end result, the rescheduled instance will also have the same state as any other.
 
-To test whether all the instances are indeed having the same configuration, we can send a couple of requests to the *go-demo* service. Please run the command that follows a couple of times.
+To test whether all the instances are indeed having the same configuration, we can send a couple of requests to the *go-demo* service.
+
+Please run the command that follows a couple of times.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
 ```
 
-Since Docker's networking routing mesh is doing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, the destination service returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
+Since Docker's networking (`routing mesh`) is performing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, all requests returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
-Now that we have three proxy instances running (and synchronized), we can test how the system behaves if one of them fails. We'll remove one of the instances and observe what happens.
+Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
 
 The Flow Explained
 ------------------
 
-Let's go over the flow of a request to one of the services in the Swarm cluster.
+We'll go over the flow of a request to one of the services in the Swarm cluster.
 
-A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port 80 or HTTPS on the port 443.
+A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port `80` or HTTPS on the port `443``.
 
 DNS resolves the domain to one of the servers inside the cluster. We do not need to register all the nodes. A few is enough (more than one in the case of a failure).
 
-The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances. It uses a round robin load balancing so that all instances share the load (more or less) equally.
+The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances of the proxy. It uses round robin load balancing so that all instances share the load (more or less) equally.
 
-The proxy inspects the request path (e.g. */demo/hello*) and sends it the end-point with the same name as the destination service (e.g. go-demo). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. *proxy*). The proxy changes the port of the destination service (e.g. *8080*).
+The proxy inspects the request path (e.g. `/demo/hello`) and sends it the end-point with the same name as the destination service (e.g. `go-demo`). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. `proxy`). The proxy changes the port to the one of the destination service (e.g. `8080`).
 
 The proxy network performs load balancing among all the instances of the destination service, and re-sends the request to one of them.
 
