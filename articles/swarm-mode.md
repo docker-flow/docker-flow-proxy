@@ -1,5 +1,4 @@
-Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
-==============================================
+# Docker Flow: Proxy - Swarm Mode (Docker 1.12+) With Automatic Configuration
 
 * [Examples](#examples)
 
@@ -13,8 +12,7 @@ Docker Flow: Proxy - Swarm Mode (Docker 1.12+)
 
 *Docker Flow: Proxy* running in the *swarm* mode is designed to leverage the features introduced in Docker v1.12. If you are looking for a proxy solution that would work with older Docker versions, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) article.
 
-Examples
---------
+## Examples
 
 The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
