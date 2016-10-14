@@ -120,7 +120,13 @@ The details of the *go-demo* service are irrelevant for this exercise. What matt
 
 Please note the labels. They are a crucial part of the service definition. The `com.df.notify=true` tells the `Swarm Listener` whether to send a notifications whenever a service is created or removed. The rest of the labels match the query arguments we would use if we'd reconfigure the proxy manually. The only difference is that the labels are prefixed with `com.df`. For the list of the query arguments, please see the [Usage](../#usage) section.
 
-Let's see the effect of those labels before discussing them further.
+Now we should wait until all the services are running. You can see their status by executing the command that follows.
+
+```bash
+docker service ls
+```
+
+Once all the replicas are set to `1/1`, we can see the effect of the `com.df` labels.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello

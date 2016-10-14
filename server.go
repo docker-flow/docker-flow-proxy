@@ -177,8 +177,9 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
 				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				w.WriteHeader(http.StatusOK)
 			}
-			w.WriteHeader(http.StatusOK)
 		}
 	} else {
 		m.writeBadRequest(w, &response, "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)")
@@ -244,7 +245,6 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusOK)
 	httpWriterSetContentType(w, "text/html")
 	out, err := proxy.ReadConfig(m.BaseReconfigure.ConfigsPath)
 	if err != nil {
