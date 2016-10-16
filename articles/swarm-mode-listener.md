@@ -76,7 +76,7 @@ docker service create --name swarm-listener \
     vfarcic/docker-flow-swarm-listener
 ```
 
-The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIF_CREATE_SERVICE_URL` and `DF_NOTIF_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon.
+The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIF_CREATE_SERVICE_URL` and `DF_NOTIF_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the nodes labeled as `manager`.
 
 The next step is to create the proxy service.
 
@@ -90,7 +90,7 @@ docker service create --name proxy \
     vfarcic/docker-flow-proxy
 ```
 
-We opened ports *80* and *443*. External requests will be routed through them towards destination services. The proxy is attached to the *proxy* network and has the mode set to *swarm*. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.
+We opened the ports *80* and *443*. External requests will be routed through them towards destination services. The proxy is attached to the *proxy* network and has the mode set to *swarm*. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.
 
 Let's deploy the demo service. It consists of two containers; *mongo* is the database and *vfarcic/go-demo* is the actual service that uses it. They will communicate with each other through the *go-demo* network. Since we want to expose only *vfarcic/go-demo* to the "outside" world and keep the database "private", only the *vfarcic/go-demo* container will attach itself to the *proxy* network.
 
@@ -124,7 +124,7 @@ Now we should wait until all the services are running. You can see their status 
 docker service ls
 ```
 
-Once all the replicas are set to `1/1`, we can see the effect of the `com.df` labels.
+Once all the replicas are set to `1/1`, we can see the effect of the `com.df` labels by sending a request to the `go-demo` service through the proxy.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
