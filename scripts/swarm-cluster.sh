@@ -26,4 +26,4 @@ docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
 
 eval $(docker-machine env node-1)
 
-docker node update --label-add type=manager node-1
+# docker node update --label-add type=manager node-1

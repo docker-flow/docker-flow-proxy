@@ -62,8 +62,6 @@ The first network (*proxy*) will be dedicated to the proxy container and service
 
 Next, we'll create the [swarm-listener](https://github.com/vfarcic/docker-flow-swarm-listener) service. It is companion to the `Docker Flow: Proxy`. Its purpose is to monitor Swarm services and send requests to the proxy whenever a service is created or destroyed.
 
-Please note that the assumption is that Swarm manager nodes are labeled as `type == manager`. If you're running these examples on your own Swarm cluster, make sure that all manager nodes are labeled. An example command to label a node would be `docker node update --label-add type=manager node-1`.
-
 Let's create the `swarm-listener` service.
 
 ```bash
@@ -72,11 +70,11 @@ docker service create --name swarm-listener \
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
     -e DF_NOTIF_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
     -e DF_NOTIF_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
-    --constraint 'node.labels.type == manager' \
+    --constraint 'node.role==manager' \
     vfarcic/docker-flow-swarm-listener
 ```
 
-The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIF_CREATE_SERVICE_URL` and `DF_NOTIF_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the nodes labeled as `manager`.
+The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIF_CREATE_SERVICE_URL` and `DF_NOTIF_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the `manager` nodes.
 
 The next step is to create the proxy service.
 
