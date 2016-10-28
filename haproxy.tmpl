@@ -7,6 +7,7 @@ defaults
 
     option  dontlognull
     option  dontlog-normal
+    option  http-server-close
     option  forwardfor
     option  redispatch
 
@@ -27,4 +28,3 @@ defaults
 frontend services
     bind *:80
     bind *:443
-    option http-server-close
