@@ -423,10 +423,12 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessi
 	skipAddressValidationOrig := s.reconfigure.skipAddressValidation
 	defer func() { s.reconfigure.skipAddressValidation = skipAddressValidationOrig }()
 	s.reconfigure.skipAddressValidation = false
+	println("xxx")
 
 	err := s.reconfigure.Execute([]string{})
 
 	s.Error(err)
+//	s.NoError(err)
 }
 
 // NewReconfigure

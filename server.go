@@ -107,9 +107,6 @@ func (m *Serve) SendDistributeRequests(req *http.Request, serviceName string) (s
 			addr := fmt.Sprintf("http://%s:%s%s?%s", ips[i], m.Port, req.URL.Path, req.URL.RawQuery)
 			logPrintf("Sending distribution request to %s", addr)
 			if resp, err := client.Get(addr); err != nil || resp.StatusCode >= 300 {
-				if resp != nil {
-					logPrintf("Received status code: %d", resp.StatusCode)
-				}
 				if err != nil {
 					logPrintf(err.Error())
 				}
