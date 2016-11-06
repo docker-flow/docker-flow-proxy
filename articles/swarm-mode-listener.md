@@ -64,6 +64,16 @@ Next, we'll create the [swarm-listener](https://github.com/vfarcic/docker-flow-s
 
 Let's create the `swarm-listener` service.
 
+> ## A note to Windows users
+>
+> For mounts to work, you will have to enter one of the machines before executing the `docker service create` command to work. To enter the Docker Machine, please execute the command that follows.
+>
+> `docker-machine ssh node-1`
+>
+> Please exit the machine once you finish executing the command that follows.
+>
+> `exit`
+
 ```bash
 docker service create --name swarm-listener \
     --network proxy \
