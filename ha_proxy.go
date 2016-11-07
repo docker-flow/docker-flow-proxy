@@ -91,11 +91,7 @@ func (m HaProxy) getConfigs(templatesPath string) (string, error) {
 		content = append(content, string(templateBytes))
 	}
 	if len(configsFiles) == 1 {
-		content = append(content, `frontend dummy-fe
-    bind *:80
-    bind *:443
-    option http-server-close
-    acl url_dummy path_beg /dummy
+		content = append(content, `    acl url_dummy path_beg /dummy
     use_backend dummy-be if url_dummy
 
 backend dummy-be

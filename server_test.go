@@ -19,11 +19,13 @@ type ServerTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
 	ConsulAddress      string
+	BaseUrl string
 	ReconfigureBaseUrl string
 	RemoveBaseUrl      string
 	ReconfigureUrl     string
 	RemoveUrl          string
 	ConfigUrl          string
+	CertUrl			   string
 	ResponseWriter     *ResponseWriterMock
 	RequestReconfigure *http.Request
 	RequestRemove      *http.Request
@@ -39,8 +41,9 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ServiceColor = "pink"
 	s.ServiceDomain = "my-domain.com"
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
-	s.ReconfigureBaseUrl = "/v1/docker-flow-proxy/reconfigure"
-	s.RemoveBaseUrl = "/v1/docker-flow-proxy/remove"
+	s.BaseUrl = "/v1/docker-flow-proxy"
+	s.ReconfigureBaseUrl = fmt.Sprintf("%s/reconfigure", s.BaseUrl)
+	s.RemoveBaseUrl = fmt.Sprintf("%s/remove", s.BaseUrl)
 	s.ReconfigureUrl = fmt.Sprintf(
 		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s",
 		s.ReconfigureBaseUrl,
@@ -54,6 +57,10 @@ func (s *ServerTestSuite) SetupTest() {
 		s.RemoveBaseUrl,
 		s.ServiceName,
 	)
+	s.CertUrl = fmt.Sprintf(
+		"%s/cert?my-cert.pem",
+		s.BaseUrl,
+	)
 	s.ConfigUrl = "/v1/docker-flow-proxy/config"
 	s.ResponseWriter = getResponseWriterMock()
 	s.RequestReconfigure, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
@@ -61,7 +68,7 @@ func (s *ServerTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
-	server = Serve{
+	serverImpl = Serve{
 		BaseReconfigure: BaseReconfigure{
 			ConsulAddresses: []string{s.ConsulAddress},
 			InstanceName:    s.InstanceName,
@@ -76,18 +83,18 @@ func (s *ServerTestSuite) SetupTest() {
 // Execute
 
 func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
-	server := Serve{
+	serverImpl := Serve{
 		IP:   "myIp",
 		Port: "1234",
 	}
 	var actual string
-	expected := fmt.Sprintf("%s:%s", server.IP, server.Port)
+	expected := fmt.Sprintf("%s:%s", serverImpl.IP, serverImpl.Port)
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		actual = addr
 		return nil
 	}
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	s.Equal(expected, actual)
 }
@@ -101,7 +108,7 @@ func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenHTTPListenAndServeFails(
 		return fmt.Errorf("This is an error")
 	}
 
-	actual := server.Execute([]string{})
+	actual := serverImpl.Execute([]string{})
 
 	s.Error(actual)
 }
@@ -116,7 +123,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
 		return mockObj
 	}
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
@@ -129,11 +136,11 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	consulAddressesOrig := []string{s.ConsulAddress}
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
-		server.ConsulAddresses = consulAddressesOrig
+		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 }
@@ -148,12 +155,12 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
 		os.Unsetenv("LISTENER_ADDRESS")
-		server.ConsulAddresses = consulAddressesOrig
+		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
-	server.ListenerAddress = listenerAddress
+	serverImpl.ListenerAddress = listenerAddress
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	mockObj.AssertCalled(
 		s.T(),
@@ -166,25 +173,25 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {
-	server.Mode = "seRviCe"
+	serverImpl.Mode = "seRviCe"
 	mockObj := getReconfigureMock("")
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return mockObj
 	}
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsSwarm() {
-	server.Mode = "SWarM"
+	serverImpl.Mode = "SWarM"
 	mockObj := getReconfigureMock("")
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 		return mockObj
 	}
 
-	server.Execute([]string{})
+	serverImpl.Execute([]string{})
 
 	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
 }
@@ -196,7 +203,7 @@ func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails()
 		return mockObj
 	}
 
-	actual := server.Execute([]string{})
+	actual := serverImpl.Execute([]string{})
 
 	s.Error(actual)
 }
@@ -211,10 +218,10 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddressesToEmptySlice_WhenEnvVa
 
 func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 	expected := "http://my-consul"
-	consulAddressesOrig := server.ConsulAddresses
+	consulAddressesOrig := serverImpl.ConsulAddresses
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
-		server.ConsulAddresses = consulAddressesOrig
+		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", expected)
 	srv := Serve{}
@@ -226,10 +233,10 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 
 func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
 	expected := []string{"http://my-consul-1", "http://my-consul-2"}
-	consulAddressesOrig := server.ConsulAddresses
+	consulAddressesOrig := serverImpl.ConsulAddresses
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
-		server.ConsulAddresses = consulAddressesOrig
+		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", strings.Join(expected, ","))
 	srv := Serve{}
@@ -241,10 +248,10 @@ func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
 
 func (s *ServerTestSuite) Test_Execute_AddsHttpToConsulAddresses() {
 	expected := []string{"http://my-consul-1", "http://my-consul-2"}
-	consulAddressesOrig := server.ConsulAddresses
+	consulAddressesOrig := serverImpl.ConsulAddresses
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
-		server.ConsulAddresses = consulAddressesOrig
+		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", "my-consul-1,my-consul-2")
 	srv := Serve{}
@@ -275,6 +282,53 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
 	}
+}
+
+// ServeHTTP > Cert
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertPut_WhenUrlIsCert() {
+	invoked := false
+	certOrig := cert
+	defer func(){ cert = certOrig }()
+	cert = CertMock{
+		PutMock: func(http.ResponseWriter, *http.Request) (string, error) {
+			invoked = true
+			return "", nil
+		},
+	}
+	req, _ := http.NewRequest("PUT", s.CertUrl, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Assert().True(invoked)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvoke_WhenUrlIsCertAndMethodIsNotPut() {
+	invoked := false
+	certOrig := cert
+	defer func(){ cert = certOrig }()
+	cert = CertMock{
+		PutMock: func(http.ResponseWriter, *http.Request) (string, error) {
+			invoked = true
+			return "", nil
+		},
+	}
+	req, _ := http.NewRequest("GET", s.CertUrl, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Assert().False(invoked)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatusNotFound_WhenUrlIsCertAndMethodIsNotPut() {
+	req, _ := http.NewRequest("GET", s.CertUrl, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
 }
 
 // ServeHTTP > Reconfigure
@@ -578,7 +632,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		actualService = serviceData
 		return mockObj
 	}
-	server := Serve{BaseReconfigure: expectedBase}
+	serverImpl := Serve{BaseReconfigure: expectedBase}
 	address := fmt.Sprintf(
 		"%s?serviceName=%s&consulTemplateFePath=%s&consulTemplateBePath=%s",
 		s.ReconfigureBaseUrl,
@@ -587,7 +641,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		pathBe)
 	req, _ := http.NewRequest("GET", address, nil)
 
-	server.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal(expectedBase, actualBase)
 	s.Equal(expectedService, actualService)
@@ -652,7 +706,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		return mockObj
 	}
 
-	server.ServeHTTP(s.ResponseWriter, s.RequestRemove)
+	serverImpl.ServeHTTP(s.ResponseWriter, s.RequestRemove)
 
 	s.Equal(expected, actual)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
@@ -713,11 +767,11 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_InvokesLookupHost() {
 		return []string{}, nil
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
-	server.ServiceName = "my-fancy-proxy"
+	serverImpl.ServiceName = "my-fancy-proxy"
 
-	server.SendDistributeRequests(req, s.ServiceName)
+	serverImpl.SendDistributeRequests(req, s.ServiceName)
 
-	s.Assert().Equal(fmt.Sprintf("tasks.%s", server.ServiceName), actualHost)
+	s.Assert().Equal(fmt.Sprintf("tasks.%s", serverImpl.ServiceName), actualHost)
 }
 
 func (s *ServerTestSuite) Test_SednDistributeRequests_ReturnsError_WhenLookupHostFails() {
@@ -728,7 +782,7 @@ func (s *ServerTestSuite) Test_SednDistributeRequests_ReturnsError_WhenLookupHos
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	status, err := server.SendDistributeRequests(req, s.ServiceName)
+	status, err := serverImpl.SendDistributeRequests(req, s.ServiceName)
 
 	s.Assertions.Equal(http.StatusBadRequest, status)
 	s.Assertions.Error(err)
@@ -746,14 +800,14 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_SendsHttpRequestForEachIp(
 	dnsIpsOrig := s.DnsIps
 	defer func() { s.DnsIps = dnsIpsOrig }()
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
-	portOrig := server.Port
-	defer func() { server.Port = portOrig }()
-	server.Port = strings.Split(tsAddr, ":")[1]
+	portOrig := serverImpl.Port
+	defer func() { serverImpl.Port = portOrig }()
+	serverImpl.Port = strings.Split(tsAddr, ":")[1]
 
-	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", server.Port, s.ReconfigureUrl)
+	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", serverImpl.Port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	server.SendDistributeRequests(req, s.ServiceName)
+	serverImpl.SendDistributeRequests(req, s.ServiceName)
 
 	s.Assert().Equal(s.ReconfigureBaseUrl, actualPath)
 	s.Assert().Equal("false", actualQuery.Get("distribute"))
@@ -769,14 +823,14 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenRequestFa
 	dnsIpsOrig := s.DnsIps
 	defer func() { s.DnsIps = dnsIpsOrig }()
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
-	portOrig := server.Port
-	defer func() { server.Port = portOrig }()
-	server.Port = strings.Split(tsAddr, ":")[1]
+	portOrig := serverImpl.Port
+	defer func() { serverImpl.Port = portOrig }()
+	serverImpl.Port = strings.Split(tsAddr, ":")[1]
 
-	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", server.Port, s.ReconfigureUrl)
+	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", serverImpl.Port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	status, err := server.SendDistributeRequests(req, s.ServiceName)
+	status, err := serverImpl.SendDistributeRequests(req, s.ServiceName)
 
 	s.Assertions.Equal(http.StatusBadRequest, status)
 	s.Assertions.Error(err)
@@ -871,6 +925,14 @@ func getResponseWriterMock() *ResponseWriterMock {
 	return mockObj
 }
 
+type CertMock struct {
+	PutMock func(http.ResponseWriter, *http.Request) (string, error)
+}
+
+func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) {
+	return m.PutMock(w, req)
+}
+
 // Util
 
 func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
@@ -885,12 +947,12 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 		actualService = serviceData
 		return mockObj
 	}
-	server := Serve{BaseReconfigure: expectedBase}
+	serverImpl := Serve{BaseReconfigure: expectedBase}
 	portOrig := s.Port
 	defer func() { s.Port = portOrig }()
 	s.Port = ""
 
-	server.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ServeHTTP(s.ResponseWriter, req)
 
 	if invoke {
 		s.Equal(expectedBase, actualBase)

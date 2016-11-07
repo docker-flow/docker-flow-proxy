@@ -75,10 +75,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesMockDataIfConfigs
 	}
 	expectedData := `template content
 
-frontend dummy-fe
-    bind *:80
-    bind *:443
-    option http-server-close
     acl url_dummy path_beg /dummy
     use_backend dummy-be if url_dummy
 

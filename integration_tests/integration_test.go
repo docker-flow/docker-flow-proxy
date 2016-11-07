@@ -39,12 +39,12 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
-	"log"
-	"os/exec"
 )
 
 type IntegrationTestSuite struct {

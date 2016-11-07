@@ -267,9 +267,9 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 		key      string
 		value    *string
 	}{
-		{"ipFromArgs", "ip", &server.IP},
-		{"portFromArgs", "port", &server.Port},
-		{"modeFromArgs", "mode", &server.Mode},
+		{"ipFromArgs", "ip", &serverImpl.IP},
+		{"portFromArgs", "port", &serverImpl.Port},
+		{"modeFromArgs", "mode", &serverImpl.Mode},
 	}
 
 	for _, d := range data {
@@ -288,9 +288,9 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 		key      string
 		value    *string
 	}{
-		{"ipFromArgs", "i", &server.IP},
-		{"portFromArgs", "p", &server.Port},
-		{"modeFromArgs", "m", &server.Mode},
+		{"ipFromArgs", "i", &serverImpl.IP},
+		{"portFromArgs", "p", &serverImpl.Port},
+		{"modeFromArgs", "m", &serverImpl.Mode},
 	}
 
 	for _, d := range data {
@@ -310,8 +310,8 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 		expected string
 		value    *string
 	}{
-		{"0.0.0.0", &server.IP},
-		{"8080", &server.Port},
+		{"0.0.0.0", &serverImpl.IP},
+		{"8080", &serverImpl.Port},
 	}
 
 	Args{}.Parse()
@@ -327,9 +327,9 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"ipFromEnv", "IP", &server.IP},
-		{"portFromEnv", "PORT", &server.Port},
-		{"modeFromEnv", "MODE", &server.Mode},
+		{"ipFromEnv", "IP", &serverImpl.IP},
+		{"portFromEnv", "PORT", &serverImpl.Port},
+		{"modeFromEnv", "MODE", &serverImpl.Mode},
 	}
 
 	for _, d := range data {

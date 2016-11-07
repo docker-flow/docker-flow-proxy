@@ -1,13 +1,13 @@
 package integration_test
 
 import (
-	"github.com/stretchr/testify/suite"
-	"os"
-	"testing"
 	"fmt"
+	"github.com/stretchr/testify/suite"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
+	"os"
+	"testing"
 	"time"
 )
 

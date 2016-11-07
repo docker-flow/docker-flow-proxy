@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"./server"
 )
 
 const (
@@ -19,15 +20,16 @@ type Server interface {
 }
 
 type Serve struct {
-	IP          string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
-	Mode        string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	IP              string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	Mode            string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
-	Port        string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
-	ServiceName string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
+	Port            string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
+	ServiceName     string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
 	BaseReconfigure
 }
 
-var server = Serve{}
+var serverImpl = Serve{}
+var cert server.Certer = server.NewCert("certs")
 
 type Response struct {
 	Status               string
@@ -81,6 +83,12 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		m.remove(w, req)
 	case "/v1/docker-flow-proxy/config":
 		m.config(w, req)
+	case "/v1/docker-flow-proxy/cert":
+		if req.Method == "PUT" {
+			cert.Put(w, req)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")

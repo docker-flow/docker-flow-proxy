@@ -104,22 +104,22 @@ Let's deploy the demo service. It consists of two containers; *mongo* is the dat
 
 ```bash
 docker service create --name go-demo-db \
-  --network go-demo \
-  mongo
+    --network go-demo \
+    mongo
 ```
 
 Let's run up the second service.
 
 ```bash
 docker service create --name go-demo \
-  -e DB=go-demo-db \
-  --network go-demo \
-  --network proxy \
-  --label com.df.notify=true \
-  --label com.df.distribute=true \
-  --label com.df.servicePath=/demo \
-  --label com.df.port=8080 \
-  vfarcic/go-demo
+    -e DB=go-demo-db \
+    --network go-demo \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/demo \
+    --label com.df.port=8080 \
+    vfarcic/go-demo
 ```
 
 The details of the *go-demo* service are irrelevant for this exercise. What matters is that it was deployed somewhere inside the cluster and that it does not have any port exposed outside of the networks *go-demo* and *proxy*.
