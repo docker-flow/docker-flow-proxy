@@ -1,10 +1,9 @@
 // +build !integration
 
-package main
+package proxy
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"os"
 	"os/exec"
@@ -17,13 +16,18 @@ type HaProxyTestSuite struct {
 	suite.Suite
 	TemplatesPath string
 	ConfigsPath   string
+	Pid               string
 }
 
 func (s *HaProxyTestSuite) SetupTest() {
+	s.Pid = "123"
 	s.TemplatesPath = "test_configs/tmpl"
 	s.ConfigsPath = "test_configs"
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		return nil
+	}
+	readPidFile = func(fileName string) ([]byte, error) {
+		return []byte(s.Pid), nil
 	}
 }
 
@@ -174,7 +178,7 @@ func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
 	s.Error(err)
 }
 
-func (s *ReconfigureTestSuite) Test_Reload_RunsRunCmd() {
+func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	actual := HaProxyTestSuite{}.mockHaExecCmd()
 	expected := []string{
 		"haproxy",
@@ -199,8 +203,6 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
 	suite.Run(t, new(HaProxyTestSuite))
 }
 
-// Helper
-
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string
 	cmdRunHa = func(cmd *exec.Cmd) error {
@@ -208,45 +210,4 @@ func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 		return nil
 	}
 	return &actualCommand
-}
-
-type ProxyMock struct {
-	mock.Mock
-}
-
-func (m *ProxyMock) RunCmd(extraArgs []string) error {
-	params := m.Called(extraArgs)
-	return params.Error(0)
-}
-
-func (m *ProxyMock) CreateConfigFromTemplates(templatesPath string, configsPath string) error {
-	params := m.Called(templatesPath, configsPath)
-	return params.Error(0)
-}
-
-func (m *ProxyMock) ReadConfig(configsPath string) (string, error) {
-	params := m.Called(configsPath)
-	return params.String(0), params.Error(1)
-}
-
-func (m *ProxyMock) Reload() error {
-	params := m.Called()
-	return params.Error(0)
-}
-
-func getProxyMock(skipMethod string) *ProxyMock {
-	mockObj := new(ProxyMock)
-	if skipMethod != "RunCmd" {
-		mockObj.On("RunCmd", mock.Anything).Return(nil)
-	}
-	if skipMethod != "CreateConfigFromTemplates" {
-		mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(nil)
-	}
-	if skipMethod != "ReadConfig" {
-		mockObj.On("ReadConfig", mock.Anything).Return("", nil)
-	}
-	if skipMethod != "Reload" {
-		mockObj.On("Reload").Return(nil)
-	}
-	return mockObj
 }

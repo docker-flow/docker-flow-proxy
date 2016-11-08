@@ -16,23 +16,6 @@ func (s *RunTestSuite) SetupTest() {
 	logPrintf = func(format string, v ...interface{}) {}
 }
 
-// Execute
-
-func (s RunTestSuite) Test_Execute_ExecutesCommand() {
-	actual := HaProxyTestSuite{}.mockHaExecCmd()
-	expected := []string{
-		"haproxy",
-		"-f",
-		"/cfg/haproxy.cfg",
-		"-D",
-		"-p",
-		"/var/run/haproxy.pid",
-	}
-	NewRun().Execute([]string{})
-
-	s.Equal(expected, *actual)
-}
-
 // NewRun
 
 func (s RunTestSuite) Test_NewRun_ReturnsNewStruct() {

@@ -11,12 +11,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	haproxy "./proxy"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
 const ServiceTemplateBeFilename = "service-formatted-be.ctmpl"
 
 var mu = &sync.Mutex{}
+var proxy = haproxy.ProxyInstance
 
 type Reconfigurable interface {
 	Executable

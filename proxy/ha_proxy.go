@@ -1,22 +1,19 @@
-package main
+package proxy
 
 import (
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"html/template"
+	"bytes"
 )
 
-type Proxy interface {
-	RunCmd(extraArgs []string) error
-	CreateConfigFromTemplates(templatesPath string, configsPath string) error
-	ReadConfig(configsPath string) (string, error)
-	Reload() error
-}
-
-var proxy Proxy = HaProxy{}
-
 type HaProxy struct{}
+
+type Data struct {
+	CertsString string
+}
 
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{
@@ -67,7 +64,7 @@ func (m HaProxy) Reload() error {
 }
 
 func (m HaProxy) getConfigs(templatesPath string) (string, error) {
-	content := []string{}
+	contentArr := []string{}
 	configsFiles := []string{"haproxy.tmpl"}
 	configs, err := readConfigsDir(templatesPath)
 	if err != nil {
@@ -88,14 +85,19 @@ func (m HaProxy) getConfigs(templatesPath string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("Could not read the file %s\n%s", file, err.Error())
 		}
-		content = append(content, string(templateBytes))
+		contentArr = append(contentArr, string(templateBytes))
 	}
 	if len(configsFiles) == 1 {
-		content = append(content, `    acl url_dummy path_beg /dummy
+		contentArr = append(contentArr, `    acl url_dummy path_beg /dummy
     use_backend dummy-be if url_dummy
 
 backend dummy-be
     server dummy 1.1.1.1:1111 check`)
 	}
-	return strings.Join(content, "\n\n"), nil
+	tmpl, _ := template.New("contentTemplate").Parse(
+		strings.Join(contentArr, "\n\n"),
+	)
+	var content bytes.Buffer
+	tmpl.Execute(&content, Data{})
+	return content.String(), nil
 }
