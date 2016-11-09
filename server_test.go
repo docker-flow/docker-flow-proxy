@@ -3,6 +3,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
@@ -19,13 +20,13 @@ type ServerTestSuite struct {
 	suite.Suite
 	ServiceReconfigure
 	ConsulAddress      string
-	BaseUrl string
+	BaseUrl            string
 	ReconfigureBaseUrl string
 	RemoveBaseUrl      string
 	ReconfigureUrl     string
 	RemoveUrl          string
 	ConfigUrl          string
-	CertUrl			   string
+	CertUrl            string
 	ResponseWriter     *ResponseWriterMock
 	RequestReconfigure *http.Request
 	RequestRemove      *http.Request
@@ -289,7 +290,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertPut_WhenUrlIsCert() {
 	invoked := false
 	certOrig := cert
-	defer func(){ cert = certOrig }()
+	defer func() { cert = certOrig }()
 	cert = CertMock{
 		PutMock: func(http.ResponseWriter, *http.Request) (string, error) {
 			invoked = true
@@ -307,7 +308,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertPut_WhenUrlIsCert() {
 func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvoke_WhenUrlIsCertAndMethodIsNotPut() {
 	invoked := false
 	certOrig := cert
-	defer func(){ cert = certOrig }()
+	defer func() { cert = certOrig }()
 	cert = CertMock{
 		PutMock: func(http.ResponseWriter, *http.Request) (string, error) {
 			invoked = true
@@ -727,21 +728,20 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToText_WhenUrlIsConfig()
 	s.Equal("text/html", actual)
 }
 
-// TODO: Uncomment
-//func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
-//	expected := "some text"
-//	readFileOrig := readFile
-//	defer func() { readFile = readFileOrig }()
-//	readFile = func(filename string) ([]byte, error) {
-//		return []byte(expected), nil
-//	}
-//
-//	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-//	srv := Serve{}
-//	srv.ServeHTTP(s.ResponseWriter, req)
-//
-//	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
-//}
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
+	expected := "some text"
+	readFileOrig := haproxy.ReadFile
+	defer func() { haproxy.ReadFile = readFileOrig }()
+	haproxy.ReadFile = func(filename string) ([]byte, error) {
+		return []byte(expected), nil
+	}
+
+	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
 	readFileOrig := readFile

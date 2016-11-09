@@ -1,13 +1,14 @@
 package main
 
 import (
+	haproxy "./proxy"
+	"./server"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"./server"
 )
 
 const (
@@ -29,7 +30,7 @@ type Serve struct {
 }
 
 var serverImpl = Serve{}
-var cert server.Certer = server.NewCert("certs")
+var cert server.Certer = server.NewCert("/certs")
 
 type Response struct {
 	Status               string
@@ -251,7 +252,12 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 
 func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "text/html")
-	out, err := proxy.ReadConfig(m.BaseReconfigure.ConfigsPath)
+	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
+	// TODO: Change []string{} env vars
+	if proxy == nil {
+		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	}
+	out, err := proxy.ReadConfig()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {

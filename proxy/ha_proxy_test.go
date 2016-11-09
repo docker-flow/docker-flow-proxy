@@ -16,7 +16,7 @@ type HaProxyTestSuite struct {
 	suite.Suite
 	TemplatesPath string
 	ConfigsPath   string
-	Pid               string
+	Pid           string
 }
 
 func (s *HaProxyTestSuite) SetupTest() {
@@ -42,7 +42,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDi
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := HaProxy{}.CreateConfigFromTemplates(s.TemplatesPath, s.ConfigsPath)
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -62,7 +62,49 @@ config2 content`
 		return nil
 	}
 
-	HaProxy{}.CreateConfigFromTemplates(s.TemplatesPath, s.ConfigsPath)
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
+	var actualFilename string
+	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
+	var actualData string
+	expectedData := `template content ssl crt /certs/my-cert.pem
+
+config1 content
+
+config2 content`
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{"my-cert.pem"}).CreateConfigFromTemplates()
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsMultipleCerts() {
+	var actualFilename string
+	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
+	var actualData string
+	expectedData := `template content ssl crt /certs/my-cert.pem crt /certs/my-other-cert.pem
+
+config1 content
+
+config2 content`
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{"my-cert.pem", "my-other-cert.pem"}).CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -90,7 +132,7 @@ backend dummy-be
 		return nil
 	}
 
-	HaProxy{}.CreateConfigFromTemplates(s.TemplatesPath, s.ConfigsPath)
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -104,7 +146,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadCo
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := HaProxy{}.CreateConfigFromTemplates(s.TemplatesPath, s.ConfigsPath)
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -119,27 +161,27 @@ func (s *HaProxyTestSuite) Test_ReadConfig_ReturnsConfig() {
 config1 content
 
 config2 content`
-	readFileOrig := readFile
-	defer func() { readFile = readFileOrig }()
-	readFile = func(filename string) ([]byte, error) {
+	readFileOrig := ReadFile
+	defer func() { ReadFile = readFileOrig }()
+	ReadFile = func(filename string) ([]byte, error) {
 		actualFilename = filename
 		return []byte(expectedData), nil
 	}
 
-	actualData, _ := HaProxy{}.ReadConfig(s.ConfigsPath)
+	actualData, _ := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).ReadConfig()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
 }
 
 func (s *HaProxyTestSuite) Test_ReadConfig_ReturnsError_WhenReadFileFails() {
-	readFileOrig := readFile
-	defer func() { readFile = readFileOrig }()
-	readFile = func(filename string) ([]byte, error) {
+	readFileOrig := ReadFile
+	defer func() { ReadFile = readFileOrig }()
+	ReadFile = func(filename string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("This is an error")
 	}
 
-	_, actual := HaProxy{}.ReadConfig(s.ConfigsPath)
+	_, actual := HaProxy{}.ReadConfig()
 
 	s.Error(actual)
 }

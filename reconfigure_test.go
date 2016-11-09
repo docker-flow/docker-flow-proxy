@@ -313,7 +313,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates
 
 	s.reconfigure.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
@@ -339,32 +339,35 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 	mock.AssertCalled(s.T(), "Reload")
 }
 
-// TODO: Uncomment
-//func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
-//	s.SkipCheck = true
-//	s.reconfigure.SkipCheck = true
-//	s.reconfigure.ServiceDomain = s.ServiceDomain
-//	s.reconfigure.ConsulTemplateFePath = s.ConsulTemplateFePath
-//	s.reconfigure.ConsulTemplateBePath = s.ConsulTemplateBePath
-//	mockObj := getRegistrarableMock("")
-//	registryInstanceOrig := registryInstance
-//	defer func() { registryInstance = registryInstanceOrig }()
-//	registryInstance = mockObj
-//	r := registry.Registry{
-//		ServiceName:          s.ServiceName,
-//		ServiceColor:         s.ServiceColor,
-//		ServicePath:          s.ServicePath,
-//		ServiceDomain:        s.ServiceDomain,
-//		PathType:             s.PathType,
-//		SkipCheck:            s.SkipCheck,
-//		ConsulTemplateFePath: s.ConsulTemplateFePath,
-//		ConsulTemplateBePath: s.ConsulTemplateBePath,
-//	}
-//
-//	s.reconfigure.Execute([]string{})
-//
-//	mockObj.AssertCalled(s.T(), "PutService", []string{s.ConsulAddress}, s.InstanceName, r)
-//}
+func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
+	s.SkipCheck = true
+	s.reconfigure.SkipCheck = true
+	s.reconfigure.ServiceDomain = s.ServiceDomain
+	s.reconfigure.ConsulTemplateFePath = s.ConsulTemplateFePath
+	s.reconfigure.ConsulTemplateBePath = s.ConsulTemplateBePath
+	mockObj := getRegistrarableMock("")
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = mockObj
+	r := registry.Registry{
+		ServiceName:          s.ServiceName,
+		ServiceColor:         s.ServiceColor,
+		ServicePath:          s.ServicePath,
+		ServiceDomain:        s.ServiceDomain,
+		PathType:             s.PathType,
+		SkipCheck:            s.SkipCheck,
+		ConsulTemplateFePath: s.ConsulTemplateFePath,
+		ConsulTemplateBePath: s.ConsulTemplateBePath,
+	}
+	proxyMockObj := getProxyMock("")
+	proxyOrig := proxy
+	defer func() { proxy = proxyOrig }()
+	proxy = proxyMockObj
+
+	s.reconfigure.Execute([]string{})
+
+	mockObj.AssertCalled(s.T(), "PutService", []string{s.ConsulAddress}, s.InstanceName, r)
+}
 
 func (s *ReconfigureTestSuite) Test_Execute_DoesNotPutDataToConsul_WhenModeIsServiceAndConsulAddressIsEmpty() {
 	s.verifyDoesNotPutDataToConsul("seRViCe")
@@ -492,7 +495,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFr
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {

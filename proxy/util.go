@@ -1,9 +1,9 @@
 package proxy
 
 import (
-	"os/exec"
 	"io/ioutil"
 	"log"
+	"os/exec"
 )
 
 var cmdRunHa = func(cmd *exec.Cmd) error {
@@ -11,7 +11,7 @@ var cmdRunHa = func(cmd *exec.Cmd) error {
 }
 var readConfigsFile = ioutil.ReadFile
 var writeFile = ioutil.WriteFile
-var readFile = ioutil.ReadFile
+var ReadFile = ioutil.ReadFile
 var logPrintf = log.Printf
 var readPidFile = ioutil.ReadFile
 var readConfigsDir = ioutil.ReadDir

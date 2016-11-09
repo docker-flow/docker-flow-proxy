@@ -73,7 +73,7 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates()
 
 	s.remove.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTemplatesFails() {

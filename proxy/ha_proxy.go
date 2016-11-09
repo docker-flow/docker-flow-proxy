@@ -1,18 +1,18 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
 	"strings"
-	"html/template"
-	"bytes"
 )
 
-type HaProxy struct{}
-
-type Data struct {
-	CertsString string
+type HaProxy struct {
+	Certs         []string
+	TemplatesPath string
+	ConfigsPath   string
 }
 
 func (m HaProxy) RunCmd(extraArgs []string) error {
@@ -34,18 +34,18 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	return nil
 }
 
-func (m HaProxy) CreateConfigFromTemplates(templatesPath string, configsPath string) error {
-	configsContent, err := m.getConfigs(templatesPath)
+func (m HaProxy) CreateConfigFromTemplates() error {
+	configsContent, err := m.getConfigs()
 	if err != nil {
 		return err
 	}
-	configPath := fmt.Sprintf("%s/haproxy.cfg", configsPath)
+	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
 	return writeFile(configPath, []byte(configsContent), 0664)
 }
 
-func (m HaProxy) ReadConfig(configsPath string) (string, error) {
-	configPath := fmt.Sprintf("%s/haproxy.cfg", configsPath)
-	out, err := readFile(configPath)
+func (m HaProxy) ReadConfig() (string, error) {
+	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
+	out, err := ReadFile(configPath)
 	if err != nil {
 		return "", err
 	}
@@ -63,12 +63,12 @@ func (m HaProxy) Reload() error {
 	return HaProxy{}.RunCmd(cmdArgs)
 }
 
-func (m HaProxy) getConfigs(templatesPath string) (string, error) {
+func (m HaProxy) getConfigs() (string, error) {
 	contentArr := []string{}
 	configsFiles := []string{"haproxy.tmpl"}
-	configs, err := readConfigsDir(templatesPath)
+	configs, err := readConfigsDir(m.TemplatesPath)
 	if err != nil {
-		return "", fmt.Errorf("Could not read the directory %s\n%s", templatesPath, err.Error())
+		return "", fmt.Errorf("Could not read the directory %s\n%s", m.TemplatesPath, err.Error())
 	}
 	for _, fi := range configs {
 		if strings.HasSuffix(fi.Name(), "-fe.cfg") {
@@ -81,7 +81,7 @@ func (m HaProxy) getConfigs(templatesPath string) (string, error) {
 		}
 	}
 	for _, file := range configsFiles {
-		templateBytes, err := readConfigsFile(fmt.Sprintf("%s/%s", templatesPath, file))
+		templateBytes, err := readConfigsFile(fmt.Sprintf("%s/%s", m.TemplatesPath, file))
 		if err != nil {
 			return "", fmt.Errorf("Could not read the file %s\n%s", file, err.Error())
 		}
@@ -98,6 +98,27 @@ backend dummy-be
 		strings.Join(contentArr, "\n\n"),
 	)
 	var content bytes.Buffer
-	tmpl.Execute(&content, Data{})
+	type Data struct {
+		CertsString string
+	}
+	certs := []string{}
+	if len(m.Certs) > 0 {
+		certs = append(certs, " ssl")
+		for _, cert := range m.Certs {
+			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
+		}
+	}
+	data := Data{
+		CertsString: strings.Join(certs, " "),
+	}
+	tmpl.Execute(&content, data)
 	return content.String(), nil
+}
+
+func NewHaProxy(templatesPath, configsPath string, certs []string) Proxy {
+	return HaProxy{
+		TemplatesPath: templatesPath,
+		ConfigsPath:   configsPath,
+		Certs:         certs,
+	}
 }

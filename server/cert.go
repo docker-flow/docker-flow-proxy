@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
-var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
-	w.Header().Set("Content-Type", value)
-}
+var mu = &sync.Mutex{}
 
 type Certer interface {
 	Put(w http.ResponseWriter, req *http.Request) (string, error)
@@ -31,7 +30,8 @@ func (m Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	if len(name) == 0 {
 		return "", fmt.Errorf("Query parameter certName is mandatory")
 	}
-	f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, name))
+	defer func() { req.Body.Close() }()
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		js, _ := json.Marshal(CertResponse{
 			Status:  "NOK",
@@ -41,8 +41,9 @@ func (m Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 		w.WriteHeader(http.StatusBadRequest)
 		return "", err
 	}
-	defer func() { req.Body.Close() }()
-	body, err := ioutil.ReadAll(req.Body)
+	mu.Lock()
+	defer mu.Unlock()
+	f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, name))
 	if err != nil {
 		js, _ := json.Marshal(CertResponse{
 			Status:  "NOK",

@@ -381,13 +381,13 @@ func (m *ProxyMock) RunCmd(extraArgs []string) error {
 	return params.Error(0)
 }
 
-func (m *ProxyMock) CreateConfigFromTemplates(templatesPath string, configsPath string) error {
-	params := m.Called(templatesPath, configsPath)
+func (m *ProxyMock) CreateConfigFromTemplates() error {
+	params := m.Called()
 	return params.Error(0)
 }
 
-func (m *ProxyMock) ReadConfig(configsPath string) (string, error) {
-	params := m.Called(configsPath)
+func (m *ProxyMock) ReadConfig() (string, error) {
+	params := m.Called()
 	return params.String(0), params.Error(1)
 }
 
@@ -402,10 +402,10 @@ func getProxyMock(skipMethod string) *ProxyMock {
 		mockObj.On("RunCmd", mock.Anything).Return(nil)
 	}
 	if skipMethod != "CreateConfigFromTemplates" {
-		mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(nil)
+		mockObj.On("CreateConfigFromTemplates").Return(nil)
 	}
 	if skipMethod != "ReadConfig" {
-		mockObj.On("ReadConfig", mock.Anything).Return("", nil)
+		mockObj.On("ReadConfig").Return("", nil)
 	}
 	if skipMethod != "Reload" {
 		mockObj.On("Reload").Return(nil)

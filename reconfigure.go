@@ -1,6 +1,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"./registry"
 	"bytes"
 	"encoding/json"
@@ -11,14 +12,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	haproxy "./proxy"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
 const ServiceTemplateBeFilename = "service-formatted-be.ctmpl"
 
 var mu = &sync.Mutex{}
-var proxy = haproxy.ProxyInstance
+var proxy haproxy.Proxy
 
 type Reconfigurable interface {
 	Executable
@@ -66,6 +66,7 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 	return &Reconfigure{baseData, serviceData}
 }
 
+// TODO: Remove args
 func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -78,7 +79,12 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
+	// TODO: Change []string{} env vars
+	if proxy == nil {
+		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	}
+	if err := proxy.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
 	if err := proxy.Reload(); err != nil {
@@ -174,7 +180,12 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 		}
 	}
 
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
+	// TODO: Change []string{} to env. vars
+	if proxy == nil {
+		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	}
+	if err := proxy.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
 	return proxy.Reload()
