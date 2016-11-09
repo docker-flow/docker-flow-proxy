@@ -2,8 +2,6 @@
 
 ## Certs
 
-* Store cert names from API
-* Remove cert API (file and name)
 * Read cert names from env
 * Distribute certs request
 * Distribute cert files
@@ -12,6 +10,7 @@
 * Explain certs inside Docker (files + env)
 * Explain certs API
 * Fix TODOs
+* Remove cert API (file and name)
 
 ## Content
 

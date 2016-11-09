@@ -31,6 +31,36 @@ func (s *HaProxyTestSuite) SetupTest() {
 	}
 }
 
+// AddCertName
+
+func (s HaProxyTestSuite) Test_AddCert_StoresCertificateName() {
+	dataOrig := data
+	defer func() { data = dataOrig }()
+	orig := Instance
+	defer func() { Instance = orig }()
+	p := HaProxy{}
+
+	p.AddCert("my-cert-3")
+
+	s.Equal(1, len(data.Certs))
+	s.Equal(map[string]bool{"my-cert-3": true}, data.Certs)
+}
+
+func (s HaProxyTestSuite) Test_AddCert_DoesNotStoreDuplicates() {
+	dataOrig := data
+	defer func() { data = dataOrig }()
+	expected := map[string]bool{"cert-1": true, "cert-2": true, "cert-3": true}
+	data.Certs = expected
+	orig := Instance
+	defer func() { Instance = orig }()
+	p := HaProxy{}
+
+	p.AddCert("cert-3")
+
+	s.Equal(3, len(data.Certs))
+	s.Equal(expected, data.Certs)
+}
+
 // CreateConfigFromTemplates
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDirFails() {
@@ -42,7 +72,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDi
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -62,7 +92,7 @@ config2 content`
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -83,7 +113,7 @@ config2 content`
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{"my-cert.pem"}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -104,7 +134,8 @@ config2 content`
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{"my-cert.pem", "my-other-cert.pem"}).CreateConfigFromTemplates()
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true, "my-other-cert.pem": true})
+	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -132,7 +163,7 @@ backend dummy-be
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -146,7 +177,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadCo
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).CreateConfigFromTemplates()
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -168,7 +199,7 @@ config2 content`
 		return []byte(expectedData), nil
 	}
 
-	actualData, _ := NewHaProxy(s.TemplatesPath, s.ConfigsPath, []string{}).ReadConfig()
+	actualData, _ := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).ReadConfig()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -253,3 +284,4 @@ func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	}
 	return &actualCommand
 }
+

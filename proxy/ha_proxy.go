@@ -10,7 +10,6 @@ import (
 )
 
 type HaProxy struct {
-	Certs         []string
 	TemplatesPath string
 	ConfigsPath   string
 }
@@ -18,12 +17,19 @@ type HaProxy struct {
 // TODO: Change to pointer
 var Instance Proxy
 
-func NewHaProxy(templatesPath, configsPath string, certs []string) Proxy {
+func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
+	data.Certs = certs
 	return HaProxy{
 		TemplatesPath: templatesPath,
 		ConfigsPath:   configsPath,
-		Certs:         certs,
 	}
+}
+
+func (m HaProxy) AddCert(certName string) {
+	if data.Certs == nil {
+		data.Certs = map[string]bool{}
+	}
+	data.Certs[certName] = true
 }
 
 func (m HaProxy) RunCmd(extraArgs []string) error {
@@ -109,19 +115,19 @@ backend dummy-be
 		strings.Join(contentArr, "\n\n"),
 	)
 	var content bytes.Buffer
-	type Data struct {
+	type ConfigData struct {
 		CertsString string
 	}
 	certs := []string{}
-	if len(m.Certs) > 0 {
+	if len(data.Certs) > 0 {
 		certs = append(certs, " ssl")
-		for _, cert := range m.Certs {
+		for cert, _ := range data.Certs {
 			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
 		}
 	}
-	data := Data{
+	configData := ConfigData{
 		CertsString: strings.Join(certs, " "),
 	}
-	tmpl.Execute(&content, data)
+	tmpl.Execute(&content, configData)
 	return content.String(), nil
 }

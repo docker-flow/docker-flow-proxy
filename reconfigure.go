@@ -79,9 +79,9 @@ func (m *Reconfigure) Execute(args []string) error {
 		return err
 	}
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
-	// TODO: Change []string{} env vars
+	// TODO: Change map[string]bool{} env vars
 	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
 	}
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
@@ -180,9 +180,9 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	}
 
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
-	// TODO: Change []string{} to env. vars
+	// TODO: Change map[string]bool{} to env. vars
 	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
 	}
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err

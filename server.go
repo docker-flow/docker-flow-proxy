@@ -253,9 +253,9 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "text/html")
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
-	// TODO: Change []string{} env vars
+	// TODO: Change map[string]bool{} env vars
 	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
 	}
 	out, err := haproxy.Instance.ReadConfig()
 	if err != nil {

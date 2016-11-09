@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-//	"../proxy"
+	"../proxy"
 )
 
 type CertTestSuite struct {
@@ -22,6 +22,10 @@ func (s *CertTestSuite) SetupTest() {
 }
 
 func TestCertUnitTestSuite(t *testing.T) {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := proxy.GetProxyMock("")
+	proxy.Instance = proxyMock
 	s := new(CertTestSuite)
 	suite.Run(t, s)
 }
@@ -48,17 +52,23 @@ func (s *CertTestSuite) Test_Put_SavesBodyAsFile() {
 	s.Equal(expected, string(actual))
 }
 
-func (s *CertTestSuite) Test_Put_StoresCertInMemory() {
-//	p := proxy.NewHaProxy("", "", []string{})
-//	c := NewCert("../certs")
-//	certName := "test.pem"
-//	http.NewRequest(
-//		"PUT",
-//		fmt.Sprintf("http://acme.com/v1/docker-flow-proxy/cert?certName=%s", certName),
-//		strings.NewReader("THIS IS A CERTIFICATE"),
-//	)
-//
-//	p.
+func (s *CertTestSuite) Test_Put_InvokesProxyAddCert() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := proxy.GetProxyMock("")
+	proxy.Instance = proxyMock
+	c := NewCert("../certs")
+	certName := "test.pem"
+	w := getResponseWriterMock()
+	req, _ := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("http://acme.com/v1/docker-flow-proxy/cert?certName=%s", certName),
+		strings.NewReader("THIS IS A CERTIFICATE"),
+	)
+
+	c.Put(w, req)
+
+	proxyMock.AssertCalled(s.T(), "AddCert", certName)
 }
 
 func (s *CertTestSuite) Test_Put_SetsContentTypeToJson() {

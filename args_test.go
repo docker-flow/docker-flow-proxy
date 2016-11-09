@@ -397,6 +397,10 @@ func (m *ProxyMock) Reload() error {
 	return params.Error(0)
 }
 
+func (m *ProxyMock) AddCert(certName string) {
+	m.Called(certName)
+}
+
 func getProxyMock(skipMethod string) *ProxyMock {
 	mockObj := new(ProxyMock)
 	if skipMethod != "RunCmd" {
@@ -410,6 +414,9 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "Reload" {
 		mockObj.On("Reload").Return(nil)
+	}
+	if skipMethod != "AddCert" {
+		mockObj.On("AddCert", mock.Anything).Return(nil)
 	}
 	return mockObj
 }
