@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	haproxy "./proxy"
 )
 
 type ReconfigureTestSuite struct {
@@ -307,9 +308,9 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateC
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.Execute([]string{})
 
@@ -319,9 +320,9 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	err := s.reconfigure.Execute([]string{})
 
@@ -329,10 +330,10 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mock := getProxyMock("")
-	proxy = mock
+	haproxy.Instance = mock
 
 	s.reconfigure.Execute([]string{})
 
@@ -360,9 +361,9 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		ConsulTemplateBePath: s.ConsulTemplateBePath,
 	}
 	proxyMockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = proxyMockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = proxyMockObj
 
 	s.reconfigure.Execute([]string{})
 
@@ -489,9 +490,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -501,9 +502,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFr
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -512,9 +513,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCrea
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -524,9 +525,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -534,9 +535,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyRelo
 }
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = getProxyMock("")
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
 	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode, "")
 

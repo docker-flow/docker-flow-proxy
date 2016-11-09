@@ -254,10 +254,10 @@ func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "text/html")
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
 	// TODO: Change []string{} env vars
-	if proxy == nil {
-		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	if haproxy.Instance == nil {
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
 	}
-	out, err := proxy.ReadConfig()
+	out, err := haproxy.Instance.ReadConfig()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {

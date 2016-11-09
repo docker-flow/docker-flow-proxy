@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+//	"../proxy"
 )
 
 var mu = &sync.Mutex{}
@@ -62,6 +63,7 @@ func (m Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 		Message: "",
 	})
 	w.Write(js)
+//	proxy.Instance.AddCert(name)
 	return path, nil
 }
 

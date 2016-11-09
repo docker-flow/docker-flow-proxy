@@ -43,14 +43,14 @@ func (m *Remove) Execute(args []string) error {
 
 	// TODO: Move the logic somewhere else. Test whether it will work from NewRemove.
 	// TODO: Change []string{} to env vars
-	if proxy == nil {
-		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	if haproxy.Instance == nil {
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
 	}
-	if err := proxy.CreateConfigFromTemplates(); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	if err := proxy.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}

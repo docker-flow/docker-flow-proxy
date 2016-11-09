@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"./proxy"
 )
 
 type ArgsTestSuite struct {
@@ -349,9 +350,9 @@ func TestArgsUnitTestSuite(t *testing.T) {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	logPrintf = func(format string, v ...interface{}) {}
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = getProxyMock("")
 	suite.Run(t, new(ArgsTestSuite))
 }
 

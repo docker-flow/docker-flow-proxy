@@ -15,6 +15,17 @@ type HaProxy struct {
 	ConfigsPath   string
 }
 
+// TODO: Change to pointer
+var Instance Proxy
+
+func NewHaProxy(templatesPath, configsPath string, certs []string) Proxy {
+	return HaProxy{
+		TemplatesPath: templatesPath,
+		ConfigsPath:   configsPath,
+		Certs:         certs,
+	}
+}
+
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{
 		"-f",
@@ -113,12 +124,4 @@ backend dummy-be
 	}
 	tmpl.Execute(&content, data)
 	return content.String(), nil
-}
-
-func NewHaProxy(templatesPath, configsPath string, certs []string) Proxy {
-	return HaProxy{
-		TemplatesPath: templatesPath,
-		ConfigsPath:   configsPath,
-		Certs:         certs,
-	}
 }

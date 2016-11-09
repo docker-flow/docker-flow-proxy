@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+//	"../proxy"
 )
 
 type CertTestSuite struct {
@@ -45,6 +46,19 @@ func (s *CertTestSuite) Test_Put_SavesBodyAsFile() {
 
 	s.NoError(err)
 	s.Equal(expected, string(actual))
+}
+
+func (s *CertTestSuite) Test_Put_StoresCertInMemory() {
+//	p := proxy.NewHaProxy("", "", []string{})
+//	c := NewCert("../certs")
+//	certName := "test.pem"
+//	http.NewRequest(
+//		"PUT",
+//		fmt.Sprintf("http://acme.com/v1/docker-flow-proxy/cert?certName=%s", certName),
+//		strings.NewReader("THIS IS A CERTIFICATE"),
+//	)
+//
+//	p.
 }
 
 func (s *CertTestSuite) Test_Put_SetsContentTypeToJson() {

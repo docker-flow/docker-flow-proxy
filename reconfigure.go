@@ -18,7 +18,6 @@ const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
 const ServiceTemplateBeFilename = "service-formatted-be.ctmpl"
 
 var mu = &sync.Mutex{}
-var proxy haproxy.Proxy
 
 type Reconfigurable interface {
 	Executable
@@ -81,13 +80,13 @@ func (m *Reconfigure) Execute(args []string) error {
 	}
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
 	// TODO: Change []string{} env vars
-	if proxy == nil {
-		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	if haproxy.Instance == nil {
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
 	}
-	if err := proxy.CreateConfigFromTemplates(); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if err := proxy.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
@@ -182,13 +181,13 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 
 	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
 	// TODO: Change []string{} to env. vars
-	if proxy == nil {
-		proxy = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
+	if haproxy.Instance == nil {
+		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, []string{})
 	}
-	if err := proxy.CreateConfigFromTemplates(); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	return proxy.Reload()
+	return haproxy.Instance.Reload()
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {
