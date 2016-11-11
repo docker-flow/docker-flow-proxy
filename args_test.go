@@ -3,6 +3,7 @@
 package main
 
 import (
+	"./proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"./proxy"
 )
 
 type ArgsTestSuite struct {
@@ -401,6 +401,11 @@ func (m *ProxyMock) AddCert(certName string) {
 	m.Called(certName)
 }
 
+func (m *ProxyMock) GetCerts() map[string]string {
+	params := m.Called()
+	return params.Get(0).(map[string]string)
+}
+
 func getProxyMock(skipMethod string) *ProxyMock {
 	mockObj := new(ProxyMock)
 	if skipMethod != "RunCmd" {
@@ -417,6 +422,9 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "AddCert" {
 		mockObj.On("AddCert", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetCerts" {
+		mockObj.On("GetCerts").Return(map[string]string{})
 	}
 	return mockObj
 }

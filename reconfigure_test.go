@@ -3,6 +3,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"./registry"
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	haproxy "./proxy"
 )
 
 type ReconfigureTestSuite struct {

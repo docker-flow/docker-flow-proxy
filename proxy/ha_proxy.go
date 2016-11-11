@@ -32,6 +32,15 @@ func (m HaProxy) AddCert(certName string) {
 	data.Certs[certName] = true
 }
 
+func (m HaProxy) GetCerts() map[string]string {
+	certs := map[string]string{}
+	for cert, _ := range data.Certs {
+		content, _ := ReadFile(fmt.Sprintf("/certs/%s", cert))
+		certs[cert] = string(content)
+	}
+	return certs
+}
+
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{
 		"-f",

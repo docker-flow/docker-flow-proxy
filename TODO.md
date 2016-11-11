@@ -2,15 +2,22 @@
 
 ## Certs
 
-* Read cert names from env
-* Distribute certs request
-* Distribute cert files
 * Get cert files from other instances on init
 * Get cert names from other instances on init
-* Explain certs inside Docker (files + env)
-* Explain certs API
-* Fix TODOs
 * Remove cert API (file and name)
+* Fix TODOs
+* Load existing certs from labels on init
+* Document
+
+  * API: PUT /v1/docker-flow-proxy/cert
+
+* Test
+
+```bash
+curl -i -XPUT \
+    -d 'Content of my certificate PEM file' \
+    $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/cert?certName=viktor.pem
+```
 
 ## Content
 

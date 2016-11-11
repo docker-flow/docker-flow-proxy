@@ -78,11 +78,6 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
-	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
-	// TODO: Change map[string]bool{} env vars
-	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
-	}
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
@@ -169,7 +164,6 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 		}
 	}
 	logPrintf("\tFound %d services", count)
-
 	for i := 0; i < count; i++ {
 		s := <-c
 		s.Mode = mode
@@ -177,12 +171,6 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 			logPrintf("\tConfiguring %s", s.ServiceName)
 			m.createConfigs(m.TemplatesPath, &s)
 		}
-	}
-
-	// TODO: Move the logic somewhere else. Test whether it will work from NewReconfigure.
-	// TODO: Change map[string]bool{} to env. vars
-	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
 	}
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err

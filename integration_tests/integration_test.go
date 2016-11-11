@@ -26,9 +26,10 @@ $ docker-compose -f docker-compose-test.yml run --rm production
 
 Manual tests
 $ docker-compose -f docker-compose-test.yml up -d staging-dep
-$ curl -i "localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=/v1/test"
-$ curl -i localhost/v1/test
-$ curl -i "localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=^/v1/.*es.*&pathType=path_reg"
+$ curl -i "$(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=/v1/test"
+$ curl -i $(docker-machine ip docker-flow-proxy-tests)/v1/test
+$ curl -i -XPUT --data-binary @tmp/xip.io/xip.io.pem "$(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/cert?certName=my-cert.pem"
+$ curl -i "$(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=^/v1/.*es.*&pathType=path_reg"
 $ docker-compose -f docker-compose-test.yml down
 
 Cleanup
@@ -139,6 +140,58 @@ func (s IntegrationTestSuite) Test_Config() {
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	s.Equal(string(expected[:]), string(body))
+}
+
+func (s IntegrationTestSuite) Test_Certs() {
+	// Body is mandatory
+	url := fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=my-cert.pem", os.Getenv("DOCKER_IP"))
+	req, _ := http.NewRequest("PUT", url, nil)
+	client := &http.Client{}
+
+	resp, _ := client.Do(req)
+
+	s.Equal(400, resp.StatusCode)
+
+	// certName is mandatory
+	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert", os.Getenv("DOCKER_IP"))
+	req, _ = http.NewRequest("PUT", url, strings.NewReader("THIS IS A CERTIFICATE"))
+	client = &http.Client{}
+
+	resp, _ = client.Do(req)
+
+	s.Equal(400, resp.StatusCode)
+
+	// Stores certs
+	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=my-cert.pem", os.Getenv("DOCKER_IP"))
+	certContent, _ := ioutil.ReadFile("../certs/xip.io.pem")
+	req, _ = http.NewRequest("PUT", url, strings.NewReader(string(certContent)))
+	client = &http.Client{}
+
+	resp, _ = client.Do(req)
+
+	s.Equal(200, resp.StatusCode)
+
+//	// HTTPS works
+//	url = fmt.Sprintf("https://%s:8080/v2/test", os.Getenv("DOCKER_IP"))
+//	req, _ = http.NewRequest("GET", url, nil)
+//	client = &http.Client{}
+//
+//	resp, err := client.Do(req)
+//
+//	s.NoError(err)
+//	s.Equal(200, resp.StatusCode)
+
+	// Can retrieve certs
+	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/certs", os.Getenv("DOCKER_IP"))
+	req, _ = http.NewRequest("GET", url, nil)
+	client = &http.Client{}
+
+	resp, _ = client.Do(req)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	s.Equal(200, resp.StatusCode)
+	s.Contains(strings.Replace(string(body), "\\n", "\n", -1), string(certContent))
 }
 
 // Util

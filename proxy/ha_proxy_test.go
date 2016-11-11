@@ -61,6 +61,31 @@ func (s HaProxyTestSuite) Test_AddCert_DoesNotStoreDuplicates() {
 	s.Equal(expected, data.Certs)
 }
 
+// GetCerts
+
+func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
+	dataOrig := data
+	defer func() { data = dataOrig }()
+	p := HaProxy{}
+	data.Certs = map[string]bool{}
+	expected := map[string]string{}
+	for i := 1; i <= 3; i++ {
+		certName := fmt.Sprintf("my-cert-%d", i)
+		data.Certs[certName] = true
+		expected[certName] = fmt.Sprintf("content of the certificate /certs/%s", certName)
+	}
+	readFileOrig := ReadFile
+	defer func() { ReadFile = readFileOrig }()
+	ReadFile = func(filename string) ([]byte, error) {
+		content := fmt.Sprintf("content of the certificate %s", filename)
+		return []byte(content), nil
+	}
+
+	actual := p.GetCerts()
+
+	s.EqualValues(expected, actual)
+}
+
 // CreateConfigFromTemplates
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDirFails() {
@@ -114,28 +139,6 @@ config2 content`
 	}
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
-
-	s.Equal(expectedFilename, actualFilename)
-	s.Equal(expectedData, actualData)
-}
-
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsMultipleCerts() {
-	var actualFilename string
-	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
-	var actualData string
-	expectedData := `template content ssl crt /certs/my-cert.pem crt /certs/my-other-cert.pem
-
-config1 content
-
-config2 content`
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true, "my-other-cert.pem": true})
-	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -284,4 +287,3 @@ func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	}
 	return &actualCommand
 }
-

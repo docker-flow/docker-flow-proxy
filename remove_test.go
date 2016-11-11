@@ -3,11 +3,11 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
-	haproxy "./proxy"
 )
 
 type RemoveTestSuite struct {

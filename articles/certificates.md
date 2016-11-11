@@ -42,6 +42,7 @@ docker service create --name swarm-listener \
 docker service create --name proxy \
     -p 80:80 \
     -p 443:443 \
+    --replicas 3 \
     --network proxy \
     -e MODE=swarm \
     -e LISTENER_ADDRESS=swarm-listener \
@@ -89,5 +90,14 @@ docker service update \
 
 docker service inspect proxy --pretty
 
+curl -i -XPUT \
+    --data-binary @tmp/xip.io/xip.io.pem \
+    $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/cert?certName=xip.io.pem
 
+curl -i \
+    $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/certs
+
+# TODO: Show that certs are distributed
+
+# TODO: Show that certs are recuperated from existing instances on scale
 ```

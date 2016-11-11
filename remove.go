@@ -40,12 +40,6 @@ func (m *Remove) Execute(args []string) error {
 		logPrintf(err.Error())
 		return err
 	}
-
-	// TODO: Move the logic somewhere else. Test whether it will work from NewRemove.
-	// TODO: Change map[string]bool{} to env vars
-	if haproxy.Instance == nil {
-		haproxy.Instance = haproxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
-	}
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
