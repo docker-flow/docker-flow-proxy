@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"net/http/httptest"
+	"net"
 )
 
 type CertTestSuite struct {
@@ -71,31 +73,27 @@ func (s *CertTestSuite) Test_GetAll_WritesHeaderStatus200() {
 	w.AssertCalled(s.T(), "WriteHeader", 200)
 }
 
-// NOTE: The assert sometimes fails due to different order of JSON entries.
-// TODO: Rewrite tests
-func (s *CertTestSuite) Test_GetAll_WritesCertsAsJson() {
+func (s *CertTestSuite) Test_GetAll_WritesReturnsCert() {
 	certs := []Cert{}
 	proxyCerts := map[string]string{}
-	for i := 1; i <= 3; i++ {
-		name := fmt.Sprintf("my-service-%d", i)
-		cert := Cert{
-			ServiceName: name,
-			CertsDir:    "/certs",
-			CertContent: fmt.Sprintf("Content of the cert %d", i),
-		}
-		proxyCerts[name] = fmt.Sprintf("Content of the cert %d", i)
-		certs = append(certs, cert)
+	name := "my-service"
+	cert := Cert{
+		CertName: name,
+		CertsDir:    "/certs",
+		CertContent: "Content of the cert",
 	}
+	proxyCerts[name] = "Content of the cert"
+	certs = append(certs, cert)
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("GetCerts")
 	proxyMock.On("GetCerts").Return(proxyCerts)
 	proxy.Instance = proxyMock
-	expected, _ := json.Marshal(CertResponse{
+	expected := CertResponse{
 		Status:  "OK",
 		Message: "",
 		Certs:   certs,
-	})
+	}
 	c := NewCert("../certs")
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
@@ -104,52 +102,214 @@ func (s *CertTestSuite) Test_GetAll_WritesCertsAsJson() {
 		nil,
 	)
 
-	c.GetAll(w, req)
+	actual, _ := c.GetAll(w, req)
 
-	w.AssertCalled(s.T(), "Write", []byte(expected))
+	s.EqualValues(expected, actual)
 }
 
 // Init
 
-//func (s *CertTestSuite) Test_Init_WritesCertsToFiles() {
-//	c := NewCert("../certs")
-//	certs := map[string]string{}
-//	for i := 1; i <= 3; i++ {
-//		certName := fmt.Sprintf("my-cert-%d.pem", i)
-//		certs[certName] = fmt.Sprintf("Content of my-cert-%s.pem", i)
-//		path := fmt.Sprintf("%s/%s", c.CertsDir, certName)
-//		os.Remove(path)
-//	}
-//	proxyOrig := proxy.Instance
-//	defer func() { proxy.Instance = proxyOrig }()
-//	proxyMock := getProxyMock("GetCerts")
-//	proxy.Instance = proxyMock
-//	proxyMock.On("GetCerts").Return(certs)
-//	expected := "THIS IS A CERTIFICATE"
-//
-//	c.Init()
-//
-//	for i := 1; i <= 3; i++ {
-//		certName := fmt.Sprintf("my-cert-%d.pem", i)
-//		actual, _ := ioutil.ReadFile(fmt.Sprintf("%s/%s", c.CertsDir, certName))
-//		s.Equal(expected, string(actual))
-//	}
-//}
+func (s *ServerTestSuite) Test_Init_InvokesLookupHost() {
+	var actualHost string
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		actualHost = host
+		return []string{}, nil
+	}
+	c := NewCert("../certs")
+	c.CertName = s.ServiceName
 
-//func (s *ServerTestSuite) Test_Init_InvokesLookupHost() {
-//	var actualHost string
-//	lookupHostOrig := lookupHost
-//	defer func() { lookupHost = lookupHostOrig }()
-//	lookupHost = func(host string) (addrs []string, err error) {
-//		actualHost = host
-//		return []string{}, nil
-//	}
-//	c := NewCert("../certs")
-//
-//	c.Init()
-//
-//	s.Assert().Equal(fmt.Sprintf("tasks.%s", s.ServiceName), actualHost)
-//}
+	c.Init()
+
+	s.Assert().Equal(fmt.Sprintf("tasks.%s", s.ServiceName), actualHost)
+}
+
+func (s *ServerTestSuite) Test_Init_ReturnsError_WhenLookupHostFails() {
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		return []string{}, fmt.Errorf("This is an LookupHost error")
+	}
+	c := NewCert("../certs")
+
+	err := c.Init()
+
+	s.Assertions.Error(err)
+}
+
+func (s *ServerTestSuite) Test_Init_SendsHttpRequestForEachIp() {
+	var actualPath string
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actualPath = r.URL.Path
+	}))
+	defer func() { testServer.Close() }()
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	ip, port, _ := net.SplitHostPort(tsAddr)
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		hostPort := net.JoinHostPort(ip, port)
+		return []string{hostPort}, nil
+	}
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c := NewCert("../certs")
+	c.CertName = s.ServiceName
+
+	c.Init()
+
+	s.Assert().Equal("/v1/docker-flow-proxy/certs", actualPath)
+}
+
+func (s *ServerTestSuite) Test_Init_DoesNotFail_WhenRequestFails() {
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		return []string{"unknown-address"}, nil
+	}
+	c := NewCert("../certs")
+	c.CertName = s.ServiceName
+
+	err := c.Init()
+
+	s.NoError(err)
+}
+
+func (s *ServerTestSuite) Test_Init_WritesCertToFile() {
+	testServer := s.getCertGetAllMockServer(1, 3)
+	defer func() { testServer.Close() }()
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	ip, port, _ := net.SplitHostPort(tsAddr)
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		hostPort := net.JoinHostPort(ip, port)
+		return []string{hostPort}, nil
+	}
+
+	c := NewCert("../certs")
+	path := fmt.Sprintf("%s/%s", c.CertsDir, "my-cert-3.pem")
+	os.Remove(path)
+	c.CertName = s.ServiceName
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c.Init()
+
+	actual, err := ioutil.ReadFile(path)
+
+	s.NoError(err)
+	s.Equal("Content of my-cert-3.pem", string(actual))
+}
+
+func (s *ServerTestSuite) Test_Init_InvokesProxyAddCert() {
+	testServer := s.getCertGetAllMockServer(1, 3)
+	defer func() { testServer.Close() }()
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	ip, port, _ := net.SplitHostPort(tsAddr)
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		hostPort := net.JoinHostPort(ip, port)
+		return []string{hostPort}, nil
+	}
+	c := NewCert("../certs")
+	c.CertName = s.ServiceName
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c.Init()
+
+	proxyMock.AssertCalled(s.T(), "AddCert", "my-cert-2.pem")
+}
+
+func (s *ServerTestSuite) Test_Init_InvokesProxyCreateConfigFromTemplates() {
+	testServer := s.getCertGetAllMockServer(1, 3)
+	defer func() { testServer.Close() }()
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	ip, port, _ := net.SplitHostPort(tsAddr)
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		hostPort := net.JoinHostPort(ip, port)
+		return []string{hostPort}, nil
+	}
+	c := NewCert("../certs")
+	c.CertName = s.ServiceName
+	c.ServicePort = port
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c.Init()
+
+	proxyMock.AssertCalled(s.T(), "CreateConfigFromTemplates")
+}
+
+func (s *ServerTestSuite) Test_Init_WritesCertToFile_WhenItComesFromTheBiggestResponse() {
+	testServer1 := s.getCertGetAllMockServer(1, 2)
+	testServer2 := s.getCertGetAllMockServer(3, 5)
+	defer func() {
+		testServer1.Close()
+		testServer2.Close()
+	}()
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		tsAddr1 := strings.Replace(testServer1.URL, "http://", "", -1)
+		ip1, port1, _ := net.SplitHostPort(tsAddr1)
+		hostPort1 := net.JoinHostPort(ip1, port1)
+		tsAddr2 := strings.Replace(testServer2.URL, "http://", "", -1)
+		ip2, port2, _ := net.SplitHostPort(tsAddr2)
+		hostPort2 := net.JoinHostPort(ip2, port2)
+		return []string{hostPort1, hostPort2}, nil
+	}
+	c := NewCert("../certs")
+	path2 := fmt.Sprintf("%s/%s", c.CertsDir, "my-cert-2.pem")
+	os.Remove(path2)
+	path3 := fmt.Sprintf("%s/%s", c.CertsDir, "my-cert-3.pem")
+	os.Remove(path3)
+	c.CertName = s.ServiceName
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c.Init()
+
+	_, err := ioutil.ReadFile(path2)
+	s.Error(err)
+
+	_, err = ioutil.ReadFile(path3)
+	s.NoError(err)
+}
+
+func (s *ServerTestSuite) getCertGetAllMockServer(from, to int) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		certs := []Cert{}
+		for i := from; i <= to; i++ {
+			cert := Cert{
+				CertName: fmt.Sprintf("my-cert-%d.pem", i),
+				CertContent: fmt.Sprintf("Content of my-cert-%d.pem", i),
+			}
+			certs = append(certs, cert)
+		}
+		msg := CertResponse{Status: "OK", Message: "",  Certs: certs}
+		httpWriterSetContentType(w, "application/json")
+		w.WriteHeader(http.StatusOK)
+		js, _ := json.Marshal(msg)
+		w.Write(js)
+	}))
+}
 
 // Put
 
@@ -475,7 +635,7 @@ func (s *CertTestSuite) Test_NewCert_SetsServiceName() {
 
 	cert := NewCert("../certs")
 
-	s.Equal(serviceName, cert.ServiceName)
+	s.Equal(serviceName, cert.CertName)
 }
 
 // Mock

@@ -2,7 +2,6 @@
 
 ## Certs
 
-* Get cert files and names from other instances on init
 * Remove cert API (file and name)
 * Fix TODOs
 * Load existing certs from labels on init

@@ -11,18 +11,20 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"strings"
 )
 
 var mu = &sync.Mutex{}
 
 type Certer interface {
 	Put(w http.ResponseWriter, req *http.Request) (string, error)
-	GetAll(w http.ResponseWriter, req *http.Request) error
+	GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, error)
 	Init() error
 }
 
 type Cert struct {
-	ServiceName string
+	ServicePort string
+	CertName    string
 	CertsDir    string
 	CertContent string
 }
@@ -33,24 +35,16 @@ type CertResponse struct {
 	Certs   []Cert
 }
 
-func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) error {
+func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, error) {
 	pCerts := proxy.Instance.GetCerts()
 	certs := []Cert{}
 	for name, content := range pCerts {
-		cert := Cert{
-			ServiceName: name,
-			CertsDir:    "/certs",
-			CertContent: content,
-		}
+		cert := Cert{CertName: name, CertsDir: "/certs", CertContent: content}
 		certs = append(certs, cert)
 	}
-	msg := CertResponse{
-		Status:  "OK",
-		Message: "",
-		Certs:   certs,
-	}
+	msg := CertResponse{Status:  "OK", Message: "", Certs:   certs}
 	m.writeOK(w, msg)
-	return nil
+	return msg, nil
 }
 
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
@@ -77,17 +71,39 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 
 func (m *Cert) Init() error {
 	// TODO: get certs from all instances
-	dns := fmt.Sprintf("tasks.%s", m.ServiceName)
-	if _, err := lookupHost(dns); err == nil {
+	dns := fmt.Sprintf("tasks.%s", m.CertName)
+	client := &http.Client{}
+	if ips, err := lookupHost(dns); err != nil {
+		return err
+	} else {
+		certs := []Cert{}
+		for _, ip := range ips {
+			hostPort := ip
+			if !strings.Contains(ip, ":") {
+				hostPort = net.JoinHostPort(ip, m.ServicePort)
+			}
+			addr := fmt.Sprintf("http://%s/v1/docker-flow-proxy/certs", hostPort)
+			req, _ := http.NewRequest("GET", addr, nil)
+			if resp, err := client.Do(req); err == nil {
+				defer resp.Body.Close()
+				body, _ := ioutil.ReadAll(resp.Body)
+				data := CertResponse{}
+				json.Unmarshal(body, &data)
+				if len(data.Certs) > len(certs) {
+					certs = data.Certs
+				}
+			}
+		}
+		if len(certs) > 0 {
+			for _, cert := range certs {
+				proxy.Instance.AddCert(cert.CertName)
+				m.writeFile(cert.CertName, []byte(cert.CertContent))
+			}
+			proxy.Instance.CreateConfigFromTemplates()
+		}
 	}
+	// TODO: proxy.Instance.CreateConfigFromTemplates()
 	// TODO: Filter with results with the biggest certs collection
-
-	// TODO: Change to names and content from other instances
-//	dns := fmt.Sprintf("tasks.%s", serviceName)
-	//	if ips, err := lookupHost(dns); err == nil {
-	//
-	//	}
-//	m.writeFile("test.pem", []byte("THIS IS A CERTIFICATE"))
 	return nil
 }
 
@@ -113,7 +129,7 @@ func (m *Cert) sendDistributeRequests(w http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		port = "8080"
 	}
-	status, err := server.SendDistributeRequests(req, port, m.ServiceName)
+	status, err := server.SendDistributeRequests(req, port, m.CertName)
 	if err != nil {
 		return m.writeError(w, err)
 	} else if status >= 300 {
@@ -155,6 +171,7 @@ func (m *Cert) writeError(w http.ResponseWriter, err error) error {
 func NewCert(certsDir string) *Cert {
 	return &Cert{
 		CertsDir:    certsDir,
-		ServiceName: os.Getenv("SERVICE_NAME"),
+		CertName: os.Getenv("SERVICE_NAME"),
+		ServicePort: "8080",
 	}
 }

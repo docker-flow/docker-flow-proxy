@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"./server"
 )
 
 type ServerTestSuite struct {
@@ -335,9 +336,9 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertGetAll_WhenUrlIsCerts() {
 	certOrig := cert
 	defer func() { cert = certOrig }()
 	cert = CertMock{
-		GetAllMock: func(http.ResponseWriter, *http.Request) error {
+		GetAllMock: func(http.ResponseWriter, *http.Request) (server.CertResponse, error) {
 			invoked = true
-			return nil
+			return server.CertResponse{}, nil
 		},
 	}
 	req, _ := http.NewRequest("GET", s.CertsUrl, nil)
@@ -790,7 +791,7 @@ func getResponseWriterMock() *ResponseWriterMock {
 
 type CertMock struct {
 	PutMock func(http.ResponseWriter, *http.Request) (string, error)
-	GetAllMock func(w http.ResponseWriter, req *http.Request) error
+	GetAllMock func(w http.ResponseWriter, req *http.Request) (server.CertResponse, error)
 	GetInitMock func() error
 }
 
@@ -798,7 +799,7 @@ func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) 
 	return m.PutMock(w, req)
 }
 
-func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) error {
+func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (server.CertResponse, error) {
 	return m.GetAllMock(w, req)
 }
 
