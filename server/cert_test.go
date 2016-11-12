@@ -71,6 +71,8 @@ func (s *CertTestSuite) Test_GetAll_WritesHeaderStatus200() {
 	w.AssertCalled(s.T(), "WriteHeader", 200)
 }
 
+// NOTE: The assert sometimes fails due to different order of JSON entries.
+// TODO: Rewrite tests
 func (s *CertTestSuite) Test_GetAll_WritesCertsAsJson() {
 	certs := []Cert{}
 	proxyCerts := map[string]string{}
@@ -104,10 +106,50 @@ func (s *CertTestSuite) Test_GetAll_WritesCertsAsJson() {
 
 	c.GetAll(w, req)
 
-	// TODO: Fix
-	println("This sometimes fails due to different order of JSON entries. Repeat the tests.")
 	w.AssertCalled(s.T(), "Write", []byte(expected))
 }
+
+// Init
+
+//func (s *CertTestSuite) Test_Init_WritesCertsToFiles() {
+//	c := NewCert("../certs")
+//	certs := map[string]string{}
+//	for i := 1; i <= 3; i++ {
+//		certName := fmt.Sprintf("my-cert-%d.pem", i)
+//		certs[certName] = fmt.Sprintf("Content of my-cert-%s.pem", i)
+//		path := fmt.Sprintf("%s/%s", c.CertsDir, certName)
+//		os.Remove(path)
+//	}
+//	proxyOrig := proxy.Instance
+//	defer func() { proxy.Instance = proxyOrig }()
+//	proxyMock := getProxyMock("GetCerts")
+//	proxy.Instance = proxyMock
+//	proxyMock.On("GetCerts").Return(certs)
+//	expected := "THIS IS A CERTIFICATE"
+//
+//	c.Init()
+//
+//	for i := 1; i <= 3; i++ {
+//		certName := fmt.Sprintf("my-cert-%d.pem", i)
+//		actual, _ := ioutil.ReadFile(fmt.Sprintf("%s/%s", c.CertsDir, certName))
+//		s.Equal(expected, string(actual))
+//	}
+//}
+
+//func (s *ServerTestSuite) Test_Init_InvokesLookupHost() {
+//	var actualHost string
+//	lookupHostOrig := lookupHost
+//	defer func() { lookupHost = lookupHostOrig }()
+//	lookupHost = func(host string) (addrs []string, err error) {
+//		actualHost = host
+//		return []string{}, nil
+//	}
+//	c := NewCert("../certs")
+//
+//	c.Init()
+//
+//	s.Assert().Equal(fmt.Sprintf("tasks.%s", s.ServiceName), actualHost)
+//}
 
 // Put
 

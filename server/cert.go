@@ -18,6 +18,7 @@ var mu = &sync.Mutex{}
 type Certer interface {
 	Put(w http.ResponseWriter, req *http.Request) (string, error)
 	GetAll(w http.ResponseWriter, req *http.Request) error
+	Init() error
 }
 
 type Cert struct {
@@ -57,19 +58,54 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	if distribute {
 		return "", m.sendDistributeRequests(w, req)
 	}
-	path, name, err := m.writeFile(w, req)
+	certName, certContent, err := m.getCertFromRequest(w, req)
 	if err != nil {
+		m.writeError(w, err)
+	}
+	path, err := m.writeFile(certName, certContent)
+	if err != nil {
+		m.writeError(w, fmt.Errorf("Query parameter certName is mandatory"))
 		return "", err
 	}
-	msg := CertResponse{
-		Status:  "OK",
-		Message: "",
-	}
+	msg := CertResponse{Status:  "OK", Message: ""}
 	m.writeOK(w, msg)
-	proxy.Instance.AddCert(name)
+	proxy.Instance.AddCert(certName)
 	proxy.Instance.CreateConfigFromTemplates()
-	logPrintf("Stored certificate %s", name)
+	logPrintf("Stored certificate %s", certName)
 	return path, nil
+}
+
+func (m *Cert) Init() error {
+	// TODO: get certs from all instances
+	dns := fmt.Sprintf("tasks.%s", m.ServiceName)
+	if _, err := lookupHost(dns); err == nil {
+	}
+	// TODO: Filter with results with the biggest certs collection
+
+	// TODO: Change to names and content from other instances
+//	dns := fmt.Sprintf("tasks.%s", serviceName)
+	//	if ips, err := lookupHost(dns); err == nil {
+	//
+	//	}
+//	m.writeFile("test.pem", []byte("THIS IS A CERTIFICATE"))
+	return nil
+}
+
+func (m *Cert) getCertFromRequest(w http.ResponseWriter, req *http.Request) (certName string, certContent []byte, err error) {
+	certName = req.URL.Query().Get("certName")
+	if len(certName) == 0 {
+		err := fmt.Errorf("Query parameter certName is mandatory")
+		return "", []byte{}, err
+	}
+	defer func() { req.Body.Close() }()
+	certContent, err = ioutil.ReadAll(req.Body)
+	if err != nil {
+		return "", []byte{}, err
+	} else if len(certContent) == 0 {
+		err := fmt.Errorf("Body is empty")
+		return "", []byte{}, err
+	}
+	return certName, certContent, nil
 }
 
 func (m *Cert) sendDistributeRequests(w http.ResponseWriter, req *http.Request) error {
@@ -79,35 +115,24 @@ func (m *Cert) sendDistributeRequests(w http.ResponseWriter, req *http.Request) 
 	}
 	status, err := server.SendDistributeRequests(req, port, m.ServiceName)
 	if err != nil {
-		return m.getError(w, err.Error(), err)
+		return m.writeError(w, err)
 	} else if status >= 300 {
 		msg := fmt.Sprintf("Distribution request failed with status %d", status)
-		return m.getError(w, msg, fmt.Errorf(msg))
+		return m.writeError(w, fmt.Errorf(msg))
 	}
 	return nil
 }
 
-func (m *Cert) writeFile(w http.ResponseWriter, req *http.Request) (string, string, error) {
-	name := req.URL.Query().Get("certName")
-	if len(name) == 0 {
-		return "", "", m.getError(w, "certName parameter is mandatory", fmt.Errorf("Query parameter certName is mandatory"))
-	}
-	defer func() { req.Body.Close() }()
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return "", "", m.getError(w, err.Error(), err)
-	} else if len(body) == 0 {
-		return "", "", m.getError(w, "Body cannot be empty", fmt.Errorf("Body is empty"))
-	}
+func (m *Cert) writeFile(certName string, certContent []byte) (path string, err error) {
 	mu.Lock()
 	defer mu.Unlock()
-	f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, name))
-	if err != nil {
-		return "", "", m.getError(w, err.Error(), err)
+	if f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, certName)); err != nil {
+		return "", err
+	} else {
+		f.Write(certContent)
 	}
-	f.Write(body)
-	path, _ := filepath.Abs(fmt.Sprintf("%s/%s", m.CertsDir, name))
-	return path, name, nil
+	path, _ = filepath.Abs(fmt.Sprintf("%s/%s", m.CertsDir, certName))
+	return path, nil
 }
 
 func (m *Cert) writeOK(w http.ResponseWriter, msg interface{}) {
@@ -117,11 +142,11 @@ func (m *Cert) writeOK(w http.ResponseWriter, msg interface{}) {
 	w.Write(js)
 }
 
-func (m *Cert) getError(w http.ResponseWriter, message string, err error) error {
+func (m *Cert) writeError(w http.ResponseWriter, err error) error {
 	w.WriteHeader(http.StatusBadRequest)
 	js, _ := json.Marshal(CertResponse{
 		Status:  "NOK",
-		Message: message,
+		Message: err.Error(),
 	})
 	w.Write(js)
 	return err
