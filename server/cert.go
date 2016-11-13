@@ -23,10 +23,10 @@ type Certer interface {
 }
 
 type Cert struct {
-	ServicePort string
-	CertName    string
-	CertsDir    string
-	CertContent string
+	ServicePort      string
+	ProxyServiceName string
+	CertsDir         string
+	CertContent      string
 }
 
 type CertResponse struct {
@@ -39,7 +39,7 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 	pCerts := proxy.Instance.GetCerts()
 	certs := []Cert{}
 	for name, content := range pCerts {
-		cert := Cert{CertName: name, CertsDir: "/certs", CertContent: content}
+		cert := Cert{ProxyServiceName: name, CertsDir: "/certs", CertContent: content}
 		certs = append(certs, cert)
 	}
 	msg := CertResponse{Status:  "OK", Message: "", Certs:   certs}
@@ -48,13 +48,17 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 }
 
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
+	println("222")
 	distribute, _ := strconv.ParseBool(req.URL.Query().Get("distribute"))
 	if distribute {
+		println("333")
 		return "", m.sendDistributeRequests(w, req)
 	}
+	println("444")
 	certName, certContent, err := m.getCertFromRequest(w, req)
 	if err != nil {
 		m.writeError(w, err)
+		return "", err
 	}
 	path, err := m.writeFile(certName, certContent)
 	if err != nil {
@@ -70,8 +74,7 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 }
 
 func (m *Cert) Init() error {
-	// TODO: get certs from all instances
-	dns := fmt.Sprintf("tasks.%s", m.CertName)
+	dns := fmt.Sprintf("tasks.%s", m.ProxyServiceName)
 	client := &http.Client{}
 	if ips, err := lookupHost(dns); err != nil {
 		return err
@@ -96,14 +99,12 @@ func (m *Cert) Init() error {
 		}
 		if len(certs) > 0 {
 			for _, cert := range certs {
-				proxy.Instance.AddCert(cert.CertName)
-				m.writeFile(cert.CertName, []byte(cert.CertContent))
+				proxy.Instance.AddCert(cert.ProxyServiceName)
+				m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
 			}
 			proxy.Instance.CreateConfigFromTemplates()
 		}
 	}
-	// TODO: proxy.Instance.CreateConfigFromTemplates()
-	// TODO: Filter with results with the biggest certs collection
 	return nil
 }
 
@@ -129,7 +130,7 @@ func (m *Cert) sendDistributeRequests(w http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		port = "8080"
 	}
-	status, err := server.SendDistributeRequests(req, port, m.CertName)
+	status, err := server.SendDistributeRequests(req, port, m.ProxyServiceName)
 	if err != nil {
 		return m.writeError(w, err)
 	} else if status >= 300 {
@@ -171,7 +172,7 @@ func (m *Cert) writeError(w http.ResponseWriter, err error) error {
 func NewCert(certsDir string) *Cert {
 	return &Cert{
 		CertsDir:    certsDir,
-		CertName: os.Getenv("SERVICE_NAME"),
+		ProxyServiceName:    os.Getenv("SERVICE_NAME"),
 		ServicePort: "8080",
 	}
 }

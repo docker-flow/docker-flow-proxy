@@ -78,7 +78,7 @@ func (s *CertTestSuite) Test_GetAll_WritesReturnsCert() {
 	proxyCerts := map[string]string{}
 	name := "my-service"
 	cert := Cert{
-		CertName: name,
+		ProxyServiceName: name,
 		CertsDir:    "/certs",
 		CertContent: "Content of the cert",
 	}
@@ -118,7 +118,7 @@ func (s *ServerTestSuite) Test_Init_InvokesLookupHost() {
 		return []string{}, nil
 	}
 	c := NewCert("../certs")
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 
 	c.Init()
 
@@ -158,7 +158,7 @@ func (s *ServerTestSuite) Test_Init_SendsHttpRequestForEachIp() {
 	proxy.Instance = proxyMock
 
 	c := NewCert("../certs")
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 
 	c.Init()
 
@@ -172,7 +172,7 @@ func (s *ServerTestSuite) Test_Init_DoesNotFail_WhenRequestFails() {
 		return []string{"unknown-address"}, nil
 	}
 	c := NewCert("../certs")
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 
 	err := c.Init()
 
@@ -194,7 +194,7 @@ func (s *ServerTestSuite) Test_Init_WritesCertToFile() {
 	c := NewCert("../certs")
 	path := fmt.Sprintf("%s/%s", c.CertsDir, "my-cert-3.pem")
 	os.Remove(path)
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("")
@@ -220,7 +220,7 @@ func (s *ServerTestSuite) Test_Init_InvokesProxyAddCert() {
 		return []string{hostPort}, nil
 	}
 	c := NewCert("../certs")
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("")
@@ -243,7 +243,7 @@ func (s *ServerTestSuite) Test_Init_InvokesProxyCreateConfigFromTemplates() {
 		return []string{hostPort}, nil
 	}
 	c := NewCert("../certs")
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 	c.ServicePort = port
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
@@ -278,7 +278,7 @@ func (s *ServerTestSuite) Test_Init_WritesCertToFile_WhenItComesFromTheBiggestRe
 	os.Remove(path2)
 	path3 := fmt.Sprintf("%s/%s", c.CertsDir, "my-cert-3.pem")
 	os.Remove(path3)
-	c.CertName = s.ServiceName
+	c.ProxyServiceName = s.ServiceName
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("")
@@ -298,7 +298,7 @@ func (s *ServerTestSuite) getCertGetAllMockServer(from, to int) *httptest.Server
 		certs := []Cert{}
 		for i := from; i <= to; i++ {
 			cert := Cert{
-				CertName: fmt.Sprintf("my-cert-%d.pem", i),
+				ProxyServiceName: fmt.Sprintf("my-cert-%d.pem", i),
 				CertContent: fmt.Sprintf("Content of my-cert-%d.pem", i),
 			}
 			certs = append(certs, cert)
@@ -635,7 +635,7 @@ func (s *CertTestSuite) Test_NewCert_SetsServiceName() {
 
 	cert := NewCert("../certs")
 
-	s.Equal(serviceName, cert.CertName)
+	s.Equal(serviceName, cert.ProxyServiceName)
 }
 
 // Mock

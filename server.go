@@ -62,6 +62,7 @@ func (m *Serve) Execute(args []string) error {
 	if len(m.ListenerAddress) > 0 {
 		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
 	}
+	cert.Init()
 	if err := recon.ReloadAllServices(
 		m.ConsulAddresses,
 		m.InstanceName,
@@ -90,8 +91,10 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		m.config(w, req)
 	case "/v1/docker-flow-proxy/cert":
 		if req.Method == "PUT" {
+			println("111")
 			cert.Put(w, req)
 		} else {
+			logPrintf("/v1/docker-flow-proxy/cert endpoint allows only PUT requests. Your was %s", req.Method)
 			w.WriteHeader(http.StatusNotFound)
 		}
 	case "/v1/docker-flow-proxy/certs":
@@ -105,6 +108,7 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(js)
 	default:
+		logPrintf("The endpoint %s is not supported", req.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
@@ -152,7 +156,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			srv := server.Serve{}
-			if status, err := srv.SendDistributeRequests(req, m.Port, sr.ServiceName); err != nil || status >= 300 {
+			if status, err := srv.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
 				m.writeInternalServerError(w, &response, err.Error())
 			} else {
 				response.Message = DISTRIBUTED

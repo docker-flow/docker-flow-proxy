@@ -126,6 +126,23 @@ func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
+func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
+	invoked := false
+	err := serverImpl.Execute([]string{})
+	certOrig := cert
+	defer func() { cert = certOrig }()
+	cert = CertMock{
+		GetInitMock: func() error {
+			invoked = true
+			return nil
+		},
+	}
+	serverImpl.Execute([]string{})
+
+	s.NoError(err)
+	s.True(invoked)
+}
+
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	mockObj := getReconfigureMock("")
 	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {

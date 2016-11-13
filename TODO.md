@@ -3,13 +3,12 @@
 ## Certs
 
 * Remove cert API (file and name)
-* Fix TODOs
 * Load existing certs from labels on init
+* Fix TODOs
 * Document
 
   * API: PUT /v1/docker-flow-proxy/cert
 
-* Test
 
 ```bash
 curl -i -XPUT \
