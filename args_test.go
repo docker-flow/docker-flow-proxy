@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
-	"os/exec"
 	"testing"
 )
 
@@ -19,14 +18,8 @@ type ArgsTestSuite struct {
 }
 
 func (s *ArgsTestSuite) SetupTest() {
-	cmdRunHa = func(cmd *exec.Cmd) error {
-		return nil
-	}
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
-	}
-	readPidFile = func(fileName string) ([]byte, error) {
-		return []byte(""), nil
 	}
 	osRemove = func(name string) error {
 		return nil

@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"strings"
+	"sync"
 )
 
 var mu = &sync.Mutex{}
@@ -42,7 +42,7 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 		cert := Cert{ProxyServiceName: name, CertsDir: "/certs", CertContent: content}
 		certs = append(certs, cert)
 	}
-	msg := CertResponse{Status:  "OK", Message: "", Certs:   certs}
+	msg := CertResponse{Status: "OK", Message: "", Certs: certs}
 	m.writeOK(w, msg)
 	return msg, nil
 }
@@ -62,7 +62,7 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 		m.writeError(w, fmt.Errorf("Query parameter certName is mandatory"))
 		return "", err
 	}
-	msg := CertResponse{Status:  "OK", Message: ""}
+	msg := CertResponse{Status: "OK", Message: ""}
 	m.writeOK(w, msg)
 	proxy.Instance.AddCert(certName)
 	proxy.Instance.CreateConfigFromTemplates()
@@ -170,8 +170,8 @@ func (m *Cert) writeError(w http.ResponseWriter, err error) error {
 
 func NewCert(certsDir string) *Cert {
 	return &Cert{
-		CertsDir:    certsDir,
-		ProxyServiceName:    os.Getenv("SERVICE_NAME"),
-		ServicePort: "8080",
+		CertsDir:         certsDir,
+		ProxyServiceName: os.Getenv("SERVICE_NAME"),
+		ServicePort:      "8080",
 	}
 }

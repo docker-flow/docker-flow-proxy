@@ -36,6 +36,7 @@ type Response struct {
 	Status               string
 	Message              string
 	ServiceName          string
+	AclName              string
 	ServiceColor         string
 	ServicePath          []string
 	ServiceDomain        string
@@ -119,6 +120,7 @@ func (m *Serve) isValidReconf(name string, path []string, templateFePath string)
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	sr := ServiceReconfigure{
 		ServiceName:          req.URL.Query().Get("serviceName"),
+		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
 		ServiceDomain:        req.URL.Query().Get("serviceDomain"),
 		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
@@ -139,6 +141,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	response := Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
+		AclName:              sr.AclName,
 		ServiceColor:         sr.ServiceColor,
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
@@ -217,8 +220,10 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 		}
 	} else {
 		logPrintf("Processing remove request %s", req.URL.Path)
+		aclName := req.URL.Query().Get("aclName")
 		action := NewRemove(
 			serviceName,
+			aclName,
 			m.BaseReconfigure.ConfigsPath,
 			m.BaseReconfigure.TemplatesPath,
 			m.ConsulAddresses,

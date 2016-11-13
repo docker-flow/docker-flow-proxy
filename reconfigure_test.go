@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 )
@@ -47,9 +46,6 @@ func (s *ReconfigureTestSuite) SetupTest() {
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
-	cmdRunHa = func(cmd *exec.Cmd) error {
-		return nil
-	}
 	s.ConsulAddress = s.Server.URL
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
@@ -107,6 +103,16 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
     acl domain_myService hdr_dom(host) -i my-domain.com
     use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = "my-domain.com"
+	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(s.ConsulTemplateFe, actual)
+}
+
+func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesAclNameForFrontEnd() {
+	s.reconfigure.AclName = "my-acl"
+	s.ConsulTemplateFe = `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    use_backend my-acl-be if url_myService`
 	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
@@ -250,6 +256,55 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {
+	s.reconfigure.Mode = "sWarm"
+	s.reconfigure.AclName = "my-acl"
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.reconfigure.AclName)
+	expectedTemplate := `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    use_backend my-acl-be if url_myService`
+	writeFeTemplateOrig := writeFeTemplate
+	defer func() { writeFeTemplate = writeFeTemplateOrig }()
+	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedTemplate, actualData)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {
+	s.reconfigure.Mode = "sWArm"
+	s.reconfigure.Port = "1234"
+	s.reconfigure.AclName = "my-acl"
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.reconfigure.AclName)
+	expectedData := fmt.Sprintf(
+		"backend %s-be\n    mode http\n    server %s %s:%s",
+		s.reconfigure.AclName,
+		s.ServiceName,
+		s.ServiceName,
+		s.reconfigure.Port,
+	)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {

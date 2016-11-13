@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
-	"net/http"
 	"io/ioutil"
+	"net/http"
 	"strings"
 )
 

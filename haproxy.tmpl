@@ -1,5 +1,6 @@
 global
     pidfile /var/run/haproxy.pid
+    tune.ssl.default-dh-param 2048
 
 defaults
     mode    http

@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"net/http/httptest"
-	"net"
 )
 
 type CertTestSuite struct {
@@ -79,8 +79,8 @@ func (s *CertTestSuite) Test_GetAll_WritesReturnsCert() {
 	name := "my-service"
 	cert := Cert{
 		ProxyServiceName: name,
-		CertsDir:    "/certs",
-		CertContent: "Content of the cert",
+		CertsDir:         "/certs",
+		CertContent:      "Content of the cert",
 	}
 	proxyCerts[name] = "Content of the cert"
 	certs = append(certs, cert)
@@ -323,11 +323,11 @@ func (s *ServerTestSuite) getCertGetAllMockServer(from, to int) *httptest.Server
 		for i := from; i <= to; i++ {
 			cert := Cert{
 				ProxyServiceName: fmt.Sprintf("my-cert-%d.pem", i),
-				CertContent: fmt.Sprintf("Content of my-cert-%d.pem", i),
+				CertContent:      fmt.Sprintf("Content of my-cert-%d.pem", i),
 			}
 			certs = append(certs, cert)
 		}
-		msg := CertResponse{Status: "OK", Message: "",  Certs: certs}
+		msg := CertResponse{Status: "OK", Message: "", Certs: certs}
 		httpWriterSetContentType(w, "application/json")
 		w.WriteHeader(http.StatusOK)
 		js, _ := json.Marshal(msg)

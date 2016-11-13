@@ -4,6 +4,7 @@ package main
 
 import (
 	haproxy "./proxy"
+	"./server"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
@@ -13,7 +14,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"./server"
 )
 
 type ServerTestSuite struct {
@@ -513,7 +513,11 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsSwarmAndPort
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
-	s.invokesReconfigure(s.RequestReconfigure, true)
+	s.ServiceReconfigure.AclName = "my-acl"
+	url := fmt.Sprintf("%s&aclName=my-acl", s.ReconfigureUrl)
+	req, _ := http.NewRequest("GET", url, nil)
+//	s.RequestReconfigure.u
+	s.invokesReconfigure(req, true)
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeReconfigureExecute_WhenDistributeIsTrue() {
@@ -645,6 +649,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServ
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
+	aclName := "my-acl"
 	var actual Remove
 	expected := Remove{
 		ServiceName:     s.ServiceName,
@@ -652,10 +657,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		ConfigsPath:     "",
 		ConsulAddresses: []string{s.ConsulAddress},
 		InstanceName:    s.InstanceName,
+		AclName:         aclName,
 	}
-	NewRemove = func(serviceName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
+	NewRemove = func(serviceName, aclName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 		actual = Remove{
 			ServiceName:     serviceName,
+			AclName:         aclName,
 			TemplatesPath:   templatesPath,
 			ConfigsPath:     configsPath,
 			ConsulAddresses: consulAddresses,
@@ -664,8 +671,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		}
 		return mockObj
 	}
+	url := fmt.Sprintf("%s?serviceName=%s&aclName=%s", s.RemoveBaseUrl, s.ServiceName, aclName)
+	req, _ := http.NewRequest("GET", url, nil)
 
-	serverImpl.ServeHTTP(s.ResponseWriter, s.RequestRemove)
+	serverImpl.ServeHTTP(s.ResponseWriter, req)
 
 	s.Equal(expected, actual)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
@@ -807,8 +816,8 @@ func getResponseWriterMock() *ResponseWriterMock {
 }
 
 type CertMock struct {
-	PutMock func(http.ResponseWriter, *http.Request) (string, error)
-	GetAllMock func(w http.ResponseWriter, req *http.Request) (server.CertResponse, error)
+	PutMock     func(http.ResponseWriter, *http.Request) (string, error)
+	GetAllMock  func(w http.ResponseWriter, req *http.Request) (server.CertResponse, error)
 	GetInitMock func() error
 }
 

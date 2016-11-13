@@ -7,15 +7,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 )
 
-var readPidFile = ioutil.ReadFile
 var readTemplateFile = ioutil.ReadFile
-var cmdRunHa = func(cmd *exec.Cmd) error {
-	return cmd.Run()
-}
 var readFile = ioutil.ReadFile
 var writeFeTemplate = ioutil.WriteFile
 var writeBeTemplate = ioutil.WriteFile

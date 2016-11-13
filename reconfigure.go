@@ -44,6 +44,7 @@ type ServiceReconfigure struct {
 	Port                 string
 	SkipCheck            bool
 	Acl                  string
+	AclName              string
 	AclCondition         string
 	FullServiceName      string
 	Distribute           bool
@@ -81,7 +82,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-		if err := haproxy.Instance.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
@@ -217,9 +218,12 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 		return err
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.ServiceName)
+		if len(sr.AclName) == 0 {
+			sr.AclName = sr.ServiceName
+		}
+		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.AclName)
 		writeFeTemplate(destFe, []byte(feTemplate), 0664)
-		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.ServiceName)
+		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.AclName)
 		writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	} else {
 		args := registry.CreateConfigsArgs{
@@ -277,6 +281,9 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
 	sr.Acl = ""
 	sr.AclCondition = ""
+	if len(sr.AclName) == 0 {
+		sr.AclName = sr.ServiceName
+	}
 	if len(sr.ServiceDomain) > 0 {
 		sr.Acl = fmt.Sprintf(`
     acl domain_%s hdr_dom(host) -i %s`,
@@ -295,8 +302,8 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
 	}
 	srcFront := `
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
-    use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
-	srcBack := `backend {{.ServiceName}}-be
+    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
+	srcBack := `backend {{.AclName}}-be
     mode http
     `
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {

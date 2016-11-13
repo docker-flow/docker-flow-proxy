@@ -56,6 +56,23 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFile() {
 	s.Equal(expected, actual)
 }
 
+func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenPresent() {
+	s.remove.AclName = "my-acl"
+	var actual []string
+	expected := []string{
+		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.remove.AclName),
+		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.remove.AclName),
+	}
+	osRemove = func(name string) error {
+		actual = append(actual, name)
+		return nil
+	}
+
+	s.remove.Execute([]string{})
+
+	s.Equal(expected, actual)
+}
+
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
 	osRemove = func(name string) error {
 		return fmt.Errorf("The file could not be removed")

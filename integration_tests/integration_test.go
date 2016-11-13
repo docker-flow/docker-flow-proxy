@@ -89,17 +89,54 @@ func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
 }
 
 func (s IntegrationTestSuite) Test_Remove() {
-	s.reconfigure("", "", "", "/v1/test")
+	aclName := "my-acl"
+	// curl "http://$(docker-machine tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s&aclName=%s"
+	address := fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&aclName=%s",
+		os.Getenv("DOCKER_IP"),
+		s.serviceName,
+		"/v1/test",
+		aclName,
+	)
+
+	// Remove by serviceName
+
+	log.Printf(">> Sending reconfigure request to %s", address)
+	_, err := http.Get(address)
+	s.NoError(err)
 	s.verifyReconfigure(1)
 
-	_, err := http.Get(fmt.Sprintf(
+	url := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/remove?serviceName=test-service",
 		os.Getenv("DOCKER_IP"),
-	))
+	)
+	log.Printf(">> Sending remove request to %s", url)
+	_, err = http.Get(url)
 
 	s.NoError(err)
-	url := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	url = fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
 	resp, err := http.Get(url)
+	s.NoError(err)
+	s.NotEqual(200, resp.StatusCode)
+
+	// Remove by aclName
+
+	log.Printf(">> Sending reconfigure request to %s", address)
+	_, err = http.Get(address)
+	s.NoError(err)
+	s.verifyReconfigure(1)
+
+	url = fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/remove?aclName=%s",
+		os.Getenv("DOCKER_IP"),
+		aclName,
+	)
+	log.Printf(">> Sending remove request to %s", url)
+	_, err = http.Get(url)
+
+	s.NoError(err)
+	url = fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	resp, err = http.Get(url)
 	s.NoError(err)
 	s.NotEqual(200, resp.StatusCode)
 }

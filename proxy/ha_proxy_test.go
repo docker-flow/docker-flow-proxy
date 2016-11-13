@@ -108,9 +108,13 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFi
 	var actualData string
 	expectedData := `template content
 
-config1 content
+config1 fe content
 
-config2 content`
+config2 fe content
+
+config1 be content
+
+config2 be content`
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualFilename = filename
 		actualData = string(data)
@@ -129,9 +133,13 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	var actualData string
 	expectedData := `template content ssl crt /certs/my-cert.pem
 
-config1 content
+config1 fe content
 
-config2 content`
+config2 fe content
+
+config1 be content
+
+config2 be content`
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualFilename = filename
 		actualData = string(data)
