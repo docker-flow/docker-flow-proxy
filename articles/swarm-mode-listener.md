@@ -274,8 +274,7 @@ Since Docker's networking (`routing mesh`) is performing load balancing, each of
 
 Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
 
-The Flow Explained
-------------------
+## The Flow Explained
 
 We'll go over the flow of a request to one of the services in the Swarm cluster.
 
@@ -295,7 +294,6 @@ One of the important things to note is that, with a system like this, everything
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
-Usage
------
+## Usage
 
 Please explore [Usage](../README.md#usage) for more information.

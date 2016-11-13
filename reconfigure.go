@@ -297,6 +297,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
     use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.ServiceName}}-be
+    mode http
     `
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`

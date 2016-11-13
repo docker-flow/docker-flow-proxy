@@ -43,6 +43,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend myService-be if url_myService`
 	s.ConsulTemplateBe = `backend myService-be
+    mode http
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
@@ -80,6 +81,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_Whe
 	s.reconfigure.ServiceReconfigure.Mode = "service"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
+    mode http
     server myService myService:1234`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -91,6 +93,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_Whe
 	s.reconfigure.ServiceReconfigure.Mode = "sWARm"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
+    mode http
     server myService myService:1234`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -226,7 +229,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 	s.reconfigure.Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
-	expectedData := fmt.Sprintf("backend %s-be\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
@@ -246,7 +249,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	s.reconfigure.Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
-	expectedData := fmt.Sprintf("backend %s-be\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
@@ -470,6 +473,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	s.ConsulTemplateBe = `backend myService-be
+    mode http
     {{range $i, $e := service "myService-orange" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`

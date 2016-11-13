@@ -1,6 +1,4 @@
 ```bash
-# https://serversforhackers.com/using-ssl-certificates-with-haproxy
-
 mkdir -p tmp
 
 openssl genrsa -out tmp/xip.io.key 1024
@@ -223,12 +221,10 @@ Content-Length: 28
 ```bash
 curl localhost:8080/v1/docker-flow-proxy/config
 
-# TODO: Note that the certificated have been distributed to all instances
+# NOTE: The certificate have been distributed to all instances
 
 curl -i \
     $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/certs
 
-# TODO: Show that certs are distributed
-
-# TODO: Show that certs are recuperated from existing instances on scale
+# NOTE: Certs will be recuperated from existing instances when a new replica is deployed
 ```

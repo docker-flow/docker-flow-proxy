@@ -145,7 +145,7 @@ func (s IntegrationTestSuite) Test_Config() {
 
 func (s IntegrationTestSuite) Test_Certs() {
 	// Body is mandatory
-	url := fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=my-cert.pem", os.Getenv("DOCKER_IP"))
+	url := fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=xip.io.pem", os.Getenv("DOCKER_IP"))
 	req, _ := http.NewRequest("PUT", url, nil)
 	client := &http.Client{}
 
@@ -163,7 +163,7 @@ func (s IntegrationTestSuite) Test_Certs() {
 	s.Equal(400, resp.StatusCode)
 
 	// Stores certs
-	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=my-cert.pem", os.Getenv("DOCKER_IP"))
+	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/cert?certName=xip.io.pem", os.Getenv("DOCKER_IP"))
 	certContent, _ := ioutil.ReadFile("../certs/xip.io.pem")
 	req, _ = http.NewRequest("PUT", url, strings.NewReader(string(certContent)))
 	client = &http.Client{}
