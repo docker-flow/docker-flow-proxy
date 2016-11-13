@@ -294,6 +294,108 @@ One of the important things to note is that, with a system like this, everything
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
+## Configuring Service SSLs And Proxying HTTPS Requests
+
+Even though we opened the proxy port `443` and it is configured to forward traffic to our services, `SSL` communication still does not work. We can confirm that by sending a HTTPS request to our demo service.
+
+```bash
+eval $(docker-machine env node-1)
+
+curl -i https://$(docker-machine ip node-1)/demo/hello
+```
+
+The output is as follows.
+
+```
+curl: (35) Unknown SSL protocol error in connection to 192.168.99.108:-9847
+```
+
+The error means that there is no certificate that should be used with HTTPS traffic.
+
+Let's start by creating a certificate. We'll generate it with `openssl`. Before proceeding, please make sure that `openssl` is installed in your host OS.
+
+We'll store a certificate in `tmp` directory, so let us create it.
+
+```bash
+mkdir -p tmp
+```
+
+For production, you should create your certificate through one of the trusted services. For demo purposes, we'll create a self-signed certificate with `openssl`.
+
+The certificate will be tied to the `*.xip.io` domain, which is handy for demonstration purposes. It'll let us use the same certificate when our server IP addresses might change while testing locally. We don't need to re-create the self-signed certificate whe, for example, our Docker machine changes IP.
+
+> I use the [xip.io](http://xip.io/) service as it allows me to use a hostname rather than directly accessing the servers via an IP address. It saves me from editing me computers' host file.
+
+To create a certificate, first we need a key.
+
+```bash
+openssl genrsa -out tmp/xip.io.key 1024
+```
+
+With the newly created key, we can proceed and create a certificate signing request (CSR). The command is as follows.
+
+```bash
+openssl req -new \
+    -key tmp/xip.io.key \
+    -out tmp/xip.io.csr
+```
+
+You will be asked quite a few question. It is important that when "Common Name (e.g. server FQDN or YOUR name)" comes, you answer it with `*.xip.io`. Feel free to answer the rest of the question as you like.
+
+Finally, with the key and the CSR, we can create the certificate. The command is as follows.
+
+```bash
+openssl x509 -req -days 365 \
+    -in tmp/xip.io.csr \
+    -signkey tmp/xip.io.key \
+    -out tmp/xip.io.crt
+```
+
+As a result of the execution of those commands, we have the `crt`, `csr`, and `key` files in the `tmp` directory.
+
+Next, after the certificates are created, we need to create a `pem` file. A pem file is essentially just the certificate, the key and optionally certificate authorities concatenated into one file. In our example, we'll simply concatenate the certificate and key files together (in that order) to create a `xip.io.pem` file.
+
+```bash
+cat tmp/xip.io.crt tmp/xip.io.key \
+    | tee tmp/xip.io.pem
+```
+
+To demonstrate how `xip.io` works, we can, for example, send the request that follows.
+
+```bash
+curl -i http://$(docker-machine ip node-1).xip.io/demo/hello
+```
+
+Our laptop thinks that we are dealing with the domain `xip.io`. When your computer looks up a xip.io domain, the xip.io DNS server extracts the IP address from the domain and sends it back in the response. Very useful for testing purposes.
+
+Next, we should send the proxy service the certificate we just created. Before we do that, we should open the port `8080`. It is proxy's internal port we can use to send it commands. If you already have the port `8080` exposed, there is no need to run the command that follows.
+
+```bash
+docker service update \
+    --publish-add 8080:8080 proxy
+```
+
+Please wait a few moments until the proxy is updated. You can check the status by executing the `docker service ps proxy` command.
+
+Now we can tell the proxy to use the certificate we created. The command is as follows.
+
+```bash
+curl -i -XPUT \
+    --data-binary @tmp/xip.io.pem \
+    "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/cert?certName=xip.io.pem&distribute=true"
+```
+
+```bash
+curl -i --insecure \
+    https://$(docker-machine ip node-1).xip.io/demo/hello
+```
+
+```bash
+curl $(docker-machine ip node-1).xip.io:8080/v1/docker-flow-proxy/config
+```
+
+TODO: Remove beta from the script
+
 ## Usage
 
 Please explore [Usage](../README.md#usage) for more information.

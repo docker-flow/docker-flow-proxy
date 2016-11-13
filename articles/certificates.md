@@ -73,9 +73,9 @@ da8o3wje0r3e  swarm-listener  1/1       vfarcic/docker-flow-swarm-listener
 ```
 
 ```bash
-# Find out the IP
+# Find out the IP of one of the servers and use it instead [IP]
 
-IP=192.168.1.34
+IP=[IP]
 
 curl -i http://$IP.xip.io/demo/hello
 ```
@@ -98,14 +98,14 @@ curl: (35) Unknown SSL protocol error in connection to 192.168.1.34.xip.io:-9847
 ```
 
 ```bash
-# TODO: Remove
+# Expose the port 8080 unless it is already exposed
 
 docker service update \
     --publish-add 8080:8080 proxy
 
 docker service ps proxy
 
-# TODO: Wait until it's running
+# Wait until it's running
 ```
 
 ```
@@ -120,9 +120,9 @@ a2la3xr7r8u3341ryczt2ln7d   \_ proxy.3  vfarcic/docker-flow-proxy  moby  Shutdow
 
 
 ```bash
-# TODO: Remove
-
 docker service inspect proxy --pretty
+
+# Confirm that the port 8080 is exposed
 ```
 
 ```
@@ -157,40 +157,21 @@ Ports:
 ```
 
 ```bash
-curl localhost:8080/v1/docker-flow-proxy/config
+curl -i -XPUT \
+    --data-binary @tmp/xip.io.pem \
+    "$IP:8080/v1/docker-flow-proxy/cert?certName=xip.io.pem&distribute=true"
+
+curl $IP:8080/v1/docker-flow-proxy/config
+
+# Confirm that the certificate is added to the proxy config
 ```
 
 ```
-global
-    pidfile /var/run/haproxy.pid
-
-defaults
-    mode    http
-    balance roundrobin
-
-    option  dontlognull
-    option  dontlog-normal
-    option  http-server-close
-    option  forwardfor
-    option  redispatch
-
-    maxconn 5000
-    timeout connect 5s
-    timeout client  20s
-    timeout server  20s
-    timeout queue   30s
-    timeout http-request 5s
-    timeout http-keep-alive 15s
-
-    stats enable
-    stats refresh 30s
-    stats realm Strictly\ Private
-    stats auth admin:admin
-    stats uri /admin?stats
-
+...
 frontend services
     bind *:80
-    bind *:443
+    bind *:443 ssl crt /certs/xip.io.pem
+    mode http
 
 
     acl url_go-demo path_beg /demo
@@ -198,33 +179,17 @@ frontend services
     use_backend go-demo-be if url_go-demo domain_go-demo
 
 backend go-demo-be
+    mode http
     server go-demo go-demo:8080
 ```
 
 ```bash
-curl -i -XPUT \
-    --data-binary @tmp/xip.io.pem \
-    "localhost:8080/v1/docker-flow-proxy/cert?certName=xip.io.pem&distribute=true"
-```
-
-```
-HTTP/1.1 100 Continue
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Sat, 12 Nov 2016 23:04:39 GMT
-Content-Length: 28
-
-{"Status":"OK","Message":""}
-```
-
-```bash
-curl localhost:8080/v1/docker-flow-proxy/config
-
-# NOTE: The certificate have been distributed to all instances
+# NOTE: The certificate have been distributed to all proxy replicas
 
 curl -i \
-    $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/certs
+    $IP:8080/v1/docker-flow-proxy/certs
+
+curl "https://$IP.xip.io/demo/hello"
 
 # NOTE: Certs will be recuperated from existing instances when a new replica is deployed
 ```

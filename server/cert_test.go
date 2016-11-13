@@ -255,6 +255,30 @@ func (s *ServerTestSuite) Test_Init_InvokesProxyCreateConfigFromTemplates() {
 	proxyMock.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
+func (s *ServerTestSuite) Test_Init_InvokesProxyReload() {
+	testServer := s.getCertGetAllMockServer(1, 3)
+	defer func() { testServer.Close() }()
+	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
+	ip, port, _ := net.SplitHostPort(tsAddr)
+	lookupHostOrig := lookupHost
+	defer func() { lookupHost = lookupHostOrig }()
+	lookupHost = func(host string) (addrs []string, err error) {
+		hostPort := net.JoinHostPort(ip, port)
+		return []string{hostPort}, nil
+	}
+	c := NewCert("../certs")
+	c.ProxyServiceName = s.ServiceName
+	c.ServicePort = port
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+
+	c.Init()
+
+	proxyMock.AssertCalled(s.T(), "Reload")
+}
+
 func (s *ServerTestSuite) Test_Init_WritesCertToFile_WhenItComesFromTheBiggestResponse() {
 	testServer1 := s.getCertGetAllMockServer(1, 2)
 	testServer2 := s.getCertGetAllMockServer(3, 5)
@@ -608,15 +632,21 @@ func (s *CertTestSuite) Test_Put_InvokesProxyCreateConfigFromTemplates() {
 	proxyMock.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
-// DistributeAll
+func (s *CertTestSuite) Test_Put_InvokesProxyReload() {
+	c := NewCert("../certs")
+	w := getResponseWriterMock()
+	req, _ := http.NewRequest(
+		"PUT",
+		"http://acme.com/v1/docker-flow-proxy/cert?certName=my-cert.pem",
+		strings.NewReader("cert content"),
+	)
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
 
-//func (s *CertTestSuite) Test_DistributeAll_ReturnsTheListOfAllCertificates() {
-//	expected := map[string]bool{"my-cert-1": true, "my-cert-2": true}
-//	c := NewCert("../certs")
-//	certsOrig := proxy.Data.Certs
-//	defer func(){ proxy.Data.Certs = certsOrig }()
-//	proxy.Data
-//}
+	c.Put(w, req)
+
+	proxyMock.AssertCalled(s.T(), "Reload")
+}
 
 // NewCert
 

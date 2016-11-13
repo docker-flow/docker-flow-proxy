@@ -106,6 +106,8 @@ curl -i -XPUT \
     "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/cert?certName=my-certificate.pem&distribute=true"
 ```
 
+Please note that the internal proxy port `8080` must be published.
+
 The example would send a certificate stored in the `my-certificate.pem` file. The certificate would be distributed to all replicas of the proxy.
 
 ### Config

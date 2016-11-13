@@ -81,7 +81,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if err := haproxy.Instance.Reload(); err != nil {
+		if err := haproxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {

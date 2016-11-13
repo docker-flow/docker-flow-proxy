@@ -66,6 +66,7 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	m.writeOK(w, msg)
 	proxy.Instance.AddCert(certName)
 	proxy.Instance.CreateConfigFromTemplates()
+	proxy.Instance.Reload()
 	logPrintf("Stored certificate %s", certName)
 	return path, nil
 }
@@ -100,6 +101,7 @@ func (m *Cert) Init() error {
 				m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
 			}
 			proxy.Instance.CreateConfigFromTemplates()
+			proxy.Instance.Reload()
 		}
 	}
 	return nil
