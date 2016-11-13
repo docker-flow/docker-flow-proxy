@@ -91,7 +91,6 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		m.config(w, req)
 	case "/v1/docker-flow-proxy/cert":
 		if req.Method == "PUT" {
-			println("111")
 			cert.Put(w, req)
 		} else {
 			logPrintf("/v1/docker-flow-proxy/cert endpoint allows only PUT requests. Your was %s", req.Method)

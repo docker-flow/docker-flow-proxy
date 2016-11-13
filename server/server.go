@@ -20,8 +20,6 @@ func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName
 	values.Set("distribute", "false")
 	req.URL.RawQuery = values.Encode()
 	dns := fmt.Sprintf("tasks.%s", proxyServiceName)
-	println("DNS")
-	println(dns)
 	failedDns := []string{}
 	method := req.Method
 	body := ""

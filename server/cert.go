@@ -48,13 +48,10 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 }
 
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
-	println("222")
 	distribute, _ := strconv.ParseBool(req.URL.Query().Get("distribute"))
 	if distribute {
-		println("333")
 		return "", m.sendDistributeRequests(w, req)
 	}
-	println("444")
 	certName, certContent, err := m.getCertFromRequest(w, req)
 	if err != nil {
 		m.writeError(w, err)
