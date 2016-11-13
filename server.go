@@ -212,7 +212,7 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	} else if distribute {
 		srv := server.Serve{}
-		if status, err := srv.SendDistributeRequests(req, m.Port, serviceName); err != nil || status >= 300 {
+		if status, err := srv.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
 			m.writeInternalServerError(w, &response, err.Error())
 		} else {
 			response.Message = DISTRIBUTED
