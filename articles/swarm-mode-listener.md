@@ -6,6 +6,7 @@
   * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
   * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
   * [Scaling the Proxy](#scaling-the-proxy)
+  * [Configuring Service SSLs And Proxying HTTPS Requests](#configuring-service-ssls-and-proxying-https-requests)
 
 * [The Flow Explained](#the-flow-explained)
 * [Usage](../README.md#usage)
@@ -296,7 +297,7 @@ A similar logic is used for the destination services. The proxy does not need to
 
 ## Configuring Service SSLs And Proxying HTTPS Requests
 
-Even though we opened the proxy port `443` and it is configured to forward traffic to our services, `SSL` communication still does not work. We can confirm that by sending a HTTPS request to our demo service.
+Even though we published the proxy port `443` and it is configured to forward traffic to our services, `SSL` communication still does not work. We can confirm that by sending an HTTPS request to our demo service.
 
 ```bash
 eval $(docker-machine env node-1)
@@ -312,7 +313,23 @@ curl: (35) Unknown SSL protocol error in connection to 192.168.99.108:-9847
 
 The error means that there is no certificate that should be used with HTTPS traffic.
 
-Let's start by creating a certificate. We'll generate it with `openssl`. Before proceeding, please make sure that `openssl` is installed in your host OS.
+There are two ways we can add certificates to the proxy. One is to create your own Docker image based on `docker-flow-proxy`. `Dockerfile` could be as follows.
+
+```
+FROM vfarcic/docker-flow-proxy
+COPY my-cert.pem /certs/my-cert.pem
+COPY haproxy.tmpl /cfg/haproxy.tmpl
+```
+
+When the image is built, it will be based on `vfarcic/docker-flow-proxy` and include `my-cert.pem` and `haproxy.tmpl` files. The `my-cert.pem` would be your certificate and the `haproxy.tmpl` the modified version of the original proxy template located in [https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl](https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl). You'd need to replace `{{.CertsString}}` with ` ssl crt /certs/my-cert.pem` (please note that the string should start with space). The complete line would be as follows.
+
+```
+    bind *:443 ssl crt /certs/my-cert.pem
+```
+
+If your certificate is static (almost never changes) and you are willing to create your own `docker-flow-proxy` image, this might be a good option. As an alternative, certificates can be added to the proxy dynamically through an HTTP request.
+
+For production, you should create your certificate through one of the trusted services. For demo purposes, we'll create a self-signed certificate with `openssl`. Before proceeding, please make sure that `openssl` is installed on your host OS.
 
 We'll store a certificate in `tmp` directory, so let us create it.
 
@@ -320,9 +337,7 @@ We'll store a certificate in `tmp` directory, so let us create it.
 mkdir -p tmp
 ```
 
-For production, you should create your certificate through one of the trusted services. For demo purposes, we'll create a self-signed certificate with `openssl`.
-
-The certificate will be tied to the `*.xip.io` domain, which is handy for demonstration purposes. It'll let us use the same certificate when our server IP addresses might change while testing locally. We don't need to re-create the self-signed certificate whe, for example, our Docker machine changes IP.
+The certificate will be tied to the `*.xip.io` domain, which is handy for demonstration purposes. It'll let us use the same certificate even if our server IP addresses might change while testing locally. With [xip.io](http://xip.io/) don't need to re-create the self-signed certificate when, for example, our Docker machine changes IP.
 
 > I use the [xip.io](http://xip.io/) service as it allows me to use a hostname rather than directly accessing the servers via an IP address. It saves me from editing me computers' host file.
 
@@ -351,7 +366,7 @@ openssl x509 -req -days 365 \
     -out tmp/xip.io.crt
 ```
 
-As a result of the execution of those commands, we have the `crt`, `csr`, and `key` files in the `tmp` directory.
+As a result, we have the `crt`, `csr`, and `key` files in the `tmp` directory.
 
 Next, after the certificates are created, we need to create a `pem` file. A pem file is essentially just the certificate, the key and optionally certificate authorities concatenated into one file. In our example, we'll simply concatenate the certificate and key files together (in that order) to create a `xip.io.pem` file.
 
@@ -366,9 +381,11 @@ To demonstrate how `xip.io` works, we can, for example, send the request that fo
 curl -i http://$(docker-machine ip node-1).xip.io/demo/hello
 ```
 
-Our laptop thinks that we are dealing with the domain `xip.io`. When your computer looks up a xip.io domain, the xip.io DNS server extracts the IP address from the domain and sends it back in the response. Very useful for testing purposes.
+Our laptop thinks that we are dealing with the domain `xip.io`. When your computer looks up the xip.io domain, the xip.io DNS server extracts the IP address from the domain and sends it back in the response. The [xip.io](http://xip.io/) service is useful for testing purposes.
 
-Next, we should send the proxy service the certificate we just created. Before we do that, we should open the port `8080`. It is proxy's internal port we can use to send it commands. If you already have the port `8080` exposed, there is no need to run the command that follows.
+Now we have the PEM file and a domain we'll use to test it. The only thing missing is to add it to the proxy.
+
+We'll send the proxy service the PEM file we just created. Before we do that, we should publish the port `8080`. It is proxy's internal port we can use to send it commands. If you already have the port `8080` published, there is no need to run the command that follows.
 
 ```bash
 docker service update \
@@ -385,16 +402,53 @@ curl -i -XPUT \
     "$(docker-machine ip node-1):8080/v1/docker-flow-proxy/cert?certName=xip.io.pem&distribute=true"
 ```
 
-```bash
-curl -i --insecure \
-    https://$(docker-machine ip node-1).xip.io/demo/hello
-```
+The `PUT` request to the proxy passed the certificate in its body (`--data-binary @tmp/xip.io.pem`). The request URL has the certification name (`certName`) as one of the parameters. The second parameter (`distribute`) sends the proxy the signal to distribute the certificate to all the replicas. The result of the request is that the certificate has been added to all the replicas of the proxy. We can confirm that by inspecting the proxy config.
 
 ```bash
 curl $(docker-machine ip node-1).xip.io:8080/v1/docker-flow-proxy/config
 ```
 
-TODO: Remove beta from the script
+The relevant part of the output is as follows.
+
+```
+frontend services
+    bind *:80
+    bind *:443 ssl crt /certs/xip.io.pem
+    mode http
+
+
+    acl url_go-demo path_beg /demo
+    use_backend go-demo-be if url_go-demo
+
+backend go-demo-be
+    mode http
+    server go-demo go-demo:8080
+```
+
+As you can see, the certificate `xip.io.pem` was added to the `*:443` binding and the proxy is ready to serve HTTPS requests.
+
+Let's confirm that HTTPS works.
+
+```bash
+curl -i  \
+    https://$(docker-machine ip node-1).xip.io/demo/hello
+```
+
+A part of the output is as follows.
+
+```
+curl: (60) SSL certificate problem: Invalid certificate chain
+```
+
+This time, the error message is different. SSL now works but, since it is self-signed, `curl` cannot verify it. Instead, open it in your favourite browser. The address that should be opened can be obtained with the command that follows.
+
+```bash
+echo https://$(docker-machine ip node-1).xip.io/demo/hello
+```
+
+On Chrome you'll see "Your connection is not private" message. Click the *ADVANCED* link followed with "Proceed to \[IP\].xip.io (unsafe)" link. You'll see the "hello, world!" message displayed through HTTPS protocol.
+
+Now you can secure your proxy communication with SSL certificates. Unless you already have a certificate, purchase it or get it for free from [Let's Encrypt](https://letsencrypt.org/). The only thing left is for you to send a request to the proxy to include the certificate and try it out with your domain.
 
 ## Usage
 

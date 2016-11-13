@@ -21,7 +21,7 @@ docker service create --name proxy \
     -e MODE=swarm \
     -e LISTENER_ADDRESS=swarm-listener \
     --replicas 3 \
-    vfarcic/docker-flow-proxy:beta2
+    vfarcic/docker-flow-proxy
 
 docker service create --name go-demo-db \
   --network go-demo \
