@@ -1,6 +1,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"./registry"
 	"bytes"
 	"encoding/json"
@@ -64,6 +65,7 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 	return &Reconfigure{baseData, serviceData}
 }
 
+// TODO: Remove args
 func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -76,10 +78,10 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if err := proxy.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
@@ -162,7 +164,6 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 		}
 	}
 	logPrintf("\tFound %d services", count)
-
 	for i := 0; i < count; i++ {
 		s := <-c
 		s.Mode = mode
@@ -171,11 +172,10 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 			m.createConfigs(m.TemplatesPath, &s)
 		}
 	}
-
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	return proxy.Reload()
+	return haproxy.Instance.Reload()
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {
@@ -297,6 +297,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
     use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.ServiceName}}-be
+    mode http
     `
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`

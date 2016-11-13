@@ -14,6 +14,7 @@ Docker Flow: Proxy
   * [Reconfigure](#reconfigure)
   * [Remove](#remove)
   * [Config](#config)
+  * [Put Certificate](#put-certificate)
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
@@ -83,6 +84,29 @@ The following query arguments can be used to send a *remove* request to *Docker 
 |-----------|----------------------------------------------------------------------------|--------|-------|-------|
 |serviceName|The name of the service. It must match the name stored in Consul            |Yes     |       |go-demo|
 |distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
+
+### Put Certificate
+
+> Puts SSL certificate to proxy configuration
+
+The following query arguments can be used to send a *cert* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/cert**. Please note that the request method MUST be *PUT* and the certificate must be placed in request body.
+
+When a new replica is deployed, it will synchronize with other replicas and recuperate their certificates.
+
+|Query      |Description                                                                 |Required|Default|Example    |
+|-----------|----------------------------------------------------------------------------|--------|-------|-----------|
+|certName   |The file name of the certificate                                            |Yes     |       |my-cert.pem|
+|distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
+
+An example is as follows.
+
+```bash
+curl -i -XPUT \
+    --data-binary @my-certificate.pem \
+    "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/cert?certName=my-certificate.pem&distribute=true"
+```
+
+The example would send a certificate stored in the `my-certificate.pem` file. The certificate would be distributed to all replicas of the proxy.
 
 ### Config
 

@@ -1,0 +1,3 @@
+
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    use_backend myService-be if url_myService

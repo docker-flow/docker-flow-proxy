@@ -27,4 +27,5 @@ defaults
 
 frontend services
     bind *:80
-    bind *:443
+    bind *:443{{.CertsString}}
+    mode http

@@ -1,6 +1,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"fmt"
 	"strings"
 )
@@ -32,17 +33,18 @@ var NewRemove = func(serviceName, configsPath, templatesPath string, consulAddre
 	}
 }
 
+// TODO: Remove args
 func (m *Remove) Execute(args []string) error {
 	logPrintf("Removing %s configuration", m.ServiceName)
 	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	if err := proxy.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}

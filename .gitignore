@@ -3,3 +3,5 @@
 /*.out
 /docker-flow-proxy
 *.bak
+/tmp
+/certs/test.pem

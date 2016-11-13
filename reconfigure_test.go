@@ -3,6 +3,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"./registry"
 	"encoding/json"
 	"fmt"
@@ -25,7 +26,6 @@ type ReconfigureTestSuite struct {
 	ConfigsPath       string
 	TemplatesPath     string
 	reconfigure       Reconfigure
-	Pid               string
 	Server            *httptest.Server
 	PutPathResponse   string
 	ConsulRequestBody ServiceReconfigure
@@ -35,7 +35,6 @@ type ReconfigureTestSuite struct {
 
 func (s *ReconfigureTestSuite) SetupTest() {
 	s.InstanceName = "proxy-test-instance"
-	s.Pid = "123"
 	s.ServicePath = []string{"path/to/my/service/api", "path/to/my/other/service/api"}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
@@ -44,14 +43,12 @@ func (s *ReconfigureTestSuite) SetupTest() {
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend myService-be if url_myService`
 	s.ConsulTemplateBe = `backend myService-be
+    mode http
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
 	cmdRunHa = func(cmd *exec.Cmd) error {
 		return nil
-	}
-	readPidFile = func(fileName string) ([]byte, error) {
-		return []byte(s.Pid), nil
 	}
 	s.ConsulAddress = s.Server.URL
 	s.reconfigure = Reconfigure{
@@ -84,6 +81,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_Whe
 	s.reconfigure.ServiceReconfigure.Mode = "service"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
+    mode http
     server myService myService:1234`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -95,6 +93,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_Whe
 	s.reconfigure.ServiceReconfigure.Mode = "sWARm"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
+    mode http
     server myService myService:1234`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -230,7 +229,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 	s.reconfigure.Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
-	expectedData := fmt.Sprintf("backend %s-be\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
@@ -250,7 +249,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	s.reconfigure.Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
-	expectedData := fmt.Sprintf("backend %s-be\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
+	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.Port)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
@@ -312,21 +311,21 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateC
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	err := s.reconfigure.Execute([]string{})
 
@@ -334,10 +333,10 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 }
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mock := getProxyMock("")
-	proxy = mock
+	haproxy.Instance = mock
 
 	s.reconfigure.Execute([]string{})
 
@@ -364,6 +363,10 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		ConsulTemplateFePath: s.ConsulTemplateFePath,
 		ConsulTemplateBePath: s.ConsulTemplateBePath,
 	}
+	proxyMockObj := getProxyMock("")
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = proxyMockObj
 
 	s.reconfigure.Execute([]string{})
 
@@ -423,12 +426,11 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessi
 	skipAddressValidationOrig := s.reconfigure.skipAddressValidation
 	defer func() { s.reconfigure.skipAddressValidation = skipAddressValidationOrig }()
 	s.reconfigure.skipAddressValidation = false
-	println("xxx")
 
 	err := s.reconfigure.Execute([]string{})
 
 	s.Error(err)
-//	s.NoError(err)
+	//	s.NoError(err)
 }
 
 // NewReconfigure
@@ -471,6 +473,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	s.ConsulTemplateBe = `backend myService-be
+    mode http
     {{range $i, $e := service "myService-orange" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
@@ -491,21 +494,21 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -514,9 +517,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCrea
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -526,9 +529,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = mockObj
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
 
@@ -536,9 +539,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyRelo
 }
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = getProxyMock("")
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
 	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode, "")
 

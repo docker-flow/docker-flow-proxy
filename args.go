@@ -14,7 +14,7 @@ var NewArgs = func() Args {
 
 func (a Args) Parse() error {
 	parser := flags.NewParser(nil, flags.Default)
-	parser.AddCommand("server", "Runs the server", "Runs the server", &server)
+	parser.AddCommand("server", "Runs the server", "Runs the server", &serverImpl)
 	parser.AddCommand("run", "Runs the proxy", "Runs the proxy", &run)
 	parser.AddCommand("reconfigure", "Reconfigures the proxy", "Reconfigures the proxy using information stored in Consul", &reconfigure)
 	parser.AddCommand("remove", "Removes a service from the proxy", "Removes a service from the proxy", &remove)
