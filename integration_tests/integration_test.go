@@ -118,27 +118,6 @@ func (s IntegrationTestSuite) Test_Remove() {
 	resp, err := http.Get(url)
 	s.NoError(err)
 	s.NotEqual(200, resp.StatusCode)
-
-	// Remove by aclName
-
-	log.Printf(">> Sending reconfigure request to %s", address)
-	_, err = http.Get(address)
-	s.NoError(err)
-	s.verifyReconfigure(1)
-
-	url = fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/remove?aclName=%s",
-		os.Getenv("DOCKER_IP"),
-		aclName,
-	)
-	log.Printf(">> Sending remove request to %s", url)
-	_, err = http.Get(url)
-
-	s.NoError(err)
-	url = fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
-	resp, err = http.Get(url)
-	s.NoError(err)
-	s.NotEqual(200, resp.StatusCode)
 }
 
 func (s IntegrationTestSuite) Test_PutToConsul() {

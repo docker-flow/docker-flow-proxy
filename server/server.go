@@ -36,6 +36,12 @@ func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName
 			logPrintf("Sending distribution request to %s", addr)
 			req, _ := http.NewRequest(method, addr, strings.NewReader(body))
 			if resp, err := client.Do(req); err != nil || resp.StatusCode >= 300 {
+				// TODO: Test
+				if err != nil {
+					logPrintf(err.Error())
+				} else {
+					logPrintf("Status Code: %s", resp.StatusCode)
+				}
 				failedDns = append(failedDns, ips[i])
 			}
 		}
