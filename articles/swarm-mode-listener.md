@@ -448,6 +448,8 @@ echo https://$(docker-machine ip node-1).xip.io/demo/hello
 
 On Chrome you'll see "Your connection is not private" message. Click the *ADVANCED* link followed with "Proceed to \[IP\].xip.io (unsafe)" link. You'll see the "hello, world!" message displayed through HTTPS protocol.
 
+Please note that you are not limited to a single certificate. You can send multiple `PUT` requests with different certificates and they will all be added to the proxy.
+
 Now you can secure your proxy communication with SSL certificates. Unless you already have a certificate, purchase it or get it for free from [Let's Encrypt](https://letsencrypt.org/). The only thing left is for you to send a request to the proxy to include the certificate and try it out with your domain.
 
 ## Usage
