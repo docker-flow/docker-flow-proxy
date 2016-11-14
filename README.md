@@ -64,13 +64,14 @@ The following query arguments can be used to send as a *reconfigure* request to 
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
+|aclName      |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No||05-go-demo-acl|
 |consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
 |consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
 |port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode|Only in *swarm* mode|||8080|
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain.|No||ecme.com|
-|serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
+|serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |go-demo      |
 |servicePath  |The URL path of the service. Multiple values should be separated by a comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 
@@ -82,6 +83,7 @@ The following query arguments can be used to send a *remove* request to *Docker 
 
 |Query      |Description                                                                 |Required|Default|Example|
 |-----------|----------------------------------------------------------------------------|--------|-------|-------|
+|aclName    |Mandatory if ACL name was specified in reconfigure request                  |No      |       |05-go-demo-acl|
 |serviceName|The name of the service. It must match the name stored in Consul            |Yes     |       |go-demo|
 |distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 
