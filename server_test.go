@@ -39,15 +39,17 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ServiceColor = "pink"
 	s.ServiceDomain = "my-domain.com"
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
+	s.OutboundHostname = "machine-123.my-company.com"
 	s.ReconfigureBaseUrl = "/v1/docker-flow-proxy/reconfigure"
 	s.RemoveBaseUrl = "/v1/docker-flow-proxy/remove"
 	s.ReconfigureUrl = fmt.Sprintf(
-		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s",
+		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s&outboundHostname=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		s.ServiceColor,
 		strings.Join(s.ServicePath, ","),
 		s.ServiceDomain,
+		s.OutboundHostname,
 	)
 	s.RemoveUrl = fmt.Sprintf(
 		"%s?serviceName=%s",
@@ -294,12 +296,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
 	})
 
 	srv := Serve{}
@@ -312,12 +315,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      pathType,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         pathType,
 	})
 
 	srv := Serve{}
@@ -332,12 +336,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&port="+port, nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		Port:          port,
-		Mode:          mode,
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		Port:             port,
+		Mode:             mode,
 	})
 
 	srv := Serve{Mode: mode}
@@ -350,12 +355,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&skipCheck=true", nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
-		SkipCheck:     true,
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
+		SkipCheck:        true,
 	})
 
 	srv := Serve{}
@@ -371,13 +377,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithDistribute_WhenReconfigu
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
+		Distribute:       true,
+		Message:          DISTRIBUTED,
 	})
 
 	serve.ServeHTTP(s.ResponseWriter, req)
@@ -408,16 +415,16 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesDistributed_WhenReconfigureAndDis
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
-		Distribute:    true,
-		Message:       DISTRIBUTED,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
+		Distribute:       true,
+		Message:          DISTRIBUTED,
 	})
-
 	serve.ServeHTTP(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))

@@ -35,6 +35,7 @@ func (m Consul) PutService(addresses []string, instanceName string, r Registry) 
 		data{COLOR_KEY, r.ServiceColor},
 		data{PATH_KEY, strings.Join(r.ServicePath, ",")},
 		data{DOMAIN_KEY, r.ServiceDomain},
+		data{HOSTNAME_KEY, r.OutboundHostname},
 		data{PATH_TYPE_KEY, r.PathType},
 		data{SKIP_CHECK_KEY, fmt.Sprintf("%t", r.SkipCheck)},
 		data{CONSUL_TEMPLATE_FE_PATH_KEY, r.ConsulTemplateFePath},

@@ -71,6 +71,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain.|No||ecme.com|
 |serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
 |servicePath  |The URL path of the service. Multiple values should be separated by a comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
+|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||machine123.internal.ecme.com|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 
 ### Remove

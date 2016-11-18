@@ -62,6 +62,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
 		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
+		{"outputHostnameFromArgs", "outbound-hostname", &reconfigure.OutboundHostname},
 		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},

@@ -359,6 +359,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		ServiceColor:         s.ServiceColor,
 		ServicePath:          s.ServicePath,
 		ServiceDomain:        s.ServiceDomain,
+		OutboundHostname:     s.OutboundHostname,
 		PathType:             s.PathType,
 		SkipCheck:            s.SkipCheck,
 		ConsulTemplateFePath: s.ConsulTemplateFePath,
@@ -613,6 +614,11 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(s.ServiceDomain))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(s.OutboundHostname))
 				}
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
 				if r.URL.RawQuery == "raw" {
