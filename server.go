@@ -1,14 +1,15 @@
 package main
 
 import (
-	"./proxy"
-	"./server"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"./proxy"
+	"./server"
 )
 
 const (
@@ -40,6 +41,7 @@ type Response struct {
 	ServiceColor         string
 	ServicePath          []string
 	ServiceDomain        []string
+	ServiceCert          string
 	ConsulTemplateFePath string
 	ConsulTemplateBePath string
 	PathType             string
@@ -125,6 +127,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
+		ServiceCert:          req.URL.Query().Get("serviceCert"),
 		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
 		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
 		PathType:             req.URL.Query().Get("pathType"),
@@ -159,6 +162,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceColor:         sr.ServiceColor,
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
+		ServiceCert:          sr.ServiceCert,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 		PathType:             sr.PathType,
@@ -182,6 +186,9 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}
 		} else {
+			if len(sr.ServiceCert) > 0 {
+				cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+			}
 			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
 				m.writeInternalServerError(w, &response, err.Error())

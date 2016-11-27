@@ -3,17 +3,18 @@
 package main
 
 import (
-	haproxy "./proxy"
-	"./server"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	haproxy "./proxy"
+	"./server"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {
@@ -867,6 +868,10 @@ type CertMock struct {
 
 func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	return m.PutMock(w, req)
+}
+
+func (m CertMock) PutCert(certName string, certContent []byte) (string, error) {
+	return "", nil
 }
 
 func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (server.CertResponse, error) {
