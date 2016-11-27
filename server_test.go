@@ -3,17 +3,18 @@
 package main
 
 import (
-	haproxy "./proxy"
-	"./server"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	haproxy "./proxy"
+	"./server"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {
@@ -516,7 +517,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	s.ServiceReconfigure.AclName = "my-acl"
 	url := fmt.Sprintf("%s&aclName=my-acl", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", url, nil)
-//	s.RequestReconfigure.u
+	//	s.RequestReconfigure.u
 	s.invokesReconfigure(req, true)
 }
 
@@ -823,6 +824,10 @@ type CertMock struct {
 
 func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	return m.PutMock(w, req)
+}
+
+func (m CertMock) PutCert(certName string, certContent []byte) (string, error) {
+	return "", nil
 }
 
 func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (server.CertResponse, error) {

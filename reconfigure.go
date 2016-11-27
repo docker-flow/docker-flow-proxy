@@ -1,8 +1,6 @@
 package main
 
 import (
-	haproxy "./proxy"
-	"./registry"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	haproxy "./proxy"
+	"./registry"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -37,6 +38,7 @@ type ServiceReconfigure struct {
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
 	ServiceDomain        string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ServiceCert          string `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
 	ConsulTemplateFePath string `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
 	ConsulTemplateBePath string `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	Mode                 string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
@@ -187,6 +189,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 		sr.ServicePath = strings.Split(path, ",")
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
 		sr.ServiceDomain, _ = m.getServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
+		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
 		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
 		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
@@ -248,6 +251,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 		ServiceColor:         sr.ServiceColor,
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
+		ServiceCert:          sr.ServiceCert,
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
