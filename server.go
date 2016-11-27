@@ -170,7 +170,11 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			}
 		} else {
 			if len(sr.ServiceCert) > 0 {
-				cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+				if len(sr.ServiceDomain) > 0 {
+					cert.PutCert(sr.ServiceDomain, []byte(sr.ServiceCert))
+				} else {
+					cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+				}
 			}
 			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
