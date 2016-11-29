@@ -17,6 +17,16 @@ type HaProxy struct {
 // TODO: Change to pointer
 var Instance Proxy
 
+type ConfigData struct {
+	CertsString string
+	TimeoutConnect string
+	TimeoutClient string
+	TimeoutServer string
+	TimeoutQueue string
+	TimeoutHttpRequest string
+	TimeoutHttpKeepAlive string
+}
+
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
 	data.Certs = certs
 	return HaProxy{
@@ -124,9 +134,11 @@ backend dummy-be
 		strings.Join(contentArr, "\n\n"),
 	)
 	var content bytes.Buffer
-	type ConfigData struct {
-		CertsString string
-	}
+	tmpl.Execute(&content, m.getConfigData())
+	return content.String(), nil
+}
+
+func (m HaProxy) getConfigData() ConfigData {
 	certs := []string{}
 	if len(data.Certs) > 0 {
 		certs = append(certs, " ssl")
@@ -134,9 +146,32 @@ backend dummy-be
 			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
 		}
 	}
-	configData := ConfigData{
+	d := ConfigData{
 		CertsString: strings.Join(certs, " "),
+		TimeoutConnect: "5",
+		TimeoutClient: "20",
+		TimeoutServer: "20",
+		TimeoutQueue: "30",
+		TimeoutHttpRequest: "5",
+		TimeoutHttpKeepAlive: "15",
 	}
-	tmpl.Execute(&content, configData)
-	return content.String(), nil
+	if len(os.Getenv("TIMEOUT_CONNECT")) > 0 {
+		d.TimeoutConnect = os.Getenv("TIMEOUT_CONNECT")
+	}
+	if len(os.Getenv("TIMEOUT_CLIENT")) > 0 {
+		d.TimeoutClient = os.Getenv("TIMEOUT_CLIENT")
+	}
+	if len(os.Getenv("TIMEOUT_SERVER")) > 0 {
+		d.TimeoutServer = os.Getenv("TIMEOUT_SERVER")
+	}
+	if len(os.Getenv("TIMEOUT_QUEUE")) > 0 {
+		d.TimeoutQueue = os.Getenv("TIMEOUT_QUEUE")
+	}
+	if len(os.Getenv("TIMEOUT_HTTP_REQUEST")) > 0 {
+		d.TimeoutHttpRequest = os.Getenv("TIMEOUT_HTTP_REQUEST")
+	}
+	if len(os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")) > 0 {
+		d.TimeoutHttpKeepAlive = os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")
+	}
+	return d
 }

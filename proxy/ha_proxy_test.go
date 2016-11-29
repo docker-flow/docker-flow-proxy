@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"strings"
 )
 
 // Setup
@@ -17,6 +18,8 @@ type HaProxyTestSuite struct {
 	TemplatesPath string
 	ConfigsPath   string
 	Pid           string
+	TemplateContent string
+	ServicesContent string
 }
 
 func (s *HaProxyTestSuite) SetupTest() {
@@ -106,15 +109,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFi
 	var actualFilename string
 	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
 	var actualData string
-	expectedData := `template content
-
-config1 fe content
-
-config2 fe content
-
-config1 be content
-
-config2 be content`
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		s.TemplateContent,
+		s.ServicesContent,
+	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualFilename = filename
 		actualData = string(data)
@@ -131,15 +130,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	var actualFilename string
 	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
 	var actualData string
-	expectedData := `template content ssl crt /certs/my-cert.pem
-
-config1 fe content
-
-config2 fe content
-
-config1 be content
-
-config2 be content`
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, "bind *:443", "bind *:443 ssl crt /certs/my-cert.pem", -1),
+		s.ServicesContent,
+	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualFilename = filename
 		actualData = string(data)
@@ -152,6 +147,45 @@ config2 be content`
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesTimeoutsWithEnvVars() {
+	tests := []struct {
+		envKey string
+		before string
+		after string
+	}{
+		{ "TIMEOUT_CONNECT", "timeout connect 5s", "timeout connect 999s" },
+		{ "TIMEOUT_CLIENT", "timeout client  20s", "timeout client  999s" },
+		{ "TIMEOUT_SERVER", "timeout server  20s", "timeout server  999s" },
+		{ "TIMEOUT_QUEUE", "timeout queue   30s", "timeout queue   999s" },
+		{ "TIMEOUT_HTTP_REQUEST", "timeout http-request 5s", "timeout http-request 999s" },
+		{ "TIMEOUT_HTTP_KEEP_ALIVE", "timeout http-keep-alive 15s", "timeout http-keep-alive 999s" },
+	}
+	for _, t := range tests {
+		timeoutOrig := os.Getenv(t.envKey)
+		os.Setenv(t.envKey, "999")
+		var actualFilename string
+		expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
+		var actualData string
+		expectedData := fmt.Sprintf(
+			"%s%s",
+			strings.Replace(s.TemplateContent, t.before, t.after, -1),
+			s.ServicesContent,
+		)
+		writeFile = func(filename string, data []byte, perm os.FileMode) error {
+			actualFilename = filename
+			actualData = string(data)
+			return nil
+		}
+
+		NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
+		s.Equal(expectedFilename, actualFilename)
+		s.Equal(expectedData, actualData)
+
+		os.Setenv(t.envKey, timeoutOrig)
+	}
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesMockDataIfConfigsAreNotPresent() {
 	var actualData string
 	readConfigsDirOrig := readConfigsDir
@@ -161,13 +195,17 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesMockDataIfConfigs
 	readConfigsDir = func(dirname string) ([]os.FileInfo, error) {
 		return []os.FileInfo{}, nil
 	}
-	expectedData := `template content
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		s.TemplateContent,
+		`
 
     acl url_dummy path_beg /dummy
     use_backend dummy-be if url_dummy
 
 backend dummy-be
-    server dummy 1.1.1.1:1111 check`
+    server dummy 1.1.1.1:1111 check`,
+	)
 
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualData = string(data)
@@ -284,7 +322,49 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 
 func TestHaProxyUnitTestSuite(t *testing.T) {
 	logPrintf = func(format string, v ...interface{}) {}
-	suite.Run(t, new(HaProxyTestSuite))
+	s := new(HaProxyTestSuite)
+	s.TemplateContent = `global
+    pidfile /var/run/haproxy.pid
+    tune.ssl.default-dh-param 2048
+
+defaults
+    mode    http
+    balance roundrobin
+
+    option  dontlognull
+    option  dontlog-normal
+    option  http-server-close
+    option  forwardfor
+    option  redispatch
+
+    maxconn 5000
+    timeout connect 5s
+    timeout client  20s
+    timeout server  20s
+    timeout queue   30s
+    timeout http-request 5s
+    timeout http-keep-alive 15s
+
+    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats auth admin:admin
+    stats uri /admin?stats
+
+frontend services
+    bind *:80
+    bind *:443
+    mode http`
+	s.ServicesContent = `
+
+config1 fe content
+
+config2 fe content
+
+config1 be content
+
+config2 be content`
+	suite.Run(t, s)
 }
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {

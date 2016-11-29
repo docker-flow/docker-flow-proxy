@@ -48,6 +48,13 @@ The following environment variables can be used to configure the *Docker Flow: P
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--service` argument. Used only in the *swarm* mode.|No|proxy|my-proxy|
+|TIMEOUT_CONNECT    |The connect timeout in seconds                            |        |5      |3      |
+|TIMEOUT_CLIENT     |The client timeout in seconds                             |        |20     |5      |
+|TIMEOUT_SERVER     |The server timeout in seconds                             |        |20     |5      |
+|TIMEOUT_QUEUE      |The queue timeout in seconds                              |        |30     |10     |
+|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |        |5      |3      |
+|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |        |15     |10     |
+
 
 The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new container. An example *Dockerfile* is as follows.
 

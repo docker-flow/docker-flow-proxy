@@ -13,12 +13,12 @@ defaults
     option  redispatch
 
     maxconn 5000
-    timeout connect 5s
-    timeout client  20s
-    timeout server  20s
-    timeout queue   30s
-    timeout http-request 5s
-    timeout http-keep-alive 15s
+    timeout connect {{.TimeoutConnect}}s
+    timeout client  {{.TimeoutClient}}s
+    timeout server  {{.TimeoutServer}}s
+    timeout queue   {{.TimeoutQueue}}s
+    timeout http-request {{.TimeoutHttpRequest}}s
+    timeout http-keep-alive {{.TimeoutHttpKeepAlive}}s
 
     stats enable
     stats refresh 30s
