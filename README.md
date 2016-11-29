@@ -60,7 +60,7 @@ The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It 
 
 ```
 FROM vfarcic/docker-flow-proxy
-COPY haproxy.tmpl /cfg/haproxy.tmpl
+COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 ```
 
 ### Reconfigure
