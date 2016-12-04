@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -261,7 +262,6 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	return nil
 }
 
-// TODO: Move to registry package
 func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
 	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
 		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
@@ -273,13 +273,12 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 			return "", "", err
 		}
 	} else {
-		front, back = m.getConsulTemplateFromGo(sr)
+		front, back = m.getTemplateFromGo(sr)
 	}
 	return front, back, nil
 }
 
-// TODO: Move to registry package
-func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
+func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
 	sr.Acl = ""
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
@@ -305,14 +304,20 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
 	srcBack := `backend {{.AclName}}-be
-    mode http
-    `
+    mode http`
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		srcBack += `server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
-	} else {
-		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
+		srcBack += `
+    server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
+	} else { // It's Consul
+		srcBack += `
+    {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
+	}
+	if len(os.Getenv("USERS")) > 0 {
+		srcBack += `
+    acl defaultUsersAcl http_auth(defaultUsers)
+    http-request auth realm defaultRealm if !defaultUsersAcl`
 	}
 	tmplFront, _ := template.New("consulTemplate").Parse(srcFront)
 	tmplBack, _ := template.New("consulTemplate").Parse(srcBack)

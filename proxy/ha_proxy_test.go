@@ -22,6 +22,55 @@ type HaProxyTestSuite struct {
 	ServicesContent string
 }
 
+// Suite
+
+func TestHaProxyUnitTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
+	s := new(HaProxyTestSuite)
+	s.TemplateContent = `global
+    pidfile /var/run/haproxy.pid
+    tune.ssl.default-dh-param 2048
+
+defaults
+    mode    http
+    balance roundrobin
+
+    option  dontlognull
+    option  dontlog-normal
+    option  http-server-close
+    option  forwardfor
+    option  redispatch
+
+    maxconn 5000
+    timeout connect 5s
+    timeout client  20s
+    timeout server  20s
+    timeout queue   30s
+    timeout http-request 5s
+    timeout http-keep-alive 15s
+
+    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats auth admin:admin
+    stats uri /admin?stats
+
+frontend services
+    bind *:80
+    bind *:443
+    mode http`
+	s.ServicesContent = `
+
+config1 fe content
+
+config2 fe content
+
+config1 be content
+
+config2 be content`
+	suite.Run(t, s)
+}
+
 func (s *HaProxyTestSuite) SetupTest() {
 	s.Pid = "123"
 	s.TemplatesPath = "test_configs/tmpl"
@@ -144,6 +193,35 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
 	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsUserList() {
+	var actualData string
+	usersOrig := os.Getenv("USERS")
+	defer func() { os.Setenv("USERS", usersOrig) }()
+	os.Setenv("USERS", "my-user-1:my-password-1,my-user-2:my-password-2")
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(
+			s.TemplateContent,
+			"frontend services",
+			`userlist defaultUsers
+    user my-user-1 insecure-password my-password-1
+    user my-user-2 insecure-password my-password-2
+
+frontend services`,
+			-1,
+		),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
 	s.Equal(expectedData, actualData)
 }
 
@@ -319,54 +397,7 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	s.Equal(expected, *actual)
 }
 
-// Suite
-
-func TestHaProxyUnitTestSuite(t *testing.T) {
-	logPrintf = func(format string, v ...interface{}) {}
-	s := new(HaProxyTestSuite)
-	s.TemplateContent = `global
-    pidfile /var/run/haproxy.pid
-    tune.ssl.default-dh-param 2048
-
-defaults
-    mode    http
-    balance roundrobin
-
-    option  dontlognull
-    option  dontlog-normal
-    option  http-server-close
-    option  forwardfor
-    option  redispatch
-
-    maxconn 5000
-    timeout connect 5s
-    timeout client  20s
-    timeout server  20s
-    timeout queue   30s
-    timeout http-request 5s
-    timeout http-keep-alive 15s
-
-    stats enable
-    stats refresh 30s
-    stats realm Strictly\ Private
-    stats auth admin:admin
-    stats uri /admin?stats
-
-frontend services
-    bind *:80
-    bind *:443
-    mode http`
-	s.ServicesContent = `
-
-config1 fe content
-
-config2 fe content
-
-config1 be content
-
-config2 be content`
-	suite.Run(t, s)
-}
+// Mocks
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string

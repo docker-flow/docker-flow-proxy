@@ -56,6 +56,7 @@ The following environment variables can be used to configure the *Docker Flow: P
 |TIMEOUT_QUEUE      |The queue timeout in seconds                              |        |30     |10     |
 |TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |        |5      |3      |
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |        |15     |10     |
+|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|||user1:pass1,user2:pass2|
 
 
 The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new container. An example *Dockerfile* is as follows.

@@ -27,6 +27,7 @@ type ConfigData struct {
 	TimeoutHttpKeepAlive string
 	StatsUser            string
 	StatsPass            string
+	UserList             string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -182,6 +183,14 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	if len(os.Getenv("STATS_PASS")) > 0 {
 		d.StatsPass = os.Getenv("STATS_PASS")
+	}
+	if len(os.Getenv("USERS")) > 0 {
+		d.UserList = "\nuserlist defaultUsers\n"
+		users := strings.Split(os.Getenv("USERS"), ",")
+		for _, user := range users {
+			userPass := strings.Split(user, ":")
+			d.UserList = fmt.Sprintf("%s    user %s insecure-password %s\n", d.UserList, userPass[0], userPass[1])
+		}
 	}
 	return d
 }

@@ -66,38 +66,63 @@ func (s *ReconfigureTestSuite) SetupTest() {
 
 // GetConsulTemplate
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent() {
+func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent() {
 	front, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, front)
 	s.Equal(s.ConsulTemplateBe, back)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_WhenModeIsService() {
-	s.reconfigure.ServiceReconfigure.Mode = "service"
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersEnvIsPresent() {
+	usersOrig := os.Getenv("USERS")
+	defer func() { os.Setenv("USERS", usersOrig) }()
+	os.Setenv("USERS", "anything")
+	expected := `backend myService-be
+    mode http
+    {{range $i, $e := service "myService" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}
+    acl defaultUsersAcl http_auth(defaultUsers)
+    http-request auth realm defaultRealm if !defaultUsersAcl`
+
+	_, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, back)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent_WhenModeIsSwarm() {
+	modes := []string{"service", "sWARm"}
+	for _, mode := range modes {
+		s.reconfigure.ServiceReconfigure.Mode = mode
+		s.reconfigure.ServiceReconfigure.Port = "1234"
+		expected := `backend myService-be
+    mode http
+    server myService myService:1234`
+
+		_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+		s.Equal(expected, actual)
+	}
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUsersEnvIsPresent() {
+	usersOrig := os.Getenv("USERS")
+	defer func() { os.Setenv("USERS", usersOrig) }()
+	os.Setenv("USERS", "anything")
+	s.reconfigure.ServiceReconfigure.Mode = "swarm"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
 	expected := `backend myService-be
     mode http
-    server myService myService:1234`
+    server myService myService:1234
+    acl defaultUsersAcl http_auth(defaultUsers)
+    http-request auth realm defaultRealm if !defaultUsersAcl`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFormattedContent_WhenModeIsSwarm() {
-	s.reconfigure.ServiceReconfigure.Mode = "sWARm"
-	s.reconfigure.ServiceReconfigure.Port = "1234"
-	expected := `backend myService-be
-    mode http
-    server myService myService:1234`
-
-	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
-
-	s.Equal(expected, actual)
-}
-
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHost() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     acl domain_myService hdr_dom(host) -i my-domain.com
@@ -108,7 +133,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesAclNameForFrontEnd() {
+func (s ReconfigureTestSuite) Test_GetTemplate_UsesAclNameForFrontEnd() {
 	s.reconfigure.AclName = "my-acl"
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
@@ -118,7 +143,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesAclNameForFrontEnd() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesPathReg() {
+func (s ReconfigureTestSuite) Test_GetTemplate_UsesPathReg() {
 	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
 	s.reconfigure.PathType = "path_reg"
 	front, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -126,7 +151,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_UsesPathReg() {
 	s.Equal(s.ConsulTemplateFe, front)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsColor() {
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
@@ -135,7 +160,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsColor() {
 	s.Contains(actual, expected)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_DoesNotSetCheckWhenSkipCheckIsTrue() {
+func (s ReconfigureTestSuite) Test_GetTemplate_DoesNotSetCheckWhenSkipCheckIsTrue() {
 	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -143,7 +168,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_DoesNotSetCheckWhenSkipChec
 	s.Equal(s.ConsulTemplateBe, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
+func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
 	expected := "This is content of a template"
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
@@ -158,7 +183,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsFileContent_WhenCons
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetConsulTemplate_ReturnsError_WhenConsulTemplateFileIsNotAvailable() {
+func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsError_WhenConsulTemplateFileIsNotAvailable() {
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
 	readTemplateFile = func(dirname string) ([]byte, error) {
