@@ -41,7 +41,7 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
 	s.ServiceColor = "pink"
-	s.ServiceDomain = "my-domain.com"
+	s.ServiceDomain = []string{"my-domain.com"}
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
 	s.BaseUrl = "/v1/docker-flow-proxy"
 	s.ReconfigureBaseUrl = fmt.Sprintf("%s/reconfigure", s.BaseUrl)
@@ -52,7 +52,7 @@ func (s *ServerTestSuite) SetupTest() {
 		s.ServiceName,
 		s.ServiceColor,
 		strings.Join(s.ServicePath, ","),
-		s.ServiceDomain,
+		strings.Join(s.ServiceDomain, ","),
 	)
 	s.RemoveUrl = fmt.Sprintf("%s?serviceName=%s", s.RemoveBaseUrl, s.ServiceName)
 	s.CertUrl = fmt.Sprintf("%s/cert?my-cert.pem", s.BaseUrl)

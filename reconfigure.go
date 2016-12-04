@@ -36,10 +36,10 @@ type ServiceReconfigure struct {
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
-	ServiceDomain        string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ConsulTemplateFePath string `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
-	ConsulTemplateBePath string `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
-	Mode                 string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
+	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
+	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	PathType             string
 	Port                 string
 	SkipCheck            bool
@@ -183,10 +183,11 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 	sr := ServiceReconfigure{ServiceName: serviceName}
 
 	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
+	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
 	if err == nil {
 		sr.ServicePath = strings.Split(path, ",")
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
-		sr.ServiceDomain, _ = m.getServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
+		sr.ServiceDomain = strings.Split(domain, ",")
 		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
 		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
@@ -288,7 +289,7 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
 		sr.Acl = fmt.Sprintf(`
     acl domain_%s hdr_dom(host) -i %s`,
 			sr.ServiceName,
-			sr.ServiceDomain,
+			sr.ServiceDomain[0],
 		)
 		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}

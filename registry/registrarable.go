@@ -16,7 +16,7 @@ type Registry struct {
 	Port                 string
 	ServiceColor         string
 	ServicePath          []string
-	ServiceDomain        string
+	ServiceDomain        []string
 	PathType             string
 	SkipCheck            bool
 	ConsulTemplateFePath string

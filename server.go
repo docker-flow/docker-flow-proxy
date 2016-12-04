@@ -39,7 +39,7 @@ type Response struct {
 	AclName              string
 	ServiceColor         string
 	ServicePath          []string
-	ServiceDomain        string
+	ServiceDomain        []string
 	ConsulTemplateFePath string
 	ConsulTemplateBePath string
 	PathType             string
@@ -122,7 +122,6 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
-		ServiceDomain:        req.URL.Query().Get("serviceDomain"),
 		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
 		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
 		PathType:             req.URL.Query().Get("pathType"),
@@ -131,6 +130,9 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	}
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
+	}
+	if len(req.URL.Query().Get("serviceDomain")) > 0 {
+		sr.ServiceDomain = strings.Split(req.URL.Query().Get("serviceDomain"), ",")
 	}
 	if len(req.URL.Query().Get("skipCheck")) > 0 {
 		sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))

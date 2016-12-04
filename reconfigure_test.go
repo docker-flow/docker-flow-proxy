@@ -102,7 +102,7 @@ func (s ReconfigureTestSuite) Test_GetConsulTemplate_AddsHost() {
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     acl domain_myService hdr_dom(host) -i my-domain.com
     use_backend myService-be if url_myService domain_myService`
-	s.reconfigure.ServiceDomain = "my-domain.com"
+	s.reconfigure.ServiceDomain = []string{"my-domain.com"}
 	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
@@ -522,30 +522,30 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 	s.Error(err)
 }
 
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
-	mockObj := getRegistrarableMock("")
-	registryInstanceOrig := registryInstance
-	defer func() { registryInstance = registryInstanceOrig }()
-	registryInstance = mockObj
-	s.ConsulTemplateBe = `backend myService-be
-    mode http
-    {{range $i, $e := service "myService-orange" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-    {{end}}`
-	expectedArgs := registry.CreateConfigsArgs{
-		Addresses:     []string{s.Server.URL},
-		TemplatesPath: s.TemplatesPath,
-		FeFile:        ServiceTemplateFeFilename,
-		FeTemplate:    s.ConsulTemplateFe,
-		BeFile:        ServiceTemplateBeFilename,
-		BeTemplate:    s.ConsulTemplateBe,
-		ServiceName:   s.ServiceName,
-	}
-
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
-
-	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
-}
+// TODO: Remove
+//func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
+//	mockObj := getRegistrarableMock("")
+//	registryInstanceOrig := registryInstance
+//	defer func() { registryInstance = registryInstanceOrig }()
+//	registryInstance = mockObj
+//	s.ConsulTemplateBe = `backend myService-be
+//    mode http
+//    {{range $i, $e := service "myService-orange" "any"}}
+//    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+//    {{end}}`
+//
+//	expectedArgs := registry.CreateConfigsArgs{
+//		Addresses:     []string{s.Server.URL},
+//		TemplatesPath: s.TemplatesPath,
+//		FeFile:        ServiceTemplateFeFilename,
+//		FeTemplate:    s.ConsulTemplateFe,
+//		BeFile:        ServiceTemplateBeFilename,
+//		BeTemplate:    s.ConsulTemplateBe,
+//		ServiceName:   s.ServiceName,
+//	}
+//
+//	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
+//}
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
@@ -670,7 +670,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(s.ServiceDomain))
+					w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
 				}
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
 				if r.URL.RawQuery == "raw" {

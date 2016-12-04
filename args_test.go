@@ -55,7 +55,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
-		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
 		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
@@ -80,6 +79,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 		value    *[]string
 	}{
 		{[]string{"path1", "path2"}, "service-path", &reconfigure.ServicePath},
+		{[]string{"service-domain"}, "service-domain", &reconfigure.ServiceDomain},
 	}
 
 	for _, d := range data {
