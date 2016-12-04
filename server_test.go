@@ -516,7 +516,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	s.ServiceReconfigure.AclName = "my-acl"
 	url := fmt.Sprintf("%s&aclName=my-acl", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", url, nil)
-//	s.RequestReconfigure.u
+	//	s.RequestReconfigure.u
 	s.invokesReconfigure(req, true)
 }
 

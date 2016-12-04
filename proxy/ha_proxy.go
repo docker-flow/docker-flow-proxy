@@ -18,13 +18,15 @@ type HaProxy struct {
 var Instance Proxy
 
 type ConfigData struct {
-	CertsString string
-	TimeoutConnect string
-	TimeoutClient string
-	TimeoutServer string
-	TimeoutQueue string
-	TimeoutHttpRequest string
+	CertsString          string
+	TimeoutConnect       string
+	TimeoutClient        string
+	TimeoutServer        string
+	TimeoutQueue         string
+	TimeoutHttpRequest   string
 	TimeoutHttpKeepAlive string
+	StatsUser            string
+	StatsPass            string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -147,13 +149,15 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	d := ConfigData{
-		CertsString: strings.Join(certs, " "),
-		TimeoutConnect: "5",
-		TimeoutClient: "20",
-		TimeoutServer: "20",
-		TimeoutQueue: "30",
-		TimeoutHttpRequest: "5",
+		CertsString:          strings.Join(certs, " "),
+		TimeoutConnect:       "5",
+		TimeoutClient:        "20",
+		TimeoutServer:        "20",
+		TimeoutQueue:         "30",
+		TimeoutHttpRequest:   "5",
 		TimeoutHttpKeepAlive: "15",
+		StatsUser:            "admin",
+		StatsPass:            "admin",
 	}
 	if len(os.Getenv("TIMEOUT_CONNECT")) > 0 {
 		d.TimeoutConnect = os.Getenv("TIMEOUT_CONNECT")
@@ -172,6 +176,12 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	if len(os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")) > 0 {
 		d.TimeoutHttpKeepAlive = os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")
+	}
+	if len(os.Getenv("STATS_USER")) > 0 {
+		d.StatsUser = os.Getenv("STATS_USER")
+	}
+	if len(os.Getenv("STATS_PASS")) > 0 {
+		d.StatsPass = os.Getenv("STATS_PASS")
 	}
 	return d
 }

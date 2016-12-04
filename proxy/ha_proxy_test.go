@@ -7,17 +7,17 @@ import (
 	"github.com/stretchr/testify/suite"
 	"os"
 	"os/exec"
-	"testing"
 	"strings"
+	"testing"
 )
 
 // Setup
 
 type HaProxyTestSuite struct {
 	suite.Suite
-	TemplatesPath string
-	ConfigsPath   string
-	Pid           string
+	TemplatesPath   string
+	ConfigsPath     string
+	Pid             string
 	TemplateContent string
 	ServicesContent string
 }
@@ -147,24 +147,26 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	s.Equal(expectedData, actualData)
 }
 
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesTimeoutsWithEnvVars() {
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVars() {
 	tests := []struct {
 		envKey string
 		before string
-		after string
+		after  string
+		value  string
 	}{
-		{ "TIMEOUT_CONNECT", "timeout connect 5s", "timeout connect 999s" },
-		{ "TIMEOUT_CLIENT", "timeout client  20s", "timeout client  999s" },
-		{ "TIMEOUT_SERVER", "timeout server  20s", "timeout server  999s" },
-		{ "TIMEOUT_QUEUE", "timeout queue   30s", "timeout queue   999s" },
-		{ "TIMEOUT_HTTP_REQUEST", "timeout http-request 5s", "timeout http-request 999s" },
-		{ "TIMEOUT_HTTP_KEEP_ALIVE", "timeout http-keep-alive 15s", "timeout http-keep-alive 999s" },
+		{"TIMEOUT_CONNECT", "timeout connect 5s", "timeout connect 999s", "999"},
+		{"TIMEOUT_CLIENT", "timeout client  20s", "timeout client  999s", "999"},
+		{"TIMEOUT_SERVER", "timeout server  20s", "timeout server  999s", "999"},
+		{"TIMEOUT_QUEUE", "timeout queue   30s", "timeout queue   999s", "999"},
+		{"TIMEOUT_HTTP_REQUEST", "timeout http-request 5s", "timeout http-request 999s", "999"},
+		{"TIMEOUT_HTTP_KEEP_ALIVE", "timeout http-keep-alive 15s", "timeout http-keep-alive 999s", "999"},
+		{"STATS_USER", "stats auth admin:admin", "stats auth my-user:admin", "my-user"},
+		{"STATS_PASS", "stats auth admin:admin", "stats auth admin:my-pass", "my-pass"},
 	}
 	for _, t := range tests {
 		timeoutOrig := os.Getenv(t.envKey)
-		os.Setenv(t.envKey, "999")
+		os.Setenv(t.envKey, t.value)
 		var actualFilename string
-		expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
 		var actualData string
 		expectedData := fmt.Sprintf(
 			"%s%s",
@@ -179,7 +181,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesTimeoutsWithEnv
 
 		NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
-		s.Equal(expectedFilename, actualFilename)
 		s.Equal(expectedData, actualData)
 
 		os.Setenv(t.envKey, timeoutOrig)
