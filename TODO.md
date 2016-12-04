@@ -1,29 +1,16 @@
 # TODO
 
-## Certs
+## Authentication
 
-* Remove cert API (file and name)
-* Load existing certs from labels on init
-* Fix TODOs
-* Document
+[X] Make global authentication from env variables
+[X] Add per-service authentication
+[X] Propagate users from reconfigure server request
+[X] Add integration tests
+[ ] Test manually
+[X] Update README with env. var. *USERS*
+[X] Update README with reconfigure param *users*
+[ ] Update README with an article about authentication with the proxy and the listener
 
-  * API: PUT /v1/docker-flow-proxy/cert
+## Videos
 
-
-```bash
-curl -i -XPUT \
-    -d 'Content of my certificate PEM file' \
-    $(docker-machine ip docker-flow-proxy-tests):8080/v1/docker-flow-proxy/cert?certName=viktor.pem
-```
-
-## ACL Ordering
-
-[X] Use ACL instead service name with templates
-[X] Save templates as ACL names
-[X] Load ACL templates in alphabetic order
-[X] Use ACL name to remove a template
-[ ] Confirm that server invokes reconfigure and remove with AclName param
-
-## Content
-
-* https://www.youtube.com/watch?v=oP0_H_UkkGA
+[ ] Wilde: https://www.youtube.com/watch?v=oP0_H_UkkGA

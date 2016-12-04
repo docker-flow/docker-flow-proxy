@@ -88,6 +88,83 @@ func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
 	s.verifyReconfigure(2)
 }
 
+func (s IntegrationTestSuite) Test_Global_Auth() {
+	s.reconfigure("", "", "", "/v1/test")
+
+	// Returns status 401 if no auth is provided
+
+	testAddr := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	log.Printf(">> Sending verify request to %s", testAddr)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", testAddr, nil)
+	resp, err := client.Do(request)
+
+	s.NoError(err)
+	s.Equal(401, resp.StatusCode)
+
+	// Returns status 200 if auth is provided
+
+	request.SetBasicAuth("user1", "pass1")
+	resp, err = client.Do(request)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode)
+}
+
+func (s IntegrationTestSuite) Test_Reconfigure_Auth() {
+	var address string
+	address = fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&users=%s",
+		os.Getenv("DOCKER_IP"),
+		s.serviceName,
+		"/v1/test",
+		"serv-user-1:serv-pass-1",
+	)
+	log.Printf(">> Sending reconfigure request to %s", address)
+	_, err := http.Get(address)
+	s.NoError(err)
+
+	// Returns status 401 if no auth is provided
+
+	testAddr := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	log.Printf(">> Sending verify request to %s", testAddr)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", testAddr, nil)
+	resp, err := client.Do(request)
+
+	s.NoError(err)
+	s.Equal(401, resp.StatusCode)
+
+	// Returns status 200 if auth is provided
+
+	request.SetBasicAuth("serv-user-1", "serv-pass-1")
+	resp, err = client.Do(request)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode)
+}
+
+func (s IntegrationTestSuite) Test_Stats_Auth() {
+	// Returns status 401 if no auth is provided
+
+	testAddr := fmt.Sprintf("http://%s/admin?stats", os.Getenv("DOCKER_IP"))
+	log.Printf(">> Sending verify request to %s", testAddr)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", testAddr, nil)
+	resp, err := client.Do(request)
+
+	s.NoError(err)
+	s.Equal(401, resp.StatusCode)
+
+	// Returns status 200 if auth is provided
+
+	request.SetBasicAuth("stats", "pass")
+	resp, err = client.Do(request)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode)
+}
+
 func (s IntegrationTestSuite) Test_Remove() {
 	aclName := "my-acl"
 	// curl "http://$(docker-machine tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=%s&aclName=%s"
@@ -216,7 +293,10 @@ func (s IntegrationTestSuite) Test_Certs() {
 func (s IntegrationTestSuite) verifyReconfigure(version int) {
 	address := fmt.Sprintf("http://%s/v%d/test", os.Getenv("DOCKER_IP"), version)
 	log.Printf(">> Sending verify request to %s", address)
-	resp, err := http.Get(address)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", address, nil)
+	request.SetBasicAuth("user1", "pass1")
+	resp, err := client.Do(request)
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode)
@@ -244,6 +324,17 @@ func (s IntegrationTestSuite) reconfigure(pathType, consulTemplateFePath, consul
 	log.Printf(">> Sending reconfigure request to %s", address)
 	_, err := http.Get(address)
 	s.NoError(err)
+}
+
+func (s IntegrationTestSuite) printConf() {
+	configAddr := fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/config",
+		os.Getenv("DOCKER_IP"),
+	)
+	resp, _ := http.Get(configAddr)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	println(string(body))
 }
 
 // Suite

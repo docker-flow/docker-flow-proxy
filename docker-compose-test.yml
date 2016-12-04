@@ -15,6 +15,9 @@ services:
     environment:
       - CONSUL_ADDRESS=${HOST_IP}:8500
       - PROXY_INSTANCE_NAME=proxy-test-instance
+      - USERS=user1:pass1,user2:pass2
+      - STATS_USER=stats
+      - STATS_PASS=pass
     ports:
       - 80:80
       - 443:443

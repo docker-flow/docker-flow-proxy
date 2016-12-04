@@ -47,6 +47,7 @@ type Response struct {
 	Mode                 string
 	Port                 string
 	Distribute           bool
+	Users                []User
 }
 
 func (m *Serve) Execute(args []string) error {
@@ -140,6 +141,13 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(req.URL.Query().Get("distribute")) > 0 {
 		sr.Distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
 	}
+	if len(req.URL.Query().Get("users")) > 0 {
+		users := strings.Split(req.URL.Query().Get("users"), ",")
+		for _, user := range users {
+			userPass := strings.Split(user, ":")
+			sr.Users = append(sr.Users, User{Username: userPass[0], Password: userPass[1]})
+		}
+	}
 	response := Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
@@ -154,6 +162,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Mode:                 sr.Mode,
 		Port:                 sr.Port,
 		Distribute:           sr.Distribute,
+		Users:                sr.Users,
 	}
 	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ConsulTemplateFePath) {
 		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {

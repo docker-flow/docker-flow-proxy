@@ -415,6 +415,27 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
+	users := []User {
+		{ Username: "user1", Password: "pass1" },
+		{ Username: "user2", Password: "pass2" },
+	}
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		Users:         users,
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 	port := "1234"
 	mode := "swaRM"

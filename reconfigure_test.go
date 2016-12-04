@@ -90,6 +90,28 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersEnvIsPresen
 	s.Equal(expected, back)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersIsPresent() {
+	s.reconfigure.Users = []User{
+		{ Username: "user-1", Password: "pass-1" },
+		{ Username: "user-2", Password: "pass-2" },
+	}
+	expected := `userlist myServiceUsers
+    user user-1 insecure-password pass-1
+    user user-2 insecure-password pass-2
+
+backend myService-be
+    mode http
+    {{range $i, $e := service "myService" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}
+    acl myServiceUsersAcl http_auth(myServiceUsers)
+    http-request auth realm myServiceRealm if !myServiceUsersAcl`
+
+	_, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, back)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent_WhenModeIsSwarm() {
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {
@@ -116,6 +138,28 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUs
     server myService myService:1234
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
+
+	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, actual)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
+	s.reconfigure.Users = []User{
+		{ Username: "user-1", Password: "pass-1" },
+		{ Username: "user-2", Password: "pass-2" },
+	}
+	s.reconfigure.ServiceReconfigure.Mode = "swarm"
+	s.reconfigure.ServiceReconfigure.Port = "1234"
+	expected := `userlist myServiceUsers
+    user user-1 insecure-password pass-1
+    user user-2 insecure-password pass-2
+
+backend myService-be
+    mode http
+    server myService myService:1234
+    acl myServiceUsersAcl http_auth(myServiceUsers)
+    http-request auth realm myServiceRealm if !myServiceUsersAcl`
 
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 

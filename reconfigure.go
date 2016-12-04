@@ -32,6 +32,11 @@ type Reconfigure struct {
 	ServiceReconfigure
 }
 
+type User struct {
+	Username string
+	Password string
+}
+
 type ServiceReconfigure struct {
 	ServiceName          string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
@@ -47,6 +52,7 @@ type ServiceReconfigure struct {
 	Acl                  string
 	AclName              string
 	AclCondition         string
+	Users                []User
 	FullServiceName      string
 	Distribute           bool
 	LookupRetry          int
@@ -303,7 +309,14 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	srcFront := `
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
-	srcBack := `backend {{.AclName}}-be
+	srcBack := ""
+	if len(sr.Users) > 0 {
+		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
+    user {{.Username}} insecure-password {{.Password}}{{end}}
+
+`
+	}
+	srcBack += `backend {{.AclName}}-be
     mode http`
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `
@@ -314,7 +327,11 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
 	}
-	if len(os.Getenv("USERS")) > 0 {
+	if len(sr.Users) > 0 {
+		srcBack += `
+    acl {{.ServiceName}}UsersAcl http_auth({{.ServiceName}}Users)
+    http-request auth realm {{.ServiceName}}Realm if !{{.ServiceName}}UsersAcl`
+	} else 	if len(os.Getenv("USERS")) > 0 {
 		srcBack += `
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
