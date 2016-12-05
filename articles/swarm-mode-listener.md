@@ -6,6 +6,11 @@
   * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
   * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
   * [Scaling the Proxy](#scaling-the-proxy)
+  * [Basic Authentication](#basic-authentication)
+
+    * [Global Authentication](#global-authentication)
+    * [Service Authentication](#service-authentication)
+
   * [Configuring Service SSLs And Proxying HTTPS Requests](#configuring-service-ssls-and-proxying-https-requests)
 
 * [The Flow Explained](#the-flow-explained)
@@ -154,7 +159,7 @@ We sent a request to the proxy (the only service listening to the port 80) and g
 
 The way the process works is as follows.
 
-*Docker Flow: Swarm Listener* is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIF_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances (for fault tolerance) and the `distribute` argument means that reconfiguration should be applied to all.
+[Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIF_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances (for fault tolerance) and the `distribute` argument means that reconfiguration should be applied to all.
 
 Please see the [Reconfigure](../README.md#reconfigure) section for the list of all the arguments that can be used with the proxy.
 
@@ -259,7 +264,7 @@ If you go back to the command we used to create the `proxy` service, you'll noti
     -e LISTENER_ADDRESS=swarm-listener \
 ```
 
-This tells the proxy the address of the `Docker Flow: Swarm Listener` service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications for all the services. As a result, each proxy instance will soon have the same state as the other.
+This tells the proxy the address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications for all the services. As a result, each proxy instance will soon have the same state as the other.
 
 If, for example, an instance of the proxy fails, Swarm will reschedule it and, soon afterwards, a new instance will be created. In that case, the process would be the same as when we scaled the proxy and, as the end result, the rescheduled instance will also have the same state as any other.
 
@@ -294,6 +299,153 @@ The whole process sounds complicated (it actually is from the engineering point 
 One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
+
+## Basic Authentication
+
+*Docker Flow: Proxy* can provide basic authentication that can be applied on two levels. We can configure the proxy to protect all or only a selected service.
+
+### Global Authentication
+
+To configure the proxy to protect all the services, we need to specify the environment variable `USERS`.
+
+As an example, we'll update the `proxy` service by adding the environment variable `USERS`.
+
+```bash
+docker service update --env-add "USERS=my-user:my-pass" proxy
+```
+
+Please wait a few moments until all the instances of the `proxy` are updated. You can monitor the status with the `docker service ps proxy` command.
+
+Let's see what will happen if we send another request to the `go-demo` service.
+
+```bash
+curl -i $(docker-machine ip node-1)/demo/hello
+```
+
+The output is as follows.
+
+```
+HTTP/1.0 401 Unauthorized
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+WWW-Authenticate: Basic realm="defaultRealm"
+
+<html><body><h1>401 Unauthorized</h1>
+You need a valid user and password to access this content.
+</body></html>
+```
+
+The `proxy` responded with the status `401 Unauthorized`. Our services are not accessible without the username and password.
+
+Let's send one more request but, this time, with the username and password.
+
+```bash
+curl -i -u my-user:my-pass \
+    $(docker-machine ip node-1)/demo/hello
+```
+
+The response is as follows.
+
+```
+HTTP/1.1 200 OK
+Date: Sun, 04 Dec 2016 23:37:18 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
+```
+
+Since the request contained the correct username and password, proxy let it through and forwarded it to the `go-demo` service.
+
+Multiple usernames and passwords can be separated with a comma.
+
+```bash
+docker service update \
+    --env-add "USERS=my-user-1:my-pass-1,my-user-2:my-pass-2" \
+    proxy
+```
+
+Once the update is finished, we will be able to access the services using the user `my-user-1` or `my-user-2`.
+
+```bash
+curl -i -u my-user-2:my-pass-2 \
+    $(docker-machine ip node-1)/demo/hello
+```
+
+As expected, the proxy responded with the status `200` allowing us to access the service.
+
+Let us remove the global authentication before we proceed further.
+
+```bash
+docker service update \
+    --env-rm "USERS" \
+    proxy
+```
+
+### Service Authentication
+
+In many cases, we do not want to protect all services but only a selected few. A service can be protected by adding `users` parameter to the `reconfigure` request. Since we are using the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) service to reconfigure the proxy, we'll add the parameter as one more label.
+
+Let's start by removing the `go-demo` service.
+
+```bash
+docker service rm go-demo
+```
+
+Please wait a few moments until the service is removed and the `swarm-listener` updates the proxy.
+
+Now we can create the `go-demo` service with the label `com.df.users`.
+
+```bash
+docker service create --name go-demo \
+    -e DB=go-demo-db \
+    --network go-demo \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/demo \
+    --label com.df.port=8080 \
+    --label com.df.users=admin:password \
+    vfarcic/go-demo
+```
+
+We added the `com.df.users` label with the value `admin:password`. Just as with the global authentication, multiple username/password combinations can be separated with comma (`,`).
+
+After a few moments, the `go-demo` service will be created, and `swarm-lister` will update the proxy.
+
+From now on, the `go-demo` service is accessible only if the username and the password are provided.
+
+```bash
+curl -i $(docker-machine ip node-1)/demo/hello
+
+curl -i -u admin:password \
+    $(docker-machine ip node-1)/demo/hello
+```
+
+The first request should return the status code `401 Unauthorized` while the second went through to the `go-demo` service.
+
+Please note that both *global* and *service* authentication can be combined. In that case, all services would be protected with the users specified through the `proxy` environment variable `USERS` and individual services could overwrite that through the `reconfigure` parameter `users`.
+
+Before we move into the next subject, please remove the service and create it again without authentication.
+
+```bash
+docker service rm go-demo
+```
+
+Please wait a few moments until the service is removed and the `swarm-listener` updates the proxy.
+
+```bash
+docker service create --name go-demo \
+    -e DB=go-demo-db \
+    --network go-demo \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/demo \
+    --label com.df.port=8080 \
+    vfarcic/go-demo
+```
 
 ## Configuring Service SSLs And Proxying HTTPS Requests
 

@@ -6,10 +6,11 @@
 [X] Add per-service authentication
 [X] Propagate users from reconfigure server request
 [X] Add integration tests
-[ ] Test manually
+[X] Test manually
 [X] Update README with env. var. *USERS*
 [X] Update README with reconfigure param *users*
 [ ] Update README with an article about authentication with the proxy and the listener
+[ ] Release Notes
 
 ## Videos
 
