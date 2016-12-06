@@ -515,16 +515,6 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIs
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenServiceDomainQueryIsPresent() {
-	url := fmt.Sprintf("%s?serviceName=my-service&serviceDomain=domain1.com,domain2.com", s.ReconfigureBaseUrl)
-	req, _ := http.NewRequest("GET", url, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 200)
-}
-
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 

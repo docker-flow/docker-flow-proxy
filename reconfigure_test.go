@@ -166,12 +166,12 @@ backend myService-be
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHost() {
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsHosts() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    acl domain_myService hdr_dom(host) -i my-domain.com
+    acl domain_myService hdr_dom(host) -i my-domain.com my-other-domain.com
     use_backend myService-be if url_myService domain_myService`
-	s.reconfigure.ServiceDomain = []string{"my-domain.com"}
+	s.reconfigure.ServiceDomain = []string{"my-domain.com", "my-other-domain.com"}
 	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)

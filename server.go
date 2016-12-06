@@ -115,7 +115,7 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Serve) isValidReconf(name string, path, domain []string, templateFePath string) bool {
-	return len(name) > 0 && (len(path) > 0 || len(domain) > 0 || len(templateFePath) > 0)
+	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
@@ -184,7 +184,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	} else {
-		m.writeBadRequest(w, &response, "The following queries are mandatory: (serviceName and servicePath) or (serviceName and serviceDomain) or  or (serviceName, consulTemplateFePath, and consulTemplateBePath)")
+		m.writeBadRequest(w, &response, "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)")
 	}
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)

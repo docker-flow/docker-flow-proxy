@@ -291,11 +291,8 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 		sr.AclName = sr.ServiceName
 	}
 	if len(sr.ServiceDomain) > 0 {
-		sr.Acl = fmt.Sprintf(`
-    acl domain_%s hdr_dom(host) -i %s`,
-			sr.ServiceName,
-			sr.ServiceDomain[0],
-		)
+		sr.Acl = `
+    acl domain_{{.ServiceName}} hdr_dom(host) -i{{range .ServiceDomain}} {{.}}{{end}}`
 		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}
 	if len(sr.ServiceColor) > 0 {
@@ -306,9 +303,12 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"
 	}
-	srcFront := `
-    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
-    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
+	srcFront := fmt.Sprintf(
+		`
+    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}%s
+    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
+		sr.Acl,
+	)
 	srcBack := ""
 	if len(sr.Users) > 0 {
 		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
