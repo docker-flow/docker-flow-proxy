@@ -189,6 +189,14 @@ Optionally, *serviceDomain* can be used as well. If specified, the proxy will al
 ...
 ```
 
+Multiple domains should be separated with comma (`,`).
+
+```bash
+...
+  --label com.df.serviceDomain=my-domain.com,my-other-domain.com \
+...
+```
+
 ### Removing a Service From the Proxy
 
 Since `Swarm Listener` is monitoring docker services, if a service is removed, related entries in the proxy configuration will be removed as well.
