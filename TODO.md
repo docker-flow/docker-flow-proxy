@@ -1,5 +1,13 @@
 # TODO
 
+## Multi-domain
+
+[ ] Implement
+[ ] Add integration tests
+[ ] Test manually
+[ ] Update README
+[ ] Create a release
+
 ## Template
 
 [ ] Implement
