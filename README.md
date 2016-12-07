@@ -47,7 +47,7 @@ The following environment variables can be used to configure the *Docker Flow: P
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.|Only in *swarm* mode||swarm-listener|
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
-|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--service` argument. Used only in the *swarm* mode.|No|proxy|my-proxy|
+|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.|No|proxy|my-proxy|
 |STATS_USER         |Username for the statistics page                          |        |admin  |my-user|
 |STATS_PASS         |Password for the statistics page                          |        |admin  |my-pass|
 |TIMEOUT_CONNECT    |The connect timeout in seconds                            |        |5      |3      |
