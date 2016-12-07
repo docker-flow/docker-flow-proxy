@@ -40,7 +40,7 @@ func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName
 			}
 		}
 	} else {
-		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup", dns)
+		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy>.", dns)
 	}
 	if len(failedDns) > 0 {
 		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
