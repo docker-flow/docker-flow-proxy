@@ -66,14 +66,14 @@ func (s *ReconfigureTestSuite) SetupTest() {
 
 // GetTemplate
 
-func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
 	front, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, front)
 	s.Equal(s.ConsulTemplateBe, back)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersEnvIsPresent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPresent() {
 	usersOrig := os.Getenv("USERS")
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
@@ -90,7 +90,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersEnvIsPresen
 	s.Equal(expected, back)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenUsersIsPresent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
 	s.reconfigure.Users = []User{
 		{ Username: "user-1", Password: "pass-1" },
 		{ Username: "user-2", Password: "pass-2" },
@@ -112,7 +112,7 @@ backend myService-be
 	s.Equal(expected, back)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent_WhenModeIsSwarm() {
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenModeIsSwarm() {
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {
 		s.reconfigure.ServiceReconfigure.Mode = mode
@@ -127,7 +127,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent_WhenModeI
 	}
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUsersEnvIsPresent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersEnvIsPresent() {
 	usersOrig := os.Getenv("USERS")
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
@@ -144,7 +144,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUs
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
 	s.reconfigure.Users = []User{
 		{ Username: "user-1", Password: "pass-1" },
 		{ Username: "user-2", Password: "pass-2" },
@@ -166,7 +166,7 @@ backend myService-be
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsHosts() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     acl domain_myService hdr_dom(host) -i my-domain.com my-other-domain.com
@@ -177,26 +177,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHosts() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
-//func (s ReconfigureTestSuite) Test_GetTemplate_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
-//	s.reconfigure.ReqRepSearch = "this"
-//	s.reconfigure.ReqRepReplace = "that"
-//	expected := fmt.Sprintf(`
-//    acl url_%s path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-//    use_backend %s-be if url_myService
-//    reqrep %s %s if url_%s`,
-//		s.reconfigure.ServiceName,
-//		s.reconfigure.ServiceName,
-//		s.reconfigure.ReqRepSearch,
-//		s.reconfigure.ReqRepReplace,
-//		s.reconfigure.ServiceName,
-//	)
-//
-//	front, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
-//
-//	s.Equal(expected, front)
-//}
-
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
 	s.reconfigure.ReqRepSearch = "this"
 	s.reconfigure.ReqRepReplace = "that"
 	expected := fmt.Sprintf(`backend myService-be
@@ -216,7 +197,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsReqRep_WhenReqRepSearchAndReq
 }
 
 
-func (s ReconfigureTestSuite) Test_GetTemplate_UsesAclNameForFrontEnd() {
+func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
 	s.reconfigure.AclName = "my-acl"
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
@@ -226,7 +207,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_UsesAclNameForFrontEnd() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_UsesPathReg() {
+func (s ReconfigureTestSuite) Test_GetTemplates_UsesPathReg() {
 	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
 	s.reconfigure.PathType = "path_reg"
 	front, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -234,7 +215,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_UsesPathReg() {
 	s.Equal(s.ConsulTemplateFe, front)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_AddsColor() {
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
@@ -243,7 +224,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsColor() {
 	s.Contains(actual, expected)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_DoesNotSetCheckWhenSkipCheckIsTrue() {
+func (s ReconfigureTestSuite) Test_GetTemplates_DoesNotSetCheckWhenSkipCheckIsTrue() {
 	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
 	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -251,7 +232,7 @@ func (s ReconfigureTestSuite) Test_GetTemplate_DoesNotSetCheckWhenSkipCheckIsTru
 	s.Equal(s.ConsulTemplateBe, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
 	expected := "This is content of a template"
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
@@ -266,10 +247,71 @@ func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFileContent_WhenConsulTemp
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsError_WhenConsulTemplateFileIsNotAvailable() {
+func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePath_WhenSpecified() {
+	expectedFeFile := "/path/to/my/fe/template"
+	expectedBeFile := "/path/to/my/be/template"
+	expectedFe := fmt.Sprintf("This is service %s", s.reconfigure.ServiceName)
+	expectedBe := fmt.Sprintf("This is path %s", s.reconfigure.ServicePath)
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
-	readTemplateFile = func(dirname string) ([]byte, error) {
+	readTemplateFile = func(filename string) ([]byte, error) {
+		if filename == expectedFeFile {
+			return []byte("This is service {{.ServiceName}}"), nil
+		} else if filename == expectedBeFile {
+			return []byte("This is path {{.ServicePath}}"), nil
+		}
+		return []byte(""), fmt.Errorf("This is an error")
+	}
+	s.ServiceReconfigure.TemplateFePath = expectedFeFile
+	s.ServiceReconfigure.TemplateBePath = expectedBeFile
+
+	actualFe, actualBe, _ := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+
+	s.Equal(expectedFe, actualFe)
+	s.Equal(expectedBe, actualBe)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateFePathIsNotPresent() {
+	testFilename := "/path/to/my/template"
+	readTemplateFileOrig := readTemplateFile
+	defer func() { readTemplateFile = readTemplateFileOrig }()
+	readTemplateFile = func(filename string) ([]byte, error) {
+		if filename == testFilename {
+			return []byte(""), fmt.Errorf("This is an error")
+		}
+		return []byte(""), nil
+	}
+	s.ServiceReconfigure.TemplateFePath = testFilename
+	s.ServiceReconfigure.TemplateBePath = "not/under/test"
+
+	_, _, err := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+
+	s.Error(err)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateBePathIsNotPresent() {
+	testFilename := "/path/to/my/template"
+	readTemplateFileOrig := readTemplateFile
+	defer func() { readTemplateFile = readTemplateFileOrig }()
+	readTemplateFile = func(filename string) ([]byte, error) {
+		if filename == testFilename {
+			return []byte(""), fmt.Errorf("This is an error")
+		}
+		return []byte(""), nil
+	}
+
+	s.ServiceReconfigure.TemplateFePath = "not/under/test"
+	s.ServiceReconfigure.TemplateBePath = testFilename
+
+	_, _, err := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+
+	s.Error(err)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenConsulTemplateFileIsNotAvailable() {
+	readTemplateFileOrig := readTemplateFile
+	defer func() { readTemplateFile = readTemplateFileOrig }()
+	readTemplateFile = func(filename string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
 	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
@@ -629,31 +671,6 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 
 	s.Error(err)
 }
-
-// TODO: Remove
-//func (s *ReconfigureTestSuite) Test_ReloadAllServices_WritesTemplateToFile() {
-//	mockObj := getRegistrarableMock("")
-//	registryInstanceOrig := registryInstance
-//	defer func() { registryInstance = registryInstanceOrig }()
-//	registryInstance = mockObj
-//	s.ConsulTemplateBe = `backend myService-be
-//    mode http
-//    {{range $i, $e := service "myService-orange" "any"}}
-//    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
-//    {{end}}`
-//
-//	expectedArgs := registry.CreateConfigsArgs{
-//		Addresses:     []string{s.Server.URL},
-//		TemplatesPath: s.TemplatesPath,
-//		FeFile:        ServiceTemplateFeFilename,
-//		FeTemplate:    s.ConsulTemplateFe,
-//		BeFile:        ServiceTemplateBeFilename,
-//		BeTemplate:    s.ConsulTemplateBe,
-//		ServiceName:   s.ServiceName,
-//	}
-//
-//	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
-//}
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
