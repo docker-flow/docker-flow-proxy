@@ -4,7 +4,8 @@
 
 [X] Implement
 [X] Add integration tests
-[ ] Test manually
+[X] Test manually
+[X] Write an article
 [ ] Update README
 [ ] Create a release
 
@@ -13,6 +14,7 @@
 [ ] Implement
 [ ] Add integration tests
 [ ] Test manually
+[ ] Write an article
 [ ] Update README
 [ ] Create a release
 

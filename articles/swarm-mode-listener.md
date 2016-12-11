@@ -286,7 +286,7 @@ curl -i $(docker-machine ip node-1)/demo/hello
 
 Since Docker's networking (`routing mesh`) is performing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, all requests returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
-Let's remove the `go-demo` service before we proceed.
+Let's remove the `go-demo` service before we proceed with explanation of the flow.
 
 ```bash
 docker service rm go-demo
@@ -314,11 +314,78 @@ One of the important things to note is that, with a system like this, everything
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
+## Rewriting Paths
+
+In some cases, you might want to rewrite the path of the incoming request before forwarding it to the destination service. We can do that using request parameters `reqRepSearch` and `reqRepReplace`.
+
+As an example, we'll create the `go-demo` service that will be configured in the proxy to accept requests with the path starting with `/something`. Since the `go-demo` service allows only requests that start with `/demo`, we'll use `reqRepSearch` and `reqRepReplace` to rewrite the path.
+
+The command is as follows.
+
+```bash
+docker service create --name go-demo \
+  -e DB=go-demo-db \
+  --network go-demo \
+  --network proxy \
+  --label com.df.notify=true \
+  --label com.df.distribute=true \
+  --label com.df.servicePath=/something \
+  --label com.df.port=8080 \
+  --label com.df.reqRepSearch='^([^\ ]*)\ /something/(.*)' \
+  --label com.df.reqRepReplace='\1\ /demo/\2' \
+  --replicas 3 \
+  vfarcic/go-demo
+```
+
+Please notice that, this time, the `servicePath` is `/something`. The `reqRepSearch` specifies the regular expression that will be used to search for part of the address and the `reqRepReplace` will replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses *PCRE compatible regular expressions*. For more information, please consult [Quick-Start: Regex Cheat Sheet](http://www.rexegg.com/regex-quickstart.html) and [PCRE Regex Cheatsheet](https://www.debuggex.com/cheatsheet/regex/pcre).
+
+Please wait a few moments until the `go-demo` service is running. You can see the status of the service by executing `docker service ps go-demo`.
+
+Once the `go-demo` service is up and running, we can confirm that the proxy was indeed configured correctly.
+
+```bash
+curl -i $(docker-machine ip node-1)/something/hello
+```
+
+The output is as follows.
+
+```
+HTTP/1.1 200 OK
+Date: Sun, 11 Dec 2016 18:43:21 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
+```
+
+We sent a request to `/something/hello`. The proxy accepted the request, rewrote the path to `/demo/hello`, and forwarded it to the `go-demo` service.
+
+Let's remove the `go-demo` service before we proceed with *authentication*.
+
+```bash
+docker service rm go-demo
+```
+
 ## Basic Authentication
 
 *Docker Flow: Proxy* can provide basic authentication that can be applied on two levels. We can configure the proxy to protect all or only a selected service.
 
 ### Global Authentication
+
+We'll start by recreating the `go-demo` service we removed earlier.
+
+```bash
+docker service create --name go-demo \
+  -e DB=go-demo-db \
+  --network go-demo \
+  --network proxy \
+  --label com.df.notify=true \
+  --label com.df.distribute=true \
+  --label com.df.servicePath=/demo \
+  --label com.df.port=8080 \
+  --replicas 3 \
+  vfarcic/go-demo
+```
 
 To configure the proxy to protect all the services, we need to specify the environment variable `USERS`.
 
