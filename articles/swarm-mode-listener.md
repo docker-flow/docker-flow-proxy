@@ -6,6 +6,7 @@
   * [Automatically Reconfiguring the Proxy](#automatically-reconfiguring-the-proxy)
   * [Removing a Service From the Proxy](#removing-a-service-from-the-proxy)
   * [Scaling the Proxy](#scaling-the-proxy)
+  * [Rewriting Paths](#rewriting-paths)
   * [Basic Authentication](#basic-authentication)
 
     * [Global Authentication](#global-authentication)
@@ -286,33 +287,11 @@ curl -i $(docker-machine ip node-1)/demo/hello
 
 Since Docker's networking (`routing mesh`) is performing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, all requests returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
-Let's remove the `go-demo` service before we proceed with explanation of the flow.
+Let's remove the `go-demo` service before we proceed with an example of rewriting paths.
 
 ```bash
 docker service rm go-demo
 ```
-
-Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
-
-## The Flow Explained
-
-We'll go over the flow of a request to one of the services in the Swarm cluster.
-
-A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port `80` or HTTPS on the port `443`.
-
-DNS resolves the domain to one of the servers inside the cluster. We do not need to register all the nodes. A few is enough (more than one in the case of a failure).
-
-The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances of the proxy. It uses round robin load balancing so that all instances share the load (more or less) equally.
-
-The proxy inspects the request path (e.g. `/demo/hello`) and sends it the end-point with the same name as the destination service (e.g. `go-demo`). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. `proxy`). The proxy changes the port to the one of the destination service (e.g. `8080`).
-
-The proxy network performs load balancing among all the instances of the destination service, and re-sends the request to one of them.
-
-The whole process sounds complicated (it actually is from the engineering point of view). But, as a user, all this is transparent.
-
-One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
-
-A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
 ## Rewriting Paths
 
@@ -684,6 +663,28 @@ On Chrome you'll see "Your connection is not private" message. Click the *ADVANC
 Please note that you are not limited to a single certificate. You can send multiple `PUT` requests with different certificates and they will all be added to the proxy.
 
 Now you can secure your proxy communication with SSL certificates. Unless you already have a certificate, purchase it or get it for free from [Let's Encrypt](https://letsencrypt.org/). The only thing left is for you to send a request to the proxy to include the certificate and try it out with your domain.
+
+Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
+
+## The Flow Explained
+
+We'll go over the flow of a request to one of the services in the Swarm cluster.
+
+A user or a service sends a request to our DNS (e.g. *acme.com*). The request is usually HTTP on the port `80` or HTTPS on the port `443`.
+
+DNS resolves the domain to one of the servers inside the cluster. We do not need to register all the nodes. A few is enough (more than one in the case of a failure).
+
+The Docker's routing mesh inspects which containers are running on a given port and re-sends the request to one of the instances of the proxy. It uses round robin load balancing so that all instances share the load (more or less) equally.
+
+The proxy inspects the request path (e.g. `/demo/hello`) and sends it the end-point with the same name as the destination service (e.g. `go-demo`). Please note that for this to work, both the proxy and the destination service need to belong to the same network (e.g. `proxy`). The proxy changes the port to the one of the destination service (e.g. `8080`).
+
+The proxy network performs load balancing among all the instances of the destination service, and re-sends the request to one of them.
+
+The whole process sounds complicated (it actually is from the engineering point of view). But, as a user, all this is transparent.
+
+One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
+
+A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
 ## Usage
 
