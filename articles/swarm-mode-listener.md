@@ -339,6 +339,7 @@ hello, world!
 
 We sent a request to `/something/hello`. The proxy accepted the request, rewrote the path to `/demo/hello`, and forwarded it to the `go-demo` service.
 
+
 Let's remove the `go-demo` service before we proceed with *authentication*.
 
 ```bash
