@@ -29,6 +29,7 @@ type ConfigData struct {
 	StatsPass            string
 	UserList             string
 	ExtraGlobal          string
+	ExtraDefaults        string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -196,6 +197,10 @@ func (m HaProxy) getConfigData() ConfigData {
 	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
 		d.ExtraGlobal += `
     debug`
+	} else {
+		d.ExtraDefaults += `
+    option  dontlognull
+    option  dontlog-normal`
 	}
 	return d
 }
