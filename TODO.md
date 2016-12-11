@@ -1,11 +1,11 @@
 # TODO
 
-## Rewrite
+## Template
 
-[X] Implement
-[X] Add integration tests
-[X] Test manually
-[X] Write an article
+[ ] Implement
+[ ] Add integration tests
+[ ] Test manually
+[ ] Write an article
 [ ] Update README
 [ ] Create a release
 

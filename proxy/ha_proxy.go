@@ -28,6 +28,7 @@ type ConfigData struct {
 	StatsUser            string
 	StatsPass            string
 	UserList             string
+	ExtraGlobal          string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -191,6 +192,10 @@ func (m HaProxy) getConfigData() ConfigData {
 			userPass := strings.Split(user, ":")
 			d.UserList = fmt.Sprintf("%s    user %s insecure-password %s\n", d.UserList, userPass[0], userPass[1])
 		}
+	}
+	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+		d.ExtraGlobal += `
+    debug`
 	}
 	return d
 }

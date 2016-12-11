@@ -155,8 +155,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDi
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFile() {
-	var actualFilename string
-	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
 	var actualData string
 	expectedData := fmt.Sprintf(
 		"%s%s",
@@ -164,14 +162,32 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFi
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
 		actualData = string(data)
 		return nil
 	}
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
 
-	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDebug() {
+	debugOrig := os.Getenv("DEBUG")
+	defer func() { os.Setenv("DEBUG", debugOrig) }()
+	os.Setenv("DEBUG", "true")
+	var actualData string
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    debug", -1),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
 	s.Equal(expectedData, actualData)
 }
 
