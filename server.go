@@ -49,8 +49,8 @@ type Response struct {
 	Distribute           bool
 	Users                []User
 	ReqRepSearch         string
-	ReqRepReplace		 string
-	TemplateFePath		 string
+	ReqRepReplace        string
+	TemplateFePath       string
 	TemplateBePath       string
 }
 

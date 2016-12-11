@@ -43,11 +43,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
-	"net/url"
 )
 
 type IntegrationTestSuite struct {

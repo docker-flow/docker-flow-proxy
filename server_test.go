@@ -419,7 +419,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	search := "search"
 	replace := "replace"
 	url := fmt.Sprintf(
-		s.ReconfigureUrl+"&reqRepSearch="+search+"&reqRepReplace="+replace,
+		s.ReconfigureUrl + "&reqRepSearch=" + search + "&reqRepReplace=" + replace,
 	)
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
@@ -449,7 +449,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 	)
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
+		Status:         "OK",
 		ServiceName:    s.ServiceName,
 		ServiceColor:   s.ServiceColor,
 		ServicePath:    s.ServicePath,
@@ -465,9 +465,9 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
-	users := []User {
-		{ Username: "user1", Password: "pass1" },
-		{ Username: "user2", Password: "pass2" },
+	users := []User{
+		{Username: "user1", Password: "pass1"},
+		{Username: "user2", Password: "pass2"},
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
 	expected, _ := json.Marshal(Response{

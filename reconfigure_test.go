@@ -92,8 +92,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPrese
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
 	s.reconfigure.Users = []User{
-		{ Username: "user-1", Password: "pass-1" },
-		{ Username: "user-2", Password: "pass-2" },
+		{Username: "user-1", Password: "pass-1"},
+		{Username: "user-2", Password: "pass-2"},
 	}
 	expected := `userlist myServiceUsers
     user user-1 insecure-password pass-1
@@ -146,8 +146,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
 	s.reconfigure.Users = []User{
-		{ Username: "user-1", Password: "pass-1" },
-		{ Username: "user-2", Password: "pass-2" },
+		{Username: "user-1", Password: "pass-1"},
+		{Username: "user-2", Password: "pass-2"},
 	}
 	s.reconfigure.ServiceReconfigure.Mode = "swarm"
 	s.reconfigure.ServiceReconfigure.Port = "1234"
@@ -195,7 +195,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndRe
 
 	s.Equal(expected, backend)
 }
-
 
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
 	s.reconfigure.AclName = "my-acl"

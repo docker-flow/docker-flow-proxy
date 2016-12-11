@@ -177,7 +177,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDebug() {
 	os.Setenv("DEBUG", "true")
 	var actualData string
 	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    debug", -1)
-	tmpl = strings.Replace(tmpl,"    option  dontlognull\n    option  dontlog-normal\n", "", -1)
+	tmpl = strings.Replace(tmpl, "    option  dontlognull\n    option  dontlog-normal\n", "", -1)
 	expectedData := fmt.Sprintf(
 		"%s%s",
 		tmpl,
