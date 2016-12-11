@@ -314,25 +314,6 @@ One of the important things to note is that, with a system like this, everything
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
 
-## Rewriting Paths
-
-```bash
-docker service create --name go-demo \
-  -e DB=go-demo-db \
-  --network go-demo \
-  --network proxy \
-  --label com.df.notify=true \
-  --label com.df.distribute=true \
-  --label com.df.servicePath=/demo \
-  --label com.df.port=8080 \
-  --label com.df.reqRepSearch='^([^\ ]*)\ /something-else/(.*)' \
-  --label com.df.reqRepReplace='^([^\ ]*)\ /demo/(.*)' \
-  --replicas 3 \
-  vfarcic/go-demo
-
-
-```
-
 ## Basic Authentication
 
 *Docker Flow: Proxy* can provide basic authentication that can be applied on two levels. We can configure the proxy to protect all or only a selected service.
