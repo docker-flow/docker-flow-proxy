@@ -415,6 +415,29 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
+	search := "search"
+	replace := "replace"
+	url := fmt.Sprintf(
+		s.ReconfigureUrl+"&reqRepSearch="+search+"&reqRepReplace="+replace,
+	)
+	req, _ := http.NewRequest("GET", url, nil)
+	expected, _ := json.Marshal(Response{
+		Status:        "OK",
+		ServiceName:   s.ServiceName,
+		ServiceColor:  s.ServiceColor,
+		ServicePath:   s.ServicePath,
+		ServiceDomain: s.ServiceDomain,
+		ReqRepSearch:  search,
+		ReqRepReplace: replace,
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	users := []User {
 		{ Username: "user1", Password: "pass1" },

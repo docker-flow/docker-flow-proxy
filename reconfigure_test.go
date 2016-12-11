@@ -64,7 +64,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.reconfigure.skipAddressValidation = true
 }
 
-// GetConsulTemplate
+// GetTemplate
 
 func (s ReconfigureTestSuite) Test_GetTemplate_ReturnsFormattedContent() {
 	front, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
@@ -176,6 +176,45 @@ func (s ReconfigureTestSuite) Test_GetTemplate_AddsHosts() {
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
+
+//func (s ReconfigureTestSuite) Test_GetTemplate_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
+//	s.reconfigure.ReqRepSearch = "this"
+//	s.reconfigure.ReqRepReplace = "that"
+//	expected := fmt.Sprintf(`
+//    acl url_%s path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+//    use_backend %s-be if url_myService
+//    reqrep %s %s if url_%s`,
+//		s.reconfigure.ServiceName,
+//		s.reconfigure.ServiceName,
+//		s.reconfigure.ReqRepSearch,
+//		s.reconfigure.ReqRepReplace,
+//		s.reconfigure.ServiceName,
+//	)
+//
+//	front, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+//
+//	s.Equal(expected, front)
+//}
+
+func (s ReconfigureTestSuite) Test_GetTemplate_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
+	s.reconfigure.ReqRepSearch = "this"
+	s.reconfigure.ReqRepReplace = "that"
+	expected := fmt.Sprintf(`backend myService-be
+    mode http
+    reqrep %s     %s
+    {{range $i, $e := service "%s" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}`,
+		s.reconfigure.ReqRepSearch,
+		s.reconfigure.ReqRepReplace,
+		s.reconfigure.ServiceName,
+	)
+
+	_, backend, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, backend)
+}
+
 
 func (s ReconfigureTestSuite) Test_GetTemplate_UsesAclNameForFrontEnd() {
 	s.reconfigure.AclName = "my-acl"

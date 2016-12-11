@@ -1,9 +1,9 @@
 # TODO
 
-## Multi-domain
+## Rewrite
 
-[ ] Implement
-[ ] Add integration tests
+[X] Implement
+[X] Add integration tests
 [ ] Test manually
 [ ] Update README
 [ ] Create a release

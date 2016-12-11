@@ -286,6 +286,12 @@ curl -i $(docker-machine ip node-1)/demo/hello
 
 Since Docker's networking (`routing mesh`) is performing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, all requests returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
+Let's remove the `go-demo` service before we proceed.
+
+```bash
+docker service rm go-demo
+```
+
 Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
 
 ## The Flow Explained
@@ -307,6 +313,25 @@ The whole process sounds complicated (it actually is from the engineering point 
 One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
+
+## Rewriting Paths
+
+```bash
+docker service create --name go-demo \
+  -e DB=go-demo-db \
+  --network go-demo \
+  --network proxy \
+  --label com.df.notify=true \
+  --label com.df.distribute=true \
+  --label com.df.servicePath=/demo \
+  --label com.df.port=8080 \
+  --label com.df.reqRepSearch='^([^\ ]*)\ /something-else/(.*)' \
+  --label com.df.reqRepReplace='^([^\ ]*)\ /demo/(.*)' \
+  --replicas 3 \
+  vfarcic/go-demo
+
+
+```
 
 ## Basic Authentication
 

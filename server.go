@@ -48,6 +48,8 @@ type Response struct {
 	Port                 string
 	Distribute           bool
 	Users                []User
+	ReqRepSearch         string
+	ReqRepReplace		 string
 }
 
 func (m *Serve) Execute(args []string) error {
@@ -128,6 +130,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		PathType:             req.URL.Query().Get("pathType"),
 		Port:                 req.URL.Query().Get("port"),
 		Mode:                 m.Mode,
+		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),
+		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"),
 	}
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
@@ -163,6 +167,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Port:                 sr.Port,
 		Distribute:           sr.Distribute,
 		Users:                sr.Users,
+		ReqRepSearch:         sr.ReqRepSearch,
+		ReqRepReplace:        sr.ReqRepReplace,
 	}
 	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ServiceDomain, sr.ConsulTemplateFePath) {
 		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {

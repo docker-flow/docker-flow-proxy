@@ -57,6 +57,8 @@ type ServiceReconfigure struct {
 	Distribute           bool
 	LookupRetry          int
 	LookupRetryInterval  int
+	ReqRepSearch         string
+	ReqRepReplace		 string
 }
 
 type BaseReconfigure struct {
@@ -309,6 +311,10 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
 		sr.Acl,
 	)
+//	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+//		srcFront += `
+//    reqrep {{.ReqRepSearch}} {{.ReqRepReplace}} if url_{{.ServiceName}}`
+//	}
 	srcBack := ""
 	if len(sr.Users) > 0 {
 		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
@@ -318,6 +324,10 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	}
 	srcBack += `backend {{.AclName}}-be
     mode http`
+	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+		srcBack += `
+    reqrep {{.ReqRepSearch}}     {{.ReqRepReplace}}`
+	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `
     server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
