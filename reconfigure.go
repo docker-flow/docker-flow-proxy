@@ -44,7 +44,7 @@ type ServiceReconfigure struct {
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
 	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ServiceCert          string `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
+	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
 	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
 	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
