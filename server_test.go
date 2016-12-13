@@ -43,16 +43,18 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ServiceColor = "pink"
 	s.ServiceDomain = []string{"my-domain.com"}
 	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
+	s.OutboundHostname = "machine-123.my-company.com"
 	s.BaseUrl = "/v1/docker-flow-proxy"
 	s.ReconfigureBaseUrl = fmt.Sprintf("%s/reconfigure", s.BaseUrl)
 	s.RemoveBaseUrl = fmt.Sprintf("%s/remove", s.BaseUrl)
 	s.ReconfigureUrl = fmt.Sprintf(
-		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s",
+		"%s?serviceName=%s&serviceColor=%s&servicePath=%s&serviceDomain=%s&outboundHostname=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		s.ServiceColor,
 		strings.Join(s.ServicePath, ","),
 		strings.Join(s.ServiceDomain, ","),
+		s.OutboundHostname,
 	)
 	s.RemoveUrl = fmt.Sprintf("%s?serviceName=%s", s.RemoveBaseUrl, s.ServiceName)
 	s.CertUrl = fmt.Sprintf("%s/cert?my-cert.pem", s.BaseUrl)
@@ -383,12 +385,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
 	})
 
 	srv := Serve{}
@@ -401,12 +404,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      pathType,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         pathType,
 	})
 
 	srv := Serve{}
@@ -424,12 +428,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		ReqRepSearch:  search,
-		ReqRepReplace: replace,
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		ReqRepSearch:     search,
+		ReqRepReplace:    replace,
 	})
 
 	srv := Serve{}
@@ -446,10 +451,11 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
 	expected, _ := json.Marshal(Response{
 		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
 		Users:         users,
 	})
 
@@ -464,13 +470,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 	mode := "swaRM"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&port="+port, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		Port:          port,
-		Mode:          mode,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		Port:             port,
+		Mode:             mode,
 	})
 
 	srv := Serve{Mode: mode}
@@ -482,13 +489,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&skipCheck=true", nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
-		ServiceName:   s.ServiceName,
-		ServiceColor:  s.ServiceColor,
-		ServicePath:   s.ServicePath,
-		ServiceDomain: s.ServiceDomain,
-		PathType:      s.PathType,
-		SkipCheck:     true,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		OutboundHostname: s.OutboundHostname,
+		PathType:         s.PathType,
+		SkipCheck:        true,
 	})
 
 	srv := Serve{}
