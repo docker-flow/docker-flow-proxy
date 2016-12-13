@@ -3,6 +3,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -55,6 +56,23 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFile() {
 	s.Equal(expected, actual)
 }
 
+func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenPresent() {
+	s.remove.AclName = "my-acl"
+	var actual []string
+	expected := []string{
+		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.remove.AclName),
+		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.remove.AclName),
+	}
+	osRemove = func(name string) error {
+		actual = append(actual, name)
+		return nil
+	}
+
+	s.remove.Execute([]string{})
+
+	s.Equal(expected, actual)
+}
+
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
 	osRemove = func(name string) error {
 		return fmt.Errorf("The file could not be removed")
@@ -66,22 +84,22 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
 }
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("")
-	proxy = mockObj
+	haproxy.Instance = mockObj
 
 	s.remove.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates", s.TemplatesPath, s.ConfigsPath)
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTemplatesFails() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxy = mockObj
+	haproxy.Instance = mockObj
 
 	err := s.remove.Execute([]string{})
 
@@ -89,10 +107,10 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTe
 }
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("")
-	proxy = mockObj
+	haproxy.Instance = mockObj
 
 	s.remove.Execute([]string{})
 
@@ -100,11 +118,11 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxy = mockObj
+	haproxy.Instance = mockObj
 
 	err := s.remove.Execute([]string{})
 

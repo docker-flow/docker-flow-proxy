@@ -2,11 +2,9 @@
 
 set -e
 
-docker-machine create -d virtualbox node-1
-
-docker-machine create -d virtualbox node-2
-
-docker-machine create -d virtualbox node-3
+for i in 1 2 3; do
+    docker-machine create -d virtualbox node-$i
+done
 
 eval $(docker-machine env node-1)
 
@@ -16,14 +14,13 @@ docker swarm init \
 
 TOKEN=$(docker swarm join-token -q worker)
 
-eval $(docker-machine env node-2)
+for i in 2 3; do
+    eval $(docker-machine env node-$i)
 
-docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
-
-eval $(docker-machine env node-3)
-
-docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
+    docker swarm join --token $TOKEN $(docker-machine ip node-1):2377
+done
 
 eval $(docker-machine env node-1)
 
-# docker node update --label-add type=manager node-1
+echo ""
+echo ">> The Swarm Cluster is set up!"

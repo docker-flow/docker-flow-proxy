@@ -1,6 +1,7 @@
 package main
 
 import (
+	haproxy "./proxy"
 	"./registry"
 	"bytes"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,26 +32,35 @@ type Reconfigure struct {
 	ServiceReconfigure
 }
 
+type User struct {
+	Username string
+	Password string
+}
+
 type ServiceReconfigure struct {
 	ServiceName          string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
-	ServiceDomain        string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	OutboundHostname     string `long:"outbound-hostname" description:"The hostname running the service. If specified, proxy will redirect traffic to this hostname instead of using the service's name."`
-	ConsulTemplateFePath string `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
-	ConsulTemplateBePath string `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
-	Mode                 string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	OutboundHostname     string   `long:"outbound-hostname" description:"The hostname running the service. If specified, proxy will redirect traffic to this hostname instead of using the service's name."`
+	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
+	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
+	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	PathType             string
 	Port                 string
 	SkipCheck            bool
 	Acl                  string
+	AclName              string
 	AclCondition         string
+	Users                []User
 	FullServiceName      string
 	Host                 string
 	Distribute           bool
 	LookupRetry          int
 	LookupRetryInterval  int
+	ReqRepSearch         string
+	ReqRepReplace		 string
 }
 
 type BaseReconfigure struct {
@@ -66,6 +77,7 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigu
 	return &Reconfigure{baseData, serviceData}
 }
 
+// TODO: Remove args
 func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -82,10 +94,10 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if err := proxy.Reload(); err != nil {
+	if err := haproxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
@@ -168,7 +180,6 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 		}
 	}
 	logPrintf("\tFound %d services", count)
-
 	for i := 0; i < count; i++ {
 		s := <-c
 		s.Mode = mode
@@ -177,24 +188,21 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 			m.createConfigs(m.TemplatesPath, &s)
 		}
 	}
-
-	if err := proxy.CreateConfigFromTemplates(m.TemplatesPath, m.ConfigsPath); err != nil {
+	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if count == 0 && len(body) > 0 {
-		return fmt.Errorf("Config response was non-empty and invalid")
-	}
-	return proxy.Reload()
+	return haproxy.Instance.Reload()
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {
 	sr := ServiceReconfigure{ServiceName: serviceName}
 
 	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
+	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
 	if err == nil {
 		sr.ServicePath = strings.Split(path, ",")
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
-		sr.ServiceDomain, _ = m.getServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
+		sr.ServiceDomain = strings.Split(domain, ",")
 		sr.OutboundHostname, _ = m.getServiceAttribute(addresses, serviceName, registry.HOSTNAME_KEY, instanceName)
 		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
 		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
@@ -227,9 +235,12 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 		return err
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.ServiceName)
+		if len(sr.AclName) == 0 {
+			sr.AclName = sr.ServiceName
+		}
+		destFe := fmt.Sprintf("%s/%s-fe.cfg", templatesPath, sr.AclName)
 		writeFeTemplate(destFe, []byte(feTemplate), 0664)
-		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.ServiceName)
+		destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.AclName)
 		writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	} else {
 		args := registry.CreateConfigsArgs{
@@ -267,7 +278,6 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	return nil
 }
 
-// TODO: Move to registry package
 func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
 	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
 		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
@@ -279,26 +289,24 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 			return "", "", err
 		}
 	} else {
-		front, back = m.getConsulTemplateFromGo(sr)
+		front, back = m.getTemplateFromGo(sr)
 	}
 	return front, back, nil
 }
 
-// TODO: Move to registry package
-func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
+func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
 	sr.Acl = ""
 	sr.AclCondition = ""
+	if len(sr.AclName) == 0 {
+		sr.AclName = sr.ServiceName
+	}
 	sr.Host = m.ServiceName
 	if len(m.OutboundHostname) > 0 {
 		sr.Host = m.OutboundHostname
 	}
-	fmt.Println("Configuring host:", sr.Host)
 	if len(sr.ServiceDomain) > 0 {
-		sr.Acl = fmt.Sprintf(`
-    acl domain_%s hdr_dom(host) -i %s`,
-			sr.ServiceName,
-			sr.ServiceDomain,
-		)
+		sr.Acl = `
+    acl domain_{{.ServiceName}} hdr_dom(host) -i{{range .ServiceDomain}} {{.}}{{end}}`
 		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}
 	if len(sr.ServiceColor) > 0 {
@@ -309,17 +317,46 @@ func (m *Reconfigure) getConsulTemplateFromGo(sr ServiceReconfigure) (frontend, 
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"
 	}
-	srcFront := `
-    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.Acl}}
-    use_backend {{.ServiceName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
-	srcBack := `backend {{.ServiceName}}-be
-    `
+	srcFront := fmt.Sprintf(
+		`
+    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}%s
+    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
+		sr.Acl,
+	)
+//	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+//		srcFront += `
+//    reqrep {{.ReqRepSearch}} {{.ReqRepReplace}} if url_{{.ServiceName}}`
+//	}
+	srcBack := ""
+	if len(sr.Users) > 0 {
+		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
+    user {{.Username}} insecure-password {{.Password}}{{end}}
+
+`
+	}
+	srcBack += `backend {{.AclName}}-be
+    mode http`
+	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+		srcBack += `
+    reqrep {{.ReqRepSearch}}     {{.ReqRepReplace}}`
+	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		srcBack += `server {{.ServiceName}} {{.Host}}:{{.Port}}`
-	} else {
-		srcBack += `{{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
+		srcBack += `
+    server {{.ServiceName}} {{.Host}}:{{.Port}}`
+	} else { // It's Consul
+		srcBack += `
+    {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
+	}
+	if len(sr.Users) > 0 {
+		srcBack += `
+    acl {{.ServiceName}}UsersAcl http_auth({{.ServiceName}}Users)
+    http-request auth realm {{.ServiceName}}Realm if !{{.ServiceName}}UsersAcl`
+	} else 	if len(os.Getenv("USERS")) > 0 {
+		srcBack += `
+    acl defaultUsersAcl http_auth(defaultUsers)
+    http-request auth realm defaultRealm if !defaultUsersAcl`
 	}
 	tmplFront, _ := template.New("consulTemplate").Parse(srcFront)
 	tmplBack, _ := template.New("consulTemplate").Parse(srcBack)

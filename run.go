@@ -1,5 +1,7 @@
 package main
 
+import haproxy "./proxy"
+
 type Runnable interface {
 	Execute(args []string) error
 }
@@ -13,5 +15,5 @@ var NewRun = func() Executable {
 }
 
 func (m *Run) Execute(args []string) error {
-	return HaProxy{}.RunCmd([]string{})
+	return haproxy.HaProxy{}.RunCmd([]string{})
 }

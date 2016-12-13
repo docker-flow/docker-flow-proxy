@@ -3,12 +3,12 @@
 package main
 
 import (
+	"./proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
-	"os/exec"
 	"testing"
 )
 
@@ -18,14 +18,8 @@ type ArgsTestSuite struct {
 }
 
 func (s *ArgsTestSuite) SetupTest() {
-	cmdRunHa = func(cmd *exec.Cmd) error {
-		return nil
-	}
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
-	}
-	readPidFile = func(fileName string) ([]byte, error) {
-		return []byte(""), nil
 	}
 	osRemove = func(name string) error {
 		return nil
@@ -61,7 +55,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
-		{"serviceDomainFromArgs", "service-domain", &reconfigure.ServiceDomain},
 		{"outputHostnameFromArgs", "outbound-hostname", &reconfigure.OutboundHostname},
 		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
@@ -87,6 +80,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 		value    *[]string
 	}{
 		{[]string{"path1", "path2"}, "service-path", &reconfigure.ServicePath},
+		{[]string{"service-domain"}, "service-domain", &reconfigure.ServiceDomain},
 	}
 
 	for _, d := range data {
@@ -268,9 +262,9 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 		key      string
 		value    *string
 	}{
-		{"ipFromArgs", "ip", &server.IP},
-		{"portFromArgs", "port", &server.Port},
-		{"modeFromArgs", "mode", &server.Mode},
+		{"ipFromArgs", "ip", &serverImpl.IP},
+		{"portFromArgs", "port", &serverImpl.Port},
+		{"modeFromArgs", "mode", &serverImpl.Mode},
 	}
 
 	for _, d := range data {
@@ -289,9 +283,9 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 		key      string
 		value    *string
 	}{
-		{"ipFromArgs", "i", &server.IP},
-		{"portFromArgs", "p", &server.Port},
-		{"modeFromArgs", "m", &server.Mode},
+		{"ipFromArgs", "i", &serverImpl.IP},
+		{"portFromArgs", "p", &serverImpl.Port},
+		{"modeFromArgs", "m", &serverImpl.Mode},
 	}
 
 	for _, d := range data {
@@ -311,8 +305,8 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 		expected string
 		value    *string
 	}{
-		{"0.0.0.0", &server.IP},
-		{"8080", &server.Port},
+		{"0.0.0.0", &serverImpl.IP},
+		{"8080", &serverImpl.Port},
 	}
 
 	Args{}.Parse()
@@ -328,9 +322,9 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"ipFromEnv", "IP", &server.IP},
-		{"portFromEnv", "PORT", &server.Port},
-		{"modeFromEnv", "MODE", &server.Mode},
+		{"ipFromEnv", "IP", &serverImpl.IP},
+		{"portFromEnv", "PORT", &serverImpl.Port},
+		{"modeFromEnv", "MODE", &serverImpl.Mode},
 	}
 
 	for _, d := range data {
@@ -350,9 +344,9 @@ func TestArgsUnitTestSuite(t *testing.T) {
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 	logPrintf = func(format string, v ...interface{}) {}
-	proxyOrig := proxy
-	defer func() { proxy = proxyOrig }()
-	proxy = getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = getProxyMock("")
 	suite.Run(t, new(ArgsTestSuite))
 }
 
@@ -370,5 +364,61 @@ func (m *ArgsMock) Parse(args *Args) error {
 func getArgsMock() *ArgsMock {
 	mockObj := new(ArgsMock)
 	mockObj.On("Parse", mock.Anything).Return(nil)
+	return mockObj
+}
+
+type ProxyMock struct {
+	mock.Mock
+}
+
+func (m *ProxyMock) RunCmd(extraArgs []string) error {
+	params := m.Called(extraArgs)
+	return params.Error(0)
+}
+
+func (m *ProxyMock) CreateConfigFromTemplates() error {
+	params := m.Called()
+	return params.Error(0)
+}
+
+func (m *ProxyMock) ReadConfig() (string, error) {
+	params := m.Called()
+	return params.String(0), params.Error(1)
+}
+
+func (m *ProxyMock) Reload() error {
+	params := m.Called()
+	return params.Error(0)
+}
+
+func (m *ProxyMock) AddCert(certName string) {
+	m.Called(certName)
+}
+
+func (m *ProxyMock) GetCerts() map[string]string {
+	params := m.Called()
+	return params.Get(0).(map[string]string)
+}
+
+func getProxyMock(skipMethod string) *ProxyMock {
+	mockObj := new(ProxyMock)
+	if skipMethod != "RunCmd" {
+		mockObj.On("RunCmd", mock.Anything).Return(nil)
+	}
+	if skipMethod != "CreateConfigFromTemplates" {
+		mockObj.On("CreateConfigFromTemplates").Return(nil)
+	}
+	if skipMethod != "ReadConfig" {
+		mockObj.On("ReadConfig").Return("", nil)
+	}
+	if skipMethod != "Reload" {
+		mockObj.On("Reload").Return(nil)
+	}
+	if skipMethod != "AddCert" {
+		mockObj.On("AddCert", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetCerts" {
+		mockObj.On("GetCerts").Return(map[string]string{})
+	}
 	return mockObj
 }

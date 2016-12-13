@@ -80,7 +80,7 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 	d := []data{
 		data{"color", s.registry.ServiceColor},
 		data{"path", strings.Join(s.registry.ServicePath, ",")},
-		data{"domain", s.registry.ServiceDomain},
+		data{"domain", strings.Join(s.registry.ServiceDomain, ",")},
 		data{"hostname", s.registry.OutboundHostname},
 		data{"pathtype", s.registry.PathType},
 		data{"skipcheck", fmt.Sprintf("%t", s.registry.SkipCheck)},
@@ -472,7 +472,7 @@ func TestConsulUnitTestSuite(t *testing.T) {
 		ServiceName:          "my-service",
 		ServiceColor:         "ServiceColor",
 		ServicePath:          []string{"pat1", "path2"},
-		ServiceDomain:        "ServiceDomain",
+		ServiceDomain:        []string{"ServiceDomain"},
 		OutboundHostname:     "OutboundHostname",
 		PathType:             "PathType",
 		SkipCheck:            true,

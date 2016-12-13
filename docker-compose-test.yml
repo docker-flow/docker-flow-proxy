@@ -8,15 +8,19 @@ services:
     volumes:
       - .:/usr/src/myapp
       - /tmp/go:/go
-    command: bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover --run UnitTest ./... && go build -v -o docker-flow-proxy"
+    command: sh -c "cd /usr/src/myapp && go get -d -v -t && go test --cover --run UnitTest ./... && go build -v -o docker-flow-proxy"
 
   staging-dep:
     image: vfarcic/docker-flow-proxy
     environment:
       - CONSUL_ADDRESS=${HOST_IP}:8500
       - PROXY_INSTANCE_NAME=proxy-test-instance
+      - USERS=user1:pass1,user2:pass2
+      - STATS_USER=stats
+      - STATS_PASS=pass
     ports:
       - 80:80
+      - 443:443
       - 8080:8080
     volumes:
       - ./test_configs/:/test_configs/

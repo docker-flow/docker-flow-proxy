@@ -14,6 +14,7 @@ Docker Flow: Proxy
   * [Reconfigure](#reconfigure)
   * [Remove](#remove)
   * [Config](#config)
+  * [Put Certificate](#put-certificate)
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
@@ -46,13 +47,23 @@ The following environment variables can be used to configure the *Docker Flow: P
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.|Only in *swarm* mode||swarm-listener|
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
-|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--service` argument. Used only in the *swarm* mode.|No|proxy|my-proxy|
+|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.|No|proxy|my-proxy|
+|STATS_USER         |Username for the statistics page                          |        |admin  |my-user|
+|STATS_PASS         |Password for the statistics page                          |        |admin  |my-pass|
+|TIMEOUT_CONNECT    |The connect timeout in seconds                            |        |5      |3      |
+|TIMEOUT_CLIENT     |The client timeout in seconds                             |        |20     |5      |
+|TIMEOUT_SERVER     |The server timeout in seconds                             |        |20     |5      |
+|TIMEOUT_QUEUE      |The queue timeout in seconds                              |        |30     |10     |
+|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |        |5      |3      |
+|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |        |15     |10     |
+|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|||user1:pass1,user2:pass2|
+
 
 The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new container. An example *Dockerfile* is as follows.
 
 ```
 FROM vfarcic/docker-flow-proxy
-COPY haproxy.tmpl /cfg/haproxy.tmpl
+COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 ```
 
 ### Reconfigure
@@ -63,16 +74,20 @@ The following query arguments can be used to send as a *reconfigure* request to 
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
+|aclName      |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No||05-go-demo-acl|
 |consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
 |consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
 |port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode|Only in *swarm* mode|||8080|
-|serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain.|No||ecme.com|
-|serviceName  |The name of the service. It must match the name stored in Consul.               |Yes     |       |books-ms     |
-|servicePath  |The URL path of the service. Multiple values should be separated by a comma (,).|Yes (unless consulTemplatePath is present)||/api/v1/books|
+|reqRepReplace|A regular expression to apply the modification. If specified, `reqRepSearch` needs to be set as well.|No||\1\ /demo/\2|
+|reqRepSearch |A regular expression to search the content to be replaced. If specified, `reqRepReplace` needs to be set as well.|No||^([^\ ]\*)\ /something/(.\*)|
+|serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
+|serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |
+|servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`).|Yes (unless consulTemplatePath is present)||/api/v1/books|
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||machine123.internal.ecme.com|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
+|users        |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.|No||user1:pass1,user2:pass2|
 
 ### Remove
 
@@ -82,8 +97,34 @@ The following query arguments can be used to send a *remove* request to *Docker 
 
 |Query      |Description                                                                 |Required|Default|Example|
 |-----------|----------------------------------------------------------------------------|--------|-------|-------|
+|aclName    |Mandatory if ACL name was specified in reconfigure request                  |No      |       |05-go-demo-acl|
 |serviceName|The name of the service. It must match the name stored in Consul            |Yes     |       |go-demo|
 |distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
+
+### Put Certificate
+
+> Puts SSL certificate to proxy configuration
+
+The following query arguments can be used to send a *cert* request to *Docker Flow: Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/cert**. Please note that the request method MUST be *PUT* and the certificate must be placed in request body.
+
+When a new replica is deployed, it will synchronize with other replicas and recuperate their certificates.
+
+|Query      |Description                                                                 |Required|Default|Example    |
+|-----------|----------------------------------------------------------------------------|--------|-------|-----------|
+|certName   |The file name of the certificate                                            |Yes     |       |my-cert.pem|
+|distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
+
+An example is as follows.
+
+```bash
+curl -i -XPUT \
+    --data-binary @my-certificate.pem \
+    "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/cert?certName=my-certificate.pem&distribute=true"
+```
+
+Please note that the internal proxy port `8080` must be published.
+
+The example would send a certificate stored in the `my-certificate.pem` file. The certificate would be distributed to all replicas of the proxy.
 
 ### Config
 

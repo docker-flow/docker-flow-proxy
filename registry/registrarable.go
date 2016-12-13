@@ -17,7 +17,7 @@ type Registry struct {
 	Port                 string
 	ServiceColor         string
 	ServicePath          []string
-	ServiceDomain        string
+	ServiceDomain        []string
 	OutboundHostname     string
 	PathType             string
 	SkipCheck            bool
