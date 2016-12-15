@@ -1,14 +1,15 @@
 package main
 
 import (
-	"./proxy"
-	"./server"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"./proxy"
+	"./server"
 )
 
 const (
@@ -40,6 +41,7 @@ type Response struct {
 	ServiceColor         string
 	ServicePath          []string
 	ServiceDomain        []string
+	ServiceCert          string
 	OutboundHostname     string
 	ConsulTemplateFePath string
 	ConsulTemplateBePath string
@@ -126,6 +128,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
+		ServiceCert:          req.URL.Query().Get("serviceCert"),
 		OutboundHostname:     req.URL.Query().Get("outboundHostname"),
 		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
 		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
@@ -161,6 +164,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceColor:         sr.ServiceColor,
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
+		ServiceCert:          sr.ServiceCert,
 		OutboundHostname:     sr.OutboundHostname,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
@@ -185,6 +189,15 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}
 		} else {
+			if len(sr.ServiceCert) > 0 {
+				// Replace \n with proper carriage return as new lines are not supported in labels
+				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
+				if len(sr.ServiceDomain) > 0 {
+					cert.PutCert(sr.ServiceDomain, []byte(sr.ServiceCert))
+				} else {
+					cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+				}
+			}
 			action := NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
 				m.writeInternalServerError(w, &response, err.Error())

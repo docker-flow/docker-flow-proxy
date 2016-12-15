@@ -3,13 +3,14 @@
 package main
 
 import (
-	"./proxy"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"testing"
+
+	"./proxy"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ArgsTestSuite struct {
@@ -55,6 +56,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 	}{
 		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
 		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
+		{"serviceCertFromArgs", "service-cert", &reconfigure.ServiceCert},
 		{"outputHostnameFromArgs", "outbound-hostname", &reconfigure.OutboundHostname},
 		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
 		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},

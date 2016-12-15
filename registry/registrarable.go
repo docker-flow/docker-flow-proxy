@@ -4,6 +4,7 @@ const (
 	COLOR_KEY                   = "color"
 	PATH_KEY                    = "path"
 	DOMAIN_KEY                  = "domain"
+	CERT_KEY                    = "cert"
 	HOSTNAME_KEY                = "hostname"
 	PATH_TYPE_KEY               = "pathtype"
 	SKIP_CHECK_KEY              = "skipcheck"
@@ -18,6 +19,7 @@ type Registry struct {
 	ServiceColor         string
 	ServicePath          []string
 	ServiceDomain        []string
+	ServiceCert          string
 	OutboundHostname     string
 	PathType             string
 	SkipCheck            bool

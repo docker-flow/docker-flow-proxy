@@ -1,7 +1,6 @@
 package server
 
 import (
-	"../proxy"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,12 +11,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"../proxy"
 )
 
 var mu = &sync.Mutex{}
 
 type Certer interface {
 	Put(w http.ResponseWriter, req *http.Request) (string, error)
+	PutCert(certName string, certContent []byte) (string, error)
 	GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, error)
 	Init() error
 }
@@ -47,6 +49,18 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 	return msg, nil
 }
 
+func (m *Cert) PutCert(certName string, certContent []byte) (string, error) {
+	path, err := m.writeFile(certName, certContent)
+	if err != nil {
+		return "", err
+	} else {
+		proxy.Instance.AddCert(certName)
+		logPrintf("Stored certificate %s", certName)
+
+		return path, nil
+	}
+}
+
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 	distribute, _ := strconv.ParseBool(req.URL.Query().Get("distribute"))
 	if distribute {
@@ -57,17 +71,19 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 		m.writeError(w, err)
 		return "", err
 	}
-	path, err := m.writeFile(certName, certContent)
+
+	path, err := m.PutCert(certName, certContent)
 	if err != nil {
-		m.writeError(w, fmt.Errorf("Query parameter certName is mandatory"))
+		m.writeError(w, err)
 		return "", err
 	}
-	msg := CertResponse{Status: "OK", Message: ""}
-	m.writeOK(w, msg)
-	proxy.Instance.AddCert(certName)
+
 	proxy.Instance.CreateConfigFromTemplates()
 	proxy.Instance.Reload()
-	logPrintf("Stored certificate %s", certName)
+
+	msg := CertResponse{Status: "OK", Message: ""}
+	m.writeOK(w, msg)
+
 	return path, nil
 }
 

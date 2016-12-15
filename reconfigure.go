@@ -1,8 +1,6 @@
 package main
 
 import (
-	haproxy "./proxy"
-	"./registry"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -13,6 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	haproxy "./proxy"
+	"./registry"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -43,6 +44,7 @@ type ServiceReconfigure struct {
 	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
 	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
+	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
 	OutboundHostname     string   `long:"outbound-hostname" description:"The hostname running the service. If specified, proxy will redirect traffic to this hostname instead of using the service's name."`
 	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
 	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
@@ -203,6 +205,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 		sr.ServicePath = strings.Split(path, ",")
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
 		sr.ServiceDomain = strings.Split(domain, ",")
+		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
 		sr.OutboundHostname, _ = m.getServiceAttribute(addresses, serviceName, registry.HOSTNAME_KEY, instanceName)
 		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
 		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
@@ -265,6 +268,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 		ServiceColor:         sr.ServiceColor,
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
+		ServiceCert:          sr.ServiceCert,
 		OutboundHostname:     sr.OutboundHostname,
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
