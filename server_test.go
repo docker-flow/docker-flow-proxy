@@ -664,6 +664,56 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCert_WhenServiceCertIsPresent() {
+	actualCertName := ""
+	expectedCert := "my-cert with new line \\n"
+	actualCert := ""
+	certOrig := cert
+	defer func() { cert = certOrig }()
+	cert = CertMock{
+		PutCertMock: func(certName string, certContent []byte) (string, error) {
+			actualCertName = certName
+			actualCert = string(certContent[:])
+			return "", nil
+		},
+	}
+	address := fmt.Sprintf(
+		"%s?serviceName=%s&servicePath=%s&serviceCert=%s",
+		s.ReconfigureBaseUrl,
+		s.ServiceName,
+		strings.Join(s.ServicePath, ","),
+		expectedCert,
+	)
+	req, _ := http.NewRequest("GET", address, nil)
+
+	serverImpl.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal(s.ServiceName, actualCertName)
+	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
+	actualCertName := ""
+	expectedCert := "my-cert"
+	actualCert := ""
+	certOrig := cert
+	defer func() { cert = certOrig }()
+	cert = CertMock{
+		PutCertMock: func(certName string, certContent []byte) (string, error) {
+			actualCertName = certName
+			actualCert = string(certContent[:])
+			return "", nil
+		},
+	}
+	address := fmt.Sprintf("%s&serviceDomain=%s&serviceCert=%s", s.ReconfigureUrl, s.ServiceDomain[0], expectedCert)
+	req, _ := http.NewRequest("GET", address, nil)
+
+	serverImpl.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal(s.ServiceDomain[0], actualCertName)
+	s.Equal(expectedCert, actualCert)
+}
+
 // ServeHTTP > Remove
 
 func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() {
@@ -870,6 +920,7 @@ func getResponseWriterMock() *ResponseWriterMock {
 
 type CertMock struct {
 	PutMock     func(http.ResponseWriter, *http.Request) (string, error)
+	PutCertMock func(certName string, certContent []byte) (string, error)
 	GetAllMock  func(w http.ResponseWriter, req *http.Request) (server.CertResponse, error)
 	GetInitMock func() error
 }
@@ -879,7 +930,7 @@ func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) 
 }
 
 func (m CertMock) PutCert(certName string, certContent []byte) (string, error) {
-	return "", nil
+	return m.PutCertMock(certName, certContent)
 }
 
 func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (server.CertResponse, error) {

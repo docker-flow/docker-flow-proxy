@@ -193,7 +193,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 				// Replace \n with proper carriage return as new lines are not supported in labels
 				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
 				if len(sr.ServiceDomain) > 0 {
-					cert.PutCert(sr.ServiceDomain, []byte(sr.ServiceCert))
+					cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
 				} else {
 					cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
 				}
