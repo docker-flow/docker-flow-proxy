@@ -5,6 +5,7 @@ const (
 	PATH_KEY                    = "path"
 	DOMAIN_KEY                  = "domain"
 	CERT_KEY                    = "cert"
+	HOSTNAME_KEY                = "hostname"
 	PATH_TYPE_KEY               = "pathtype"
 	SKIP_CHECK_KEY              = "skipcheck"
 	CONSUL_TEMPLATE_FE_PATH_KEY = "consultemplatefepath"
@@ -19,6 +20,7 @@ type Registry struct {
 	ServicePath          []string
 	ServiceDomain        []string
 	ServiceCert          string
+	OutboundHostname     string
 	PathType             string
 	SkipCheck            bool
 	ConsulTemplateFePath string

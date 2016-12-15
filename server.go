@@ -42,6 +42,7 @@ type Response struct {
 	ServicePath          []string
 	ServiceDomain        []string
 	ServiceCert          string
+	OutboundHostname     string
 	ConsulTemplateFePath string
 	ConsulTemplateBePath string
 	PathType             string
@@ -128,6 +129,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
 		ServiceCert:          req.URL.Query().Get("serviceCert"),
+		OutboundHostname:     req.URL.Query().Get("outboundHostname"),
 		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
 		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
 		PathType:             req.URL.Query().Get("pathType"),
@@ -163,6 +165,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
 		ServiceCert:          sr.ServiceCert,
+		OutboundHostname:     sr.OutboundHostname,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
 		PathType:             sr.PathType,

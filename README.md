@@ -85,6 +85,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`).|Yes (unless consulTemplatePath is present)||/api/v1/books|
+|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||machine123.internal.ecme.com|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 |users        |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.|No||user1:pass1,user2:pass2|
 

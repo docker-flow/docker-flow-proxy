@@ -45,6 +45,7 @@ type ServiceReconfigure struct {
 	ServicePort          string
 	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
+	OutboundHostname     string   `long:"outbound-hostname" description:"The hostname running the service. If specified, proxy will redirect traffic to this hostname instead of using the service's name."`
 	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
 	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
@@ -56,6 +57,7 @@ type ServiceReconfigure struct {
 	AclCondition         string
 	Users                []User
 	FullServiceName      string
+	Host                 string
 	Distribute           bool
 	LookupRetry          int
 	LookupRetryInterval  int
@@ -82,8 +84,12 @@ func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if isSwarm(m.ServiceReconfigure.Mode) && !m.skipAddressValidation {
-		if _, err := lookupHost(m.ServiceName); err != nil {
-			logPrintf("Could not reach the service %s. Is the service running and connected to the same network as the proxy?", m.ServiceName)
+		host := m.ServiceName
+		if len(m.OutboundHostname) > 0 {
+			host = m.OutboundHostname
+		}
+		if _, err := lookupHost(host); err != nil {
+			logPrintf("Could not reach the service %s. Is the service running and connected to the same network as the proxy?", host)
 			return err
 		}
 	}
@@ -200,6 +206,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
 		sr.ServiceDomain = strings.Split(domain, ",")
 		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
+		sr.OutboundHostname, _ = m.getServiceAttribute(addresses, serviceName, registry.HOSTNAME_KEY, instanceName)
 		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
 		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
@@ -262,6 +269,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 		ServicePath:          sr.ServicePath,
 		ServiceDomain:        sr.ServiceDomain,
 		ServiceCert:          sr.ServiceCert,
+		OutboundHostname:     sr.OutboundHostname,
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
@@ -295,6 +303,10 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
+	}
+	sr.Host = m.ServiceName
+	if len(m.OutboundHostname) > 0 {
+		sr.Host = m.OutboundHostname
 	}
 	if len(sr.ServiceDomain) > 0 {
 		sr.Acl = `
@@ -334,7 +346,7 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		srcBack += `
-    server {{.ServiceName}} {{.ServiceName}}:{{.Port}}`
+    server {{.ServiceName}} {{.Host}}:{{.Port}}`
 	} else { // It's Consul
 		srcBack += `
     {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
