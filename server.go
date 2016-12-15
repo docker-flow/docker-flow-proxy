@@ -52,7 +52,9 @@ type Response struct {
 	Distribute           bool
 	Users                []User
 	ReqRepSearch         string
-	ReqRepReplace		 string
+	ReqRepReplace        string
+	TemplateFePath       string
+	TemplateBePath       string
 }
 
 func (m *Serve) Execute(args []string) error {
@@ -137,6 +139,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Mode:                 m.Mode,
 		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),
 		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"),
+		TemplateFePath:       req.URL.Query().Get("templateFePath"),
+		TemplateBePath:       req.URL.Query().Get("templateBePath"),
 	}
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
@@ -176,6 +180,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Users:                sr.Users,
 		ReqRepSearch:         sr.ReqRepSearch,
 		ReqRepReplace:        sr.ReqRepReplace,
+		TemplateFePath:       sr.TemplateFePath,
+		TemplateBePath:       sr.TemplateBePath,
 	}
 	if m.isValidReconf(sr.ServiceName, sr.ServicePath, sr.ServiceDomain, sr.ConsulTemplateFePath) {
 		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.Port) == 0 {

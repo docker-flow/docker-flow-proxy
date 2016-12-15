@@ -1,6 +1,6 @@
 # TODO
 
-## Template
+## Logging
 
 [ ] Implement
 [ ] Add integration tests

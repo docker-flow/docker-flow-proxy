@@ -62,7 +62,9 @@ type ServiceReconfigure struct {
 	LookupRetry          int
 	LookupRetryInterval  int
 	ReqRepSearch         string
-	ReqRepReplace		 string
+	ReqRepReplace        string
+	TemplateFePath       string
+	TemplateBePath       string
 }
 
 type BaseReconfigure struct {
@@ -283,7 +285,17 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 }
 
 func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
-	if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 {
+	if len(sr.TemplateFePath) > 0 && len(sr.TemplateBePath) > 0 {
+		feTmpl, err := readTemplateFile(sr.TemplateFePath)
+		if err != nil {
+			return "", "", err
+		}
+		beTmpl, err := readTemplateFile(sr.TemplateBePath)
+		if err != nil {
+			return "", "", err
+		}
+		front, back = m.parseTemplate(string(feTmpl), string(beTmpl), sr)
+	} else if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 { // Sunset
 		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
 		if err != nil {
 			return "", "", err
@@ -327,10 +339,6 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
 		sr.Acl,
 	)
-//	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
-//		srcFront += `
-//    reqrep {{.ReqRepSearch}} {{.ReqRepReplace}} if url_{{.ServiceName}}`
-//	}
 	srcBack := ""
 	if len(sr.Users) > 0 {
 		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
@@ -357,13 +365,17 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 		srcBack += `
     acl {{.ServiceName}}UsersAcl http_auth({{.ServiceName}}Users)
     http-request auth realm {{.ServiceName}}Realm if !{{.ServiceName}}UsersAcl`
-	} else 	if len(os.Getenv("USERS")) > 0 {
+	} else if len(os.Getenv("USERS")) > 0 {
 		srcBack += `
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 	}
-	tmplFront, _ := template.New("consulTemplate").Parse(srcFront)
-	tmplBack, _ := template.New("consulTemplate").Parse(srcBack)
+	return m.parseTemplate(srcFront, srcBack, sr)
+}
+
+func (m *Reconfigure) parseTemplate(front, back string, sr ServiceReconfigure) (pFront, pBack string) {
+	tmplFront, _ := template.New("consulTemplate").Parse(front)
+	tmplBack, _ := template.New("consulTemplate").Parse(back)
 	var ctFront bytes.Buffer
 	var ctBack bytes.Buffer
 	tmplFront.Execute(&ctFront, sr)

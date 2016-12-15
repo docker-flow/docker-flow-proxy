@@ -424,7 +424,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	search := "search"
 	replace := "replace"
 	url := fmt.Sprintf(
-		s.ReconfigureUrl+"&reqRepSearch="+search+"&reqRepReplace="+replace,
+		s.ReconfigureUrl + "&reqRepSearch=" + search + "&reqRepReplace=" + replace,
 	)
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
@@ -444,10 +444,36 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresent() {
+	templateFePath := "something"
+	templateBePath := "else"
+	url := fmt.Sprintf(
+		"%s&templateFePath=%s&templateBePath=%s",
+		s.ReconfigureUrl,
+		templateFePath,
+		templateBePath,
+	)
+	req, _ := http.NewRequest("GET", url, nil)
+	expected, _ := json.Marshal(Response{
+		Status:         "OK",
+		ServiceName:    s.ServiceName,
+		ServiceColor:   s.ServiceColor,
+		ServicePath:    s.ServicePath,
+		ServiceDomain:  s.ServiceDomain,
+		TemplateFePath: templateFePath,
+		TemplateBePath: templateBePath,
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
-	users := []User {
-		{ Username: "user1", Password: "pass1" },
-		{ Username: "user2", Password: "pass2" },
+	users := []User{
+		{Username: "user1", Password: "pass1"},
+		{Username: "user2", Password: "pass2"},
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
 	expected, _ := json.Marshal(Response{
