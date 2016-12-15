@@ -462,6 +462,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 		ServiceDomain:  s.ServiceDomain,
 		TemplateFePath: templateFePath,
 		TemplateBePath: templateBePath,
+		OutboundHostname: s.OutboundHostname,
 	})
 
 	srv := Serve{}
