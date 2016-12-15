@@ -83,6 +83,7 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode|Only in *swarm* mode|||8080|
 |reqRepReplace|A regular expression to apply the modification. If specified, `reqRepSearch` needs to be set as well.|No||\1\ /demo/\2|
 |reqRepSearch |A regular expression to search the content to be replaced. If specified, `reqRepReplace` needs to be set as well.|No||^([^\ ]\*)\ /something/(.\*)|
+|serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No|||
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`).|Yes (unless consulTemplatePath is present)||/api/v1/books|
