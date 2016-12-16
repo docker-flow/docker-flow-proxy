@@ -42,11 +42,9 @@ docker-compose -f docker-compose-test.yml run --rm unit
 docker-compose -f docker-compose-test.yml up -d staging-dep
 
 docker-compose -f docker-compose-test.yml run --rm staging
-
-docker-compose -f docker-compose-test.yml down
 ```
 
-### Cleanup
+### Cleanup
 
 ```bash
 docker-machine rm -f tests

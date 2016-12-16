@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 var readTemplateFile = ioutil.ReadFile
@@ -31,5 +32,5 @@ func isSwarm(mode string) bool {
 }
 
 var lookupHost = net.LookupHost
-
+var mu = &sync.Mutex{}
 var registryInstance registry.Registrarable = registry.Consul{}

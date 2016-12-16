@@ -11,6 +11,8 @@ import (
 	"./proxy"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"./actions"
+	"./registry"
 )
 
 type ArgsTestSuite struct {
@@ -54,15 +56,15 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsStrings() {
 		key      string
 		value    *string
 	}{
-		{"serviceNameFromArgs", "service-name", &reconfigure.ServiceName},
-		{"serviceColorFromArgs", "service-color", &reconfigure.ServiceColor},
-		{"serviceCertFromArgs", "service-cert", &reconfigure.ServiceCert},
-		{"outputHostnameFromArgs", "outbound-hostname", &reconfigure.OutboundHostname},
-		{"instanceNameFromArgs", "proxy-instance-name", &reconfigure.InstanceName},
-		{"templatesPathFromArgs", "templates-path", &reconfigure.TemplatesPath},
-		{"configsPathFromArgs", "configs-path", &reconfigure.ConfigsPath},
-		{"consulTemplateFePath", "consul-template-fe-path", &reconfigure.ConsulTemplateFePath},
-		{"consulTemplateBePath", "consul-template-be-path", &reconfigure.ConsulTemplateBePath},
+		{"serviceNameFromArgs", "service-name", &actions.ReconfigureInstance.ServiceName},
+		{"serviceColorFromArgs", "service-color", &actions.ReconfigureInstance.ServiceColor},
+		{"serviceCertFromArgs", "service-cert", &actions.ReconfigureInstance.ServiceCert},
+		{"outputHostnameFromArgs", "outbound-hostname", &actions.ReconfigureInstance.OutboundHostname},
+		{"instanceNameFromArgs", "proxy-instance-name", &actions.ReconfigureInstance.InstanceName},
+		{"templatesPathFromArgs", "templates-path", &actions.ReconfigureInstance.TemplatesPath},
+		{"configsPathFromArgs", "configs-path", &actions.ReconfigureInstance.ConfigsPath},
+		{"consulTemplateFePath", "consul-template-fe-path", &actions.ReconfigureInstance.ConsulTemplateFePath},
+		{"consulTemplateBePath", "consul-template-be-path", &actions.ReconfigureInstance.ConsulTemplateBePath},
 	}
 
 	for _, d := range data {
@@ -81,8 +83,8 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 		key      string
 		value    *[]string
 	}{
-		{[]string{"path1", "path2"}, "service-path", &reconfigure.ServicePath},
-		{[]string{"service-domain"}, "service-domain", &reconfigure.ServiceDomain},
+		{[]string{"path1", "path2"}, "service-path", &actions.ReconfigureInstance.ServicePath},
+		{[]string{"service-domain"}, "service-domain", &actions.ReconfigureInstance.ServiceDomain},
 	}
 
 	for _, d := range data {
@@ -106,10 +108,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 		key      string
 		value    *string
 	}{
-		{"serviceNameFromArgs", "s", &reconfigure.ServiceName},
-		{"serviceColorFromArgs", "C", &reconfigure.ServiceColor},
-		{"templatesPathFromArgs", "t", &reconfigure.TemplatesPath},
-		{"configsPathFromArgs", "c", &reconfigure.ConfigsPath},
+		{"serviceNameFromArgs", "s", &actions.ReconfigureInstance.ServiceName},
+		{"serviceColorFromArgs", "C", &actions.ReconfigureInstance.ServiceColor},
+		{"templatesPathFromArgs", "t", &actions.ReconfigureInstance.TemplatesPath},
+		{"configsPathFromArgs", "c", &actions.ReconfigureInstance.ConfigsPath},
 	}
 
 	for _, d := range data {
@@ -128,7 +130,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsSlices() {
 		key      string
 		value    *[]string
 	}{
-		{[]string{"p1", "p2"}, "p", &reconfigure.ServicePath},
+		{[]string{"p1", "p2"}, "p", &actions.ReconfigureInstance.ServicePath},
 	}
 	for _, d := range data {
 		for _, v := range d.expected {
@@ -153,12 +155,12 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		expected string
 		value    *string
 	}{
-		{"/cfg/tmpl", &reconfigure.TemplatesPath},
-		{"/cfg", &reconfigure.ConfigsPath},
+		{"/cfg/tmpl", &actions.ReconfigureInstance.TemplatesPath},
+		{"/cfg", &actions.ReconfigureInstance.ConfigsPath},
 	}
-	reconfigure.ConsulAddresses = []string{"myConsulAddress"}
-	reconfigure.ServicePath = []string{"p1", "p2"}
-	reconfigure.ServiceName = "myServiceName"
+	actions.ReconfigureInstance.ConsulAddresses = []string{"myConsulAddress"}
+	actions.ReconfigureInstance.ServicePath = []string{"p1", "p2"}
+	actions.ReconfigureInstance.ServiceName = "myServiceName"
 
 	Args{}.Parse()
 	for _, d := range data {
@@ -177,7 +179,7 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &reconfigure.InstanceName},
+		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &actions.ReconfigureInstance.InstanceName},
 	}
 
 	for _, d := range data {
@@ -354,18 +356,76 @@ func TestArgsUnitTestSuite(t *testing.T) {
 
 // Mock
 
-type ArgsMock struct {
+//type ArgsMock struct {
+//	mock.Mock
+//}
+//
+//func (m *ArgsMock) Parse(args *Args) error {
+//	params := m.Called(args)
+//	return params.Error(0)
+//}
+//
+//func getArgsMock() *ArgsMock {
+//	mockObj := new(ArgsMock)
+//	mockObj.On("Parse", mock.Anything).Return(nil)
+//	return mockObj
+//}
+
+type RegistrarableMock struct {
 	mock.Mock
 }
 
-func (m *ArgsMock) Parse(args *Args) error {
+func (m *RegistrarableMock) PutService(addresses []string, instanceName string, r registry.Registry) error {
+	params := m.Called(addresses, instanceName, r)
+	return params.Error(0)
+}
+
+func (m *RegistrarableMock) SendPutRequest(addresses []string, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(addresses, serviceName, key, value, instanceName, c)
+}
+
+func (m *RegistrarableMock) DeleteService(addresses []string, serviceName, instanceName string) error {
+	params := m.Called(addresses, serviceName, instanceName)
+	return params.Error(0)
+}
+
+func (m *RegistrarableMock) SendDeleteRequest(addresses []string, serviceName, key, value, instanceName string, c chan error) {
+	m.Called(addresses, serviceName, key, value, instanceName, c)
+}
+
+func (m *RegistrarableMock) CreateConfigs(args *registry.CreateConfigsArgs) error {
 	params := m.Called(args)
 	return params.Error(0)
 }
 
-func getArgsMock() *ArgsMock {
-	mockObj := new(ArgsMock)
-	mockObj.On("Parse", mock.Anything).Return(nil)
+func (m *RegistrarableMock) GetServiceAttribute(addresses []string, instanceName, serviceName, key string) (string, error) {
+	params := m.Called(addresses, instanceName, serviceName, key)
+	if serviceName == "path" {
+		return "path/to/my/service/api,path/to/my/other/service/api", params.Error(0)
+	}
+	return "something", params.Error(0)
+}
+
+func getRegistrarableMock(skipMethod string) *RegistrarableMock {
+	mockObj := new(RegistrarableMock)
+	if skipMethod != "PutService" {
+		mockObj.On("PutService", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "SendPutRequest" {
+		mockObj.On("SendPutRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	}
+	if skipMethod != "DeleteService" {
+		mockObj.On("DeleteService", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "SendDeleteRequest" {
+		mockObj.On("SendDeleteRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	}
+	if skipMethod != "CreateConfigs" {
+		mockObj.On("CreateConfigs", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetServiceAttribute" {
+		mockObj.On("GetServiceAttribute", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
 	return mockObj
 }
 

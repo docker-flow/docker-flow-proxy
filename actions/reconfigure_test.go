@@ -1,10 +1,10 @@
 // +build !integration
 
-package main
+package actions
 
 import (
-	haproxy "./proxy"
-	"./registry"
+	haproxy "../proxy"
+	"../registry"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
@@ -62,6 +62,79 @@ func (s *ReconfigureTestSuite) SetupTest() {
 		},
 	}
 	s.reconfigure.skipAddressValidation = true
+}
+
+// Suite
+
+func TestReconfigureUnitTestSuite(t *testing.T) {
+	logPrintf = func(format string, v ...interface{}) {}
+	s := new(ReconfigureTestSuite)
+	s.ServiceName = "myService"
+	s.PutPathResponse = "PUT_PATH_OK"
+	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actualPath := r.URL.Path
+		if r.Method == "GET" {
+			switch actualPath {
+			case "/v1/catalog/services":
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
+				data := map[string][]string{"service1": []string{}, "service2": []string{}, s.ServiceName: []string{}}
+				js, _ := json.Marshal(data)
+				w.Write(js)
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(strings.Join(s.ServicePath, ",")))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("orange"))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(s.OutboundHostname))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(s.PathType))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
+				}
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}
+	}))
+	defer s.Server.Close()
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = getRegistrarableMock("")
+	writeFeTemplateOrig := writeFeTemplate
+	defer func() { writeFeTemplate = writeFeTemplateOrig }()
+	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		return nil
+	}
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		return nil
+	}
+	mockObj := getProxyMock("")
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = mockObj
+	suite.Run(t, s)
 }
 
 // GetTemplate
@@ -600,6 +673,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() 
 
 func (s *ReconfigureTestSuite) Test_Execute_AddsHttpIfNotPresentInPutToConsul() {
 	s.reconfigure.ConsulAddresses = []string{strings.Replace(s.ConsulAddress, "http://", "", -1)}
+
 	s.reconfigure.Execute([]string{})
 
 	s.Equal(s.ServiceColor, s.ConsulRequestBody.ServiceColor)
@@ -765,75 +839,6 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmList
 	s.Error(err)
 }
 
-// Suite
-
-func TestReconfigureUnitTestSuite(t *testing.T) {
-	logPrintf = func(format string, v ...interface{}) {}
-	s := new(ReconfigureTestSuite)
-	s.ServiceName = "myService"
-	s.PutPathResponse = "PUT_PATH_OK"
-	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		actualPath := r.URL.Path
-		if r.Method == "GET" {
-			switch actualPath {
-			case "/v1/catalog/services":
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-				data := map[string][]string{"service1": []string{}, "service2": []string{}, s.ServiceName: []string{}}
-				js, _ := json.Marshal(data)
-				w.Write(js)
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(strings.Join(s.ServicePath, ",")))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("orange"))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(s.OutboundHostname))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(s.PathType))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
-				}
-			default:
-				w.WriteHeader(http.StatusNotFound)
-			}
-		}
-	}))
-	defer s.Server.Close()
-	registryInstanceOrig := registryInstance
-	defer func() { registryInstance = registryInstanceOrig }()
-	registryInstance = getRegistrarableMock("")
-	writeFeTemplateOrig := writeFeTemplate
-	defer func() { writeFeTemplate = writeFeTemplateOrig }()
-	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		return nil
-	}
-	writeBeTemplateOrig := writeBeTemplate
-	defer func() { writeBeTemplate = writeBeTemplateOrig }()
-	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		return nil
-	}
-	suite.Run(t, s)
-}
-
 // Mock
 
 type ReconfigureMock struct {
@@ -931,6 +936,62 @@ func getRegistrarableMock(skipMethod string) *RegistrarableMock {
 	}
 	if skipMethod != "GetServiceAttribute" {
 		mockObj.On("GetServiceAttribute", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	return mockObj
+}
+
+type ProxyMock struct {
+	mock.Mock
+}
+
+func (m *ProxyMock) RunCmd(extraArgs []string) error {
+	params := m.Called(extraArgs)
+	return params.Error(0)
+}
+
+func (m *ProxyMock) CreateConfigFromTemplates() error {
+	params := m.Called()
+	return params.Error(0)
+}
+
+func (m *ProxyMock) ReadConfig() (string, error) {
+	params := m.Called()
+	return params.String(0), params.Error(1)
+}
+
+func (m *ProxyMock) Reload() error {
+	params := m.Called()
+	return params.Error(0)
+}
+
+func (m *ProxyMock) AddCert(certName string) {
+	m.Called(certName)
+}
+
+func (m *ProxyMock) GetCerts() map[string]string {
+	params := m.Called()
+	return params.Get(0).(map[string]string)
+}
+
+func getProxyMock(skipMethod string) *ProxyMock {
+	mockObj := new(ProxyMock)
+	if skipMethod != "RunCmd" {
+		mockObj.On("RunCmd", mock.Anything).Return(nil)
+	}
+	if skipMethod != "CreateConfigFromTemplates" {
+		mockObj.On("CreateConfigFromTemplates").Return(nil)
+	}
+	if skipMethod != "ReadConfig" {
+		mockObj.On("ReadConfig").Return("", nil)
+	}
+	if skipMethod != "Reload" {
+		mockObj.On("Reload").Return(nil)
+	}
+	if skipMethod != "AddCert" {
+		mockObj.On("AddCert", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetCerts" {
+		mockObj.On("GetCerts").Return(map[string]string{})
 	}
 	return mockObj
 }

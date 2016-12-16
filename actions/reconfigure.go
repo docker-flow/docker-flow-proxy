@@ -1,4 +1,4 @@
-package main
+package actions
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	haproxy "./proxy"
-	"./registry"
+	haproxy "../proxy"
+	"../registry"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -75,7 +75,7 @@ type BaseReconfigure struct {
 	skipAddressValidation bool
 }
 
-var reconfigure Reconfigure
+var ReconfigureInstance Reconfigure
 
 var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
 	return &Reconfigure{baseData, serviceData}

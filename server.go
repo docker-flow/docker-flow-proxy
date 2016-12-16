@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
 	"./proxy"
 	"./server"
+	"./actions"
 )
 
 const (
@@ -27,7 +27,7 @@ type Serve struct {
 	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
 	Port            string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
 	ServiceName     string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
-	BaseReconfigure
+	actions.BaseReconfigure
 }
 
 var serverImpl = Serve{}
@@ -50,7 +50,7 @@ type Response struct {
 	Mode                 string
 	Port                 string
 	Distribute           bool
-	Users                []User
+	Users                []actions.User
 	ReqRepSearch         string
 	ReqRepReplace        string
 	TemplateFePath       string
@@ -66,7 +66,7 @@ func (m *Serve) Execute(args []string) error {
 	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	recon := NewReconfigure(m.BaseReconfigure, ServiceReconfigure{})
+	recon := actions.NewReconfigure(m.BaseReconfigure, actions.ServiceReconfigure{})
 	lAddr := ""
 	if len(m.ListenerAddress) > 0 {
 		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
@@ -126,7 +126,7 @@ func (m *Serve) isValidReconf(name string, path, domain []string, templateFePath
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
-	sr := ServiceReconfigure{
+	sr := actions.ServiceReconfigure{
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -158,7 +158,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		users := strings.Split(req.URL.Query().Get("users"), ",")
 		for _, user := range users {
 			userPass := strings.Split(user, ":")
-			sr.Users = append(sr.Users, User{Username: userPass[0], Password: userPass[1]})
+			sr.Users = append(sr.Users, actions.User{Username: userPass[0], Password: userPass[1]})
 		}
 	}
 	response := Response{
@@ -204,7 +204,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 					cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
 				}
 			}
-			action := NewReconfigure(m.BaseReconfigure, sr)
+			action := actions.NewReconfigure(m.BaseReconfigure, sr)
 			if err := action.Execute([]string{}); err != nil {
 				m.writeInternalServerError(w, &response, err.Error())
 			} else {

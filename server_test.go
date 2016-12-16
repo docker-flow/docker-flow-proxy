@@ -15,11 +15,12 @@ import (
 	"./server"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"./actions"
 )
 
 type ServerTestSuite struct {
 	suite.Suite
-	ServiceReconfigure
+	actions.ServiceReconfigure
 	ConsulAddress      string
 	BaseUrl            string
 	ReconfigureBaseUrl string
@@ -68,12 +69,12 @@ func (s *ServerTestSuite) SetupTest() {
 		return nil
 	}
 	serverImpl = Serve{
-		BaseReconfigure: BaseReconfigure{
+		BaseReconfigure: actions.BaseReconfigure{
 			ConsulAddresses: []string{s.ConsulAddress},
 			InstanceName:    s.InstanceName,
 		},
 	}
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return getReconfigureMock("")
 	}
 	logPrintfOrig := logPrintf
@@ -148,7 +149,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	mockObj := getReconfigureMock("")
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
@@ -166,7 +167,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
 	listenerAddress := "swarm-listener"
 	mockObj := getReconfigureMock("")
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
@@ -193,7 +194,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {
 	serverImpl.Mode = "seRviCe"
 	mockObj := getReconfigureMock("")
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -205,7 +206,7 @@ func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIs
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsSwarm() {
 	serverImpl.Mode = "SWarM"
 	mockObj := getReconfigureMock("")
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -217,7 +218,7 @@ func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIs
 func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
 	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -472,7 +473,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
-	users := []User{
+	users := []actions.User{
 		{Username: "user1", Password: "pass1"},
 		{Username: "user2", Password: "pass2"},
 	}
@@ -621,7 +622,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeRemoveExecute_WhenDistribu
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
 	mockObj := getReconfigureMock("Execute")
 	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -659,18 +660,18 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 	pathFe := "/path/to/consul/fe/template"
 	pathBe := "/path/to/consul/be/template"
 	mockObj := getReconfigureMock("")
-	var actualBase BaseReconfigure
-	expectedBase := BaseReconfigure{
+	var actualBase actions.BaseReconfigure
+	expectedBase := actions.BaseReconfigure{
 		ConsulAddresses: []string{s.ConsulAddress},
 	}
-	expectedService := ServiceReconfigure{
+	expectedService := actions.ServiceReconfigure{
 		ServiceName:          s.ServiceName,
 		ConsulTemplateFePath: pathFe,
 		ConsulTemplateBePath: pathBe,
 		PathType:             s.PathType,
 	}
-	var actualService ServiceReconfigure
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	var actualService actions.ServiceReconfigure
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
 		return mockObj
@@ -968,16 +969,74 @@ func (m CertMock) Init() error {
 	return m.GetInitMock()
 }
 
+type RunMock struct {
+	mock.Mock
+}
+
+func (m *RunMock) Execute(args []string) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
+func getRunMock(skipMethod string) *ReconfigureMock {
+	mockObj := new(ReconfigureMock)
+	if skipMethod != "Execute" {
+		mockObj.On("Execute", mock.Anything).Return(nil)
+	}
+	return mockObj
+}
+
+type ReconfigureMock struct {
+	mock.Mock
+}
+
+func (m *ReconfigureMock) Execute(args []string) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
+func (m *ReconfigureMock) GetData() (actions.BaseReconfigure, actions.ServiceReconfigure) {
+	m.Called()
+	return actions.BaseReconfigure{}, actions.ServiceReconfigure{}
+}
+
+func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+	params := m.Called(addresses, instanceName, mode, listenerAddress)
+	return params.Error(0)
+}
+
+func (m *ReconfigureMock) GetTemplates(sr actions.ServiceReconfigure) (front, back string, err error) {
+	params := m.Called(sr)
+	return params.String(0), params.String(1), params.Error(2)
+}
+
+func getReconfigureMock(skipMethod string) *ReconfigureMock {
+	mockObj := new(ReconfigureMock)
+	if skipMethod != "Execute" {
+		mockObj.On("Execute", mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetData" {
+		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "ReloadAllServices" {
+		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	}
+	if skipMethod != "GetTemplates" {
+		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
+	}
+	return mockObj
+}
+
 // Util
 
 func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 	mockObj := getReconfigureMock("")
-	var actualBase BaseReconfigure
-	expectedBase := BaseReconfigure{
+	var actualBase actions.BaseReconfigure
+	expectedBase := actions.BaseReconfigure{
 		ConsulAddresses: []string{s.ConsulAddress},
 	}
-	var actualService ServiceReconfigure
-	NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
+	var actualService actions.ServiceReconfigure
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
 		return mockObj
