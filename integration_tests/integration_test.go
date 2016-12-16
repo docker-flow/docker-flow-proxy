@@ -1,42 +1,5 @@
 package integration_test
 
-/*
-Setup
-$ docker-machine create -d virtualbox tests
-$ eval $(docker-machine env tests)
-$ export HOST_IP=$(docker-machine ip tests)
-
-Unit tests
-$ docker-compose -f docker-compose-test.yml run --rm unit
-
-Build
-$ docker-compose build app
-
-Staging tests
-$ docker-compose -f docker-compose-test.yml up -d staging-dep
-$ docker-compose -f docker-compose-test.yml run --rm staging
-$ docker-compose -f docker-compose-test.yml down
-
-Push
-$ docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
-$ docker push vfarcic/docker-flow-proxy:beta
-
-Production tests
-$ docker-compose -f docker-compose-test.yml up -d staging-dep
-$ docker-compose -f docker-compose-test.yml run --rm production
-
-Manual tests
-$ docker-compose -f docker-compose-test.yml up -d staging-dep
-$ curl -i "$(docker-machine ip tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=/v1/test"
-$ curl -i $(docker-machine ip tests)/v1/test
-$ curl -i -XPUT --data-binary @tmp/xip.io/xip.io.pem "$(docker-machine ip tests):8080/v1/docker-flow-proxy/cert?certName=my-cert.pem"
-$ curl -i "$(docker-machine ip tests):8080/v1/docker-flow-proxy/reconfigure?serviceName=test-service&servicePath=^/v1/.*es.*&pathType=path_reg"
-$ docker-compose -f docker-compose-test.yml down
-
-Cleanup
-$ docker-machine rm -f tests
-*/
-
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
