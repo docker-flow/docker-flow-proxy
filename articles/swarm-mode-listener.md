@@ -198,6 +198,16 @@ Multiple domains should be separated with comma (`,`).
 ...
 ```
 
+Domains can be prefixed with a wildcard.
+
+```bash
+...
+  --label com.df.serviceDomain=*domain.com \
+...
+```
+
+The above example would match any domain ending with `domain.com` (e.g. `my-domain.com`, `my-other-domain.com`, etc).
+
 ### Removing a Service From the Proxy
 
 Since `Swarm Listener` is monitoring docker services, if a service is removed, related entries in the proxy configuration will be removed as well.
