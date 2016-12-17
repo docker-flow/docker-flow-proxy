@@ -321,8 +321,18 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 		sr.Host = m.OutboundHostname
 	}
 	if len(sr.ServiceDomain) > 0 {
-		sr.Acl = `
-    acl domain_{{.ServiceName}} hdr_dom(host) -i{{range .ServiceDomain}} {{.}}{{end}}`
+		domFunc := "hdr_dom"
+		for i, domain := range sr.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				sr.ServiceDomain[i] = strings.Trim(domain, "*")
+				domFunc = "hdr_end"
+			}
+		}
+		sr.Acl = fmt.Sprintf(
+			`
+    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
+			domFunc,
+		)
 		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}
 	if len(sr.ServiceColor) > 0 {

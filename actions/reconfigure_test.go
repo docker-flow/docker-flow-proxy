@@ -250,6 +250,17 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() {
+	s.ConsulTemplateFe = `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    acl domain_myService hdr_end(host) -i acme.com .domain.com
+    use_backend myService-be if url_myService domain_myService`
+	s.reconfigure.ServiceDomain = []string{"acme.com", "*.domain.com"}
+	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+
+	s.Equal(s.ConsulTemplateFe, actual)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
 	s.reconfigure.ReqRepSearch = "this"
 	s.reconfigure.ReqRepReplace = "that"
