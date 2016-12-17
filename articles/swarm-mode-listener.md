@@ -202,7 +202,7 @@ Domains can be prefixed with a wildcard.
 
 ```bash
 ...
-  --label com.df.serviceDomain=*domain.com \
+  --label "com.df.serviceDomain=*domain.com" \
 ...
 ```
 
