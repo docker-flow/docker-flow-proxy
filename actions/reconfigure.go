@@ -305,12 +305,16 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 			return "", "", err
 		}
 	} else {
-		front, back = m.getTemplateFromGo(sr)
+		m.formatData(&sr)
+		front, back = m.parseTemplate(
+			m.getFrontTemplate(&sr),
+			m.getBackTemplate(&sr),
+			sr)
 	}
 	return front, back, nil
 }
 
-func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backend string) {
+func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 	sr.Acl = ""
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
@@ -343,44 +347,51 @@ func (m *Reconfigure) getTemplateFromGo(sr ServiceReconfigure) (frontend, backen
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"
 	}
-	srcFront := fmt.Sprintf(
+}
+
+func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
+	tmpl := fmt.Sprintf(
 		`
     acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}%s
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
 		sr.Acl,
 	)
-	srcBack := ""
+	return tmpl
+}
+
+func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
+	tmpl := ""
 	if len(sr.Users) > 0 {
-		srcBack += `userlist {{.ServiceName}}Users{{range .Users}}
+		tmpl += `userlist {{.ServiceName}}Users{{range .Users}}
     user {{.Username}} insecure-password {{.Password}}{{end}}
 
 `
 	}
-	srcBack += `backend {{.AclName}}-be
+	tmpl += `backend {{.AclName}}-be
     mode http`
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
-		srcBack += `
+		tmpl += `
     reqrep {{.ReqRepSearch}}     {{.ReqRepReplace}}`
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		srcBack += `
+		tmpl += `
     server {{.ServiceName}} {{.Host}}:{{.Port}}`
 	} else { // It's Consul
-		srcBack += `
+		tmpl += `
     {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
 	}
 	if len(sr.Users) > 0 {
-		srcBack += `
+		tmpl += `
     acl {{.ServiceName}}UsersAcl http_auth({{.ServiceName}}Users)
     http-request auth realm {{.ServiceName}}Realm if !{{.ServiceName}}UsersAcl`
 	} else if len(os.Getenv("USERS")) > 0 {
-		srcBack += `
+		tmpl += `
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 	}
-	return m.parseTemplate(srcFront, srcBack, sr)
+	return tmpl
 }
 
 func (m *Reconfigure) parseTemplate(front, back string, sr ServiceReconfigure) (pFront, pBack string) {
