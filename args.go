@@ -1,10 +1,10 @@
 package main
 
 import (
+	"./actions"
 	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
-	"./actions"
 )
 
 type Args struct{}

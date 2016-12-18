@@ -1,15 +1,15 @@
 package main
 
 import (
+	"./actions"
+	"./proxy"
+	"./server"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"./proxy"
-	"./server"
-	"./actions"
 )
 
 const (
@@ -49,6 +49,7 @@ type Response struct {
 	SkipCheck            bool
 	Mode                 string
 	Port                 string
+	HttpsPort            int
 	Distribute           bool
 	Users                []actions.User
 	ReqRepSearch         string
@@ -142,6 +143,9 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		TemplateFePath:       req.URL.Query().Get("templateFePath"),
 		TemplateBePath:       req.URL.Query().Get("templateBePath"),
 	}
+	if len(req.URL.Query().Get("httpsPort")) > 0 {
+		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
+	}
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		sr.ServicePath = strings.Split(req.URL.Query().Get("servicePath"), ",")
 	}
@@ -176,6 +180,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		SkipCheck:            sr.SkipCheck,
 		Mode:                 sr.Mode,
 		Port:                 sr.Port,
+		HttpsPort:		      sr.HttpsPort,
 		Distribute:           sr.Distribute,
 		Users:                sr.Users,
 		ReqRepSearch:         sr.ReqRepSearch,

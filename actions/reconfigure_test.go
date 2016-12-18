@@ -38,6 +38,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
 	s.SkipCheck = false
+	s.PathType = "path_beg"
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend myService-be if url_myService`
@@ -140,7 +141,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 // GetTemplate
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
-	front, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	front, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, front)
 	s.Equal(s.ConsulTemplateBe, back)
@@ -158,7 +159,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPrese
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 
-	_, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, back)
 }
@@ -180,7 +181,7 @@ backend myService-be
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl`
 
-	_, back, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, back)
 }
@@ -194,7 +195,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
     mode http
     server myService myService:1234`
 
-		_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 		s.Equal(expected, actual)
 	}
@@ -212,7 +213,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 
-	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, actual)
 }
@@ -234,7 +235,7 @@ backend myService-be
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl`
 
-	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, actual)
 }
@@ -245,10 +246,35 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
     acl domain_myService hdr_dom(host) -i my-domain.com my-other-domain.com
     use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = []string{"my-domain.com", "my-other-domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
+
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
+	expectedFront := `
+    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    acl http_myService dst_port 80
+    acl https_myService dst_port 443
+    use_backend myService-be if url_myService http_myService
+    use_backend https-myService-be if url_myService https_myService`
+	expectedBack := `backend myService-be
+    mode http
+    server myService myService:1234
+
+backend https-myService-be
+    mode https
+    server myService myService:4321`
+	s.reconfigure.Port = "1234"
+	s.reconfigure.Mode = "service"
+	s.reconfigure.HttpsPort = 4321
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expectedFront, actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
+//TODO: Change Port to int
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() {
 	s.ConsulTemplateFe = `
@@ -256,7 +282,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() 
     acl domain_myService hdr_end(host) -i acme.com .domain.com
     use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = []string{"acme.com", "*.domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
@@ -275,7 +301,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndRe
 		s.reconfigure.ServiceName,
 	)
 
-	_, backend, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expected, backend)
 }
@@ -285,15 +311,17 @@ func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend my-acl-be if url_myService`
-	actual, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesPathReg() {
-	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
+	pathTypeOrig := s.reconfigure.PathType
+	defer func() { s.reconfigure.PathType = pathTypeOrig }()
 	s.reconfigure.PathType = "path_reg"
-	front, _, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
+	front, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateFe, front)
 }
@@ -302,7 +330,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
-	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Contains(actual, expected)
 }
@@ -310,7 +338,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 func (s ReconfigureTestSuite) Test_GetTemplates_DoesNotSetCheckWhenSkipCheckIsTrue() {
 	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
-	_, actual, _ := s.reconfigure.GetTemplates(s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(s.ConsulTemplateBe, actual)
 }
@@ -325,7 +353,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFileContent_WhenConsulTem
 	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
 	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, actual, _ := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
 
 	s.Equal(expected, actual)
 }
@@ -348,7 +376,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePat
 	s.ServiceReconfigure.TemplateFePath = expectedFeFile
 	s.ServiceReconfigure.TemplateBePath = expectedBeFile
 
-	actualFe, actualBe, _ := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+	actualFe, actualBe, _ := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
 
 	s.Equal(expectedFe, actualFe)
 	s.Equal(expectedBe, actualBe)
@@ -367,7 +395,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateFePathI
 	s.ServiceReconfigure.TemplateFePath = testFilename
 	s.ServiceReconfigure.TemplateBePath = "not/under/test"
 
-	_, _, err := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+	_, _, err := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
 
 	s.Error(err)
 }
@@ -386,7 +414,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateBePathI
 	s.ServiceReconfigure.TemplateFePath = "not/under/test"
 	s.ServiceReconfigure.TemplateBePath = testFilename
 
-	_, _, err := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+	_, _, err := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
 
 	s.Error(err)
 }
@@ -400,7 +428,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenConsulTemplateF
 	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
 	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, _, actual := s.reconfigure.GetTemplates(s.ServiceReconfigure)
+	_, _, actual := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
 
 	s.Error(actual)
 }

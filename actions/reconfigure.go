@@ -25,7 +25,7 @@ type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, ServiceReconfigure)
 	ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplates(sr ServiceReconfigure) (front, back string, err error)
+	GetTemplates(sr *ServiceReconfigure) (front, back string, err error)
 }
 
 type Reconfigure struct {
@@ -51,8 +51,8 @@ type ServiceReconfigure struct {
 	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	PathType             string
 	Port                 string
+	HttpsPort            int
 	SkipCheck            bool
-	Acl                  string
 	AclName              string
 	AclCondition         string
 	Users                []User
@@ -235,7 +235,7 @@ func (m *Reconfigure) getServiceAttribute(addresses []string, serviceName, key, 
 
 func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure) error {
 	logPrintf("Creating configuration for the service %s", sr.ServiceName)
-	feTemplate, beTemplate, err := m.GetTemplates(*sr)
+	feTemplate, beTemplate, err := m.GetTemplates(sr)
 	if err != nil {
 		return err
 	}
@@ -284,7 +284,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	return nil
 }
 
-func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
+func (m *Reconfigure) GetTemplates(sr *ServiceReconfigure) (front, back string, err error) {
 	if len(sr.TemplateFePath) > 0 && len(sr.TemplateBePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
@@ -294,7 +294,7 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 		if err != nil {
 			return "", "", err
 		}
-		front, back = m.parseTemplate(string(feTmpl), string(beTmpl), sr)
+		front, back = m.parseTemplate(string(feTmpl), "", string(beTmpl), sr)
 	} else if len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0 { // Sunset
 		front, err = m.getConsulTemplateFromFile(sr.ConsulTemplateFePath)
 		if err != nil {
@@ -305,17 +305,17 @@ func (m *Reconfigure) GetTemplates(sr ServiceReconfigure) (front, back string, e
 			return "", "", err
 		}
 	} else {
-		m.formatData(&sr)
+		m.formatData(sr)
 		front, back = m.parseTemplate(
-			m.getFrontTemplate(&sr),
-			m.getBackTemplate(&sr),
+			m.getFrontTemplate(sr),
+			m.getUsersList(sr),
+			m.getBackTemplate(sr),
 			sr)
 	}
 	return front, back, nil
 }
 
 func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
-	sr.Acl = ""
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
@@ -323,21 +323,6 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 	sr.Host = m.ServiceName
 	if len(m.OutboundHostname) > 0 {
 		sr.Host = m.OutboundHostname
-	}
-	if len(sr.ServiceDomain) > 0 {
-		domFunc := "hdr_dom"
-		for i, domain := range sr.ServiceDomain {
-			if strings.HasPrefix(domain, "*") {
-				sr.ServiceDomain[i] = strings.Trim(domain, "*")
-				domFunc = "hdr_end"
-			}
-		}
-		sr.Acl = fmt.Sprintf(
-			`
-    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
-			domFunc,
-		)
-		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
 	}
 	if len(sr.ServiceColor) > 0 {
 		sr.FullServiceName = fmt.Sprintf("%s-%s", sr.ServiceName, sr.ServiceColor)
@@ -350,32 +335,71 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 }
 
 func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
-	tmpl := fmt.Sprintf(
-		`
-    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}%s
-    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`,
-		sr.Acl,
-	)
+	tmpl := `
+    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}`
+	if len(sr.ServiceDomain) > 0 {
+		domFunc := "hdr_dom"
+		for i, domain := range sr.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				sr.ServiceDomain[i] = strings.Trim(domain, "*")
+				domFunc = "hdr_end"
+			}
+		}
+		tmpl += fmt.Sprintf(
+			`
+    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
+			domFunc,
+		)
+		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
+	}
+	if sr.HttpsPort > 0 {
+		tmpl += `
+    acl http_{{.ServiceName}} dst_port 80
+    acl https_{{.ServiceName}} dst_port 443`
+	}
+	tmpl += `
+    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
+	if sr.HttpsPort > 0 {
+		tmpl += ` http_{{.ServiceName}}
+    use_backend https-{{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}} https_{{.ServiceName}}`
+	}
 	return tmpl
 }
 
 func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
-	tmpl := ""
-	if len(sr.Users) > 0 {
-		tmpl += `userlist {{.ServiceName}}Users{{range .Users}}
-    user {{.Username}} insecure-password {{.Password}}{{end}}
+	back := m.getBackTemplateProtocol("http", sr)
+	if sr.HttpsPort > 0 {
+		back += fmt.Sprintf(`
 
-`
+%s`,
+		m.getBackTemplateProtocol("https", sr))
 	}
-	tmpl += `backend {{.AclName}}-be
-    mode http`
+	return back
+}
+
+func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *ServiceReconfigure) string {
+	prefix := ""
+	if strings.EqualFold(protocol, "https") {
+		prefix = "https-"
+	}
+	tmpl := fmt.Sprintf(
+		`backend %s{{.AclName}}-be
+    mode %s`,
+		prefix,
+		protocol,
+	)
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `
     reqrep {{.ReqRepSearch}}     {{.ReqRepReplace}}`
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
-		tmpl += `
+		if strings.EqualFold(protocol, "https") {
+			tmpl += `
+    server {{.ServiceName}} {{.Host}}:{{.HttpsPort}}`
+		} else {
+			tmpl += `
     server {{.ServiceName}} {{.Host}}:{{.Port}}`
+		}
 	} else { // It's Consul
 		tmpl += `
     {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
@@ -394,14 +418,27 @@ func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
 	return tmpl
 }
 
-func (m *Reconfigure) parseTemplate(front, back string, sr ServiceReconfigure) (pFront, pBack string) {
-	tmplFront, _ := template.New("consulTemplate").Parse(front)
-	tmplBack, _ := template.New("consulTemplate").Parse(back)
+func (m *Reconfigure) getUsersList(sr *ServiceReconfigure) string {
+	if len(sr.Users) > 0 {
+		return `userlist {{.ServiceName}}Users{{range .Users}}
+    user {{.Username}} insecure-password {{.Password}}{{end}}
+
+`
+	}
+	return ""
+}
+
+func (m *Reconfigure) parseTemplate(front, usersList, back string, sr *ServiceReconfigure) (pFront, pBack string) {
+	tmplFront, _ := template.New("template").Parse(front)
+	tmplUsersList, _ := template.New("template").Parse(usersList)
+	tmplBack, _ := template.New("template").Parse(back)
 	var ctFront bytes.Buffer
+	var ctUsersList bytes.Buffer
 	var ctBack bytes.Buffer
 	tmplFront.Execute(&ctFront, sr)
+	tmplUsersList.Execute(&ctUsersList, sr)
 	tmplBack.Execute(&ctBack, sr)
-	return ctFront.String(), ctBack.String()
+	return ctFront.String(), ctUsersList.String() + ctBack.String()
 }
 
 // TODO: Move to registry package

@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"./actions"
 	haproxy "./proxy"
 	"./server"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"./actions"
 )
 
 type ServerTestSuite struct {
@@ -429,7 +429,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	)
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
+		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
 		ServicePath:      s.ServicePath,
@@ -456,13 +456,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 	)
 	req, _ := http.NewRequest("GET", url, nil)
 	expected, _ := json.Marshal(Response{
-		Status:         "OK",
-		ServiceName:    s.ServiceName,
-		ServiceColor:   s.ServiceColor,
-		ServicePath:    s.ServicePath,
-		ServiceDomain:  s.ServiceDomain,
-		TemplateFePath: templateFePath,
-		TemplateBePath: templateBePath,
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		ServiceColor:     s.ServiceColor,
+		ServicePath:      s.ServicePath,
+		ServiceDomain:    s.ServiceDomain,
+		TemplateFePath:   templateFePath,
+		TemplateBePath:   templateBePath,
 		OutboundHostname: s.OutboundHostname,
 	})
 
@@ -479,13 +479,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
 	expected, _ := json.Marshal(Response{
-		Status:        "OK",
+		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
 		ServicePath:      s.ServicePath,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
-		Users:         users,
+		Users:            users,
 	})
 
 	srv := Serve{}
@@ -494,10 +494,17 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 	port := "1234"
+	httpsPort := 4321
 	mode := "swaRM"
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&port="+port, nil)
+	address := fmt.Sprintf(
+		"%s&port=%s&httpsPort=%d",
+		s.ReconfigureUrl,
+		port,
+		httpsPort,
+	)
+	req, _ := http.NewRequest("GET", address, nil)
 	expected, _ := json.Marshal(Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
@@ -505,6 +512,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPort_WhenPresent() {
 		ServicePath:      s.ServicePath,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
+		HttpsPort:		  httpsPort,
 		Port:             port,
 		Mode:             mode,
 	})
@@ -1005,7 +1013,7 @@ func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mo
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetTemplates(sr actions.ServiceReconfigure) (front, back string, err error) {
+func (m *ReconfigureMock) GetTemplates(sr *actions.ServiceReconfigure) (front, back string, err error) {
 	params := m.Called(sr)
 	return params.String(0), params.String(1), params.Error(2)
 }

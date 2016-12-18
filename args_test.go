@@ -8,11 +8,11 @@ import (
 	"os"
 	"testing"
 
+	"./actions"
 	"./proxy"
+	"./registry"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"./actions"
-	"./registry"
 )
 
 type ArgsTestSuite struct {

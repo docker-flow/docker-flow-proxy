@@ -86,7 +86,7 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 		data{"skipcheck", fmt.Sprintf("%t", s.registry.SkipCheck)},
 		data{"consultemplatefepath", s.registry.ConsulTemplateFePath},
 		data{"consultemplatebepath", s.registry.ConsulTemplateBePath},
-		data{"port", s.registry.Port},
+		data{"port", string(s.registry.Port)},
 	}
 	for _, e := range d {
 		s.Contains(actualUrl, fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, s.registry.ServiceName, e.key))
