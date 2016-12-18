@@ -12,7 +12,7 @@ RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 RUN mkdir -p /cfg/tmpl
 RUN mkdir /consul_templates
 RUN mkdir /templates
-RUN mkdir -p /certs
+RUN mkdir /certs
 
 ENV CONSUL_ADDRESS="" \
     DEBUG="false" \
@@ -30,6 +30,7 @@ EXPOSE 8080
 
 CMD ["docker-flow-proxy", "server"]
 
+COPY errorfiles /errorfiles
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 COPY docker-flow-proxy /usr/local/bin/docker-flow-proxy

@@ -39,6 +39,8 @@ docker-compose -f docker-compose-test.yml run --rm unit
 ### Staging (Integration) Tests
 
 ```bash
+docker build -t vfarcic/docker-flow-proxy .
+
 docker-compose -f docker-compose-test.yml up -d staging-dep
 
 docker-compose -f docker-compose-test.yml run --rm staging

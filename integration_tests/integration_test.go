@@ -133,7 +133,6 @@ func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode)
-	s.printConf()
 }
 
 func (s IntegrationTestSuite) Test_Stats_Auth() {
@@ -256,16 +255,6 @@ func (s IntegrationTestSuite) Test_Certs() {
 	resp, _ = client.Do(req)
 
 	s.Equal(200, resp.StatusCode)
-
-	//	// HTTPS works
-	//	url = fmt.Sprintf("https://%s:8080/v2/test", os.Getenv("DOCKER_IP"))
-	//	req, _ = http.NewRequest("GET", url, nil)
-	//	client = &http.Client{}
-	//
-	//	resp, err := client.Do(req)
-	//
-	//	s.NoError(err)
-	//	s.Equal(200, resp.StatusCode)
 
 	// Can retrieve certs
 	url = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/certs", os.Getenv("DOCKER_IP"))

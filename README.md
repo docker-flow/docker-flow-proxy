@@ -8,7 +8,12 @@ Docker Flow: Proxy
   * [The Swarm Mode (Docker 1.12+) with manual configuration](articles/swarm-mode.md)
   * [The Default Mode](articles/standard-mode.md)
 
-* [Containers Definition](#containers-definition)
+* [Container Config](#container-config)
+
+  * [Environment Variables](#environment-variables)
+  * [Custom Config](#custom-config)
+  * [Custom Errors](#custom-errors)
+
 * [Usage](#usage)
 
   * [Reconfigure](#reconfigure)
@@ -18,24 +23,21 @@ Docker Flow: Proxy
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
-Introduction
-------------
+## Introduction
 
 The goal of the *Docker Flow: Proxy* project is to provide an easy way to reconfigure proxy every time a new service is deployed, or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and combine them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and adds custom logic that allows on-demand reconfiguration.
 
-Modes
------
+## Modes
 
 Since the Docker 1.12 release, *Docker Flow: Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The **swarm** mode aims to leverage the benefits that come with *Docker Swarm* and new networking introduced in the 1.12 release. The later mode (*swarm*) does not have any dependency but Docker Engine. The *swarm* mode is recommended for all who use *Docker Swarm* features introduced in v1.12.
 
-### [The Swarm Mode (Docker 1.12+) with automatic configuration](articles/swarm-mode-listener.md)
-### [The Swarm Mode (Docker 1.12+) with manual configuration](articles/swarm-mode.md)
-### [The Default Mode](articles/standard-mode.md)
+### [The Swarm Mode (Docker 1.12+) with automatic configuration](articles/swarm-mode-listener.md)
+### [The Swarm Mode (Docker 1.12+) with manual configuration](articles/swarm-mode.md)
+### [The Default Mode](articles/standard-mode.md)
 
-Usage
------
+## Container Config
 
-### Container Config
+### Environment Variables
 
 > The *Docker Flow: Proxy* container can be configured through environment variables
 
@@ -58,13 +60,20 @@ The following environment variables can be used to configure the *Docker Flow: P
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |        |15     |10     |
 |USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|||user1:pass1,user2:pass2|
 
+### Custom Config
 
-The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new container. An example *Dockerfile* is as follows.
+The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
 
 ```
 FROM vfarcic/docker-flow-proxy
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 ```
+
+### Custom Errors
+
+Default error messages are stored in the `/errorfiles` directory inside the *Docker Flow: Proxy* image. They can be customized by creating a new image with custom error files or mounting a volume. Currently supported errors are `400`, `403`, `405`, `408`, `429`, `500`, `502`, `503`, and `504`.
+
+## Usage
 
 ### Reconfigure
 
