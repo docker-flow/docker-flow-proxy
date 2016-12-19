@@ -68,7 +68,8 @@ defaults
 frontend services
     bind *:80
     bind *:443
-    mode http`
+    mode http
+`
 	s.ServicesContent = `
 
 config1 fe content
@@ -188,6 +189,27 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDebug() {
 	var actualData string
 	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    debug", -1)
 	tmpl = strings.Replace(tmpl, "    option  dontlognull\n    option  dontlog-normal\n", "", -1)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
+	extraFrontendOrig := os.Getenv("EXTRA_FRONTEND")
+	defer func() { os.Setenv("EXTRA_FRONTEND", extraFrontendOrig) }()
+	os.Setenv("EXTRA_FRONTEND", "this is an extra content")
+	var actualData string
+	tmpl := s.TemplateContent + "this is an extra content"
 	expectedData := fmt.Sprintf(
 		"%s%s",
 		tmpl,

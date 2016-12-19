@@ -30,6 +30,7 @@ type ConfigData struct {
 	UserList             string
 	ExtraGlobal          string
 	ExtraDefaults        string
+	ExtraFrontend        string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -202,5 +203,6 @@ func (m HaProxy) getConfigData() ConfigData {
     option  dontlognull
     option  dontlog-normal`
 	}
+	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
 	return d
 }
