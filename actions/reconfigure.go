@@ -384,9 +384,8 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *ServiceReconf
 	}
 	tmpl := fmt.Sprintf(
 		`backend %s{{.AclName}}-be
-    mode %s`,
+    mode http`,
 		prefix,
-		protocol,
 	)
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `

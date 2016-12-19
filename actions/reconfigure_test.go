@@ -263,7 +263,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
     server myService myService:1234
 
 backend https-myService-be
-    mode https
+    mode http
     server myService myService:4321`
 	s.reconfigure.Port = "1234"
 	s.reconfigure.Mode = "service"
