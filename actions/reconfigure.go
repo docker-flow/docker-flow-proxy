@@ -354,8 +354,8 @@ func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	}
 	if sr.HttpsPort > 0 {
 		tmpl += `
-    acl http_{{.ServiceName}} dst_port 80
-    acl https_{{.ServiceName}} dst_port 443`
+    acl http_{{.ServiceName}} src_port 80
+    acl https_{{.ServiceName}} src_port 443`
 	}
 	tmpl += `
     use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`

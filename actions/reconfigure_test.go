@@ -254,8 +254,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedFront := `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    acl http_myService dst_port 80
-    acl https_myService dst_port 443
+    acl http_myService src_port 80
+    acl https_myService src_port 443
     use_backend myService-be if url_myService http_myService
     use_backend https-myService-be if url_myService https_myService`
 	expectedBack := `backend myService-be
