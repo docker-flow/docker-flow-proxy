@@ -37,7 +37,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 		Path: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
 	}
 	s.InstanceName = "proxy-test-instance"
-	s.ServiceDest = sd
+	s.ServiceDest = []ServiceDest{sd}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
 	s.SkipCheck = false
@@ -60,7 +60,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 		},
 		ServiceReconfigure: ServiceReconfigure{
 			ServiceName: s.ServiceName,
-			ServiceDest: sd,
+			ServiceDest: []ServiceDest{sd},
 			PathType:    s.PathType,
 			SkipCheck:   false,
 		},
@@ -88,7 +88,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(strings.Join(s.ServiceDest.Path, ",")))
+					w.Write([]byte(strings.Join(s.ServiceDest[0].Path, ",")))
 				}
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
 				if r.URL.RawQuery == "raw" {
@@ -193,7 +193,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {
 		s.reconfigure.ServiceReconfigure.Mode = mode
-		s.reconfigure.ServiceReconfigure.ServiceDest.Port = "1234"
+		s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 		expected := `backend myService-be
     mode http
     server myService myService:1234`
@@ -209,7 +209,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
 	s.reconfigure.ServiceReconfigure.Mode = "swarm"
-	s.reconfigure.ServiceReconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 	expected := `backend myService-be
     mode http
     server myService myService:1234
@@ -227,7 +227,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 		{Username: "user-2", Password: "pass-2"},
 	}
 	s.reconfigure.ServiceReconfigure.Mode = "swarm"
-	s.reconfigure.ServiceReconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 	expected := `userlist myServiceUsers
     user user-1 insecure-password pass-1
     user user-2 insecure-password pass-2
@@ -268,7 +268,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 backend https-myService-be
     mode http
     server myService myService:4321`
-	s.reconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
@@ -365,14 +365,14 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePat
 	expectedFeFile := "/path/to/my/fe/template"
 	expectedBeFile := "/path/to/my/be/template"
 	expectedFe := fmt.Sprintf("This is service %s", s.reconfigure.ServiceName)
-	expectedBe := fmt.Sprintf("This is path %s", s.reconfigure.ServiceDest.Path)
+	expectedBe := fmt.Sprintf("This is path %s", s.reconfigure.ServiceDest[0].Path)
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
 	readTemplateFile = func(filename string) ([]byte, error) {
 		if filename == expectedFeFile {
 			return []byte("This is service {{.ServiceName}}"), nil
 		} else if filename == expectedBeFile {
-			return []byte("This is path {{.ServiceDest.Path}}"), nil
+			return []byte("This is path {{range .ServiceDest}}{{.Path}}{{end}}"), nil
 		}
 		return []byte(""), fmt.Errorf("This is an error")
 	}
@@ -496,10 +496,16 @@ func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplate_WhenModeIsSwarm() {
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() {
 	s.reconfigure.Mode = "SerVIce"
-	s.reconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceDest[0].Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
-	expectedData := fmt.Sprintf("backend %s-be\n    mode http\n    server %s %s:%s", s.ServiceName, s.ServiceName, s.ServiceName, s.reconfigure.ServiceDest.Port)
+	expectedData := fmt.Sprintf(
+		"backend %s-be\n    mode http\n    server %s %s:%s",
+		s.ServiceName,
+		s.ServiceName,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+	)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
 	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
@@ -516,7 +522,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	s.reconfigure.Mode = "sWArm"
-	s.reconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceDest[0].Port = "1234"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -524,7 +530,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 		s.ServiceName,
 		s.ServiceName,
 		s.ServiceName,
-		s.reconfigure.ServiceDest.Port,
+		s.reconfigure.ServiceDest[0].Port,
 	)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
@@ -564,7 +570,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplateAsAclName_WhenModeIsS
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {
 	s.reconfigure.Mode = "sWArm"
-	s.reconfigure.ServiceDest.Port = "1234"
+	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.AclName = "my-acl"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.reconfigure.AclName)
@@ -573,7 +579,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsS
 		s.reconfigure.AclName,
 		s.ServiceName,
 		s.ServiceName,
-		s.reconfigure.ServiceDest.Port,
+		s.reconfigure.ServiceDest[0].Port,
 	)
 	writeBeTemplateOrig := writeBeTemplate
 	defer func() { writeBeTemplate = writeBeTemplateOrig }()
@@ -681,7 +687,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 	r := registry.Registry{
 		ServiceName:          s.ServiceName,
 		ServiceColor:         s.ServiceColor,
-		ServicePath:          s.ServiceDest.Path,
+		ServicePath:          s.ServiceDest[0].Path,
 		ServiceDomain:        s.ServiceDomain,
 		OutboundHostname:     s.OutboundHostname,
 		PathType:             s.PathType,

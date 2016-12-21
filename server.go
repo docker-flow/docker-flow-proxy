@@ -136,7 +136,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Path: path,
 	}
 	sr := actions.ServiceReconfigure{
-		ServiceDest:          sd,
+		ServiceDest:          []actions.ServiceDest{sd},
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -175,7 +175,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ServiceName:          sr.ServiceName,
 		AclName:              sr.AclName,
 		ServiceColor:         sr.ServiceColor,
-		ServicePath:          sr.ServiceDest.Path,
+		ServicePath:          sd.Path,
 		ServiceDomain:        sr.ServiceDomain,
 		ServiceCert:          sr.ServiceCert,
 		OutboundHostname:     sr.OutboundHostname,
@@ -184,7 +184,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
 		Mode:                 sr.Mode,
-		Port:                 sr.ServiceDest.Port,
+		Port:                 sd.Port,
 		HttpsPort:		      sr.HttpsPort,
 		Distribute:           sr.Distribute,
 		Users:                sr.Users,
@@ -193,8 +193,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		TemplateFePath:       sr.TemplateFePath,
 		TemplateBePath:       sr.TemplateBePath,
 	}
-	if m.isValidReconf(sr.ServiceName, sr.ServiceDest.Path, sr.ServiceDomain, sr.ConsulTemplateFePath) {
-		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sr.ServiceDest.Port) == 0 {
+	if m.isValidReconf(sr.ServiceName, path, sr.ServiceDomain, sr.ConsulTemplateFePath) {
+		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sd.Port) == 0 {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			srv := server.Serve{}

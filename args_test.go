@@ -136,9 +136,10 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		{"/cfg", &actions.ReconfigureInstance.ConfigsPath},
 	}
 	actions.ReconfigureInstance.ConsulAddresses = []string{"myConsulAddress"}
-	actions.ReconfigureInstance.ServiceDest = actions.ServiceDest{
+	sd := actions.ServiceDest{
 		Path: []string{"p1", "p2"},
 	}
+	actions.ReconfigureInstance.ServiceDest = []actions.ServiceDest{sd}
 	actions.ReconfigureInstance.ServiceName = "myServiceName"
 
 	Args{}.Parse()
