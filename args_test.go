@@ -83,7 +83,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureLongArgsSlices() {
 		key      string
 		value    *[]string
 	}{
-		{[]string{"path1", "path2"}, "service-path", &actions.ReconfigureInstance.ServicePath},
 		{[]string{"service-domain"}, "service-domain", &actions.ReconfigureInstance.ServiceDomain},
 	}
 
@@ -123,28 +122,6 @@ func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsStrings() {
 	}
 }
 
-func (s ArgsTestSuite) Test_Parse_ParsesReconfigureShortArgsSlices() {
-	os.Args = []string{"myProgram", "reconfigure"}
-	data := []struct {
-		expected []string
-		key      string
-		value    *[]string
-	}{
-		{[]string{"p1", "p2"}, "p", &actions.ReconfigureInstance.ServicePath},
-	}
-	for _, d := range data {
-		for _, v := range d.expected {
-			os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), v)
-		}
-	}
-
-	Args{}.Parse()
-
-	for _, d := range data {
-		s.Equal(d.expected, *d.value)
-	}
-}
-
 func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 	os.Args = []string{
 		"myProgram", "reconfigure",
@@ -159,7 +136,9 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureHasDefaultValues() {
 		{"/cfg", &actions.ReconfigureInstance.ConfigsPath},
 	}
 	actions.ReconfigureInstance.ConsulAddresses = []string{"myConsulAddress"}
-	actions.ReconfigureInstance.ServicePath = []string{"p1", "p2"}
+	actions.ReconfigureInstance.ServiceDest = actions.ServiceDest{
+		Path: []string{"p1", "p2"},
+	}
 	actions.ReconfigureInstance.ServiceName = "myServiceName"
 
 	Args{}.Parse()
@@ -172,7 +151,6 @@ func (s ArgsTestSuite) Test_Parse_ReconfigureDefaultsToEnvVars() {
 	os.Args = []string{
 		"myProgram", "reconfigure",
 		"--service-name", "serviceName",
-		"--service-path", "servicePath",
 	}
 	data := []struct {
 		expected string

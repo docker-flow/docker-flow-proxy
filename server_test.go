@@ -39,12 +39,15 @@ type ServerTestSuite struct {
 }
 
 func (s *ServerTestSuite) SetupTest() {
+	sd := actions.ServiceDest{
+		Path: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
+	}
 	s.InstanceName = "proxy-test-instance"
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
 	s.ServiceColor = "pink"
 	s.ServiceDomain = []string{"my-domain.com"}
-	s.ServicePath = []string{"/path/to/my/service/api", "/path/to/my/other/service/api"}
+	s.ServiceDest = sd
 	s.OutboundHostname = "machine-123.my-company.com"
 	s.BaseUrl = "/v1/docker-flow-proxy"
 	s.ReconfigureBaseUrl = fmt.Sprintf("%s/reconfigure", s.BaseUrl)
@@ -54,7 +57,7 @@ func (s *ServerTestSuite) SetupTest() {
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		s.ServiceColor,
-		strings.Join(s.ServicePath, ","),
+		strings.Join(s.ServiceDest.Path, ","),
 		strings.Join(s.ServiceDomain, ","),
 		s.OutboundHostname,
 	)
@@ -390,7 +393,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         s.PathType,
@@ -409,7 +412,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         pathType,
@@ -432,7 +435,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		ReqRepSearch:     search,
@@ -459,7 +462,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		TemplateFePath:   templateFePath,
 		TemplateBePath:   templateBePath,
@@ -482,7 +485,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		Users:            users,
@@ -509,7 +512,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		HttpsPort:		  httpsPort,
@@ -529,7 +532,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServicePath,
+		ServicePath:      s.ServiceDest.Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         s.PathType,
@@ -544,7 +547,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 
 func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
-	serve.Port = s.Port
+	serve.Port = s.ServiceDest.Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
@@ -555,7 +558,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistri
 
 func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenRemoveDistributeIsTrueAndError() {
 	serve := Serve{}
-	serve.Port = s.Port
+	serve.Port = s.ServiceDest.Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.RemoveUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
@@ -656,6 +659,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		ConsulTemplateFePath: pathFe,
 		ConsulTemplateBePath: pathBe,
 		PathType:             s.PathType,
+		ServicePath:          []string{},
 	})
 
 	srv := Serve{}
@@ -665,6 +669,9 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+	sd := actions.ServiceDest{
+		Path: []string{},
+	}
 	pathFe := "/path/to/consul/fe/template"
 	pathBe := "/path/to/consul/be/template"
 	mockObj := getReconfigureMock("")
@@ -677,6 +684,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		ConsulTemplateFePath: pathFe,
 		ConsulTemplateBePath: pathBe,
 		PathType:             s.PathType,
+		ServiceDest:          sd,
 	}
 	var actualService actions.ServiceReconfigure
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
@@ -717,7 +725,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCert_WhenServiceCertIsPresent
 		"%s?serviceName=%s&servicePath=%s&serviceCert=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
-		strings.Join(s.ServicePath, ","),
+		strings.Join(s.ServiceDest.Path, ","),
 		expectedCert,
 	)
 	req, _ := http.NewRequest("GET", address, nil)
@@ -901,7 +909,7 @@ func TestServerUnitTestSuite(t *testing.T) {
 		return s.DnsIps, nil
 	}
 
-	s.Port = strings.Split(addr, ":")[1]
+	s.ServiceDest.Port = strings.Split(addr, ":")[1]
 
 	suite.Run(t, s)
 }
@@ -1050,9 +1058,9 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 		return mockObj
 	}
 	serverImpl := Serve{BaseReconfigure: expectedBase}
-	portOrig := s.Port
-	defer func() { s.Port = portOrig }()
-	s.Port = ""
+	portOrig := s.ServiceDest.Port
+	defer func() { s.ServiceDest.Port = portOrig }()
+	s.ServiceDest.Port = ""
 
 	serverImpl.ServeHTTP(s.ResponseWriter, req)
 

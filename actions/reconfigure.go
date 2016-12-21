@@ -38,10 +38,15 @@ type User struct {
 	Password string
 }
 
+type ServiceDest struct {
+	Port string
+	Path []string
+}
+
 type ServiceReconfigure struct {
 	ServiceName          string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
 	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
+//	ServicePath          []string `short:"p" long:"service-path" description:"Path that should be configured in the proxy (e.g. /api/v1/my-service)."`
 	ServicePort          string
 	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
@@ -50,7 +55,7 @@ type ServiceReconfigure struct {
 	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
 	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	PathType             string
-	Port                 string
+//	Port                 string
 	HttpsPort            int
 	SkipCheck            bool
 	AclName              string
@@ -65,6 +70,7 @@ type ServiceReconfigure struct {
 	ReqRepReplace        string
 	TemplateFePath       string
 	TemplateBePath       string
+	ServiceDest          ServiceDest
 }
 
 type BaseReconfigure struct {
@@ -187,7 +193,7 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	for i := 0; i < count; i++ {
 		s := <-c
 		s.Mode = mode
-		if len(s.ServicePath) > 0 {
+		if len(s.ServiceDest.Path) > 0 {
 			logPrintf("\tConfiguring %s", s.ServiceName)
 			m.createConfigs(m.TemplatesPath, &s)
 		}
@@ -203,8 +209,14 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 
 	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
 	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
+	port, _ := m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
+	sd := ServiceDest{
+		Path: strings.Split(path, ","),
+		Port: port,
+	}
 	if err == nil {
-		sr.ServicePath = strings.Split(path, ",")
+		sr.ServiceDest = sd
+		sr.ServiceDest.Path = strings.Split(path, ",")
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
 		sr.ServiceDomain = strings.Split(domain, ",")
 		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
@@ -214,7 +226,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
 		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
 		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
-		sr.Port, _ = m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
+		sr.ServiceDest.Port, _ = m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
 	}
 	c <- sr
 }
@@ -268,7 +280,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	r := registry.Registry{
 		ServiceName:          sr.ServiceName,
 		ServiceColor:         sr.ServiceColor,
-		ServicePath:          sr.ServicePath,
+		ServicePath:          sr.ServiceDest.Path,
 		ServiceDomain:        sr.ServiceDomain,
 		ServiceCert:          sr.ServiceCert,
 		OutboundHostname:     sr.OutboundHostname,
@@ -276,7 +288,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 		SkipCheck:            sr.SkipCheck,
 		ConsulTemplateFePath: sr.ConsulTemplateFePath,
 		ConsulTemplateBePath: sr.ConsulTemplateBePath,
-		Port:                 sr.Port,
+		Port:                 sr.ServiceDest.Port,
 	}
 	if err := registryInstance.PutService(addresses, instanceName, r); err != nil {
 		return err
@@ -336,7 +348,7 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 
 func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	tmpl := `
-    acl url_{{.ServiceName}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}`
+    acl url_{{.ServiceName}}{{range .ServiceDest.Path}} {{$.PathType}} {{.}}{{end}}`
 	if len(sr.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range sr.ServiceDomain {
@@ -397,7 +409,7 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *ServiceReconf
     server {{.ServiceName}} {{.Host}}:{{.HttpsPort}}`
 		} else {
 			tmpl += `
-    server {{.ServiceName}} {{.Host}}:{{.Port}}`
+    server {{.ServiceName}} {{.Host}}:{{.ServiceDest.Port}}`
 		}
 	} else { // It's Consul
 		tmpl += `
