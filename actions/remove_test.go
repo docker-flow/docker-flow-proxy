@@ -1,9 +1,9 @@
 // +build !integration
 
-package main
+package actions
 
 import (
-	haproxy "./proxy"
+	haproxy "../proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -26,7 +26,7 @@ func (s *RemoveTestSuite) SetupTest() {
 	s.ConfigsPath = "/path/to/configs"
 	s.ConsulAddress = "http://consul.io"
 	s.InstanceName = "my-proxy-instance"
-	osRemove = func(name string) error {
+	OsRemove = func(name string) error {
 		return nil
 	}
 	s.remove = Remove{
@@ -46,7 +46,7 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFile() {
 		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName),
 		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName),
 	}
-	osRemove = func(name string) error {
+	OsRemove = func(name string) error {
 		actual = append(actual, name)
 		return nil
 	}
@@ -63,7 +63,7 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenP
 		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.remove.AclName),
 		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.remove.AclName),
 	}
-	osRemove = func(name string) error {
+	OsRemove = func(name string) error {
 		actual = append(actual, name)
 		return nil
 	}
@@ -74,7 +74,7 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenP
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
-	osRemove = func(name string) error {
+	OsRemove = func(name string) error {
 		return fmt.Errorf("The file could not be removed")
 	}
 
@@ -179,29 +179,12 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenDeleteRequestToRegistryFa
 // Suite
 
 func TestRemoveUnitTestSuite(t *testing.T) {
-	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()
-	registryInstance = mockObj
+	registryInstance = getRegistrarableMock("")
 	logPrintf = func(format string, v ...interface{}) {}
+	proxyOrig := haproxy.Instance
+	defer func() { haproxy.Instance = proxyOrig }()
+	haproxy.Instance = getProxyMock("")
 	suite.Run(t, new(RemoveTestSuite))
-}
-
-// Mock
-
-type RemoveMock struct {
-	mock.Mock
-}
-
-func (m *RemoveMock) Execute(args []string) error {
-	params := m.Called(args)
-	return params.Error(0)
-}
-
-func getRemoveMock(skipMethod string) *RemoveMock {
-	mockObj := new(RemoveMock)
-	if skipMethod != "Execute" {
-		mockObj.On("Execute", mock.Anything).Return(nil)
-	}
-	return mockObj
 }

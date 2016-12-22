@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	haproxy "../proxy"
+	"../proxy"
 	"../registry"
 )
 
@@ -102,10 +102,10 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
 		return err
 	}
-	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
+	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	if err := haproxy.Instance.Reload(); err != nil {
+	if err := proxy.Instance.Reload(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
@@ -196,10 +196,10 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 			m.createConfigs(m.TemplatesPath, &s)
 		}
 	}
-	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
+	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	return haproxy.Instance.Reload()
+	return proxy.Instance.Reload()
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {

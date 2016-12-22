@@ -270,7 +270,7 @@ func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	} else {
 		logPrintf("Processing remove request %s", req.URL.Path)
 		aclName := req.URL.Query().Get("aclName")
-		action := NewRemove(
+		action := actions.NewRemove(
 			serviceName,
 			aclName,
 			m.BaseReconfigure.ConfigsPath,

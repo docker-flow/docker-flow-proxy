@@ -1,7 +1,7 @@
-package main
+package actions
 
 import (
-	haproxy "./proxy"
+	"../proxy"
 	"fmt"
 	"strings"
 )
@@ -20,7 +20,7 @@ type Remove struct {
 	AclName         string
 }
 
-var remove Remove
+var RemoveInstance Remove
 
 // TODO: Change to addresses
 var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
@@ -42,11 +42,13 @@ func (m *Remove) Execute(args []string) error {
 		logPrintf(err.Error())
 		return err
 	}
-	if err := haproxy.Instance.CreateConfigFromTemplates(); err != nil {
+	println("111")
+	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	if err := haproxy.Instance.Reload(); err != nil {
+	println("222")
+	if err := proxy.Instance.Reload(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
@@ -65,7 +67,7 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string, registr
 	mu.Lock()
 	defer mu.Unlock()
 	for _, path := range paths {
-		if err := osRemove(path); err != nil {
+		if err := OsRemove(path); err != nil {
 			return err
 		}
 	}

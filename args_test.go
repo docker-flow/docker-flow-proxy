@@ -24,7 +24,7 @@ func (s *ArgsTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
-	osRemove = func(name string) error {
+	actions.OsRemove = func(name string) error {
 		return nil
 	}
 }
@@ -179,10 +179,10 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveLongArgsStrings() {
 		key      string
 		value    *string
 	}{
-		{"serviceNameFromArgs", "service-name", &remove.ServiceName},
-		{"templatesPathFromArgs", "templates-path", &remove.TemplatesPath},
-		{"configsPathFromArgs", "configs-path", &remove.ConfigsPath},
-		{"instanceNameFromArgs", "proxy-instance-name", &remove.InstanceName},
+		{"serviceNameFromArgs", "service-name", &actions.RemoveInstance.ServiceName},
+		{"templatesPathFromArgs", "templates-path", &actions.RemoveInstance.TemplatesPath},
+		{"configsPathFromArgs", "configs-path", &actions.RemoveInstance.ConfigsPath},
+		{"instanceNameFromArgs", "proxy-instance-name", &actions.RemoveInstance.InstanceName},
 	}
 
 	for _, d := range data {
@@ -202,9 +202,9 @@ func (s ArgsTestSuite) Test_Parse_ParsesRemoveShortArgsStrings() {
 		key      string
 		value    *string
 	}{
-		{"serviceNameFromArgs", "s", &remove.ServiceName},
-		{"templatesPathFromArgs", "t", &remove.TemplatesPath},
-		{"configsPathFromArgs", "c", &remove.ConfigsPath},
+		{"serviceNameFromArgs", "s", &actions.RemoveInstance.ServiceName},
+		{"templatesPathFromArgs", "t", &actions.RemoveInstance.TemplatesPath},
+		{"configsPathFromArgs", "c", &actions.RemoveInstance.ConfigsPath},
 	}
 
 	for _, d := range data {
@@ -224,7 +224,7 @@ func (s ArgsTestSuite) Test_Parse_RemoveDefaultsToEnvVars() {
 		key      string
 		value    *string
 	}{
-		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &remove.InstanceName},
+		{"proxyInstanceNameFromEnv", "PROXY_INSTANCE_NAME", &actions.RemoveInstance.InstanceName},
 	}
 
 	for _, d := range data {

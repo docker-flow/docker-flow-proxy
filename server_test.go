@@ -797,8 +797,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServ
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 	mockObj := getRemoveMock("")
 	aclName := "my-acl"
-	var actual Remove
-	expected := Remove{
+	var actual actions.Remove
+	expected := actions.Remove{
 		ServiceName:     s.ServiceName,
 		TemplatesPath:   "",
 		ConfigsPath:     "",
@@ -806,8 +806,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
 		InstanceName:    s.InstanceName,
 		AclName:         aclName,
 	}
-	NewRemove = func(serviceName, aclName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
-		actual = Remove{
+	actions.NewRemove = func(
+		serviceName, aclName, configsPath, templatesPath string,
+		consulAddresses []string,
+		instanceName, mode string,
+	) actions.Removable {
+		actual = actions.Remove{
 			ServiceName:     serviceName,
 			AclName:         aclName,
 			TemplatesPath:   templatesPath,
@@ -1041,6 +1045,23 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	}
 	if skipMethod != "GetTemplates" {
 		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
+	}
+	return mockObj
+}
+
+type RemoveMock struct {
+	mock.Mock
+}
+
+func (m *RemoveMock) Execute(args []string) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
+func getRemoveMock(skipMethod string) *RemoveMock {
+	mockObj := new(RemoveMock)
+	if skipMethod != "Execute" {
+		mockObj.On("Execute", mock.Anything).Return(nil)
 	}
 	return mockObj
 }

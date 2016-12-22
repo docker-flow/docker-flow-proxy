@@ -18,7 +18,7 @@ func (a Args) Parse() error {
 	parser.AddCommand("server", "Runs the server", "Runs the server", &serverImpl)
 	parser.AddCommand("run", "Runs the proxy", "Runs the proxy", &run)
 	parser.AddCommand("reconfigure", "Reconfigures the proxy", "Reconfigures the proxy using information stored in Consul", &actions.ReconfigureInstance)
-	parser.AddCommand("remove", "Removes a service from the proxy", "Removes a service from the proxy", &remove)
+	parser.AddCommand("remove", "Removes a service from the proxy", "Removes a service from the proxy", &actions.RemoveInstance)
 	if _, err := parser.ParseArgs(os.Args[1:]); err != nil {
 		return fmt.Errorf("Could not parse command line arguments\n%s", err.Error())
 	}
