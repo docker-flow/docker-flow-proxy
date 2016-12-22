@@ -52,7 +52,7 @@ func (s IntegrationTestSuite) Test_Reconfigure_MultiplePaths() {
 	s.verifyReconfigure(2)
 }
 
-func (s IntegrationTestSuite) Test_Global_Auth() {
+func (s IntegrationTestSuite) Test_GlobalAuth() {
 	s.reconfigure("", "", "", "/v1/test")
 
 	// Returns status 401 if no auth is provided
@@ -73,6 +73,55 @@ func (s IntegrationTestSuite) Test_Global_Auth() {
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode)
+}
+
+func (s IntegrationTestSuite) Test_Reload() {
+	s.reconfigure("", "", "", "/v1/test")
+
+	// Returns status 200
+
+	addr := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+	log.Printf(">> Sending verify request to %s", addr)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", addr, nil)
+	request.SetBasicAuth("user1", "pass1")
+	resp, err := client.Do(request)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode)
+
+	data := []struct {
+		confFile string
+		expectedStatus int
+	}{
+		{"reload-error.cfg", 503},
+		{"reload.cfg", 200},
+	}
+
+	for _, d := range data {
+		cmdString := fmt.Sprintf(
+			"docker cp /usr/src/myapp/test_configs/%s dockerflowproxy_staging-dep_1:/cfg/haproxy.cfg",
+			d.confFile,
+		)
+		_, err = exec.Command("/bin/sh", "-c", cmdString).Output()
+		s.NoError(err)
+		addr = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/reload", os.Getenv("DOCKER_IP"))
+		log.Printf(">> Sending reload request to %s", addr)
+		request, _ = http.NewRequest("GET", addr, nil)
+		resp, err = client.Do(request)
+
+		s.NoError(err)
+		s.Equal(200, resp.StatusCode)
+
+		addr = fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+		log.Printf(">> Sending verify request to %s", addr)
+		request, _ = http.NewRequest("GET", addr, nil)
+		request.SetBasicAuth("user1", "pass1")
+		resp, err = client.Do(request)
+
+		s.NoError(err)
+		s.Equal(d.expectedStatus, resp.StatusCode)
+	}
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_Auth() {

@@ -373,6 +373,27 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertGetAll_WhenUrlIsCerts() {
 	s.Assert().True(invoked)
 }
 
+// ServeHTTP > Reload
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
+	invoked := false
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func() error {
+			invoked = true
+			return nil
+		},
+	}
+	url := fmt.Sprintf("%s/reload", s.BaseUrl)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Assert().True(invoked)
+}
+
 // ServeHTTP > Reconfigure
 
 func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigure() {
@@ -989,6 +1010,14 @@ func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (server.CertR
 
 func (m CertMock) Init() error {
 	return m.GetInitMock()
+}
+
+type ReloadMock struct {
+	ExecuteMock func() error
+}
+
+func (m ReloadMock) Execute() error {
+	return m.ExecuteMock()
 }
 
 type RunMock struct {

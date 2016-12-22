@@ -3,7 +3,7 @@
 package actions
 
 import (
-	haproxy "../proxy"
+	"../proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -18,6 +18,17 @@ type RemoveTestSuite struct {
 	TemplatesPath string
 	ConsulAddress string
 	InstanceName  string
+}
+
+func TestRemoveUnitTestSuite(t *testing.T) {
+	registryInstanceOrig := registryInstance
+	defer func() { registryInstance = registryInstanceOrig }()
+	registryInstance = getRegistrarableMock("")
+	logPrintf = func(format string, v ...interface{}) {}
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = getProxyMock("")
+	suite.Run(t, new(RemoveTestSuite))
 }
 
 func (s *RemoveTestSuite) SetupTest() {
@@ -84,10 +95,10 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
 }
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("")
-	haproxy.Instance = mockObj
+	proxy.Instance = mockObj
 
 	s.remove.Execute([]string{})
 
@@ -95,11 +106,11 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates()
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTemplatesFails() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	haproxy.Instance = mockObj
+	proxy.Instance = mockObj
 
 	err := s.remove.Execute([]string{})
 
@@ -107,10 +118,10 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyCreateConfigFromTe
 }
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("")
-	haproxy.Instance = mockObj
+	proxy.Instance = mockObj
 
 	s.remove.Execute([]string{})
 
@@ -118,11 +129,11 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	haproxy.Instance = mockObj
+	proxy.Instance = mockObj
 
 	err := s.remove.Execute([]string{})
 
@@ -174,17 +185,4 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenDeleteRequestToRegistryFa
 	err := s.remove.Execute([]string{})
 
 	s.Error(err)
-}
-
-// Suite
-
-func TestRemoveUnitTestSuite(t *testing.T) {
-	registryInstanceOrig := registryInstance
-	defer func() { registryInstance = registryInstanceOrig }()
-	registryInstance = getRegistrarableMock("")
-	logPrintf = func(format string, v ...interface{}) {}
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = getProxyMock("")
-	suite.Run(t, new(RemoveTestSuite))
 }

@@ -32,6 +32,7 @@ type Serve struct {
 
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
+var reload actions.Reloader = actions.NewReload()
 
 type Response struct {
 	Status               string
@@ -93,12 +94,6 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logPrintf("Processing request %s", req.URL)
 	}
 	switch req.URL.Path {
-	case "/v1/docker-flow-proxy/reconfigure":
-		m.reconfigure(w, req)
-	case "/v1/docker-flow-proxy/remove":
-		m.remove(w, req)
-	case "/v1/docker-flow-proxy/config":
-		m.config(w, req)
 	case "/v1/docker-flow-proxy/cert":
 		if req.Method == "PUT" {
 			cert.Put(w, req)
@@ -108,12 +103,17 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	case "/v1/docker-flow-proxy/certs":
 		cert.GetAll(w, req)
+	case "/v1/docker-flow-proxy/config":
+		m.config(w, req)
+	case "/v1/docker-flow-proxy/reconfigure":
+		m.reconfigure(w, req)
+	case "/v1/docker-flow-proxy/remove":
+		m.remove(w, req)
+	case "/v1/docker-flow-proxy/reload":
+		reload.Execute()
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
-		if !strings.EqualFold(req.URL.Path, "/v1/test") {
-
-		}
 		w.WriteHeader(http.StatusOK)
 		w.Write(js)
 	default:

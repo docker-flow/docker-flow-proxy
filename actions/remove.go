@@ -42,13 +42,12 @@ func (m *Remove) Execute(args []string) error {
 		logPrintf(err.Error())
 		return err
 	}
-	println("111")
 	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	println("222")
-	if err := proxy.Instance.Reload(); err != nil {
+	reload := Reload{}
+	if err := reload.Execute(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}

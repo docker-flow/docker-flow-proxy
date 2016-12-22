@@ -18,8 +18,9 @@ Docker Flow: Proxy
 
   * [Reconfigure](#reconfigure)
   * [Remove](#remove)
-  * [Config](#config)
   * [Put Certificate](#put-certificate)
+  * [Reload](#reload)
+  * [Config](#config)
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
@@ -139,6 +140,12 @@ curl -i -XPUT \
 Please note that the internal proxy port `8080` must be published.
 
 The example would send a certificate stored in the `my-certificate.pem` file. The certificate would be distributed to all replicas of the proxy.
+
+### Reload
+
+> Reloads proxy configuration
+
+The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**
 
 ### Config
 
