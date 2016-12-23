@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 )
 
 type Executable interface {

@@ -106,12 +106,12 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
 	}
-	sd := actions.ServiceDest{
+	asd := actions.ServiceDest{
 		Port: req.URL.Query().Get("port"),
 		Path: path,
 	}
 	sr := actions.ServiceReconfigure{
-		ServiceDest:          []actions.ServiceDest{sd},
+		ServiceDest:          []actions.ServiceDest{asd},
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -145,12 +145,15 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			sr.Users = append(sr.Users, actions.User{Username: userPass[0], Password: userPass[1]})
 		}
 	}
+	ssd := server.ServiceDest{
+		Port: req.URL.Query().Get("port"),
+		Path: path,
+	}
 	response := server.Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
 		AclName:              sr.AclName,
 		ServiceColor:         sr.ServiceColor,
-		ServicePath:          sd.Path,
 		ServiceDomain:        sr.ServiceDomain,
 		ServiceCert:          sr.ServiceCert,
 		OutboundHostname:     sr.OutboundHostname,
@@ -159,17 +162,17 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		PathType:             sr.PathType,
 		SkipCheck:            sr.SkipCheck,
 		Mode:                 sr.Mode,
-		Port:                 sd.Port,
-		HttpsPort:		      sr.HttpsPort,
+		HttpsPort:            sr.HttpsPort,
 		Distribute:           sr.Distribute,
 		Users:                sr.Users,
 		ReqRepSearch:         sr.ReqRepSearch,
 		ReqRepReplace:        sr.ReqRepReplace,
 		TemplateFePath:       sr.TemplateFePath,
 		TemplateBePath:       sr.TemplateBePath,
+		ServiceDest:          []server.ServiceDest{ssd},
 	}
 	if m.isValidReconf(sr.ServiceName, path, sr.ServiceDomain, sr.ConsulTemplateFePath) {
-		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(sd.Port) == 0 {
+		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(ssd.Port) == 0 {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			srv := server.Serve{}

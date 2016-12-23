@@ -6,7 +6,7 @@ type Reloader interface {
 	Execute() error
 }
 
-type Reload struct {}
+type Reload struct{}
 
 func (m *Reload) Execute() error {
 	if err := proxy.Instance.Reload(); err != nil {

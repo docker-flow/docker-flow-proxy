@@ -91,7 +91,7 @@ func (s IntegrationTestSuite) Test_Reload() {
 	s.Equal(200, resp.StatusCode)
 
 	data := []struct {
-		confFile string
+		confFile       string
 		expectedStatus int
 	}{
 		{"reload-error.cfg", 503},

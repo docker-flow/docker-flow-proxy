@@ -1,11 +1,11 @@
 package server
 
 import (
+	"../actions"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"../actions"
 )
 
 var server Server = NewServer()
@@ -20,13 +20,17 @@ func NewServer() *Serve {
 	return &Serve{}
 }
 
+type ServiceDest struct {
+	Port string
+	Path []string
+}
+
 type Response struct {
 	Status               string
 	Message              string
 	ServiceName          string
 	AclName              string
 	ServiceColor         string
-	ServicePath          []string
 	ServiceDomain        []string
 	ServiceCert          string
 	OutboundHostname     string
@@ -35,7 +39,6 @@ type Response struct {
 	PathType             string
 	SkipCheck            bool
 	Mode                 string
-	Port                 string
 	HttpsPort            int
 	Distribute           bool
 	Users                []actions.User
@@ -43,6 +46,7 @@ type Response struct {
 	ReqRepReplace        string
 	TemplateFePath       string
 	TemplateBePath       string
+	ServiceDest          []ServiceDest
 }
 
 func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName string) (status int, err error) {

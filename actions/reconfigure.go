@@ -44,8 +44,8 @@ type ServiceDest struct {
 }
 
 type ServiceReconfigure struct {
-	ServiceName          string   `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor         string   `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
+	ServiceName          string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
+	ServiceColor         string `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
 	ServicePort          string
 	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
 	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
@@ -388,7 +388,7 @@ func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
 		back += fmt.Sprintf(`
 
 %s`,
-		m.getBackTemplateProtocol("https", sr))
+			m.getBackTemplateProtocol("https", sr))
 	}
 	return back
 }

@@ -36,18 +36,22 @@ type ServerTestSuite struct {
 	InstanceName       string
 	DnsIps             []string
 	Server             *httptest.Server
+	sd                 server.ServiceDest
 }
 
 func (s *ServerTestSuite) SetupTest() {
-	sd := actions.ServiceDest{
+	s.sd = server.ServiceDest{
 		Path: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
 	}
+	asd := actions.ServiceDest{
+		Path: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
+	}
+	s.ServiceReconfigure.ServiceDest = []actions.ServiceDest{asd}
 	s.InstanceName = "proxy-test-instance"
 	s.ConsulAddress = "http://1.2.3.4:1234"
 	s.ServiceName = "myService"
 	s.ServiceColor = "pink"
 	s.ServiceDomain = []string{"my-domain.com"}
-	s.ServiceDest = []actions.ServiceDest{sd}
 	s.OutboundHostname = "machine-123.my-company.com"
 	s.BaseUrl = "/v1/docker-flow-proxy"
 	s.ReconfigureBaseUrl = fmt.Sprintf("%s/reconfigure", s.BaseUrl)
@@ -57,7 +61,7 @@ func (s *ServerTestSuite) SetupTest() {
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		s.ServiceColor,
-		strings.Join(sd.Path, ","),
+		strings.Join(s.sd.Path, ","),
 		strings.Join(s.ServiceDomain, ","),
 		s.OutboundHostname,
 	)
@@ -414,10 +418,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         s.PathType,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -426,6 +430,23 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+//func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
+//	expected, _ := json.Marshal(server.Response{
+//		Status:           "OK",
+//		ServiceName:      s.ServiceName,
+//		ServiceColor:     s.ServiceColor,
+//		ServicePath:      s.ServiceDest[0].Path,
+//		ServiceDomain:    s.ServiceDomain,
+//		OutboundHostname: s.OutboundHostname,
+//		PathType:         s.PathType,
+//	})
+//
+//	srv := Serve{}
+//	srv.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+//
+//	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+//}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
@@ -433,10 +454,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         pathType,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -456,11 +477,11 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		ReqRepSearch:     search,
 		ReqRepReplace:    replace,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -483,11 +504,11 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		TemplateFePath:   templateFePath,
 		TemplateBePath:   templateBePath,
 		OutboundHostname: s.OutboundHostname,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -506,10 +527,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		Users:            users,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -529,16 +550,19 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 		httpsPort,
 	)
 	req, _ := http.NewRequest("GET", address, nil)
+	sd := server.ServiceDest{
+		Path: s.sd.Path,
+		Port: port,
+	}
 	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
-		HttpsPort:		  httpsPort,
-		Port:             port,
+		HttpsPort:        httpsPort,
 		Mode:             mode,
+		ServiceDest:      []server.ServiceDest{sd},
 	})
 
 	srv := Serve{Mode: mode}
@@ -553,11 +577,11 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
-		ServicePath:      s.ServiceDest[0].Path,
 		ServiceDomain:    s.ServiceDomain,
 		OutboundHostname: s.OutboundHostname,
 		PathType:         s.PathType,
 		SkipCheck:        true,
+		ServiceDest:      []server.ServiceDest{s.sd},
 	})
 
 	srv := Serve{}
@@ -629,7 +653,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	s.ServiceReconfigure.AclName = "my-acl"
 	url := fmt.Sprintf("%s&aclName=my-acl", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", url, nil)
-	//	s.RequestReconfigure.u
+
 	s.invokesReconfigure(req, true)
 }
 
@@ -674,13 +698,16 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		pathFe,
 		pathBe)
 	req, _ := http.NewRequest("GET", address, nil)
+	sd := server.ServiceDest{
+		Path: []string{},
+	}
 	expected, _ := json.Marshal(server.Response{
 		Status:               "OK",
 		ServiceName:          s.ServiceName,
 		ConsulTemplateFePath: pathFe,
 		ConsulTemplateBePath: pathBe,
 		PathType:             s.PathType,
-		ServicePath:          []string{},
+		ServiceDest:          []server.ServiceDest{sd},
 	})
 
 	srv := Serve{}
@@ -746,7 +773,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCert_WhenServiceCertIsPresent
 		"%s?serviceName=%s&servicePath=%s&serviceCert=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
-		strings.Join(s.ServiceDest[0].Path, ","),
+		strings.Join(s.sd.Path, ","),
 		expectedCert,
 	)
 	req, _ := http.NewRequest("GET", address, nil)
