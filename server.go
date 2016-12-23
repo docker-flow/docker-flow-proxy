@@ -34,31 +34,6 @@ var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
 
-type Response struct {
-	Status               string
-	Message              string
-	ServiceName          string
-	AclName              string
-	ServiceColor         string
-	ServicePath          []string
-	ServiceDomain        []string
-	ServiceCert          string
-	OutboundHostname     string
-	ConsulTemplateFePath string
-	ConsulTemplateBePath string
-	PathType             string
-	SkipCheck            bool
-	Mode                 string
-	Port                 string
-	HttpsPort            int
-	Distribute           bool
-	Users                []actions.User
-	ReqRepSearch         string
-	ReqRepReplace        string
-	TemplateFePath       string
-	TemplateBePath       string
-}
-
 func (m *Serve) Execute(args []string) error {
 	// TODO: Change map[string]bool{} env vars
 	if proxy.Instance == nil {
@@ -112,7 +87,7 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case "/v1/docker-flow-proxy/reload":
 		reload.Execute()
 	case "/v1/test", "/v2/test":
-		js, _ := json.Marshal(Response{Status: "OK"})
+		js, _ := json.Marshal(server.Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(js)
@@ -170,7 +145,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			sr.Users = append(sr.Users, actions.User{Username: userPass[0], Password: userPass[1]})
 		}
 	}
-	response := Response{
+	response := server.Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
 		AclName:              sr.AclName,
@@ -229,13 +204,13 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *server.Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *server.Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
@@ -244,7 +219,7 @@ func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, 
 func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	serviceName := req.URL.Query().Get("serviceName")
 	distribute := false
-	response := Response{
+	response := server.Response{
 		Status:      "OK",
 		ServiceName: serviceName,
 	}

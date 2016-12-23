@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"../actions"
 )
 
 var server Server = NewServer()
@@ -14,6 +15,35 @@ type Server interface {
 }
 
 type Serve struct{}
+
+func NewServer() *Serve {
+	return &Serve{}
+}
+
+type Response struct {
+	Status               string
+	Message              string
+	ServiceName          string
+	AclName              string
+	ServiceColor         string
+	ServicePath          []string
+	ServiceDomain        []string
+	ServiceCert          string
+	OutboundHostname     string
+	ConsulTemplateFePath string
+	ConsulTemplateBePath string
+	PathType             string
+	SkipCheck            bool
+	Mode                 string
+	Port                 string
+	HttpsPort            int
+	Distribute           bool
+	Users                []actions.User
+	ReqRepSearch         string
+	ReqRepReplace        string
+	TemplateFePath       string
+	TemplateBePath       string
+}
 
 func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName string) (status int, err error) {
 	values := req.URL.Query()
@@ -46,8 +76,4 @@ func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName
 		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
 	}
 	return http.StatusOK, err
-}
-
-func NewServer() *Serve {
-	return &Serve{}
 }

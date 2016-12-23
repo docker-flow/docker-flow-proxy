@@ -410,7 +410,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -429,7 +429,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&pathType="+pathType, nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -452,7 +452,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 		s.ReconfigureUrl + "&reqRepSearch=" + search + "&reqRepReplace=" + replace,
 	)
 	req, _ := http.NewRequest("GET", url, nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -479,7 +479,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 		templateBePath,
 	)
 	req, _ := http.NewRequest("GET", url, nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -502,7 +502,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 		{Username: "user2", Password: "pass2"},
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -529,7 +529,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 		httpsPort,
 	)
 	req, _ := http.NewRequest("GET", address, nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -549,7 +549,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&skipCheck=true", nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:           "OK",
 		ServiceName:      s.ServiceName,
 		ServiceColor:     s.ServiceColor,
@@ -674,7 +674,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 		pathFe,
 		pathBe)
 	req, _ := http.NewRequest("GET", address, nil)
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:               "OK",
 		ServiceName:          s.ServiceName,
 		ConsulTemplateFePath: pathFe,
@@ -795,7 +795,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove()
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
-	expected, _ := json.Marshal(Response{
+	expected, _ := json.Marshal(server.Response{
 		Status:      "OK",
 		ServiceName: s.ServiceName,
 	})
