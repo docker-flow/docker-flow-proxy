@@ -97,8 +97,17 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (m *Serve) isValidReconf(name string, path, domain []string, templateFePath string) bool {
-	return len(name) > 0 && (len(path) > 0 || len(templateFePath) > 0)
+func (m *Serve) isValidReconf(name string, sd []server.ServiceDest, domain []string, templateFePath string) bool {
+	hasPath := len(sd) > 0 && len(sd[0].Path) > 0
+	return len(name) > 0 && (hasPath || len(templateFePath) > 0)
+}
+
+func (m *Serve) isSwarm(mode string) bool {
+	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
+}
+
+func (m *Serve) hasPort(sd []server.ServiceDest) bool {
+	return len(sd) > 0 && len(sd[0].Port) > 0
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
@@ -106,19 +115,48 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
 	}
-	asd := actions.ServiceDest{
-		Port: req.URL.Query().Get("port"),
-		Path: path,
+	port := req.URL.Query().Get("port")
+	asd := []actions.ServiceDest{}
+	ssd := []server.ServiceDest{}
+	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
+	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
+	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
+		asd = append(
+			asd,
+			actions.ServiceDest{Port: port, Path: path},
+		)
+		ssd = append(
+			ssd,
+			server.ServiceDest{Port: req.URL.Query().Get("port"), Path: path},
+		)
+	}
+	i := 1
+	for i <= 10 {
+		port := req.URL.Query().Get(fmt.Sprintf("port.%d", i))
+		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
+		if len(path) > 0 && len(port) > 0 {
+			asd = append(
+				asd,
+				actions.ServiceDest{ Port: port, Path: strings.Split(path, ",")},
+			)
+			ssd = append(
+				ssd,
+				server.ServiceDest{ Port: port, Path: strings.Split(path, ",")},
+			)
+			i++
+		} else {
+			break
+		}
 	}
 	sr := actions.ServiceReconfigure{
-		ServiceDest:          []actions.ServiceDest{asd},
+		ServiceDest:          asd,
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
 		ServiceCert:          req.URL.Query().Get("serviceCert"),
 		OutboundHostname:     req.URL.Query().Get("outboundHostname"),
-		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
-		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
+		ConsulTemplateFePath: ctmplFePath,
+		ConsulTemplateBePath: ctmplBePath,
 		PathType:             req.URL.Query().Get("pathType"),
 		Mode:                 m.Mode,
 		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),
@@ -145,10 +183,6 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			sr.Users = append(sr.Users, actions.User{Username: userPass[0], Password: userPass[1]})
 		}
 	}
-	ssd := server.ServiceDest{
-		Port: req.URL.Query().Get("port"),
-		Path: path,
-	}
 	response := server.Response{
 		Status:               "OK",
 		ServiceName:          sr.ServiceName,
@@ -169,10 +203,10 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ReqRepReplace:        sr.ReqRepReplace,
 		TemplateFePath:       sr.TemplateFePath,
 		TemplateBePath:       sr.TemplateBePath,
-		ServiceDest:          []server.ServiceDest{ssd},
+		ServiceDest:          ssd,
 	}
-	if m.isValidReconf(sr.ServiceName, path, sr.ServiceDomain, sr.ConsulTemplateFePath) {
-		if (strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)) && len(ssd.Port) == 0 {
+	if m.isValidReconf(sr.ServiceName, ssd, sr.ServiceDomain, sr.ConsulTemplateFePath) {
+		if m.isSwarm(m.Mode) && !m.hasPort(ssd) {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			srv := server.Serve{}

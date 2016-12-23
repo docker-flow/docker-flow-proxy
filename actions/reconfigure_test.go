@@ -45,7 +45,8 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend myService-be if url_myService`
-	s.ConsulTemplateBe = `backend myService-be
+	s.ConsulTemplateBe = `
+backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
@@ -154,7 +155,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPrese
 	usersOrig := os.Getenv("USERS")
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
-	expected := `backend myService-be
+	expected := `
+backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
@@ -176,6 +178,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent(
     user user-1 insecure-password pass-1
     user user-2 insecure-password pass-2
 
+
 backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
@@ -194,7 +197,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 	for _, mode := range modes {
 		s.reconfigure.ServiceReconfigure.Mode = mode
 		s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
-		expected := `backend myService-be
+		expected := `
+backend myService-be1234
     mode http
     server myService myService:1234`
 
@@ -210,7 +214,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	os.Setenv("USERS", "anything")
 	s.reconfigure.ServiceReconfigure.Mode = "swarm"
 	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
-	expected := `backend myService-be
+	expected := `
+backend myService-be1234
     mode http
     server myService myService:1234
     acl defaultUsersAcl http_auth(defaultUsers)
@@ -232,7 +237,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
     user user-1 insecure-password pass-1
     user user-2 insecure-password pass-2
 
-backend myService-be
+
+backend myService-be1234
     mode http
     server myService myService:1234
     acl myServiceUsersAcl http_auth(myServiceUsers)
@@ -254,18 +260,21 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
+// xxx
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedFront := `
-    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
+    acl url_myService1234 path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     acl http_myService src_port 80
     acl https_myService src_port 443
-    use_backend myService-be if url_myService http_myService
-    use_backend https-myService-be if url_myService https_myService`
-	expectedBack := `backend myService-be
+    use_backend myService-be1234 if url_myService1234 http_myService
+    use_backend https-myService-be1234 if url_myService1234 https_myService`
+	expectedBack := `
+backend myService-be1234
     mode http
     server myService myService:1234
 
-backend https-myService-be
+
+backend https-myService-be1234
     mode http
     server myService myService:4321`
 	s.reconfigure.ServiceDest[0].Port = "1234"
@@ -276,8 +285,6 @@ backend https-myService-be
 	s.Equal(expectedFront, actualFront)
 	s.Equal(expectedBack, actualBack)
 }
-
-//TODO: Change Port to int
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() {
 	s.ConsulTemplateFe = `
@@ -293,7 +300,8 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
 	s.reconfigure.ReqRepSearch = "this"
 	s.reconfigure.ReqRepReplace = "that"
-	expected := fmt.Sprintf(`backend myService-be
+	expected := fmt.Sprintf(`
+backend myService-be
     mode http
     reqrep %s     %s
     {{range $i, $e := service "%s" "any"}}
@@ -500,8 +508,12 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
-		"backend %s-be\n    mode http\n    server %s %s:%s",
+		`
+backend %s-be%s
+    mode http
+    server %s %s:%s`,
 		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
@@ -526,8 +538,12 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
-		"backend %s-be\n    mode http\n    server %s %s:%s",
+		`
+backend %s-be%s
+    mode http
+    server %s %s:%s`,
 		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
@@ -575,8 +591,12 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsS
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.reconfigure.AclName)
 	expectedData := fmt.Sprintf(
-		"backend %s-be\n    mode http\n    server %s %s:%s",
+		`
+backend %s-be%s
+    mode http
+    server %s %s:%s`,
 		s.reconfigure.AclName,
+		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,

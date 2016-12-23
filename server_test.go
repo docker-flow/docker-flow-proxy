@@ -12,10 +12,11 @@ import (
 	"testing"
 
 	"./actions"
-	haproxy "./proxy"
+	"./proxy"
 	"./server"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"time"
 )
 
 type ServerTestSuite struct {
@@ -104,6 +105,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
 	}
 
 	serverImpl.Execute([]string{})
+	time.Sleep(1 * time.Millisecond)
 
 	s.Equal(expected, actual)
 }
@@ -430,22 +432,45 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-//func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
-//	expected, _ := json.Marshal(server.Response{
-//		Status:           "OK",
-//		ServiceName:      s.ServiceName,
-//		ServiceColor:     s.ServiceColor,
-//		ServicePath:      s.ServiceDest[0].Path,
-//		ServiceDomain:    s.ServiceDomain,
-//		OutboundHostname: s.OutboundHostname,
-//		PathType:         s.PathType,
-//	})
-//
-//	srv := Serve{}
-//	srv.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
-//
-//	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
-//}
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
+	sd := []server.ServiceDest{
+		server.ServiceDest{
+			Path: []string{"/path/to/my-service"},
+			Port: "1234",
+		},
+		server.ServiceDest{
+			Path: []string{"/path/to/my-service-1"},
+			Port: "1111",
+		},
+		server.ServiceDest{
+			Path: []string{"/path/to/my-service-2"},
+			Port: "2222",
+		},
+	}
+	expected, _ := json.Marshal(server.Response{
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		PathType:         s.PathType,
+		ServiceDest:      sd,
+	})
+	addr := fmt.Sprintf(
+		"%s?serviceName=%s&servicePath.1=%s&port.1=%s&servicePath.2=%s&port.2=%s&servicePath.3=%s&port.3=%s",
+		s.ReconfigureBaseUrl,
+		s.ServiceName,
+		strings.Join(sd[0].Path, ","),
+		sd[0].Port,
+		strings.Join(sd[1].Path, ","),
+		sd[1].Port,
+		strings.Join(sd[2].Path, ","),
+		sd[2].Port,
+	)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	pathType := "path_reg"
@@ -896,9 +921,9 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToText_WhenUrlIsConfig()
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
 	expected := "some text"
-	readFileOrig := haproxy.ReadFile
-	defer func() { haproxy.ReadFile = readFileOrig }()
-	haproxy.ReadFile = func(filename string) ([]byte, error) {
+	readFileOrig := proxy.ReadFile
+	defer func() { proxy.ReadFile = readFileOrig }()
+	proxy.ReadFile = func(filename string) ([]byte, error) {
 		return []byte(expected), nil
 	}
 

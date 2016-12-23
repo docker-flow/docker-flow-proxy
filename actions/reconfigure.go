@@ -352,7 +352,7 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 
 func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	tmpl := `{{range .ServiceDest}}
-    acl url_{{$.ServiceName}}{{range .Path}} {{$.PathType}} {{.}}{{end}}{{end}}`
+    acl url_{{$.ServiceName}}{{.Port}}{{range .Path}} {{$.PathType}} {{.}}{{end}}{{end}}`
 	if len(sr.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range sr.ServiceDomain {
@@ -373,11 +373,11 @@ func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
     acl http_{{.ServiceName}} src_port 80
     acl https_{{.ServiceName}} src_port 443`
 	}
-	tmpl += `
-    use_backend {{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}}`
+	tmpl += `{{range .ServiceDest}}
+    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{end}}`
 	if sr.HttpsPort > 0 {
-		tmpl += ` http_{{.ServiceName}}
-    use_backend https-{{.AclName}}-be if url_{{.ServiceName}}{{.AclCondition}} https_{{.ServiceName}}`
+		tmpl += ` http_{{$.ServiceName}}{{range .ServiceDest}}
+    use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
 	}
 	return tmpl
 }
@@ -398,38 +398,39 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *ServiceReconf
 	if strings.EqualFold(protocol, "https") {
 		prefix = "https-"
 	}
-	tmpl := fmt.Sprintf(
-		`backend %s{{.AclName}}-be
+	tmpl := fmt.Sprintf(`{{range .ServiceDest}}
+backend %s{{$.AclName}}-be{{.Port}}
     mode http`,
 		prefix,
 	)
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `
-    reqrep {{.ReqRepSearch}}     {{.ReqRepReplace}}`
+    reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			tmpl += `
-    server {{.ServiceName}} {{.Host}}:{{.HttpsPort}}`
+    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}`
 		} else {
-			tmpl += `{{range .ServiceDest}}
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{end}}`
+			tmpl += `
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}`
 		}
 	} else { // It's Consul
 		tmpl += `
-    {{"{{"}}range $i, $e := service "{{.FullServiceName}}" "any"{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq .SkipCheck false}} check{{end}}
+    {{"{{"}}range $i, $e := service "{{$.FullServiceName}}" "any"{{"}}"}}
+    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq $.SkipCheck false}} check{{end}}
     {{"{{end}}"}}`
 	}
 	if len(sr.Users) > 0 {
 		tmpl += `
-    acl {{.ServiceName}}UsersAcl http_auth({{.ServiceName}}Users)
-    http-request auth realm {{.ServiceName}}Realm if !{{.ServiceName}}UsersAcl`
+    acl {{$.ServiceName}}UsersAcl http_auth({{$.ServiceName}}Users)
+    http-request auth realm {{$.ServiceName}}Realm if !{{$.ServiceName}}UsersAcl`
 	} else if len(os.Getenv("USERS")) > 0 {
 		tmpl += `
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 	}
+	tmpl += "{{end}}"
 	return tmpl
 }
 

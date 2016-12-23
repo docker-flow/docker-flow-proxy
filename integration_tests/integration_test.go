@@ -75,55 +75,6 @@ func (s IntegrationTestSuite) Test_GlobalAuth() {
 	s.Equal(200, resp.StatusCode)
 }
 
-func (s IntegrationTestSuite) Test_Reload() {
-	s.reconfigure("", "", "", "/v1/test")
-
-	// Returns status 200
-
-	addr := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
-	log.Printf(">> Sending verify request to %s", addr)
-	client := &http.Client{}
-	request, _ := http.NewRequest("GET", addr, nil)
-	request.SetBasicAuth("user1", "pass1")
-	resp, err := client.Do(request)
-
-	s.NoError(err)
-	s.Equal(200, resp.StatusCode)
-
-	data := []struct {
-		confFile       string
-		expectedStatus int
-	}{
-		{"reload-error.cfg", 503},
-		{"reload.cfg", 200},
-	}
-
-	for _, d := range data {
-		cmdString := fmt.Sprintf(
-			"docker cp /usr/src/myapp/test_configs/%s dockerflowproxy_staging-dep_1:/cfg/haproxy.cfg",
-			d.confFile,
-		)
-		_, err = exec.Command("/bin/sh", "-c", cmdString).Output()
-		s.NoError(err)
-		addr = fmt.Sprintf("http://%s:8080/v1/docker-flow-proxy/reload", os.Getenv("DOCKER_IP"))
-		log.Printf(">> Sending reload request to %s", addr)
-		request, _ = http.NewRequest("GET", addr, nil)
-		resp, err = client.Do(request)
-
-		s.NoError(err)
-		s.Equal(200, resp.StatusCode)
-
-		addr = fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
-		log.Printf(">> Sending verify request to %s", addr)
-		request, _ = http.NewRequest("GET", addr, nil)
-		request.SetBasicAuth("user1", "pass1")
-		resp, err = client.Do(request)
-
-		s.NoError(err)
-		s.Equal(d.expectedStatus, resp.StatusCode)
-	}
-}
-
 func (s IntegrationTestSuite) Test_Reconfigure_Auth() {
 	address := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&users=%s",
@@ -155,6 +106,33 @@ func (s IntegrationTestSuite) Test_Reconfigure_Auth() {
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode)
 }
+
+//func (s IntegrationTestSuite) Test_Reconfigure_MultipleDestinations() {
+//	address := fmt.Sprintf(
+//		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=%s&servicePath=%s&port=1111&servicePath.1=%s&port.1=2222",
+//		os.Getenv("DOCKER_IP"),
+//		s.serviceName,
+//		"/v1/test",
+//		"/v1/test",
+//	)
+//	log.Printf(">> Sending reconfigure request to %s", address)
+//	_, err := http.Get(address)
+//	s.NoError(err)
+//
+//	// Returns status 200
+//
+//	testAddr := fmt.Sprintf("http://%s/v1/test", os.Getenv("DOCKER_IP"))
+//	log.Printf(">> Sending verify request to %s", testAddr)
+//	client := &http.Client{}
+//	request, _ := http.NewRequest("GET", testAddr, nil)
+//	request.SetBasicAuth("serv-user-1", "serv-pass-1")
+//	resp, err := client.Do(request)
+//
+//	s.NoError(err)
+//	s.Equal(200, resp.StatusCode)
+//	s.printConf()
+//	s.True(false)
+//}
 
 func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
 	urlObj, _ := url.Parse(fmt.Sprintf(
