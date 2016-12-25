@@ -41,6 +41,9 @@ type User struct {
 type ServiceDest struct {
 	Port string
 	Path []string
+	SrcPort int
+	SrcPortAcl string
+	SrcPortAclName string
 }
 
 type ServiceReconfigure struct {
@@ -348,11 +351,18 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"
 	}
+	for i, sd := range sr.ServiceDest {
+		if sd.SrcPort > 0 {
+			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
+			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
+    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
+		}
+	}
 }
 
 func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	tmpl := `{{range .ServiceDest}}
-    acl url_{{$.ServiceName}}{{.Port}}{{range .Path}} {{$.PathType}} {{.}}{{end}}{{end}}`
+    acl url_{{$.ServiceName}}{{.Port}}{{range .Path}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(sr.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range sr.ServiceDomain {
@@ -374,7 +384,7 @@ func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
     acl https_{{.ServiceName}} src_port 443`
 	}
 	tmpl += `{{range .ServiceDest}}
-    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{end}}`
+    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	if sr.HttpsPort > 0 {
 		tmpl += ` http_{{$.ServiceName}}{{range .ServiceDest}}
     use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`

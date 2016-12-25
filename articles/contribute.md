@@ -15,6 +15,8 @@ go test ./... -cover -run UnitTest
 ## Building
 
 ```bash
+docker-compose -f docker-compose-test.yml run --rm unit
+
 docker build -t vfarcic/docker-flow-proxy .
 ```
 

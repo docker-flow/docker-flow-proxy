@@ -525,7 +525,7 @@ Even though we published the proxy port `443` and it is configured to forward tr
 ```bash
 eval $(docker-machine env node-1)
 
-curl -i https://$(docker-machine ip node-1)/demo/hello
+curl -i "https://$(docker-machine ip node-1)/demo/hello"
 ```
 
 The output is as follows.

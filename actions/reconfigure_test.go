@@ -260,7 +260,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
-// xxx
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedFront := `
     acl url_myService1234 path_beg path/to/my/service/api path_beg path/to/my/other/service/api
@@ -280,6 +279,39 @@ backend https-myService-be1234
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expectedFront, actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
+	sd := []ServiceDest{
+		ServiceDest{ Port: "1111", Path: []string{"path-1"}, SrcPort: 2222 },
+		ServiceDest{ Port: "3333", Path: []string{"path-2"}, SrcPort: 4444 },
+		ServiceDest{ Port: "5555", Path: []string{"path-3"} },
+	}
+	expectedFront := `
+    acl url_myService1111 path_beg path-1
+    acl srcPort_myService2222 dst_port 2222
+    acl url_myService3333 path_beg path-2
+    acl srcPort_myService4444 dst_port 4444
+    acl url_myService5555 path_beg path-3
+    use_backend myService-be1111 if url_myService1111 srcPort_myService2222
+    use_backend myService-be3333 if url_myService3333 srcPort_myService4444
+    use_backend myService-be5555 if url_myService5555`
+	expectedBack := `
+backend myService-be1111
+    mode http
+    server myService myService:1111
+backend myService-be3333
+    mode http
+    server myService myService:3333
+backend myService-be5555
+    mode http
+    server myService myService:5555`
+	s.reconfigure.ServiceDest = sd
+	s.reconfigure.Mode = "service"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
 
 	s.Equal(expectedFront, actualFront)

@@ -436,15 +436,17 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
 	sd := []server.ServiceDest{
 		server.ServiceDest{
 			Path: []string{"/path/to/my-service"},
-			Port: "1234",
+			Port: "1111",
+			SrcPort: 2222,
 		},
 		server.ServiceDest{
 			Path: []string{"/path/to/my-service-1"},
-			Port: "1111",
+			Port: "3333",
+			SrcPort: 4444,
 		},
 		server.ServiceDest{
 			Path: []string{"/path/to/my-service-2"},
-			Port: "2222",
+			Port: "4444",
 		},
 	}
 	expected, _ := json.Marshal(server.Response{
@@ -454,13 +456,15 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
 		ServiceDest:      sd,
 	})
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&servicePath.1=%s&port.1=%s&servicePath.2=%s&port.2=%s&servicePath.3=%s&port.3=%s",
+		"%s?serviceName=%s&servicePath.1=%s&port.1=%s&srcPort.1=%d&servicePath.2=%s&port.2=%s&srcPort.2=%d&servicePath.3=%s&port.3=%s",
 		s.ReconfigureBaseUrl,
 		s.ServiceName,
 		strings.Join(sd[0].Path, ","),
 		sd[0].Port,
+		sd[0].SrcPort,
 		strings.Join(sd[1].Path, ","),
 		sd[1].Port,
+		sd[1].SrcPort,
 		strings.Join(sd[2].Path, ","),
 		sd[2].Port,
 	)

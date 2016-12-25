@@ -204,5 +204,11 @@ func (m HaProxy) getConfigData() ConfigData {
     option  dontlog-normal`
 	}
 	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
+	if len(os.Getenv("BIND_PORTS")) > 0 {
+		bindPorts := strings.Split(os.Getenv("BIND_PORTS"), ",")
+		for _, bindPort := range bindPorts {
+			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
+		}
+	}
 	return d
 }

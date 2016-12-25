@@ -116,6 +116,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
 	}
 	port := req.URL.Query().Get("port")
+	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
 	asd := []actions.ServiceDest{}
 	ssd := []server.ServiceDest{}
 	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
@@ -123,27 +124,26 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
 		asd = append(
 			asd,
-			actions.ServiceDest{Port: port, Path: path},
+			actions.ServiceDest{Port: port, SrcPort: srcPort, Path: path},
 		)
 		ssd = append(
 			ssd,
-			server.ServiceDest{Port: req.URL.Query().Get("port"), Path: path},
+			server.ServiceDest{Port: port, SrcPort: srcPort, Path: path},
 		)
 	}
-	i := 1
-	for i <= 10 {
+	for i := 1; i <= 10; i++ {
 		port := req.URL.Query().Get(fmt.Sprintf("port.%d", i))
 		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
+		srcPort, _ := strconv.Atoi(req.URL.Query().Get(fmt.Sprintf("srcPort.%d", i)))
 		if len(path) > 0 && len(port) > 0 {
 			asd = append(
 				asd,
-				actions.ServiceDest{ Port: port, Path: strings.Split(path, ",")},
+				actions.ServiceDest{ Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
 			)
 			ssd = append(
 				ssd,
-				server.ServiceDest{ Port: port, Path: strings.Split(path, ",")},
+				server.ServiceDest{ Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
 			)
-			i++
 		} else {
 			break
 		}

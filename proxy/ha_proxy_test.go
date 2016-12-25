@@ -227,7 +227,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	var actualFilename string
-	expectedFilename := fmt.Sprintf("%s/haproxy.cfg", s.ConfigsPath)
 	var actualData string
 	expectedData := fmt.Sprintf(
 		"%s%s",
@@ -242,7 +241,30 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
-	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
+	bindPortsOrig := os.Getenv("BIND_PORTS")
+	defer func() { os.Setenv("BIND_PORTS", bindPortsOrig) }()
+	os.Setenv("BIND_PORTS", "1234,4321")
+	var actualFilename string
+	var actualData string
+	expectedData := fmt.Sprintf(
+		`%s
+    bind *:1234
+    bind *:4321%s`,
+		s.TemplateContent,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
 	s.Equal(expectedData, actualData)
 }
 
