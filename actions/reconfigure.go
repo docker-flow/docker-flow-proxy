@@ -67,8 +67,8 @@ type ServiceReconfigure struct {
 	Distribute           bool
 	LookupRetry          int
 	LookupRetryInterval  int
-	ReqRepSearch         string
-	ReqRepReplace        string
+	ReqPathSearch         string
+	ReqPathReplace        string
 	TemplateFePath       string
 	TemplateBePath       string
 	ServiceDest          []ServiceDest
@@ -413,9 +413,9 @@ backend %s{{$.AclName}}-be{{.Port}}
     mode http`,
 		prefix,
 	)
-	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+	if len(sr.ReqPathSearch) > 0 && len(sr.ReqPathReplace) > 0 {
 		tmpl += `
-    reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
+    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]`
 	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {

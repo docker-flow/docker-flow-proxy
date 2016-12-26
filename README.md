@@ -93,8 +93,8 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||machine123.internal.ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
 |port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode.|Only in *swarm* mode|||8080|
-|reqRepReplace|A regular expression to apply the modification. If specified, `reqRepSearch` needs to be set as well.|No||\1\ /demo/\2|
-|reqRepSearch |A regular expression to search the content to be replaced. If specified, `reqRepReplace` needs to be set as well.|No||^([^\ ]\*)\ /something/(.\*)|
+|reqPathReplace|A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.|No||/demo/|
+|reqPathSearch |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No||/something/|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No|||
 |serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |

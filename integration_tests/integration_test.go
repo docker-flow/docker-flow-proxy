@@ -134,7 +134,7 @@ func (s IntegrationTestSuite) Test_Reconfigure_Auth() {
 //	s.True(false)
 //}
 
-func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
+func (s IntegrationTestSuite) Test_Reconfigure_ReqPath() {
 	urlObj, _ := url.Parse(fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure",
 		os.Getenv("DOCKER_IP"),
@@ -142,8 +142,8 @@ func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
 	parameters := url.Values{}
 	parameters.Add("serviceName", s.serviceName)
 	parameters.Add("servicePath", "/v99/test")
-	parameters.Add("reqRepSearch", `^([^\ ]*)\ /v99/(.*)`)
-	parameters.Add("reqRepReplace", `\1\ /v1/\2`)
+	parameters.Add("reqPathSearch", `/v99/`)
+	parameters.Add("reqPathReplace", `/v1/`)
 	urlObj.RawQuery = parameters.Encode()
 	log.Printf(">> Sending reconfigure request to %s", urlObj.String())
 	_, err := http.Get(urlObj.String())
