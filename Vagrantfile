@@ -37,19 +37,24 @@ Vagrant.configure(2) do |config|
       v.memory = 1024
     end
   end
-  config.vm.define "swarm-master" do |d|
-    d.vm.box = "ubuntu/trusty64"
-    d.vm.hostname = "swarm-master"
+  config.vm.define "swarm-manager-1" do |d|
+    d.vm.box = "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-vagrant.box"
+    d.vm.hostname = "swarm-manager-1"
     d.vm.network "private_network", ip: "10.100.192.200"
+    d.vm.provision :shell, path: "scripts/bootstrap-vagrant-swarm.sh"
+    d.vm.provision :shell, inline: "sudo docker swarm init --advertise-addr 10.100.192.200"
+    d.vm.provision :shell, inline: "docker swarm join-token -q worker >/vagrant/worker-token"
     d.vm.provider "virtualbox" do |v|
       v.memory = 1024
     end
   end
   (1..2).each do |i|
-    config.vm.define "swarm-node-#{i}" do |d|
-      d.vm.box = "ubuntu/trusty64"
-      d.vm.hostname = "swarm-node-#{i}"
+    config.vm.define "swarm-worker-#{i}" do |d|
+      d.vm.box = "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-vagrant.box"
+      d.vm.hostname = "swarm-worker-#{i}"
       d.vm.network "private_network", ip: "10.100.192.20#{i}"
+      d.vm.provision :shell, path: "scripts/bootstrap-vagrant-swarm.sh"
+      d.vm.provision :shell, inline: "docker swarm join --token $(cat /vagrant/worker-token) --advertise-addr 10.100.192.20#{i} 10.100.192.200:2377"
       d.vm.provider "virtualbox" do |v|
         v.memory = 1024
       end

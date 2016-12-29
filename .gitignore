@@ -5,3 +5,5 @@
 *.bak
 /tmp
 /certs/test.pem
+/*.log
+/*-token
