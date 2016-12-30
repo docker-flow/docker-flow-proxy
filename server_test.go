@@ -45,7 +45,7 @@ func (s *ServerTestSuite) SetupTest() {
 		Path: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
 	}
 	asd := actions.ServiceDest{
-		Path: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
+		ServicePath: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
 	}
 	s.ServiceReconfigure.ServiceDest = []actions.ServiceDest{asd}
 	s.InstanceName = "proxy-test-instance"
@@ -435,13 +435,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
 	sd := []server.ServiceDest{
 		server.ServiceDest{
-			Path: []string{"/path/to/my-service"},
-			Port: "1111",
+			Path:    []string{"/path/to/my-service"},
+			Port:    "1111",
 			SrcPort: 2222,
 		},
 		server.ServiceDest{
-			Path: []string{"/path/to/my-service-1"},
-			Port: "3333",
+			Path:    []string{"/path/to/my-service-1"},
+			Port:    "3333",
 			SrcPort: 4444,
 		},
 		server.ServiceDest{
@@ -450,10 +450,10 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
 		},
 	}
 	expected, _ := json.Marshal(server.Response{
-		Status:           "OK",
-		ServiceName:      s.ServiceName,
-		PathType:         s.PathType,
-		ServiceDest:      sd,
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		PathType:    s.PathType,
+		ServiceDest: sd,
 	})
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&servicePath.1=%s&port.1=%s&srcPort.1=%d&servicePath.2=%s&port.2=%s&srcPort.2=%d&servicePath.3=%s&port.3=%s",
@@ -747,7 +747,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJson_WhenConsulTemplatePathIsPre
 
 func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
 	sd := actions.ServiceDest{
-		Path: []string{},
+		ServicePath: []string{},
 	}
 	pathFe := "/path/to/consul/fe/template"
 	pathBe := "/path/to/consul/be/template"

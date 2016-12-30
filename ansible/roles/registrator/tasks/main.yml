@@ -1,8 +1,0 @@
-- name: Container is running
-  docker:
-    name: registrator
-    image: gliderlabs/registrator
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock
-    hostname: "{{ ansible_hostname }}"
-    command: -ip {{ facter_ipaddress_eth1 }} consul://{{ consul_ip }}:8500

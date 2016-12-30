@@ -21,8 +21,8 @@ func NewServer() *Serve {
 }
 
 type ServiceDest struct {
-	Port string
-	Path []string
+	Port    string
+	Path    []string
 	SrcPort int
 }
 

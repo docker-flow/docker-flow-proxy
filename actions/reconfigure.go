@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"../proxy"
+	"../registry"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -11,9 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"../proxy"
-	"../registry"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -36,42 +35,6 @@ type Reconfigure struct {
 type User struct {
 	Username string
 	Password string
-}
-
-type ServiceDest struct {
-	Port string
-	Path []string
-	SrcPort int
-	SrcPortAcl string
-	SrcPortAclName string
-}
-
-type ServiceReconfigure struct {
-	ServiceName          string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be reconfigured (e.g. my-service)."`
-	ServiceColor         string `short:"C" long:"service-color" description:"The color of the service release in case blue-green deployment is performed (e.g. blue)."`
-	ServicePort          string
-	ServiceDomain        []string `long:"service-domain" description:"The domain of the service. If specified, proxy will allow access only to requests coming from that domain (e.g. my-domain.com)."`
-	ServiceCert          string   `long:"service-cert" description:"Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL."`
-	OutboundHostname     string   `long:"outbound-hostname" description:"The hostname running the service. If specified, proxy will redirect traffic to this hostname instead of using the service's name."`
-	ConsulTemplateFePath string   `long:"consul-template-fe-path" description:"The path to the Consul Template representing snippet of the frontend configuration. If specified, proxy template will be loaded from the specified file."`
-	ConsulTemplateBePath string   `long:"consul-template-be-path" description:"The path to the Consul Template representing snippet of the backend configuration. If specified, proxy template will be loaded from the specified file."`
-	Mode                 string   `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
-	PathType             string
-	HttpsPort            int
-	SkipCheck            bool
-	AclName              string
-	AclCondition         string
-	Users                []User
-	FullServiceName      string
-	Host                 string
-	Distribute           bool
-	LookupRetry          int
-	LookupRetryInterval  int
-	ReqPathSearch         string
-	ReqPathReplace        string
-	TemplateFePath       string
-	TemplateBePath       string
-	ServiceDest          []ServiceDest
 }
 
 type BaseReconfigure struct {
@@ -195,7 +158,7 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	for i := 0; i < count; i++ {
 		s := <-c
 		s.Mode = mode
-		if len(s.ServiceDest) > 0 && len(s.ServiceDest[0].Path) > 0 {
+		if len(s.ServiceDest) > 0 && len(s.ServiceDest[0].ServicePath) > 0 {
 			logPrintf("\tConfiguring %s", s.ServiceName)
 			m.createConfigs(m.TemplatesPath, &s)
 		}
@@ -214,7 +177,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
 	port, _ := m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
 	sd := ServiceDest{
-		Path: strings.Split(path, ","),
+		ServicePath: strings.Split(path, ","),
 		Port: port,
 	}
 	if err == nil {
@@ -281,7 +244,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	path := []string{}
 	port := ""
 	if len(sr.ServiceDest) > 0 {
-		path = sr.ServiceDest[0].Path
+		path = sr.ServiceDest[0].ServicePath
 		port = sr.ServiceDest[0].Port
 	}
 	r := registry.Registry{
@@ -362,7 +325,7 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 
 func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	tmpl := `{{range .ServiceDest}}
-    acl url_{{$.ServiceName}}{{.Port}}{{range .Path}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
+    acl url_{{$.ServiceName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(sr.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range sr.ServiceDomain {

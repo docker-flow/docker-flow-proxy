@@ -34,7 +34,7 @@ type ReconfigureTestSuite struct {
 
 func (s *ReconfigureTestSuite) SetupTest() {
 	sd := ServiceDest{
-		Path: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
 	}
 	s.InstanceName = "proxy-test-instance"
 	s.ServiceDest = []ServiceDest{sd}
@@ -89,7 +89,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
 				if r.URL.RawQuery == "raw" {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(strings.Join(s.ServiceDest[0].Path, ",")))
+					w.Write([]byte(strings.Join(s.ServiceDest[0].ServicePath, ",")))
 				}
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
 				if r.URL.RawQuery == "raw" {
@@ -287,9 +287,9 @@ backend https-myService-be1234
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	sd := []ServiceDest{
-		ServiceDest{ Port: "1111", Path: []string{"path-1"}, SrcPort: 2222 },
-		ServiceDest{ Port: "3333", Path: []string{"path-2"}, SrcPort: 4444 },
-		ServiceDest{ Port: "5555", Path: []string{"path-3"} },
+		ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
+		ServiceDest{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
+		ServiceDest{Port: "5555", ServicePath: []string{"path-3"}},
 	}
 	expectedFront := `
     acl url_myService1111 path_beg path-1
@@ -405,14 +405,14 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePat
 	expectedFeFile := "/path/to/my/fe/template"
 	expectedBeFile := "/path/to/my/be/template"
 	expectedFe := fmt.Sprintf("This is service %s", s.reconfigure.ServiceName)
-	expectedBe := fmt.Sprintf("This is path %s", s.reconfigure.ServiceDest[0].Path)
+	expectedBe := fmt.Sprintf("This is path %s", s.reconfigure.ServiceDest[0].ServicePath)
 	readTemplateFileOrig := readTemplateFile
 	defer func() { readTemplateFile = readTemplateFileOrig }()
 	readTemplateFile = func(filename string) ([]byte, error) {
 		if filename == expectedFeFile {
 			return []byte("This is service {{.ServiceName}}"), nil
 		} else if filename == expectedBeFile {
-			return []byte("This is path {{range .ServiceDest}}{{.Path}}{{end}}"), nil
+			return []byte("This is path {{range .ServiceDest}}{{.ServicePath}}{{end}}"), nil
 		}
 		return []byte(""), fmt.Errorf("This is an error")
 	}
@@ -739,7 +739,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 	r := registry.Registry{
 		ServiceName:          s.ServiceName,
 		ServiceColor:         s.ServiceColor,
-		ServicePath:          s.ServiceDest[0].Path,
+		ServicePath:          s.ServiceDest[0].ServicePath,
 		ServiceDomain:        s.ServiceDomain,
 		OutboundHostname:     s.OutboundHostname,
 		PathType:             s.PathType,
