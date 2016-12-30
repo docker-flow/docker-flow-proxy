@@ -21,6 +21,7 @@ Docker Flow: Proxy
   * [Put Certificate](#put-certificate)
   * [Reload](#reload)
   * [Config](#config)
+  * [Templates](#templates)
 
 * [Feedback and Contribution](#feedback-and-contribution)
 
@@ -86,8 +87,8 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
 |aclName      |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No||05-go-demo-acl|
-|consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
-|consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If specified, the proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
+|consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If set, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
+|consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If set, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 |httpsPort    |The internal HTTPS port of a service that should be reconfigured. The port is used only in the *swarm* mode. If not specified, the `port` parameter will be used instead.|No|||443|
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||machine123.internal.ecme.com|
@@ -96,13 +97,13 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |reqRepReplace|A regular expression to apply the modification. If specified, `reqRepSearch` needs to be set as well.|No||\1\ /demo/\2|
 |reqRepSearch |A regular expression to search the content to be replaced. If specified, `reqRepReplace` needs to be set as well.|No||^([^\ ]\*)\ /something/(.\*)|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No|||
-|serviceDomain|The domain of the service. If specified, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
+|serviceDomain|The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes||/api/v1/books|
-|templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. If specified, `templateFePath` must be set as well|||/templates/go-demo-be.tmpl|
-|templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well|||/templates/go-demo-fe.tmpl|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 |srcPort      |The source (entry) port of a service. Useful only when specifying multiple destinations of a single service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|No||80|
+|templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. If specified, `templateFePath` must be set as well. See the [Templates](#templates) section for more info.|||/templates/go-demo-be.tmpl|
+|templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well. See the [Templates](#templates) section for more info.|||/templates/go-demo-fe.tmpl|
 |users        |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.|No||user1:pass1,user2:pass2|
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath` and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
@@ -165,6 +166,16 @@ The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**
 > Outputs HAProxy configuration
 
 The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/config**
+
+### Templates
+
+Proxy configuration is a combination of configuration files generated from templates. Base template is `haproxy.tmpl`. Each service appends frontend and backend templates on top of the base template. Once all the templates are combined, they are converted into the `haproxy.cfg` configuration file.
+
+The templates can be extended by creating a new Docker image based on `vfarcic/docker-flow-proxy` and adding the templates through `templateFePath` and `templateBePath` [reconfigure parameters](#reconfigure).
+
+Templates are based on [Go HTML Templates](https://golang.org/pkg/html/template/).
+
+Please see the [actions/types.go](https://github.com/vfarcic/docker-flow-proxy/blob/master/actions/types.go) for info the structure used with templates.
 
 Feedback and Contribution
 -------------------------
