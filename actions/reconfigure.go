@@ -380,6 +380,10 @@ backend %s{{$.AclName}}-be{{.Port}}
 		tmpl += `
     reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
 	}
+	if len(sr.ReqPathSearch) > 0 && len(sr.ReqPathReplace) > 0 {
+		tmpl += `
+    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]`
+	}
 	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			tmpl += `

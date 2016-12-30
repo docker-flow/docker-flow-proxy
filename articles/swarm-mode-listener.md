@@ -305,9 +305,9 @@ docker service rm go-demo
 
 ## Rewriting Paths
 
-In some cases, you might want to rewrite the path of the incoming request before forwarding it to the destination service. We can do that using request parameters `reqRepSearch` and `reqRepReplace`.
+In some cases, you might want to rewrite the path of the incoming request before forwarding it to the destination service. We can do that using request parameters `reqPathSearch` and `reqPathReplace`.
 
-As an example, we'll create the `go-demo` service that will be configured in the proxy to accept requests with the path starting with `/something`. Since the `go-demo` service allows only requests that start with `/demo`, we'll use `reqRepSearch` and `reqRepReplace` to rewrite the path.
+As an example, we'll create the `go-demo` service that will be configured in the proxy to accept requests with the path starting with `/something`. Since the `go-demo` service allows only requests that start with `/demo`, we'll use `reqPathSearch` and `reqPathReplace` to rewrite the path.
 
 The command is as follows.
 
@@ -320,13 +320,13 @@ docker service create --name go-demo \
   --label com.df.distribute=true \
   --label com.df.servicePath=/something \
   --label com.df.port=8080 \
-  --label com.df.reqRepSearch='^([^\ ]*)\ /something/(.*)' \
-  --label com.df.reqRepReplace='\1\ /demo/\2' \
+  --label com.df.reqPathSearch='/something/' \
+  --label com.df.reqPathReplace='/demo/' \
   --replicas 3 \
   vfarcic/go-demo
 ```
 
-Please notice that, this time, the `servicePath` is `/something`. The `reqRepSearch` specifies the regular expression that will be used to search for part of the address and the `reqRepReplace` will replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses *PCRE compatible regular expressions*. For more information, please consult [Quick-Start: Regex Cheat Sheet](http://www.rexegg.com/regex-quickstart.html) and [PCRE Regex Cheatsheet](https://www.debuggex.com/cheatsheet/regex/pcre).
+Please notice that, this time, the `servicePath` is `/something`. The `reqPathSearch` specifies the regular expression that will be used to search for part of the address and the `reqPathReplace` will replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses the *regsub* function within the *http-request set-path* directive to apply a regex-based substitution which operates as the well-known *sed* utility with `"s/<regex>/<subst>/"`. For more information, please consult [Configuration: 4.2 http-request](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-http-request) and [Configuration: 7.3.1 regsub](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#7.3.1-regsub).
 
 Please wait a few moments until the `go-demo` service is running. You can see the status of the service by executing `docker service ps go-demo`.
 

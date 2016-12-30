@@ -162,6 +162,34 @@ func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
 	s.Equal(200, resp.StatusCode)
 }
 
+func (s IntegrationTestSuite) Test_Reconfigure_ReqPath() {
+	urlObj, _ := url.Parse(fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure",
+		os.Getenv("DOCKER_IP"),
+	))
+	parameters := url.Values{}
+	parameters.Add("serviceName", s.serviceName)
+	parameters.Add("servicePath", "/v99/test")
+	parameters.Add("reqPathSearch", `/v99/`)
+	parameters.Add("reqPathReplace", `/v1/`)
+	urlObj.RawQuery = parameters.Encode()
+	log.Printf(">> Sending reconfigure request to %s", urlObj.String())
+	_, err := http.Get(urlObj.String())
+	s.NoError(err)
+
+	// Returns status 200
+
+	testAddr := fmt.Sprintf("http://%s/v99/test", os.Getenv("DOCKER_IP"))
+	log.Printf(">> Sending verify request to %s", testAddr)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", testAddr, nil)
+	request.SetBasicAuth("user1", "pass1")
+	resp, err := client.Do(request)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode)
+}
+
 func (s IntegrationTestSuite) Test_Stats_Auth() {
 	// Returns status 401 if no auth is provided
 

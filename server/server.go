@@ -45,6 +45,8 @@ type Response struct {
 	Users                []actions.User
 	ReqRepSearch         string
 	ReqRepReplace        string
+	ReqPathSearch         string
+	ReqPathReplace        string
 	TemplateFePath       string
 	TemplateBePath       string
 	ServiceDest          []ServiceDest

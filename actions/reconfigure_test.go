@@ -349,6 +349,26 @@ backend myService-be
 	s.Equal(expected, backend)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchAndReqPathReplaceArePresent() {
+	s.reconfigure.ReqPathSearch = "this"
+	s.reconfigure.ReqPathReplace = "that"
+	expected := fmt.Sprintf(`
+backend myService-be
+    mode http
+    http-request set-path %%[path,regsub(%s,%s)]
+    {{range $i, $e := service "%s" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    {{end}}`,
+		s.reconfigure.ReqPathSearch,
+		s.reconfigure.ReqPathReplace,
+		s.reconfigure.ServiceName,
+	)
+
+	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+
+	s.Equal(expected, backend)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
 	s.reconfigure.AclName = "my-acl"
 	s.ConsulTemplateFe = `

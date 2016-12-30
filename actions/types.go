@@ -42,6 +42,12 @@ type ServiceReconfigure struct {
 	// A regular expression to search the content to be replaced.
 	// If specified, `reqRepReplace` needs to be set as well.
 	ReqRepSearch         string
+	// A regular expression to apply the modification.
+	// If specified, `reqPathSearch` needs to be set as well.
+	ReqPathReplace        string
+	// A regular expression to search the content to be replaced.
+	// If specified, `reqPathReplace` needs to be set as well.
+	ReqPathSearch         string
 	// Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.
 	ServiceCert          string
 	// The domain of the service.
