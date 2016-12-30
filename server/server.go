@@ -43,6 +43,8 @@ type Response struct {
 	HttpsPort            int
 	Distribute           bool
 	Users                []actions.User
+	ReqRepSearch         string
+	ReqRepReplace        string
 	ReqPathSearch         string
 	ReqPathReplace        string
 	TemplateFePath       string

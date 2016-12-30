@@ -37,6 +37,12 @@ type ServiceReconfigure struct {
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType             string
 	// A regular expression to apply the modification.
+	// If specified, `reqRepSearch` needs to be set as well.
+	ReqRepReplace        string
+	// A regular expression to search the content to be replaced.
+	// If specified, `reqRepReplace` needs to be set as well.
+	ReqRepSearch         string
+	// A regular expression to apply the modification.
 	// If specified, `reqPathSearch` needs to be set as well.
 	ReqPathReplace        string
 	// A regular expression to search the content to be replaced.

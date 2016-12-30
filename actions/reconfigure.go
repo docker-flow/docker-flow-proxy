@@ -376,6 +376,10 @@ backend %s{{$.AclName}}-be{{.Port}}
     mode http`,
 		prefix,
 	)
+	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
+		tmpl += `
+    reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
+	}
 	if len(sr.ReqPathSearch) > 0 && len(sr.ReqPathReplace) > 0 {
 		tmpl += `
     http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]`
