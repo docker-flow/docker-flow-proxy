@@ -376,6 +376,7 @@ backend %s{{$.AclName}}-be{{.Port}}
     mode http`,
 		prefix,
 	)
+	// TODO: Deprecated (dec. 2016).
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `
     reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`

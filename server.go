@@ -159,8 +159,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ConsulTemplateBePath: ctmplBePath,
 		PathType:             req.URL.Query().Get("pathType"),
 		Mode:                 m.Mode,
-		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),
-		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"),
+		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"), // TODO: Deprecated (dec. 2016).
+		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"), // TODO: Deprecated (dec. 2016).
 		ReqPathSearch:         req.URL.Query().Get("reqPathSearch"),
 		ReqPathReplace:        req.URL.Query().Get("reqPathReplace"),
 		TemplateFePath:       req.URL.Query().Get("templateFePath"),
@@ -201,8 +201,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		HttpsPort:            sr.HttpsPort,
 		Distribute:           sr.Distribute,
 		Users:                sr.Users,
-		ReqRepSearch:         sr.ReqRepSearch,
-		ReqRepReplace:        sr.ReqRepReplace,
+		ReqRepSearch:         sr.ReqRepSearch, // TODO: Deprecated (dec. 2016).
+		ReqRepReplace:        sr.ReqRepReplace, // TODO: Deprecated (dec. 2016).
 		ReqPathSearch:         sr.ReqPathSearch,
 		ReqPathReplace:        sr.ReqPathReplace,
 		TemplateFePath:       sr.TemplateFePath,

@@ -134,6 +134,7 @@ func (s IntegrationTestSuite) Test_Reconfigure_Auth() {
 //	s.True(false)
 //}
 
+// Deprecated (dec. 2016)
 func (s IntegrationTestSuite) Test_Reconfigure_ReqRep() {
 	urlObj, _ := url.Parse(fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure",

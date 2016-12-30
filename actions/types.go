@@ -36,11 +36,9 @@ type ServiceReconfigure struct {
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType             string
-	// A regular expression to apply the modification.
-	// If specified, `reqRepSearch` needs to be set as well.
+	// Deprecated in favor of ReqPathReplace
 	ReqRepReplace        string
-	// A regular expression to search the content to be replaced.
-	// If specified, `reqRepReplace` needs to be set as well.
+	// Deprecated in favor of ReqPathSearch
 	ReqRepSearch         string
 	// A regular expression to apply the modification.
 	// If specified, `reqPathSearch` needs to be set as well.

@@ -495,6 +495,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPathType_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+// TODO: Deprecated (dec. 2016).
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithReqRep_WhenPresent() {
 	search := "search"
 	replace := "replace"

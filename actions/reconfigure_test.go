@@ -329,6 +329,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
 
+// TODO: Deprecated (dec. 2016).
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
 	s.reconfigure.ReqRepSearch = "this"
 	s.reconfigure.ReqRepReplace = "that"

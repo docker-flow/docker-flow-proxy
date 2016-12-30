@@ -43,8 +43,8 @@ type Response struct {
 	HttpsPort            int
 	Distribute           bool
 	Users                []actions.User
-	ReqRepSearch         string
-	ReqRepReplace        string
+	ReqRepSearch         string // TODO: Deprecated (dec. 2016).
+	ReqRepReplace        string // TODO: Deprecated (dec. 2016).
 	ReqPathSearch         string
 	ReqPathReplace        string
 	TemplateFePath       string
