@@ -124,7 +124,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
 		asd = append(
 			asd,
-			actions.ServiceDest{Port: port, SrcPort: srcPort, Path: path},
+			actions.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
 		)
 		ssd = append(
 			ssd,
@@ -138,11 +138,11 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		if len(path) > 0 && len(port) > 0 {
 			asd = append(
 				asd,
-				actions.ServiceDest{ Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
+				actions.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
 			)
 			ssd = append(
 				ssd,
-				server.ServiceDest{ Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
+				server.ServiceDest{Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
 			)
 		} else {
 			break
