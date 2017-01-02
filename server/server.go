@@ -1,7 +1,7 @@
 package server
 
 import (
-	"../actions"
+	"../proxy"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -42,7 +42,7 @@ type Response struct {
 	Mode                 string
 	HttpsPort            int
 	Distribute           bool
-	Users                []actions.User
+	Users                []proxy.User
 	ReqRepSearch         string // TODO: Deprecated (dec. 2016).
 	ReqRepReplace        string // TODO: Deprecated (dec. 2016).
 	ReqPathSearch         string

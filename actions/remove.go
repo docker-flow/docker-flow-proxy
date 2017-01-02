@@ -46,6 +46,7 @@ func (m *Remove) Execute(args []string) error {
 		logPrintf(err.Error())
 		return err
 	}
+	proxy.Instance.RemoveService(m.ServiceName)
 	reload := Reload{}
 	if err := reload.Execute(); err != nil {
 		logPrintf(err.Error())

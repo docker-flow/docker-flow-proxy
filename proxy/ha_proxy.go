@@ -12,6 +12,7 @@ import (
 type HaProxy struct {
 	TemplatesPath string
 	ConfigsPath   string
+	services      map[string]Service
 }
 
 // TODO: Change to pointer
@@ -103,6 +104,12 @@ func (m HaProxy) Reload() error {
 	}
 	cmdArgs := []string{"-sf", string(pid)}
 	return HaProxy{}.RunCmd(cmdArgs)
+}
+
+func (m HaProxy) AddService(service Service) {
+}
+
+func (m HaProxy) RemoveService(service string) {
 }
 
 func (m HaProxy) getConfigs() (string, error) {

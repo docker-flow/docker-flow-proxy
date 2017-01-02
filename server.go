@@ -47,7 +47,7 @@ func (m *Serve) Execute(args []string) error {
 	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	recon := actions.NewReconfigure(m.BaseReconfigure, actions.ServiceReconfigure{}, m.Mode)
+	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
 	lAddr := ""
 	if len(m.ListenerAddress) > 0 {
 		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
@@ -121,14 +121,14 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	}
 	port := req.URL.Query().Get("port")
 	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
-	asd := []actions.ServiceDest{}
+	asd := []proxy.ServiceDest{}
 	ssd := []server.ServiceDest{}
 	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
 	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
 	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
 		asd = append(
 			asd,
-			actions.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
 		)
 		ssd = append(
 			ssd,
@@ -142,7 +142,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		if len(path) > 0 && len(port) > 0 {
 			asd = append(
 				asd,
-				actions.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
 			)
 			ssd = append(
 				ssd,
@@ -152,7 +152,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			break
 		}
 	}
-	sr := actions.ServiceReconfigure{
+	sr := proxy.Service{
 		ServiceDest:          asd,
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
@@ -185,7 +185,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		users := strings.Split(req.URL.Query().Get("users"), ",")
 		for _, user := range users {
 			userPass := strings.Split(user, ":")
-			sr.Users = append(sr.Users, actions.User{Username: userPass[0], Password: userPass[1]})
+			sr.Users = append(sr.Users, proxy.User{Username: userPass[0], Password: userPass[1]})
 		}
 	}
 	response := server.Response{

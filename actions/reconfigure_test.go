@@ -3,7 +3,7 @@
 package actions
 
 import (
-	haproxy "../proxy"
+	"../proxy"
 	"../registry"
 	"encoding/json"
 	"fmt"
@@ -18,7 +18,7 @@ import (
 
 type ReconfigureTestSuite struct {
 	suite.Suite
-	ServiceReconfigure
+	proxy.Service
 	ConsulAddress     string
 	ConsulTemplateFe  string
 	ConsulTemplateBe  string
@@ -27,17 +27,17 @@ type ReconfigureTestSuite struct {
 	reconfigure       Reconfigure
 	Server            *httptest.Server
 	PutPathResponse   string
-	ConsulRequestBody ServiceReconfigure
+	ConsulRequestBody proxy.Service
 	InstanceName      string
 	SkipCheck         bool
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
-	sd := ServiceDest{
+	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
 	}
 	s.InstanceName = "proxy-test-instance"
-	s.ServiceDest = []ServiceDest{sd}
+	s.ServiceDest = []proxy.ServiceDest{sd}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
 	s.SkipCheck = false
@@ -59,9 +59,9 @@ backend myService-be
 			ConfigsPath:     s.ConfigsPath,
 			InstanceName:    s.InstanceName,
 		},
-		ServiceReconfigure: ServiceReconfigure{
+		Service: proxy.Service{
 			ServiceName: s.ServiceName,
-			ServiceDest: []ServiceDest{sd},
+			ServiceDest: []proxy.ServiceDest{sd},
 			PathType:    s.PathType,
 			SkipCheck:   false,
 		},
@@ -136,16 +136,16 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 		return nil
 	}
 	mockObj := getProxyMock("")
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 	suite.Run(t, s)
 }
 
 // GetTemplate
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
-	front, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	front, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateFe, front)
 	s.Equal(s.ConsulTemplateBe, back)
@@ -164,13 +164,13 @@ backend myService-be
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, back)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
-	s.reconfigure.Users = []User{
+	s.reconfigure.Users = []proxy.User{
 		{Username: "user-1", Password: "pass-1"},
 		{Username: "user-2", Password: "pass-2"},
 	}
@@ -187,7 +187,7 @@ backend myService-be
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl`
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, back)
 }
@@ -196,13 +196,13 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {
 		s.reconfigure.Mode = mode
-		s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
+		s.reconfigure.Service.ServiceDest[0].Port = "1234"
 		expected := `
 backend myService-be1234
     mode http
     server myService myService:1234`
 
-		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 		s.Equal(expected, actual)
 	}
@@ -213,7 +213,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
 	s.reconfigure.Mode = "swarm"
-	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	expected := `
 backend myService-be1234
     mode http
@@ -221,18 +221,18 @@ backend myService-be1234
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl`
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
-	s.reconfigure.Users = []User{
+	s.reconfigure.Users = []proxy.User{
 		{Username: "user-1", Password: "pass-1"},
 		{Username: "user-2", Password: "pass-2"},
 	}
 	s.reconfigure.Mode = "swarm"
-	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	expected := `userlist myServiceUsers
     user user-1 insecure-password pass-1
     user user-2 insecure-password pass-2
@@ -244,7 +244,7 @@ backend myService-be1234
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl`
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, actual)
 }
@@ -255,7 +255,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
     acl domain_myService hdr_dom(host) -i my-domain.com my-other-domain.com
     use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = []string{"my-domain.com", "my-other-domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
@@ -279,17 +279,17 @@ backend https-myService-be1234
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expectedFront, actualFront)
 	s.Equal(expectedBack, actualBack)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
-	sd := []ServiceDest{
-		ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
-		ServiceDest{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
-		ServiceDest{Port: "5555", ServicePath: []string{"path-3"}},
+	sd := []proxy.ServiceDest{
+		proxy.ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
+		proxy.ServiceDest{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
+		proxy.ServiceDest{Port: "5555", ServicePath: []string{"path-3"}},
 	}
 	expectedFront := `
     acl url_myService1111 path_beg path-1
@@ -312,7 +312,7 @@ backend myService-be5555
     server myService myService:5555`
 	s.reconfigure.ServiceDest = sd
 	s.reconfigure.Mode = "service"
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expectedFront, actualFront)
 	s.Equal(expectedBack, actualBack)
@@ -324,7 +324,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() 
     acl domain_myService hdr_end(host) -i acme.com .domain.com
     use_backend myService-be if url_myService domain_myService`
 	s.reconfigure.ServiceDomain = []string{"acme.com", "*.domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
@@ -345,7 +345,7 @@ backend myService-be
 		s.reconfigure.ServiceName,
 	)
 
-	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, backend)
 }
@@ -365,7 +365,7 @@ backend myService-be
 		s.reconfigure.ServiceName,
 	)
 
-	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, backend)
 }
@@ -375,7 +375,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
     use_backend my-acl-be if url_myService`
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateFe, actual)
 }
@@ -385,7 +385,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_UsesPathReg() {
 	defer func() { s.reconfigure.PathType = pathTypeOrig }()
 	s.reconfigure.PathType = "path_reg"
 	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
-	front, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	front, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateFe, front)
 }
@@ -394,7 +394,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Contains(actual, expected)
 }
@@ -402,7 +402,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 func (s ReconfigureTestSuite) Test_GetTemplates_DoesNotSetCheckWhenSkipCheckIsTrue() {
 	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(s.ConsulTemplateBe, actual)
 }
@@ -414,10 +414,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFileContent_WhenConsulTem
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return []byte(expected), nil
 	}
-	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
-	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
+	s.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
+	_, actual, _ := s.reconfigure.GetTemplates(&s.Service)
 
 	s.Equal(expected, actual)
 }
@@ -437,10 +437,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePat
 		}
 		return []byte(""), fmt.Errorf("This is an error")
 	}
-	s.ServiceReconfigure.TemplateFePath = expectedFeFile
-	s.ServiceReconfigure.TemplateBePath = expectedBeFile
+	s.Service.TemplateFePath = expectedFeFile
+	s.Service.TemplateBePath = expectedBeFile
 
-	actualFe, actualBe, _ := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
+	actualFe, actualBe, _ := s.reconfigure.GetTemplates(&s.Service)
 
 	s.Equal(expectedFe, actualFe)
 	s.Equal(expectedBe, actualBe)
@@ -456,10 +456,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateFePathI
 		}
 		return []byte(""), nil
 	}
-	s.ServiceReconfigure.TemplateFePath = testFilename
-	s.ServiceReconfigure.TemplateBePath = "not/under/test"
+	s.Service.TemplateFePath = testFilename
+	s.Service.TemplateBePath = "not/under/test"
 
-	_, _, err := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
+	_, _, err := s.reconfigure.GetTemplates(&s.Service)
 
 	s.Error(err)
 }
@@ -475,10 +475,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateBePathI
 		return []byte(""), nil
 	}
 
-	s.ServiceReconfigure.TemplateFePath = "not/under/test"
-	s.ServiceReconfigure.TemplateBePath = testFilename
+	s.Service.TemplateFePath = "not/under/test"
+	s.Service.TemplateBePath = testFilename
 
-	_, _, err := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
+	_, _, err := s.reconfigure.GetTemplates(&s.Service)
 
 	s.Error(err)
 }
@@ -489,10 +489,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenConsulTemplateF
 	readTemplateFile = func(filename string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
-	s.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
-	s.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
+	s.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, _, actual := s.reconfigure.GetTemplates(&s.ServiceReconfigure)
+	_, _, actual := s.reconfigure.GetTemplates(&s.Service)
 
 	s.Error(actual)
 }
@@ -715,9 +715,9 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateC
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	s.reconfigure.Execute([]string{})
 
@@ -727,20 +727,50 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates
 func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	err := s.reconfigure.Execute([]string{})
 
 	s.Error(err)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_AddsService() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+	sd := proxy.ServiceDest{
+		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+	}
+	expected := proxy.Service{
+		ServiceName: "s.ServiceName",
+		ServiceDest: []proxy.ServiceDest{sd},
+		PathType:    s.PathType,
+		SkipCheck:   false,
+	}
+	r := NewReconfigure(
+		BaseReconfigure{
+			ConsulAddresses: []string{s.ConsulAddress},
+			TemplatesPath:   s.TemplatesPath,
+			ConfigsPath:     s.ConfigsPath,
+			InstanceName:    s.InstanceName,
+		},
+		expected,
+		"",
+	)
+
+	r.Execute([]string{})
+
+	mockObj.AssertCalled(s.T(), "AddService", mock.Anything)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
 	mock := getProxyMock("")
-	haproxy.Instance = mock
+	proxy.Instance = mock
 
 	s.reconfigure.Execute([]string{})
 
@@ -769,9 +799,9 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		ConsulTemplateBePath: s.ConsulTemplateBePath,
 	}
 	proxyMockObj := getProxyMock("")
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = proxyMockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = proxyMockObj
 
 	s.reconfigure.Execute([]string{})
 
@@ -818,8 +848,8 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileI
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
-	s.reconfigure.ServiceReconfigure.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
-	s.reconfigure.ServiceReconfigure.ConsulTemplateBePath = "/path/to/my/consul/be/template"
+	s.reconfigure.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.reconfigure.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
 	err := s.reconfigure.Execute([]string{})
 
@@ -843,7 +873,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessi
 
 func (s *ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 	br := BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}}
-	sr := ServiceReconfigure{ServiceName: "myService"}
+	sr := proxy.Service{ServiceName: "myService"}
 
 	r := NewReconfigure(br, sr, "")
 
@@ -855,10 +885,10 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 func (s *ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 	r1 := NewReconfigure(
 		BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}},
-		ServiceReconfigure{ServiceName: "myService"},
+		proxy.Service{ServiceName: "myService"},
 		"",
 	)
-	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{}, "")
+	r2 := NewReconfigure(BaseReconfigure{}, proxy.Service{}, "")
 
 	actualBr1, actualSr1 := r1.GetData()
 	actualBr2, actualSr2 := r2.GetData()
@@ -876,9 +906,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
 	mockObj := getProxyMock("")
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
@@ -888,9 +918,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFr
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
 	mockObj := getProxyMock("CreateConfigFromTemplates")
 	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
@@ -899,9 +929,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCrea
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	mockObj := getProxyMock("")
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
@@ -911,9 +941,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = mockObj
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
 
 	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
@@ -921,9 +951,9 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyRelo
 }
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
-	proxyOrig := haproxy.Instance
-	defer func() { haproxy.Instance = proxyOrig }()
-	haproxy.Instance = getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
 	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, "", "")
 
@@ -978,9 +1008,9 @@ func (m *ReconfigureMock) Execute(args []string) error {
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetData() (BaseReconfigure, ServiceReconfigure) {
+func (m *ReconfigureMock) GetData() (BaseReconfigure, proxy.Service) {
 	m.Called()
-	return BaseReconfigure{}, ServiceReconfigure{}
+	return BaseReconfigure{}, proxy.Service{}
 }
 
 func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
@@ -988,7 +1018,7 @@ func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mo
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetTemplates(sr ServiceReconfigure) (front, back string, err error) {
+func (m *ReconfigureMock) GetTemplates(sr proxy.Service) (front, back string, err error) {
 	params := m.Called(sr)
 	return params.String(0), params.String(1), params.Error(2)
 }
@@ -1101,6 +1131,14 @@ func (m *ProxyMock) GetCerts() map[string]string {
 	return params.Get(0).(map[string]string)
 }
 
+func (m *ProxyMock) AddService(service proxy.Service) {
+	m.Called(service)
+}
+
+func (m *ProxyMock) RemoveService(service string) {
+	m.Called(service)
+}
+
 func getProxyMock(skipMethod string) *ProxyMock {
 	mockObj := new(ProxyMock)
 	if skipMethod != "RunCmd" {
@@ -1120,6 +1158,12 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "GetCerts" {
 		mockObj.On("GetCerts").Return(map[string]string{})
+	}
+	if skipMethod != "AddService" {
+		mockObj.On("AddService", mock.Anything)
+	}
+	if skipMethod != "RemoveService" {
+		mockObj.On("RemoveService", mock.Anything)
 	}
 	return mockObj
 }

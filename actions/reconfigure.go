@@ -22,20 +22,15 @@ var mu = &sync.Mutex{}
 
 type Reconfigurable interface {
 	Executable
-	GetData() (BaseReconfigure, ServiceReconfigure)
+	GetData() (BaseReconfigure, proxy.Service)
 	ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplates(sr *ServiceReconfigure) (front, back string, err error)
+	GetTemplates(sr *proxy.Service) (front, back string, err error)
 }
 
 type Reconfigure struct {
 	BaseReconfigure
-	ServiceReconfigure
+	proxy.Service
 	Mode            	  string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
-}
-
-type User struct {
-	Username string
-	Password string
 }
 
 type BaseReconfigure struct {
@@ -48,8 +43,12 @@ type BaseReconfigure struct {
 
 var ReconfigureInstance Reconfigure
 
-var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure, mode string) Reconfigurable {
-	return &Reconfigure{baseData, serviceData, mode}
+var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
+	return &Reconfigure{
+		BaseReconfigure: baseData,
+		Service: serviceData,
+		Mode: mode,
+	}
 }
 
 // TODO: Remove args
@@ -66,26 +65,27 @@ func (m *Reconfigure) Execute(args []string) error {
 			return err
 		}
 	}
-	if err := m.createConfigs(m.TemplatesPath, &m.ServiceReconfigure); err != nil {
+	if err := m.createConfigs(m.TemplatesPath, &m.Service); err != nil {
 		return err
 	}
 	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
+	proxy.Instance.AddService(m.Service)
 	reload := Reload{}
 	if err := reload.Execute(); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
-		if err := m.putToConsul(m.ConsulAddresses, m.ServiceReconfigure, m.InstanceName); err != nil {
+		if err := m.putToConsul(m.ConsulAddresses, m.Service, m.InstanceName); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Reconfigure) GetData() (BaseReconfigure, ServiceReconfigure) {
-	return m.BaseReconfigure, m.ServiceReconfigure
+func (m *Reconfigure) GetData() (BaseReconfigure, proxy.Service) {
+	return m.BaseReconfigure, m.Service
 }
 
 func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
@@ -132,7 +132,7 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	c := make(chan ServiceReconfigure)
+	c := make(chan proxy.Service)
 	count := 0
 	if isSwarm(mode) {
 		// TODO: Test
@@ -170,18 +170,18 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	return reload.Execute()
 }
 
-func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan ServiceReconfigure) {
-	sr := ServiceReconfigure{ServiceName: serviceName}
+func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan proxy.Service) {
+	sr := proxy.Service{ServiceName: serviceName}
 
 	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
 	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
 	port, _ := m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
-	sd := ServiceDest{
+	sd := proxy.ServiceDest{
 		ServicePath: strings.Split(path, ","),
 		Port: port,
 	}
 	if err == nil {
-		sr.ServiceDest = []ServiceDest{sd}
+		sr.ServiceDest = []proxy.ServiceDest{sd}
 		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
 		sr.ServiceDomain = strings.Split(domain, ",")
 		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
@@ -209,7 +209,7 @@ func (m *Reconfigure) getServiceAttribute(addresses []string, serviceName, key, 
 	return "", false
 }
 
-func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure) error {
+func (m *Reconfigure) createConfigs(templatesPath string, sr *proxy.Service) error {
 	logPrintf("Creating configuration for the service %s", sr.ServiceName)
 	feTemplate, beTemplate, err := m.GetTemplates(sr)
 	if err != nil {
@@ -240,7 +240,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 	return nil
 }
 
-func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, instanceName string) error {
+func (m *Reconfigure) putToConsul(addresses []string, sr proxy.Service, instanceName string) error {
 	path := []string{}
 	port := ""
 	if len(sr.ServiceDest) > 0 {
@@ -266,7 +266,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr ServiceReconfigure, ins
 	return nil
 }
 
-func (m *Reconfigure) GetTemplates(sr *ServiceReconfigure) (front, back string, err error) {
+func (m *Reconfigure) GetTemplates(sr *proxy.Service) (front, back string, err error) {
 	if len(sr.TemplateFePath) > 0 && len(sr.TemplateBePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
@@ -297,7 +297,7 @@ func (m *Reconfigure) GetTemplates(sr *ServiceReconfigure) (front, back string, 
 	return front, back, nil
 }
 
-func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
+func (m *Reconfigure) formatData(sr *proxy.Service) {
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
@@ -323,7 +323,7 @@ func (m *Reconfigure) formatData(sr *ServiceReconfigure) {
 	}
 }
 
-func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
+func (m *Reconfigure) getFrontTemplate(sr *proxy.Service) string {
 	tmpl := `{{range .ServiceDest}}
     acl url_{{$.ServiceName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(sr.ServiceDomain) > 0 {
@@ -355,7 +355,7 @@ func (m *Reconfigure) getFrontTemplate(sr *ServiceReconfigure) string {
 	return tmpl
 }
 
-func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
+func (m *Reconfigure) getBackTemplate(sr *proxy.Service) string {
 	back := m.getBackTemplateProtocol("http", sr)
 	if sr.HttpsPort > 0 {
 		back += fmt.Sprintf(`
@@ -366,7 +366,7 @@ func (m *Reconfigure) getBackTemplate(sr *ServiceReconfigure) string {
 	return back
 }
 
-func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *ServiceReconfigure) string {
+func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service) string {
 	prefix := ""
 	if strings.EqualFold(protocol, "https") {
 		prefix = "https-"
@@ -412,7 +412,7 @@ backend %s{{$.AclName}}-be{{.Port}}
 	return tmpl
 }
 
-func (m *Reconfigure) getUsersList(sr *ServiceReconfigure) string {
+func (m *Reconfigure) getUsersList(sr *proxy.Service) string {
 	if len(sr.Users) > 0 {
 		return `userlist {{.ServiceName}}Users{{range .Users}}
     user {{.Username}} insecure-password {{.Password}}{{end}}
@@ -422,7 +422,7 @@ func (m *Reconfigure) getUsersList(sr *ServiceReconfigure) string {
 	return ""
 }
 
-func (m *Reconfigure) parseTemplate(front, usersList, back string, sr *ServiceReconfigure) (pFront, pBack string) {
+func (m *Reconfigure) parseTemplate(front, usersList, back string, sr *proxy.Service) (pFront, pBack string) {
 	tmplFront, _ := template.New("template").Parse(front)
 	tmplUsersList, _ := template.New("template").Parse(usersList)
 	tmplBack, _ := template.New("template").Parse(back)

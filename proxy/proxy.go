@@ -15,6 +15,8 @@ type Proxy interface {
 	Reload() error
 	AddCert(certName string)
 	GetCerts() map[string]string
+	AddService(service Service)
+	RemoveService(service string)
 }
 
 // Mock

@@ -186,3 +186,15 @@ func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenDeleteRequestToRegistryFa
 
 	s.Error(err)
 }
+
+func (s RemoveTestSuite) Test_Execute_RemovesService() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+	s.remove.ServiceName = "my-soon-to-be-removed-service"
+
+	s.remove.Execute([]string{})
+
+	mockObj.AssertCalled(s.T(), "RemoveService", s.remove.ServiceName)
+}
