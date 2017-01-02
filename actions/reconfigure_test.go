@@ -195,7 +195,7 @@ backend myService-be
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenModeIsSwarm() {
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {
-		s.reconfigure.ServiceReconfigure.Mode = mode
+		s.reconfigure.Mode = mode
 		s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 		expected := `
 backend myService-be1234
@@ -212,7 +212,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	usersOrig := os.Getenv("USERS")
 	defer func() { os.Setenv("USERS", usersOrig) }()
 	os.Setenv("USERS", "anything")
-	s.reconfigure.ServiceReconfigure.Mode = "swarm"
+	s.reconfigure.Mode = "swarm"
 	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 	expected := `
 backend myService-be1234
@@ -231,7 +231,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 		{Username: "user-1", Password: "pass-1"},
 		{Username: "user-2", Password: "pass-2"},
 	}
-	s.reconfigure.ServiceReconfigure.Mode = "swarm"
+	s.reconfigure.Mode = "swarm"
 	s.reconfigure.ServiceReconfigure.ServiceDest[0].Port = "1234"
 	expected := `userlist myServiceUsers
     user user-1 insecure-password pass-1
@@ -845,7 +845,7 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_AddsBaseAndService() {
 	br := BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}}
 	sr := ServiceReconfigure{ServiceName: "myService"}
 
-	r := NewReconfigure(br, sr)
+	r := NewReconfigure(br, sr, "")
 
 	actualBr, actualSr := r.GetData()
 	s.Equal(br, actualBr)
@@ -856,8 +856,9 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 	r1 := NewReconfigure(
 		BaseReconfigure{ConsulAddresses: []string{"myConsulAddress"}},
 		ServiceReconfigure{ServiceName: "myService"},
+		"",
 	)
-	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{})
+	r2 := NewReconfigure(BaseReconfigure{}, ServiceReconfigure{}, "")
 
 	actualBr1, actualSr1 := r1.GetData()
 	actualBr2, actualSr2 := r2.GetData()
@@ -868,7 +869,7 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 // ReloadAllServices
 
 func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	err := s.reconfigure.ReloadAllServices([]string{"this/address/does/not/exist"}, s.InstanceName, s.Mode, "")
+	err := s.reconfigure.ReloadAllServices([]string{"this/address/does/not/exist"}, s.InstanceName, "", "")
 
 	s.Error(err)
 }
@@ -879,7 +880,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFr
 	defer func() { haproxy.Instance = proxyOrig }()
 	haproxy.Instance = mockObj
 
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
@@ -891,7 +892,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCrea
 	defer func() { haproxy.Instance = proxyOrig }()
 	haproxy.Instance = mockObj
 
-	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
 	s.Error(actual)
 }
@@ -902,7 +903,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
 	defer func() { haproxy.Instance = proxyOrig }()
 	haproxy.Instance = mockObj
 
-	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+	s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
@@ -914,7 +915,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyRelo
 	defer func() { haproxy.Instance = proxyOrig }()
 	haproxy.Instance = mockObj
 
-	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+	actual := s.reconfigure.ReloadAllServices([]string{s.ConsulAddress}, s.InstanceName, "", "")
 
 	s.Error(actual)
 }
@@ -924,7 +925,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
 	defer func() { haproxy.Instance = proxyOrig }()
 	haproxy.Instance = getProxyMock("")
 	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
-	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, s.Mode, "")
+	err := s.reconfigure.ReloadAllServices([]string{address}, s.InstanceName, "", "")
 
 	s.NoError(err)
 }
@@ -936,7 +937,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_SendsARequestToSwarmListen
 	}))
 	defer func() { srv.Close() }()
 
-	s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
+	s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, "", srv.URL)
 
 	s.Equal("/v1/docker-flow-swarm-listener/notify-services", actual)
 }
@@ -947,7 +948,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmList
 	}))
 	defer func() { srv.Close() }()
 
-	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, srv.URL)
+	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, "", srv.URL)
 
 	s.Error(err)
 }
@@ -961,7 +962,7 @@ func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmList
 		}
 		return &resp, fmt.Errorf("This is an error")
 	}
-	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, s.Mode, "http://google.com")
+	err := s.reconfigure.ReloadAllServices([]string{}, s.InstanceName, "", "http://google.com")
 
 	s.Error(err)
 }

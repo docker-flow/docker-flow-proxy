@@ -30,6 +30,7 @@ type Reconfigurable interface {
 type Reconfigure struct {
 	BaseReconfigure
 	ServiceReconfigure
+	Mode            	  string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 }
 
 type User struct {
@@ -47,15 +48,15 @@ type BaseReconfigure struct {
 
 var ReconfigureInstance Reconfigure
 
-var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure) Reconfigurable {
-	return &Reconfigure{baseData, serviceData}
+var NewReconfigure = func(baseData BaseReconfigure, serviceData ServiceReconfigure, mode string) Reconfigurable {
+	return &Reconfigure{baseData, serviceData, mode}
 }
 
 // TODO: Remove args
 func (m *Reconfigure) Execute(args []string) error {
 	mu.Lock()
 	defer mu.Unlock()
-	if isSwarm(m.ServiceReconfigure.Mode) && !m.skipAddressValidation {
+	if isSwarm(m.Mode) && !m.skipAddressValidation {
 		host := m.ServiceName
 		if len(m.OutboundHostname) > 0 {
 			host = m.OutboundHostname
@@ -75,7 +76,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := reload.Execute(); err != nil {
 		return err
 	}
-	if len(m.ConsulAddresses) > 0 || !isSwarm(m.ServiceReconfigure.Mode) {
+	if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
 		if err := m.putToConsul(m.ConsulAddresses, m.ServiceReconfigure, m.InstanceName); err != nil {
 			return err
 		}
@@ -157,7 +158,6 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	logPrintf("\tFound %d services", count)
 	for i := 0; i < count; i++ {
 		s := <-c
-		s.Mode = mode
 		if len(s.ServiceDest) > 0 && len(s.ServiceDest[0].ServicePath) > 0 {
 			logPrintf("\tConfiguring %s", s.ServiceName)
 			m.createConfigs(m.TemplatesPath, &s)
@@ -215,7 +215,7 @@ func (m *Reconfigure) createConfigs(templatesPath string, sr *ServiceReconfigure
 	if err != nil {
 		return err
 	}
-	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
+	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if len(sr.AclName) == 0 {
 			sr.AclName = sr.ServiceName
 		}
@@ -385,7 +385,7 @@ backend %s{{$.AclName}}-be{{.Port}}
 		tmpl += `
     http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]`
 	}
-	if strings.EqualFold(sr.Mode, "service") || strings.EqualFold(sr.Mode, "swarm") {
+	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			tmpl += `
     server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}`

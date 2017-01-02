@@ -69,11 +69,6 @@ type ServiceReconfigure struct {
 	SkipCheck            bool
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users                []User
-	// The default mode is designed to work with any setup and requires Consul and Registrator.
-	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
-	// The later mode (swarm) does not have any dependency but Docker Engine.
-	// The swarm mode is recommended for all who use Docker Swarm features introduced in v1.12.
-	Mode                 string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 	ServiceColor         string
 	ServicePort          string
 	AclCondition         string

@@ -82,7 +82,7 @@ func (s *ServerTestSuite) SetupTest() {
 			InstanceName:    s.InstanceName,
 		},
 	}
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return getReconfigureMock("")
 	}
 	logPrintfOrig := logPrintf
@@ -158,7 +158,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
@@ -170,13 +170,13 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 
 	serverImpl.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, s.Mode, "")
+	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, "", "")
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
 	listenerAddress := "swarm-listener"
 	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
@@ -195,7 +195,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 		"ReloadAllServices",
 		[]string{s.ConsulAddress},
 		s.InstanceName,
-		s.Mode,
+		"",
 		fmt.Sprintf("http://%s:8080", listenerAddress),
 	)
 }
@@ -203,31 +203,31 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {
 	serverImpl.Mode = "seRviCe"
 	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 
 	serverImpl.Execute([]string{})
 
-	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
+	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, "")
 }
 
 func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsSwarm() {
 	serverImpl.Mode = "SWarM"
 	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 
 	serverImpl.Execute([]string{})
 
-	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, s.Mode)
+	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, "")
 }
 
 func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
 	mockObj := getReconfigureMock("ReloadAllServices")
 	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -732,7 +732,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeRemoveExecute_WhenDistribu
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
 	mockObj := getReconfigureMock("Execute")
 	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		return mockObj
 	}
 
@@ -789,7 +789,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		ServiceDest:          []actions.ServiceDest{sd},
 	}
 	var actualService actions.ServiceReconfigure
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
 		return mockObj
@@ -1185,7 +1185,7 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 		ConsulAddresses: []string{s.ConsulAddress},
 	}
 	var actualService actions.ServiceReconfigure
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData actions.ServiceReconfigure, mode string) actions.Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
 		return mockObj
