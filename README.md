@@ -47,6 +47,7 @@ The following environment variables can be used to configure the *Docker Flow: P
 
 |Variable           |Description                                               |Required|Default|Example|
 |-------------------|----------------------------------------------------------|--------|-------|-------|
+|BIND_PORTS         |Additional ports to bind. Multiple values can be separated with comma|No||8085,8086|
 |CONSUL_ADDRESS     |The address of a Consul instance used for storing proxy information and discovering running nodes.  Multiple addresses can be separated with comma (e.g. 192.168.0.10:8500,192.168.0.11:8500).|Only in the *default* mode||192.168.0.10:8500|
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration.|No    ||http-request set-header X-Forwarded-Proto https if { ssl_fc }|
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.|Only in the *swarm* mode||swarm-listener|
