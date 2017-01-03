@@ -225,6 +225,126 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service-11111 path_beg /path-1 path_beg /path-2 port1111Acl
+    acl url_my-service-12222 path_beg /path-3 port2222Acl
+    use_backend my-acl-be1111 if url_my-service-11111 my-src-port
+    use_backend my-acl-be2222 if url_my-service-12222%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service"] = Service{
+		ServiceName: "my-service-1",
+		PathType: "path_beg",
+		AclName: "my-acl",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: " port1111Acl", SrcPortAclName: " my-src-port"},
+			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: " port2222Acl"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithDomain() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111 path_beg /path
+    acl domain_my-service hdr_dom(host) -i domain-1 domain-2
+    use_backend my-service-be1111 if url_my-service1111 domain_my-service%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service"] = Service{
+		ServiceName: "my-service",
+		ServiceDomain: []string{"domain-1", "domain-2"},
+		AclName: "my-service",
+		PathType: "path_beg",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithDomainWildcard() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl domain_my-service hdr_end(host) -i domain-1%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service"] = Service{
+		ServiceName: "my-service",
+		ServiceDomain: []string{"*domain-1"},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithHttpsPort() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111 path_beg /path
+    acl http_my-service src_port 80
+    acl https_my-service src_port 443
+    use_backend my-service-be1111 if url_my-service1111 http_my-service
+    use_backend https-my-service-be1111 if url_my-service1111 https_my-service%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service"] = Service{
+		ServiceName: "my-service",
+		PathType: "path_beg",
+		HttpsPort: 2222,
+		AclName: "my-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	var actualFilename string
 	var actualData string
@@ -467,6 +587,40 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	HaProxy{}.Reload()
 
 	s.Equal(expected, *actual)
+}
+
+// AddService
+
+func (s *HaProxyTestSuite) Test_AddService_AddsService() {
+	s1 := Service{ServiceName: "my-service-1"}
+	s2 := Service{ServiceName: "my-service-2"}
+	s3 := Service{ServiceName: "my-service-2", ServiceDomain: []string{"domain-1", "domain-2"}}
+	p := NewHaProxy("anything", "doesn't", map[string]bool{}).(HaProxy)
+
+	p.AddService(s1)
+	p.AddService(s2)
+	p.AddService(s3)
+
+	s.Len(data.Services, 2)
+	s.Equal(data.Services[s1.ServiceName], s1)
+	s.Equal(data.Services[s3.ServiceName], s3)
+}
+
+// RemoveService
+
+func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
+	s1 := Service{ServiceName: "my-service-1"}
+	s2 := Service{ServiceName: "my-service-2"}
+	s3 := Service{ServiceName: "my-service-2", ServiceDomain: []string{"domain-1", "domain-2"}}
+	p := NewHaProxy("anything", "doesn't", map[string]bool{}).(HaProxy)
+
+	p.AddService(s1)
+	p.AddService(s2)
+	p.AddService(s3)
+	p.RemoveService("my-service-1")
+
+	s.Len(data.Services, 1)
+	s.Equal(data.Services[s3.ServiceName], s3)
 }
 
 // Mocks

@@ -3,7 +3,8 @@ package proxy
 var ProxyInstance Proxy = HaProxy{}
 
 type Data struct {
-	Certs map[string]bool
+	Certs     map[string]bool
+	Services  map[string]Service
 }
 
 var data = Data{}

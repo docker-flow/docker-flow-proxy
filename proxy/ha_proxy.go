@@ -12,12 +12,13 @@ import (
 type HaProxy struct {
 	TemplatesPath string
 	ConfigsPath   string
-	services      map[string]Service
+	ConfigData    ConfigData
 }
 
 // TODO: Change to pointer
 var Instance Proxy
 
+// TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type ConfigData struct {
 	CertsString          string
 	TimeoutConnect       string
@@ -32,10 +33,12 @@ type ConfigData struct {
 	ExtraGlobal          string
 	ExtraDefaults        string
 	ExtraFrontend        string
+	ContentFrontend      string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
 	data.Certs = certs
+	data.Services = map[string]Service{}
 	return HaProxy{
 		TemplatesPath: templatesPath,
 		ConfigsPath:   configsPath,
@@ -107,9 +110,11 @@ func (m HaProxy) Reload() error {
 }
 
 func (m HaProxy) AddService(service Service) {
+	data.Services[service.ServiceName] = service
 }
 
 func (m HaProxy) RemoveService(service string) {
+	delete(data.Services, service)
 }
 
 func (m HaProxy) getConfigs() (string, error) {
@@ -217,5 +222,43 @@ func (m HaProxy) getConfigData() ConfigData {
 			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
 		}
 	}
+	for _, s := range data.Services {
+		d.ContentFrontend = m.getFrontTemplate(s)
+	}
 	return d
+}
+
+func (m *HaProxy) getFrontTemplate(s Service) string {
+	tmplString := `{{range .ServiceDest}}
+    acl url_{{$.ServiceName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
+	if len(s.ServiceDomain) > 0 {
+		domFunc := "hdr_dom"
+		for i, domain := range s.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				s.ServiceDomain[i] = strings.Trim(domain, "*")
+				domFunc = "hdr_end"
+			}
+		}
+		tmplString += fmt.Sprintf(
+			`
+    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
+			domFunc,
+		)
+		s.AclCondition = fmt.Sprintf(" domain_%s", s.ServiceName)
+	}
+	if s.HttpsPort > 0 {
+		tmplString += `
+    acl http_{{.ServiceName}} src_port 80
+    acl https_{{.ServiceName}} src_port 443`
+	}
+	tmplString += `{{range .ServiceDest}}
+    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+	if s.HttpsPort > 0 {
+		tmplString += ` http_{{$.ServiceName}}{{range .ServiceDest}}
+    use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
+	}
+	tmpl, _ := template.New("template").Parse(tmplString)
+	var b bytes.Buffer
+	tmpl.Execute(&b, s)
+	return b.String()
 }
