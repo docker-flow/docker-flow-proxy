@@ -176,7 +176,7 @@ The templates can be extended by creating a new Docker image based on `vfarcic/d
 
 Templates are based on [Go HTML Templates](https://golang.org/pkg/html/template/).
 
-Please see the [actions/types.go](https://github.com/vfarcic/docker-flow-proxy/blob/master/actions/types.go) for info about the structure used with templates.
+Please see the [proxy/types.go](https://github.com/vfarcic/docker-flow-proxy/blob/master/proxy/types.go) for info about the structure used with templates.
 
 Feedback and Contribution
 -------------------------
