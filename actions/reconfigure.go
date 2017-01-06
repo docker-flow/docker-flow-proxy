@@ -68,10 +68,12 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.Service); err != nil {
 		return err
 	}
+	if len(m.ConsulTemplateBePath) == 0 && len(m.ConsulTemplateFePath) == 0 {
+		proxy.Instance.AddService(m.Service)
+	}
 	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		return err
 	}
-	proxy.Instance.AddService(m.Service)
 	reload := Reload{}
 	if err := reload.Execute(); err != nil {
 		return err
@@ -289,7 +291,7 @@ func (m *Reconfigure) GetTemplates(sr *proxy.Service) (front, back string, err e
 	} else {
 		m.formatData(sr)
 		front, back = m.parseTemplate(
-			m.getFrontTemplate(sr),
+			"",
 			m.getUsersList(sr),
 			m.getBackTemplate(sr),
 			sr)
@@ -297,6 +299,7 @@ func (m *Reconfigure) GetTemplates(sr *proxy.Service) (front, back string, err e
 	return front, back, nil
 }
 
+// TODO: Move to ha_proxy.go
 func (m *Reconfigure) formatData(sr *proxy.Service) {
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
@@ -323,38 +326,7 @@ func (m *Reconfigure) formatData(sr *proxy.Service) {
 	}
 }
 
-func (m *Reconfigure) getFrontTemplate(sr *proxy.Service) string {
-	tmpl := `{{range .ServiceDest}}
-    acl url_{{$.ServiceName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
-	if len(sr.ServiceDomain) > 0 {
-		domFunc := "hdr_dom"
-		for i, domain := range sr.ServiceDomain {
-			if strings.HasPrefix(domain, "*") {
-				sr.ServiceDomain[i] = strings.Trim(domain, "*")
-				domFunc = "hdr_end"
-			}
-		}
-		tmpl += fmt.Sprintf(
-			`
-    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
-			domFunc,
-		)
-		sr.AclCondition = fmt.Sprintf(" domain_%s", sr.ServiceName)
-	}
-	if sr.HttpsPort > 0 {
-		tmpl += `
-    acl http_{{.ServiceName}} src_port 80
-    acl https_{{.ServiceName}} src_port 443`
-	}
-	tmpl += `{{range .ServiceDest}}
-    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
-	if sr.HttpsPort > 0 {
-		tmpl += ` http_{{$.ServiceName}}{{range .ServiceDest}}
-    use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
-	}
-	return tmpl
-}
-
+// TODO: Move to ha_proxy.go
 func (m *Reconfigure) getBackTemplate(sr *proxy.Service) string {
 	back := m.getBackTemplateProtocol("http", sr)
 	if sr.HttpsPort > 0 {
@@ -423,13 +395,15 @@ func (m *Reconfigure) getUsersList(sr *proxy.Service) string {
 }
 
 func (m *Reconfigure) parseTemplate(front, usersList, back string, sr *proxy.Service) (pFront, pBack string) {
-	tmplFront, _ := template.New("template").Parse(front)
+	var ctFront bytes.Buffer
+	if len(front) > 0 {
+		tmplFront, _ := template.New("template").Parse(front)
+		tmplFront.Execute(&ctFront, sr)
+	}
 	tmplUsersList, _ := template.New("template").Parse(usersList)
 	tmplBack, _ := template.New("template").Parse(back)
-	var ctFront bytes.Buffer
 	var ctUsersList bytes.Buffer
 	var ctBack bytes.Buffer
-	tmplFront.Execute(&ctFront, sr)
 	tmplUsersList.Execute(&ctUsersList, sr)
 	tmplBack.Execute(&ctBack, sr)
 	return ctFront.String(), ctUsersList.String() + ctBack.String()

@@ -147,7 +147,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
 	front, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
-	s.Equal(s.ConsulTemplateFe, front)
+	s.Equal("", front)
 	s.Equal(s.ConsulTemplateBe, back)
 }
 
@@ -249,24 +249,7 @@ backend myService-be1234
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplates_AddsHosts() {
-	s.ConsulTemplateFe = `
-    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    acl domain_myService hdr_dom(host) -i my-domain.com my-other-domain.com
-    use_backend myService-be if url_myService domain_myService`
-	s.reconfigure.ServiceDomain = []string{"my-domain.com", "my-other-domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal(s.ConsulTemplateFe, actual)
-}
-
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
-	expectedFront := `
-    acl url_myService1234 path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    acl http_myService src_port 80
-    acl https_myService src_port 443
-    use_backend myService-be1234 if url_myService1234 http_myService
-    use_backend https-myService-be1234 if url_myService1234 https_myService`
 	expectedBack := `
 backend myService-be1234
     mode http
@@ -281,7 +264,7 @@ backend https-myService-be1234
 	s.reconfigure.HttpsPort = 4321
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
-	s.Equal(expectedFront, actualFront)
+	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
 }
 
@@ -291,15 +274,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 		proxy.ServiceDest{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
 		proxy.ServiceDest{Port: "5555", ServicePath: []string{"path-3"}},
 	}
-	expectedFront := `
-    acl url_myService1111 path_beg path-1
-    acl srcPort_myService2222 dst_port 2222
-    acl url_myService3333 path_beg path-2
-    acl srcPort_myService4444 dst_port 4444
-    acl url_myService5555 path_beg path-3
-    use_backend myService-be1111 if url_myService1111 srcPort_myService2222
-    use_backend myService-be3333 if url_myService3333 srcPort_myService4444
-    use_backend myService-be5555 if url_myService5555`
 	expectedBack := `
 backend myService-be1111
     mode http
@@ -314,19 +288,8 @@ backend myService-be5555
 	s.reconfigure.Mode = "service"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
-	s.Equal(expectedFront, actualFront)
+	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
-}
-
-func (s ReconfigureTestSuite) Test_GetTemplates_AddsHostsStartingWithWildcard() {
-	s.ConsulTemplateFe = `
-    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    acl domain_myService hdr_end(host) -i acme.com .domain.com
-    use_backend myService-be if url_myService domain_myService`
-	s.reconfigure.ServiceDomain = []string{"acme.com", "*.domain.com"}
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal(s.ConsulTemplateFe, actual)
 }
 
 // TODO: Deprecated (dec. 2016).
@@ -368,26 +331,6 @@ backend myService-be
 	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
 	s.Equal(expected, backend)
-}
-
-func (s ReconfigureTestSuite) Test_GetTemplates_UsesAclNameForFrontEnd() {
-	s.reconfigure.AclName = "my-acl"
-	s.ConsulTemplateFe = `
-    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    use_backend my-acl-be if url_myService`
-	actual, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal(s.ConsulTemplateFe, actual)
-}
-
-func (s ReconfigureTestSuite) Test_GetTemplates_UsesPathReg() {
-	pathTypeOrig := s.reconfigure.PathType
-	defer func() { s.reconfigure.PathType = pathTypeOrig }()
-	s.reconfigure.PathType = "path_reg"
-	s.ConsulTemplateFe = strings.Replace(s.ConsulTemplateFe, "path_beg", "path_reg", -1)
-	front, _, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal(s.ConsulTemplateFe, front)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
@@ -508,7 +451,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 		Addresses:     []string{s.ConsulAddress},
 		TemplatesPath: s.TemplatesPath,
 		FeFile:        ServiceTemplateFeFilename,
-		FeTemplate:    s.ConsulTemplateFe,
+		FeTemplate:    "",
 		BeFile:        ServiceTemplateBeFilename,
 		BeTemplate:    s.ConsulTemplateBe,
 		ServiceName:   s.ServiceName,
@@ -517,42 +460,6 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 	s.reconfigure.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplate_WhenModeIsService() {
-	s.reconfigure.Mode = "service"
-	var actualFilename, actualData string
-	expectedFilename := fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName)
-	writeFeTemplateOrig := writeFeTemplate
-	defer func() { writeFeTemplate = writeFeTemplateOrig }()
-	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(expectedFilename, actualFilename)
-	s.Equal(s.ConsulTemplateFe, actualData)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplate_WhenModeIsSwarm() {
-	s.reconfigure.Mode = "sWarm"
-	var actualFilename, actualData string
-	expectedFilename := fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName)
-	writeFeTemplateOrig := writeFeTemplate
-	defer func() { writeFeTemplate = writeFeTemplateOrig }()
-	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(expectedFilename, actualFilename)
-	s.Equal(s.ConsulTemplateFe, actualData)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() {
@@ -613,28 +520,6 @@ backend %s-be%s
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
-}
-
-func (s ReconfigureTestSuite) Test_Execute_WritesFeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {
-	s.reconfigure.Mode = "sWarm"
-	s.reconfigure.AclName = "my-acl"
-	var actualFilename, actualData string
-	expectedFilename := fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.reconfigure.AclName)
-	expectedTemplate := `
-    acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
-    use_backend my-acl-be if url_myService`
-	writeFeTemplateOrig := writeFeTemplate
-	defer func() { writeFeTemplate = writeFeTemplateOrig }()
-	writeFeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(expectedFilename, actualFilename)
-	s.Equal(expectedTemplate, actualData)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {

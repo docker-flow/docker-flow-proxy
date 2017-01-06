@@ -77,7 +77,14 @@ func (m Consul) DeleteService(addresses []string, serviceName, instanceName stri
 }
 
 func (m Consul) CreateConfigs(args *CreateConfigsArgs) error {
-	if err := m.createConfig(args.Addresses, args.TemplatesPath, args.FeFile, args.FeTemplate, args.ServiceName, "fe"); err != nil {
+	if err := m.createConfig(
+		args.Addresses,
+		args.TemplatesPath,
+		args.FeFile,
+		args.FeTemplate,
+		args.ServiceName,
+		"fe",
+	); err != nil {
 		return err
 	}
 	if err := m.createConfig(
@@ -108,16 +115,19 @@ func (m Consul) GetServiceAttribute(addresses []string, serviceName, key, instan
 }
 
 func (m Consul) createConfig(addresses []string, templatesPath, file, template, serviceName, confType string) error {
-	src := fmt.Sprintf("%s/%s", templatesPath, file)
-	WriteConsulTemplateFile(src, []byte(template), 0664)
-	dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
-	var err error
-	for _, address := range addresses {
-		if err = m.runConsulTemplateCmd(src, dest, address); err == nil {
-			return nil
+	if len(template) > 0 {
+		src := fmt.Sprintf("%s/%s", templatesPath, file)
+		WriteConsulTemplateFile(src, []byte(template), 0664)
+		dest := fmt.Sprintf("%s/%s-%s", templatesPath, serviceName, confType)
+		var err error
+		for _, address := range addresses {
+			if err = m.runConsulTemplateCmd(src, dest, address); err == nil {
+				return nil
+			}
 		}
+		return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
 	}
-	return fmt.Errorf("Could not create Consul configuration %s from the template %s\n%s", dest, src, err.Error())
+	return nil
 }
 
 func (m Consul) sendRequest(requestType string, addresses []string, serviceName, key, value, instanceName string) error {

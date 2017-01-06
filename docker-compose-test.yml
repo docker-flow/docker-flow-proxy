@@ -57,6 +57,18 @@ services:
     working_dir: /usr/src/myapp
     command: bash -c "go get -d -v -t && go test --run IntegrationTest ./..."
 
+  staging-swarm:
+    image: vfarcic/docker-flow-proxy-test
+    volumes:
+      - .:/usr/src/myapp
+      - /tmp/go:/go
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - HOST_IP=${HOST_IP}
+      - DOCKER_HUB_USER=${DOCKER_HUB_USER}
+    working_dir: /usr/src/myapp
+    command: bash -c "go get -d -v -t && go test --run IntegrationSwarmTest ./..."
+
   staging-general:
     extends:
       service: staging

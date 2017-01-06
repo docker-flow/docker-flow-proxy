@@ -84,15 +84,16 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenP
 	s.Equal(expected, actual)
 }
 
-func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
-	OsRemove = func(name string) error {
-		return fmt.Errorf("The file could not be removed")
-	}
-
-	err := s.remove.Execute([]string{})
-
-	s.Error(err)
-}
+// TODO: Remove. Files not be used when everything is moved to in-memory
+//func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenFailure() {
+//	OsRemove = func(name string) error {
+//		return fmt.Errorf("The file could not be removed")
+//	}
+//
+//	err := s.remove.Execute([]string{})
+//
+//	s.Error(err)
+//}
 
 func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyCreateConfigFromTemplates() {
 	proxyOrig := proxy.Instance

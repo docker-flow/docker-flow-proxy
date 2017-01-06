@@ -42,11 +42,11 @@ func (m *Remove) Execute(args []string) error {
 		logPrintf(err.Error())
 		return err
 	}
+	proxy.Instance.RemoveService(m.ServiceName)
 	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
-	proxy.Instance.RemoveService(m.ServiceName)
 	reload := Reload{}
 	if err := reload.Execute(); err != nil {
 		logPrintf(err.Error())
@@ -67,9 +67,11 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string, registr
 	mu.Lock()
 	defer mu.Unlock()
 	for _, path := range paths {
-		if err := OsRemove(path); err != nil {
-			return err
-		}
+		OsRemove(path)
+		// TODO: Remove commented. Files not be used when everything is moved to in-memory
+//		if err := OsRemove(path); err != nil {
+//			return err
+//		}
 	}
 	if !strings.EqualFold(mode, "service") && !strings.EqualFold(mode, "swarm") {
 		var err error

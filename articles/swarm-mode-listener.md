@@ -313,17 +313,17 @@ The command is as follows.
 
 ```bash
 docker service create --name go-demo \
-  -e DB=go-demo-db \
-  --network go-demo \
-  --network proxy \
-  --label com.df.notify=true \
-  --label com.df.distribute=true \
-  --label com.df.servicePath=/something \
-  --label com.df.port=8080 \
-  --label com.df.reqPathSearch='/something/' \
-  --label com.df.reqPathReplace='/demo/' \
-  --replicas 3 \
-  vfarcic/go-demo
+    -e DB=go-demo-db \
+    --network go-demo \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/something \
+    --label com.df.port=8080 \
+    --label com.df.reqPathSearch='/something/' \
+    --label com.df.reqPathReplace='/demo/' \
+    --replicas 3 \
+    vfarcic/go-demo
 ```
 
 Please notice that, this time, the `servicePath` is `/something`. The `reqPathSearch` specifies the regular expression that will be used to search for part of the address and the `reqPathReplace` will replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses the *regsub* function within the *http-request set-path* directive to apply a regex-based substitution which operates as the well-known *sed* utility with `"s/<regex>/<subst>/"`. For more information, please consult [Configuration: 4.2 http-request](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-http-request) and [Configuration: 7.3.1 regsub](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#7.3.1-regsub).
@@ -382,7 +382,7 @@ To configure the proxy to protect all the services, we need to specify the envir
 As an example, we'll update the `proxy` service by adding the environment variable `USERS`.
 
 ```bash
-docker service update --env-add "USERS=my-user:my-pass" proxy
+    docker service update --env-add "USERS=my-user:my-pass" proxy
 ```
 
 Please wait a few moments until all the instances of the `proxy` are updated. You can monitor the status with the `docker service ps proxy` command.

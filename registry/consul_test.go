@@ -450,6 +450,31 @@ func (s *ConsulTestSuite) Test_CreateConfigs_WritesTemplateToFile() {
 	s.Equal(expected, actual)
 }
 
+func (s *ConsulTestSuite) Test_CreateConfigs_DoesNotWriteFrontTemplate_WhenEmpty() {
+	var actual []string
+	expected := []string{
+		fmt.Sprintf("%s/%s", s.templatesPath, s.beTemplateName),
+	}
+	WriteConsulTemplateFile = func(filename string, data []byte, perm os.FileMode) error {
+		actual = append(actual, filename)
+		return nil
+	}
+	args := CreateConfigsArgs{
+		Addresses:     []string{"http://consul.io"},
+		TemplatesPath: "/path/to/templates",
+		FeFile:        "",
+		FeTemplate:    "",
+		BeFile:        "my-be-template.ctmpl",
+		BeTemplate:    "this is a BE template",
+		ServiceName:   "my-service",
+	}
+
+	s.createConfigsArgs.Addresses = []string{fmt.Sprintf("HttP://%s", s.consulAddress)}
+	Consul{}.CreateConfigs(&args)
+
+	s.Equal(expected, actual)
+}
+
 func (s *ConsulTestSuite) Test_CreateConfigs_SetsFilePermissions() {
 	var actual os.FileMode
 	var expected os.FileMode = 0664

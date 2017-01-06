@@ -223,7 +223,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	for _, s := range data.Services {
-		d.ContentFrontend = m.getFrontTemplate(s)
+		d.ContentFrontend += m.getFrontTemplate(s)
 	}
 	return d
 }

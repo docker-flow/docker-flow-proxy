@@ -169,9 +169,7 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 		{"8080", &serverImpl.Port},
 	}
 
-	println("111")
 	Args{}.Parse()
-	println("999")
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}

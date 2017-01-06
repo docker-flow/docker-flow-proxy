@@ -6,6 +6,10 @@ The project is developed using *Test Driven Development* and *Continuous Deploym
 
 Once you are finish implementing a new feature or fixing a bug, run the *Complete Cycle*. You'll find the instructions below.
 
+## Repository
+
+Fork [docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy).
+
 ## Unit Testing
 
 ```bash
@@ -17,7 +21,7 @@ go test ./... -cover -run UnitTest
 ```bash
 docker-compose -f docker-compose-test.yml run --rm unit
 
-docker build -t vfarcic/docker-flow-proxy .
+docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
 
 ## Complete Cycle (Unit, Build, Staging)
@@ -30,22 +34,32 @@ docker-machine create -d virtualbox tests
 eval $(docker-machine env tests)
 
 export HOST_IP=$(docker-machine ip tests)
+
+export DOCKER_HUB_USER=vfarcic # Change vfarcic to your user
 ```
 
 ### Unit Tests & Build
 
 ```bash
 docker-compose -f docker-compose-test.yml run --rm unit
+
+docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
 
 ### Staging (Integration) Tests
 
 ```bash
-docker build -t vfarcic/docker-flow-proxy .
-
 docker-compose -f docker-compose-test.yml up -d staging-dep
 
 docker-compose -f docker-compose-test.yml run --rm staging
+
+docker-compose -f docker-compose-test.yml down
+
+docker tag $DOCKER_HUB_USER/docker-flow-proxy $DOCKER_HUB_USER/docker-flow-proxy:beta
+
+docker push $DOCKER_HUB_USER/docker-flow-proxy:beta
+
+docker-compose -f docker-compose-test.yml run --rm staging-swarm
 ```
 
 ### Cleanup
@@ -53,3 +67,7 @@ docker-compose -f docker-compose-test.yml run --rm staging
 ```bash
 docker-machine rm -f tests
 ```
+
+## Pull Request
+
+Once the feature is done, create a pull request.
