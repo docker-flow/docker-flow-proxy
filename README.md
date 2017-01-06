@@ -81,9 +81,18 @@ Default error messages are stored in the `/errorfiles` directory inside the *Doc
 
 ### Reconfigure
 
-> Reconfigures the proxy using information stored in Consul
+> Reconfigures the proxy
 
-The following query arguments can be used to send as a *reconfigure* request to *Docker Flow: Proxy*. They should be added to the base address **<PROXY_IP>:<PROXY_PORT>/v1/docker-flow-proxy/reconfigure**.
+The proxy can be reconfigured to use request mode *http* or *tcp*. The default value of the request mode is *http* and can be changed with the parameter `reqMode`.
+
+The following query parameters can be used to send as a *reconfigure* request to *Docker Flow: Proxy*. They apply to any request mode and should be added to the base address **<PROXY_IP>:<PROXY_PORT>/v1/docker-flow-proxy/reconfigure**.
+
+|Query        |Description                                                                     |Required|Default|Example      |
+|-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
+|reqMode      |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected.|Yes|http|tcp|
+|serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes||go-demo|
+
+The following query parameters can be used when `reqMode` is set to `http` or is empty.
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
@@ -99,7 +108,6 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |reqPathSearch |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No||/something/|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No|||
 |serviceDomain|The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No||ecme.com|
-|serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes     |       |go-demo      |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes||/api/v1/books|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 |srcPort      |The source (entry) port of a service. Useful only when specifying multiple destinations of a single service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|No||80|
@@ -107,7 +115,16 @@ The following query arguments can be used to send as a *reconfigure* request to 
 |templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well. See the [Templates](#templates) section for more info.|||/templates/go-demo-fe.tmpl|
 |users        |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.|No||user1:pass1,user2:pass2|
 
+The following query parameters can be used when `reqMode` is set to `tcp`.
+
+|Query        |Description                                                                     |Required|Default|Example      |
+|-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
+|srcPort      |The source (entry) port of a service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|Yes||6378|
+|port         |The internal port of a service that should be reconfigured. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Yes||6379|
+
 Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath` and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
+
+Please consult the [Using TCP Request Mode](articles/swarm-mode-listener.md#using-tcp-request-mode) section for an example of working with `tcp` request mode.
 
 An example request is as follows.
 

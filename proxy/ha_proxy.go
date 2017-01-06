@@ -34,6 +34,7 @@ type ConfigData struct {
 	ExtraDefaults        string
 	ExtraFrontend        string
 	ContentFrontend      string
+	ContentFrontendTcp   string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -223,9 +224,26 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	for _, s := range data.Services {
-		d.ContentFrontend += m.getFrontTemplate(s)
+		if len(s.ReqMode) == 0 {
+			s.ReqMode = "http"
+		}
+		if strings.EqualFold(s.ReqMode, "http") {
+			d.ContentFrontend += m.getFrontTemplate(s)
+		} else {
+			d.ContentFrontendTcp += m.getFrontTemplateTcp(s)
+		}
 	}
 	return d
+}
+
+func (m *HaProxy) getFrontTemplateTcp(s Service) string {
+	tmplString := `{{range .ServiceDest}}
+
+frontend {{$.ServiceName}}_{{.SrcPort}}
+    bind *:{{.SrcPort}}
+    mode tcp
+    default_backend {{$.ServiceName}}-be{{.SrcPort}}{{end}}`
+	return m.templateToString(tmplString, s)
 }
 
 func (m *HaProxy) getFrontTemplate(s Service) string {
@@ -257,8 +275,12 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 		tmplString += ` http_{{$.ServiceName}}{{range .ServiceDest}}
     use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
 	}
-	tmpl, _ := template.New("template").Parse(tmplString)
+	return m.templateToString(tmplString, s)
+}
+
+func (m *HaProxy) templateToString(templateString string, service Service) string {
+	tmpl, _ := template.New("template").Parse(templateString)
 	var b bytes.Buffer
-	tmpl.Execute(&b, s)
+	tmpl.Execute(&b, service)
 	return b.String()
 }

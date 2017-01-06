@@ -12,6 +12,7 @@
     * [Global Authentication](#global-authentication)
     * [Service Authentication](#service-authentication)
 
+  * [Using TCP Request Mode](#using-tcp-request-mode)
   * [Configuring Service SSLs And Proxying HTTPS Requests](#configuring-service-ssls-and-proxying-https-requests)
 
 * [The Flow Explained](#the-flow-explained)
@@ -382,7 +383,7 @@ To configure the proxy to protect all the services, we need to specify the envir
 As an example, we'll update the `proxy` service by adding the environment variable `USERS`.
 
 ```bash
-    docker service update --env-add "USERS=my-user:my-pass" proxy
+docker service update --env-add "USERS=my-user:my-pass" proxy
 ```
 
 Please wait a few moments until all the instances of the `proxy` are updated. You can monitor the status with the `docker service ps proxy` command.
@@ -516,6 +517,61 @@ docker service create --name go-demo \
     --label com.df.servicePath=/demo \
     --label com.df.port=8080 \
     vfarcic/go-demo
+```
+
+## Using TCP Request Mode
+
+All the examples we run by now were limited to the HTTP protocol. *Docker Flow: Proxy* allows us to use *TCP* request mode as well.
+
+We'll start by publishing a new port in the `proxy` service.
+
+```bash
+docker service update \
+    --publish-add 6379:6379 \
+    proxy
+```
+
+Please wait a few moments until Swarm updates all the proxy instances. You can monitor the progress by executing `docker service ps proxy`.
+
+Let us create a service that will allow us to test whether `tcp` protocol works. We'll use *Redis* for this purpose.
+
+```bash
+docker service create --name redis \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.port=6379 \
+    --label com.df.srcPort=6379 \
+    --label com.df.reqMode=tcp \
+    redis:3.2
+```
+
+In addition to the labels we used before, we added `reqMode` with value `tcp`. The `swarm-listener` service will send a `reconfigure` request to the `proxy` which will add a new service `redis`. The new `proxy` configuration will listen to the port `6379` (`srcPort`) and forward requests to `redis` listening the same port `6379` (`port`).
+
+Let's test whether the setup works.
+
+```bash
+docker-machine ssh node-1
+
+telnet localhost 6379
+
+PING
+```
+
+We entered one of the machines, started a telnet session.
+
+The output is as follows.
+
+```
++PONG
+```
+
+Redis responded with `PONG` proving that the `proxy` established `tcp` connection.
+
+After a period of inactivity, `redis` will close the connection, and we can exit the machine.
+
+```bash
+exit
 ```
 
 ## Configuring Service SSLs And Proxying HTTPS Requests

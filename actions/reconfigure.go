@@ -30,7 +30,7 @@ type Reconfigurable interface {
 type Reconfigure struct {
 	BaseReconfigure
 	proxy.Service
-	Mode            	  string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
+	Mode string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 }
 
 type BaseReconfigure struct {
@@ -46,8 +46,8 @@ var ReconfigureInstance Reconfigure
 var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
 	return &Reconfigure{
 		BaseReconfigure: baseData,
-		Service: serviceData,
-		Mode: mode,
+		Service:         serviceData,
+		Mode:            mode,
 	}
 }
 
@@ -180,7 +180,7 @@ func (m *Reconfigure) getService(addresses []string, serviceName, instanceName s
 	port, _ := m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
 	sd := proxy.ServiceDest{
 		ServicePath: strings.Split(path, ","),
-		Port: port,
+		Port:        port,
 	}
 	if err == nil {
 		sr.ServiceDest = []proxy.ServiceDest{sd}
@@ -289,6 +289,9 @@ func (m *Reconfigure) GetTemplates(sr *proxy.Service) (front, back string, err e
 			return "", "", err
 		}
 	} else {
+		if len(sr.ReqMode) == 0 {
+			sr.ReqMode = "http"
+		}
 		m.formatData(sr)
 		front, back = m.parseTemplate(
 			"",
@@ -345,7 +348,7 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service
 	}
 	tmpl := fmt.Sprintf(`{{range .ServiceDest}}
 backend %s{{$.AclName}}-be{{.Port}}
-    mode http`,
+    mode {{$.ReqMode}}`,
 		prefix,
 	)
 	// TODO: Deprecated (dec. 2016).

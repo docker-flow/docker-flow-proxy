@@ -1,23 +1,23 @@
 package integration_test
 
 import (
-	"github.com/stretchr/testify/suite"
-	"os/exec"
-	"testing"
 	"fmt"
-	"os"
-	"net/http"
-	"strings"
-	"time"
+	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"net/http"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
 )
 
 // Setup
 
 type IntegrationSwarmTestSuite struct {
 	suite.Suite
-	hostIP         string
-	dockerHubUser  string
+	hostIP        string
+	dockerHubUser string
 }
 
 func (s *IntegrationSwarmTestSuite) SetupTest() {
@@ -40,6 +40,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -p 80:80 \
     -p 443:443 \
     -p 8080:8080 \
+    -p 6379:6379 \
     --network proxy \
     -e MODE=swarm \
     %s/docker-flow-proxy:beta`,
@@ -169,6 +170,28 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 }
 
+func (s IntegrationSwarmTestSuite) Test_Tcp() {
+	defer func() {
+		s.removeServices("redis")
+	}()
+	cmd := `docker service create --name redis \
+	--network proxy \
+	redis:3.2`
+	exec.Command("/bin/sh", "-c", cmd).Output()
+	s.waitForContainers(2)
+	s.reconfigureRedis()
+
+	cmd = fmt.Sprintf("ADDR=%s PORT=6379 /usr/src/myapp/integration_tests/redis_check.sh", s.hostIP)
+	out, err := exec.Command("/bin/sh", "-c", cmd).Output()
+
+	s.NoError(
+		err,
+		"CONFIG\n%s\n\nOUT:\n%s",
+		s.getProxyConf(),
+		string(out),
+	)
+}
+
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int) bool {
@@ -226,17 +249,29 @@ func (s *IntegrationSwarmTestSuite) sendHelloRequest() (*http.Response, error) {
 }
 
 func (s *IntegrationSwarmTestSuite) reconfigureGoDemo(extraParams string) {
+	params := fmt.Sprintf("serviceName=go-demo&servicePath=/demo&port=8080%s", extraParams)
+	s.reconfigureService(params)
+}
+
+func (s *IntegrationSwarmTestSuite) reconfigureRedis() {
+	s.reconfigureService("serviceName=redis&port=6379&srcPort=6379&reqMode=tcp")
+}
+
+func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
 	url := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/demo&port=8080%s",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?%s",
 		s.hostIP,
-		extraParams,
+		params,
 	)
 	resp, err := http.Get(url)
 	if err != nil {
 		s.Fail(err.Error())
 	} else {
 		msg := fmt.Sprintf(
-			"Failed to reconfigure the proxy by sending a request to URL %s\n\nThe configuration:\n%s",
+			`Failed to reconfigure the proxy by sending a request to URL %s
+
+CONFIGURATION:
+%s`,
 			url,
 			s.getProxyConf())
 		s.Equal(200, resp.StatusCode, msg)

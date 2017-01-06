@@ -244,11 +244,42 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service"] = Service{
 		ServiceName: "my-service-1",
-		PathType: "path_beg",
-		AclName: "my-acl",
+		PathType:    "path_beg",
+		AclName:     "my-acl",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: " port1111Acl", SrcPortAclName: " my-src-port"},
 			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: " port2222Acl"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend my-service-1_1234
+    bind *:1234
+    mode tcp
+    default_backend my-service-1-be1234%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service-1"] = Service{
+		ReqMode: "tcp",
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321"},
 		},
 	}
 
@@ -274,10 +305,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service"] = Service{
-		ServiceName: "my-service",
+		ServiceName:   "my-service",
 		ServiceDomain: []string{"domain-1", "domain-2"},
-		AclName: "my-service",
-		PathType: "path_beg",
+		AclName:       "my-service",
+		PathType:      "path_beg",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
@@ -303,7 +334,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service"] = Service{
-		ServiceName: "my-service",
+		ServiceName:   "my-service",
 		ServiceDomain: []string{"*domain-1"},
 	}
 
@@ -332,9 +363,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service"] = Service{
 		ServiceName: "my-service",
-		PathType: "path_beg",
-		HttpsPort: 2222,
-		AclName: "my-service",
+		PathType:    "path_beg",
+		HttpsPort:   2222,
+		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},

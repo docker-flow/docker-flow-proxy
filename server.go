@@ -22,7 +22,7 @@ type Server interface {
 }
 
 type Serve struct {
-	IP              string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	IP string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
 	// The default mode is designed to work with any setup and requires Consul and Registrator.
 	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
 	// The later mode (swarm) does not have any dependency but Docker Engine.
@@ -101,16 +101,28 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (m *Serve) isValidReconf(name string, sd []server.ServiceDest, domain []string, templateFePath string) bool {
-	hasPath := len(sd) > 0 && len(sd[0].Path) > 0
-	return len(name) > 0 && (hasPath || len(templateFePath) > 0)
+func (m *Serve) isValidReconf(service *proxy.Service) (bool, string) {
+	if len(service.ServiceName) == 0 || len(service.ServiceDest) == 0 {
+		return false, "serviceName parameter is mandatory"
+	}
+	hasPath := len(service.ServiceDest[0].ServicePath) > 0
+	hasSrcPort := service.ServiceDest[0].SrcPort > 0
+	hasPort := len(service.ServiceDest[0].Port) > 0
+	if strings.EqualFold(service.ReqMode, "http") {
+		if (!hasPath && len(service.ConsulTemplateFePath) == 0) {
+			return false, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
+		}
+	} else if !hasSrcPort || !hasPort {
+		return false, "When NOT using reqMode http (e.g. tcp), srcPort and port parameters are mandatory."
+	}
+	return true, ""
 }
 
 func (m *Serve) isSwarm(mode string) bool {
 	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
 }
 
-func (m *Serve) hasPort(sd []server.ServiceDest) bool {
+func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
 }
 
@@ -121,18 +133,13 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	}
 	port := req.URL.Query().Get("port")
 	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
-	asd := []proxy.ServiceDest{}
-	ssd := []server.ServiceDest{}
+	sd := []proxy.ServiceDest{}
 	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
 	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
 	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
-		asd = append(
-			asd,
+		sd = append(
+			sd,
 			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
-		)
-		ssd = append(
-			ssd,
-			server.ServiceDest{Port: port, SrcPort: srcPort, Path: path},
 		)
 	}
 	for i := 1; i <= 10; i++ {
@@ -140,20 +147,16 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
 		srcPort, _ := strconv.Atoi(req.URL.Query().Get(fmt.Sprintf("srcPort.%d", i)))
 		if len(path) > 0 && len(port) > 0 {
-			asd = append(
-				asd,
+			sd = append(
+				sd,
 				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
-			)
-			ssd = append(
-				ssd,
-				server.ServiceDest{Port: port, SrcPort: srcPort, Path: strings.Split(path, ",")},
 			)
 		} else {
 			break
 		}
 	}
 	sr := proxy.Service{
-		ServiceDest:          asd,
+		ServiceDest:          sd,
 		ServiceName:          req.URL.Query().Get("serviceName"),
 		AclName:              req.URL.Query().Get("aclName"),
 		ServiceColor:         req.URL.Query().Get("serviceColor"),
@@ -162,12 +165,17 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ConsulTemplateFePath: ctmplFePath,
 		ConsulTemplateBePath: ctmplBePath,
 		PathType:             req.URL.Query().Get("pathType"),
-		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"), // TODO: Deprecated (dec. 2016).
+		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),  // TODO: Deprecated (dec. 2016).
 		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"), // TODO: Deprecated (dec. 2016).
-		ReqPathSearch:         req.URL.Query().Get("reqPathSearch"),
-		ReqPathReplace:        req.URL.Query().Get("reqPathReplace"),
+		ReqPathSearch:        req.URL.Query().Get("reqPathSearch"),
+		ReqPathReplace:       req.URL.Query().Get("reqPathReplace"),
 		TemplateFePath:       req.URL.Query().Get("templateFePath"),
 		TemplateBePath:       req.URL.Query().Get("templateBePath"),
+	}
+	if len(req.URL.Query().Get("reqMode")) > 0 {
+		sr.ReqMode = req.URL.Query().Get("reqMode")
+	} else {
+		sr.ReqMode = "http"
 	}
 	if len(req.URL.Query().Get("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
@@ -189,31 +197,36 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	response := server.Response{
-		Status:               "OK",
-		ServiceName:          sr.ServiceName,
-		AclName:              sr.AclName,
-		ServiceColor:         sr.ServiceColor,
-		ServiceDomain:        sr.ServiceDomain,
-		ServiceCert:          sr.ServiceCert,
-		OutboundHostname:     sr.OutboundHostname,
-		ConsulTemplateFePath: sr.ConsulTemplateFePath,
-		ConsulTemplateBePath: sr.ConsulTemplateBePath,
-		PathType:             sr.PathType,
-		SkipCheck:            sr.SkipCheck,
-		Mode:                 m.Mode,
-		HttpsPort:            sr.HttpsPort,
-		Distribute:           sr.Distribute,
-		Users:                sr.Users,
-		ReqRepSearch:         sr.ReqRepSearch, // TODO: Deprecated (dec. 2016).
-		ReqRepReplace:        sr.ReqRepReplace, // TODO: Deprecated (dec. 2016).
-		ReqPathSearch:         sr.ReqPathSearch,
-		ReqPathReplace:        sr.ReqPathReplace,
-		TemplateFePath:       sr.TemplateFePath,
-		TemplateBePath:       sr.TemplateBePath,
-		ServiceDest:          ssd,
+		Mode:       	m.Mode,
+		Status:     	"OK",
+		ServiceName:    sr.ServiceName,
+		Service: 	proxy.Service{
+			ServiceName:          sr.ServiceName,
+			AclName:              sr.AclName,
+			ServiceColor:         sr.ServiceColor,
+			ServiceDomain:        sr.ServiceDomain,
+			ServiceCert:          sr.ServiceCert,
+			OutboundHostname:     sr.OutboundHostname,
+			ConsulTemplateFePath: sr.ConsulTemplateFePath,
+			ConsulTemplateBePath: sr.ConsulTemplateBePath,
+			PathType:             sr.PathType,
+			SkipCheck:            sr.SkipCheck,
+			HttpsPort:            sr.HttpsPort,
+			Distribute:           sr.Distribute,
+			Users:                sr.Users,
+			ReqRepSearch:         sr.ReqRepSearch, // TODO: Deprecated (dec. 2016).
+			ReqRepReplace:        sr.ReqRepReplace, // TODO: Deprecated (dec. 2016).
+			ReqPathSearch:        sr.ReqPathSearch,
+			ReqPathReplace:       sr.ReqPathReplace,
+			TemplateFePath:       sr.TemplateFePath,
+			TemplateBePath:       sr.TemplateBePath,
+			ServiceDest:          sd,
+			ReqMode:              sr.ReqMode,
+		},
 	}
-	if m.isValidReconf(sr.ServiceName, ssd, sr.ServiceDomain, sr.ConsulTemplateFePath) {
-		if m.isSwarm(m.Mode) && !m.hasPort(ssd) {
+	ok, msg := m.isValidReconf(&sr)
+	if ok {
+		if m.isSwarm(m.Mode) && !m.hasPort(sd) {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			srv := server.Serve{}
@@ -241,7 +254,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	} else {
-		m.writeBadRequest(w, &response, "The following queries are mandatory: (serviceName and servicePath) or (serviceName, consulTemplateFePath, and consulTemplateBePath)")
+		m.writeBadRequest(w, &response, msg)
 	}
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)

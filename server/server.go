@@ -20,36 +20,12 @@ func NewServer() *Serve {
 	return &Serve{}
 }
 
-type ServiceDest struct {
-	Port    string
-	Path    []string
-	SrcPort int
-}
-
 type Response struct {
+	Mode                 string
 	Status               string
 	Message              string
 	ServiceName          string
-	AclName              string
-	ServiceColor         string
-	ServiceDomain        []string
-	ServiceCert          string
-	OutboundHostname     string
-	ConsulTemplateFePath string
-	ConsulTemplateBePath string
-	PathType             string
-	SkipCheck            bool
-	Mode                 string
-	HttpsPort            int
-	Distribute           bool
-	Users                []proxy.User
-	ReqRepSearch         string // TODO: Deprecated (dec. 2016).
-	ReqRepReplace        string // TODO: Deprecated (dec. 2016).
-	ReqPathSearch         string
-	ReqPathReplace        string
-	TemplateFePath       string
-	TemplateBePath       string
-	ServiceDest          []ServiceDest
+	proxy.Service
 }
 
 func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName string) (status int, err error) {
