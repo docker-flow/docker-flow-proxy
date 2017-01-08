@@ -1,0 +1,17 @@
+site_name: Docker Flow Proxy
+pages:
+  - Home: index.md
+  - Users Guide:
+    - Swarm Mode (Automatic): swarm-mode-auto.md
+    - Swarm Mode (Manual): swarm-mode-manual.md
+    - Standard Mode: standard-mode.md
+    - Configuration: config.md
+    - Usage: usage.md
+  - About:
+    - Release Notes: release-notes.md
+    - Feedback and Contribution: feedback-and-contribution.md
+    - License: license.md
+repo_url: https://github.com/vfarcic/docker-flow-proxy
+site_author: Viktor Farcic
+copyright: Copyright © 2017 Viktor Farcic
+strict: true
