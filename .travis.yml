@@ -9,7 +9,6 @@ services:
   - docker
 
 script:
-  - ifconfig
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.6 bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... --run UnitTest && go build -v -o docker-flow-proxy"
   - docker build -t vfarcic/docker-flow-proxy .
   - docker-compose -f docker-compose-test.yml up -d staging-dep
@@ -25,6 +24,9 @@ after_success:
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || false'
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker push vfarcic/docker-flow-proxy:${VERSION} || false'
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker push vfarcic/docker-flow-proxy || false'
+  - docker-compose -f docker-compose-test.yml run --rm docs
+  - docker build -t vfarcic/docker-flow-proxy-docs -f Dockerfile.docs .
+  - docker push vfarcic/docker-flow-proxy-docs
 
 branches:
   only:

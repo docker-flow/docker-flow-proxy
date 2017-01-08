@@ -8,7 +8,11 @@ The *Docker Flow: Proxy* project welcomes, and depends, on contributions from de
 
 ## Reporting an Issue
 
-Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues). Please include as much detail as you can. If an issue is a bug, please provide steps to reproduce it. Please specify the use-case behind a requests for new features.
+Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues). Include as much detail as you can.
+
+If an issue is a bug, please provide steps to reproduce it.
+
+If an issue is a request for a new feature, please specify the use-case behind it.
 
 ## Contributing To The Project
 
@@ -41,12 +45,6 @@ docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
 #### Setup
 
 ```bash
-docker-machine create -d virtualbox tests
-
-eval $(docker-machine env tests)
-
-# export HOST_IP=$(docker-machine ip tests)
-
 export HOST_IP=[...] # Change to the IP of your host
 
 export DOCKER_HUB_USER=vfarcic # Change vfarcic to your user
@@ -74,12 +72,6 @@ docker tag $DOCKER_HUB_USER/docker-flow-proxy $DOCKER_HUB_USER/docker-flow-proxy
 docker push $DOCKER_HUB_USER/docker-flow-proxy:beta
 
 docker-compose -f docker-compose-test.yml run --rm staging-swarm
-```
-
-#### Cleanup
-
-```bash
-docker-machine rm -f tests
 ```
 
 ### Pull Request

@@ -1,5 +1,5 @@
 ```bash
-mkdocs build
+docker-compose -f docker-compose-test.yml run --rm docs
 
 docker build \
     -t vfarcic/docker-flow-proxy-docs \

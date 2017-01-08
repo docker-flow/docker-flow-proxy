@@ -95,3 +95,9 @@ services:
       - 8080
     depends_on:
       - consul
+
+  docs:
+    image: cilerler/mkdocs
+    volumes:
+      - .:/docs
+    command: mkdocs build
