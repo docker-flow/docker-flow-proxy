@@ -30,9 +30,6 @@ services:
       - consul
       - registrator
       - app-1
-      - app-2
-      - app-3
-      - app-4
 
   staging-service-proxy:
     image: vfarcic/docker-flow-proxy
@@ -85,7 +82,7 @@ services:
     image: gliderlabs/registrator
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
-    command: -ip registrator consul://consul:8500
+    command: -ip app-1 -internal consul://consul:8500
     depends_on:
       - consul
 
@@ -94,36 +91,6 @@ services:
     environment:
       CONSUL_ADDRESS: consul:8500
       SERVICE_8080_NAME: test-service
-    ports:
-      - 8080
-    depends_on:
-      - consul
-
-  app-2:
-    image: vfarcic/docker-flow-proxy
-    environment:
-      CONSUL_ADDRESS: consul:8500
-      SERVICE_8080_NAME: test-service
-    ports:
-      - 8080
-    depends_on:
-      - consul
-
-  app-3:
-    image: vfarcic/docker-flow-proxy
-    environment:
-      CONSUL_ADDRESS: consul:8500
-      SERVICE_8080_NAME: test-service
-    ports:
-      - 8080
-    depends_on:
-      - consul
-
-  app-4:
-    image: vfarcic/docker-flow-proxy
-    environment:
-      CONSUL_ADDRESS: consul:8500
-      SERVICE_8080_NAME: test-other-service
     ports:
       - 8080
     depends_on:
