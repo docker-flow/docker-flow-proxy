@@ -1,5 +1,6 @@
 env:
   - VERSION=1.${TRAVIS_BUILD_NUMBER}
+  - DOCKER_HUB_USER=vfarcic
 
 sudo: required
 
@@ -14,8 +15,9 @@ script:
   - docker-compose -f docker-compose-test.yml run --rm staging
   - docker-compose -f docker-compose-test.yml down
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - docker push vfarcic/docker-flow-proxy:beta
-  - DOCKER_HUB_USER=vfarcic docker-compose -f docker-compose-test.yml run --rm staging-swarm
+  - HOST_IP=$(ifconfig en0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1') docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
 after_success:
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:${VERSION}
