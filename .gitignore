@@ -7,3 +7,6 @@
 /certs/test.pem
 /*.log
 /*-token
+secrets*
+do/proxy-key*
+/site

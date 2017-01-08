@@ -1,0 +1,4 @@
+FROM nginx:1.11-alpine
+MAINTAINER 	Viktor Farcic <viktor@farcic.com>
+
+COPY site /usr/share/nginx/html
