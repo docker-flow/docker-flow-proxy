@@ -1,5 +1,7 @@
 env:
-  - VERSION=1.${TRAVIS_BUILD_NUMBER}
+  global:
+    - VERSION=1.${TRAVIS_BUILD_NUMBER}
+    - DOCKER_HUB_USER=vfarcic
 
 sudo: required
 
@@ -7,12 +9,20 @@ services:
   - docker
 
 script:
+  - ifconfig
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.6 bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... --run UnitTest && go build -v -o docker-flow-proxy"
+  - docker build -t vfarcic/docker-flow-proxy .
+  - docker-compose -f docker-compose-test.yml up -d staging-dep
+  - docker-compose -f docker-compose-test.yml run --rm staging
+  - docker-compose -f docker-compose-test.yml down
+  - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker push vfarcic/docker-flow-proxy:beta
+  - HOST_IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1') docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
 after_success:
-  - docker build -t vfarcic/docker-flow-proxy:${VERSION} .
-  - docker tag vfarcic/docker-flow-proxy:${VERSION} vfarcic/docker-flow-proxy
-  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || false'
+  - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:${VERSION}
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || false'
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker push vfarcic/docker-flow-proxy:${VERSION} || false'
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && docker push vfarcic/docker-flow-proxy || false'
 

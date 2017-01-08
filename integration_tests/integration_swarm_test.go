@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"bytes"
 )
 
 // Setup
@@ -27,6 +28,8 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s := new(IntegrationSwarmTestSuite)
 	s.hostIP = os.Getenv("HOST_IP")
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
+
+	exec.Command("/bin/sh", "-c", `docker rm $(docker ps -qa)`).Output()
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
 	exec.Command("/bin/sh", "-c", cmd).Output()
@@ -174,21 +177,27 @@ func (s IntegrationSwarmTestSuite) Test_Tcp() {
 	defer func() {
 		s.removeServices("redis")
 	}()
-	cmd := `docker service create --name redis \
+	cmdString := `docker service create --name redis \
 	--network proxy \
 	redis:3.2`
-	exec.Command("/bin/sh", "-c", cmd).Output()
+	exec.Command("/bin/sh", "-c", cmdString).Output()
 	s.waitForContainers(2)
 	s.reconfigureRedis()
 
-	cmd = fmt.Sprintf("ADDR=%s PORT=6379 /usr/src/myapp/integration_tests/redis_check.sh", s.hostIP)
-	out, err := exec.Command("/bin/sh", "-c", cmd).Output()
+	cmdString = fmt.Sprintf("ADDR=%s PORT=6379 /usr/src/myapp/integration_tests/redis_check.sh", s.hostIP)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("/bin/sh", "-c", cmdString)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 
 	s.NoError(
 		err,
-		"CONFIG\n%s\n\nOUT:\n%s",
+		"CONFIG\n%s\n\nOUT:\n%s\n\nERR:\n%s",
 		s.getProxyConf(),
-		string(out),
+		stdout.String(),
+		stderr.String(),
 	)
 }
 
