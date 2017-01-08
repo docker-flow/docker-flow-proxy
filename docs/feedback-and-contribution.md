@@ -47,6 +47,8 @@ eval $(docker-machine env tests)
 
 # export HOST_IP=$(docker-machine ip tests)
 
+export HOST_IP=[...] # Change to the IP of your host
+
 export DOCKER_HUB_USER=vfarcic # Change vfarcic to your user
 ```
 

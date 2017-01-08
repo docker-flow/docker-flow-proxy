@@ -7,6 +7,7 @@ services:
   - docker
 
 script:
+  - ifconfig
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.6 bash -c "cd /usr/src/myapp && go get -d -v -t && go test --cover -v ./... --run UnitTest && go build -v -o docker-flow-proxy"
   - docker build -t vfarcic/docker-flow-proxy .
   - docker-compose -f docker-compose-test.yml up -d staging-dep
@@ -14,8 +15,7 @@ script:
   - docker-compose -f docker-compose-test.yml down
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
   - docker push vfarcic/docker-flow-proxy:beta
-  - DOCKER_HUB_USER=vfarcic
-  - docker swarm init --advertise-addr localhost
+  - DOCKER_HUB_USER=vfarcic docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
 after_success:
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:${VERSION}
