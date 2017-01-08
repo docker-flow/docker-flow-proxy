@@ -12,6 +12,10 @@ script:
   - docker-compose -f docker-compose-test.yml up -d staging-dep
   - docker-compose -f docker-compose-test.yml run --rm staging
   - docker-compose -f docker-compose-test.yml down
+  - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
+  - docker push vfarcic/docker-flow-proxy:beta
+  - DOCKER_HUB_USER=vfarcic
+  - docker swarm init --advertise-addr localhost
 
 after_success:
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:${VERSION}
