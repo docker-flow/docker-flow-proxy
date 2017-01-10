@@ -536,37 +536,6 @@ backend %s-be%s
 	s.Equal(expectedData, actualData)
 }
 
-func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateAsAclName_WhenModeIsSwarmAndAclNameIsPresent() {
-	s.reconfigure.Mode = "sWArm"
-	s.reconfigure.ServiceDest[0].Port = "1234"
-	s.reconfigure.AclName = "my-acl"
-	var actualFilename, actualData string
-	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.reconfigure.AclName)
-	expectedData := fmt.Sprintf(
-		`
-backend %s-be%s
-    mode http
-    server %s %s:%s`,
-		s.reconfigure.AclName,
-		s.reconfigure.ServiceDest[0].Port,
-		s.ServiceName,
-		s.ServiceName,
-		s.reconfigure.ServiceDest[0].Port,
-	)
-	writeBeTemplateOrig := writeBeTemplate
-	defer func() { writeBeTemplate = writeBeTemplateOrig }()
-	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	s.reconfigure.Execute([]string{})
-
-	s.Equal(expectedFilename, actualFilename)
-	s.Equal(expectedData, actualData)
-}
-
 func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfigs_WhenModeIsService() {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance

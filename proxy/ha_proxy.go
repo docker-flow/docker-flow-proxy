@@ -261,7 +261,7 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 		s.AclName = s.ServiceName
 	}
 	tmplString := `{{range .ServiceDest}}
-    acl url_{{$.ServiceName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
+    acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(s.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range s.ServiceDomain {
@@ -272,7 +272,7 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 		}
 		tmplString += fmt.Sprintf(
 			`
-    acl domain_{{.ServiceName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
+    acl domain_{{.AclName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
 			domFunc,
 		)
 		s.AclCondition = fmt.Sprintf(" domain_%s", s.ServiceName)
@@ -283,10 +283,10 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl https_{{.ServiceName}} src_port 443`
 	}
 	tmplString += `{{range .ServiceDest}}
-    use_backend {{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	if s.HttpsPort > 0 {
 		tmplString += ` http_{{$.ServiceName}}{{range .ServiceDest}}
-    use_backend https-{{$.AclName}}-be{{.Port}} if url_{{$.ServiceName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
+    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
 	}
 	return m.templateToString(tmplString, s)
 }

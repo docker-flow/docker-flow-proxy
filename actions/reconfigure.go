@@ -347,7 +347,7 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service
 		prefix = "https-"
 	}
 	tmpl := fmt.Sprintf(`{{range .ServiceDest}}
-backend %s{{$.AclName}}-be{{.Port}}
+backend %s{{$.ServiceName}}-be{{.Port}}
     mode {{$.ReqMode}}`,
 		prefix,
 	)

@@ -230,10 +230,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl url_my-service-11111 path_beg /path-1 path_beg /path-2 port1111Acl
-    acl url_my-service-12222 path_beg /path-3 port2222Acl
-    use_backend my-acl-be1111 if url_my-service-11111 my-src-port
-    use_backend my-acl-be2222 if url_my-service-12222%s`,
+    acl url_my-acl1111 path_beg /path-1 path_beg /path-2 port1111Acl
+    acl url_my-acl2222 path_beg /path-3 port2222Acl
+    use_backend my-service-1-be1111 if url_my-acl1111 my-src-port
+    use_backend my-service-1-be2222 if url_my-acl2222%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -262,10 +262,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsOrderedContentFront
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl url_my-first-service1111 path_beg /path
-    use_backend acl2-be1111 if url_my-first-service1111
-    acl url_my-second-service1111 path_beg /path
-    use_backend acl1-be1111 if url_my-second-service1111
+    acl url_acl21111 path_beg /path
+    use_backend my-first-service-be1111 if url_acl21111
+    acl url_acl11111 path_beg /path
+    use_backend my-second-service-be1111 if url_acl11111
     acl url_the-last-service1111 path_beg /path
     use_backend the-last-service-be1111 if url_the-last-service1111%s`,
 		tmpl,
