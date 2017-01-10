@@ -224,13 +224,15 @@ func (m HaProxy) getConfigData() ConfigData {
 			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
 		}
 	}
-	keys := []string{}
-	for k, _ := range data.Services {
-		keys = append(keys, k)
+	services := Services{}
+	for _, s := range data.Services {
+		if len(s.AclName) == 0 {
+			s.AclName = s.ServiceName
+		}
+		services = append(services, s)
 	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		s := data.Services[k]
+	sort.Sort(services)
+	for _, s := range services {
 		if len(s.ReqMode) == 0 {
 			s.ReqMode = "http"
 		}
@@ -256,9 +258,6 @@ frontend {{$.ServiceName}}_{{.SrcPort}}
 func (m *HaProxy) getFrontTemplate(s Service) string {
 	if len(s.PathType) == 0 {
 		s.PathType = "path_beg"
-	}
-	if len(s.AclName) == 0 {
-		s.AclName = s.ServiceName
 	}
 	tmplString := `{{range .ServiceDest}}
     acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`

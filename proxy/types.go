@@ -81,6 +81,20 @@ type Service struct {
 	ServiceDest         	[]ServiceDest
 }
 
+type Services []Service
+
+func (slice Services) Len() int {
+	return len(slice)
+}
+
+func (slice Services) Less(i, j int) bool {
+	return slice[i].AclName < slice[j].AclName;
+}
+
+func (slice Services) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
 type User struct {
 	Username string
 	Password string

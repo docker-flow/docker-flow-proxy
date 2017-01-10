@@ -257,15 +257,15 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	s.Equal(expectedData, actualData)
 }
 
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsOrderedContentFrontEnd() {
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontEnd() {
 	var actualData string
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl url_acl21111 path_beg /path
-    use_backend my-first-service-be1111 if url_acl21111
     acl url_acl11111 path_beg /path
     use_backend my-second-service-be1111 if url_acl11111
+    acl url_acl21111 path_beg /path
+    use_backend my-first-service-be1111 if url_acl21111
     acl url_the-last-service1111 path_beg /path
     use_backend the-last-service-be1111 if url_the-last-service1111%s`,
 		tmpl,
