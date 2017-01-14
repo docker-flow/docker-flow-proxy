@@ -26,6 +26,8 @@ type Service struct {
 	// Whether to distribute a request to all the instances of the proxy.
 	// Used only in the swarm mode.
 	Distribute 				bool
+	// Whether to redirect all http requests to https
+	HttpsOnly       		bool
 	// The internal HTTPS port of a service that should be reconfigured.
 	// The port is used only in the swarm mode.
 	// If not specified, the `port` parameter will be used instead.

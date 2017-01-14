@@ -333,8 +333,8 @@ func (m *Reconfigure) formatData(sr *proxy.Service) {
 func (m *Reconfigure) getBackTemplate(sr *proxy.Service) string {
 	back := m.getBackTemplateProtocol("http", sr)
 	if sr.HttpsPort > 0 {
-		back += fmt.Sprintf(`
-
+		back += fmt.Sprintf(
+			`
 %s`,
 			m.getBackTemplateProtocol("https", sr))
 	}

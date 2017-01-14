@@ -177,6 +177,9 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	} else {
 		sr.ReqMode = "http"
 	}
+	if len(req.URL.Query().Get("httpsOnly")) > 0 {
+		sr.HttpsOnly, _ = strconv.ParseBool(req.URL.Query().Get("httpsOnly"))
+	}
 	if len(req.URL.Query().Get("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
 	}
@@ -211,6 +214,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 			ConsulTemplateBePath: sr.ConsulTemplateBePath,
 			PathType:             sr.PathType,
 			SkipCheck:            sr.SkipCheck,
+			HttpsOnly:            sr.HttpsOnly,
 			HttpsPort:            sr.HttpsPort,
 			Distribute:           sr.Distribute,
 			Users:                sr.Users,

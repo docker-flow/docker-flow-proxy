@@ -281,11 +281,17 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl http_{{.ServiceName}} src_port 80
     acl https_{{.ServiceName}} src_port 443`
 	}
-	tmplString += `{{range .ServiceDest}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+	if s.HttpsOnly {
+		tmplString += `
+    redirect scheme https if !{ ssl_fc }`
+	}
 	if s.HttpsPort > 0 {
-		tmplString += ` http_{{$.ServiceName}}{{range .ServiceDest}}
+		tmplString += `{{range .ServiceDest}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}} http_{{$.ServiceName}}
     use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
+	} else {
+		tmplString += `{{range .ServiceDest}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	}
 	return m.templateToString(tmplString, s)
 }

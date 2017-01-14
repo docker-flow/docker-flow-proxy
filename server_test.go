@@ -658,7 +658,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 	httpsPort := 4321
 	mode := "swaRM"
 	address := fmt.Sprintf(
-		"%s&port=%s&httpsPort=%d",
+		"%s&port=%s&httpsPort=%d&httpsOnly=true",
 		s.ReconfigureUrl,
 		port,
 		httpsPort,
@@ -678,6 +678,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithPorts_WhenPresent() {
 			ServiceColor:     s.ServiceColor,
 			ServiceDomain:    s.ServiceDomain,
 			OutboundHostname: s.OutboundHostname,
+			HttpsOnly:        true,
 			HttpsPort:        httpsPort,
 			ServiceDest:      []proxy.ServiceDest{sd},
 		},

@@ -269,7 +269,6 @@ backend myService-be1234
     mode http
     server myService myService:1234
 
-
 backend https-myService-be1234
     mode http
     server myService myService:4321`

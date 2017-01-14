@@ -424,6 +424,37 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenHttpsOnlyIsTrue() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111 path_beg /path
+    redirect scheme https if !{ ssl_fc }
+    use_backend my-service-be1111 if url_my-service1111%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service"] = Service{
+		ServiceName: "my-service",
+		PathType:    "path_beg",
+		HttpsOnly:   true,
+		AclName:     "my-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
 	var actualFilename string
 	var actualData string
