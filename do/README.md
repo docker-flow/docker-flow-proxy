@@ -92,6 +92,19 @@ docker service create --name proxy-docs \
     --label com.df.port=80 \
     vfarcic/docker-flow-proxy-docs
 
+docker service create --name letsencrypt-companion \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/.well-known/acme-challenge \
+    --label com.df.port=80 \
+    -e DOMAIN_1="('dockerflow.com' 'www.dockerflow.com' 'proxy.dockerflow.com')" \
+    -e DOMAIN_COUNT=1 \
+    -e CERTBOT_EMAIL="viktor@farcic.com" \
+    -e PROXY_ADDRESS="proxy" \
+    --network proxy \
+    --mount type=bind,source=/etc/letsencrypt,destination=/etc/letsencrypt hamburml/docker-flow-letsencrypt:latest \
+    hamburml/docker-flow-letsencrypt:latest
+
 open "http://$(terraform output floating_ip_1)"
 
 # A > 50.63.202.44

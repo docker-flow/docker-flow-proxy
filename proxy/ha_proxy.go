@@ -282,8 +282,8 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl https_{{.ServiceName}} src_port 443`
 	}
 	if s.HttpsOnly {
-		tmplString += `
-    redirect scheme https if !{ ssl_fc }`
+		tmplString += `{{range .ServiceDest}}
+    redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	}
 	if s.HttpsPort > 0 {
 		tmplString += `{{range .ServiceDest}}
