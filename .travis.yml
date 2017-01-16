@@ -27,12 +27,12 @@ after_success:
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - docker push vfarcic/docker-flow-proxy:${VERSION}
   - docker push vfarcic/docker-flow-proxy
-  - ssh -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image vfarcic/docker-flow-proxy:${VERSION} proxy
+  - ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image vfarcic/docker-flow-proxy:${VERSION} proxy
   - docker-compose -f docker-compose-test.yml run --rm docs
   - docker build -t vfarcic/docker-flow-proxy-docs:${VERSION} -f Dockerfile.docs .
   - docker push vfarcic/docker-flow-proxy-docs:${VERSION}
   - docker push vfarcic/docker-flow-proxy-docs
-  - ssh -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image docker-flow-proxy-docs:${VERSION} proxy-docs
+  - ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image docker-flow-proxy-docs:${VERSION} proxy-docs
 
 branches:
   only:
