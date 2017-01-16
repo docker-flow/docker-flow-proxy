@@ -23,7 +23,7 @@ The following query parameters can be used when `reqMode` is set to `http` or is
 |consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If set, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-be.tmpl|
 |consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If set, proxy template will be loaded from the specified file.|||/consul_templates/tmpl/go-demo-fe.tmpl|
 |distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
-|httpsOnly    |If set to true, HTTP request to the service will be redirected to HTTPS.        |No      |false  |true         |
+|httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS.        |No      |false  |true         |
 |httpsPort    |The internal HTTPS port of a service that should be reconfigured. The port is used only in the *swarm* mode. If not specified, the `port` parameter will be used instead.|No|||443|
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No||ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No||path_beg|
