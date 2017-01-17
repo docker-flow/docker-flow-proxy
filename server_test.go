@@ -713,6 +713,50 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithSkipCheck_WhenPresent() 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonTimeoutServer_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&timeoutServer=9999", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		Service:          proxy.Service{
+			ServiceName:      s.ServiceName,
+			ReqMode:          "http",
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+			TimeoutServer:    "9999",
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonTimeoutTunnel_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&timeoutTunnel=9999", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:           "OK",
+		ServiceName:      s.ServiceName,
+		Service:          proxy.Service{
+			ServiceName:      s.ServiceName,
+			ReqMode:          "http",
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+			TimeoutTunnel:    "9999",
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
 	serve.Port = s.ServiceDest[0].Port

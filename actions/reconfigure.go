@@ -352,6 +352,14 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		prefix,
 	)
 	// TODO: Deprecated (dec. 2016).
+	if len(sr.TimeoutServer) > 0 {
+		tmpl += `
+    timeout server {{$.TimeoutServer}}s`
+	}
+	if len(sr.TimeoutTunnel) > 0 {
+		tmpl += `
+    timeout tunnel {{$.TimeoutTunnel}}s`
+	}
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `
     reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`

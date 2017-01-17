@@ -281,6 +281,36 @@ backend https-myService-be1234
 	s.Equal(expectedBack, actualBack)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutServer_WhenPresent() {
+	expectedBack := `
+backend myService-be1234
+    mode http
+    timeout server 9999s
+    server myService myService:1234`
+	s.reconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.TimeoutServer = "9999"
+	s.reconfigure.Mode = "service"
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+
+	s.Equal("", actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutTunnel_WhenPresent() {
+	expectedBack := `
+backend myService-be1234
+    mode http
+    timeout tunnel 9999s
+    server myService myService:1234`
+	s.reconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.TimeoutTunnel = "9999"
+	s.reconfigure.Mode = "service"
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+
+	s.Equal("", actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	sd := []proxy.ServiceDest{
 		proxy.ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},

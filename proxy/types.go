@@ -32,14 +32,14 @@ type Service struct {
 	// The port is used only in the swarm mode.
 	// If not specified, the `port` parameter will be used instead.
 	HttpsPort 				int
-	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected. The default value is *http*.
-	ReqMode 				string
 	// The hostname where the service is running, for instance on a separate swarm.
 	// If specified, the proxy will dispatch requests to that domain.
 	OutboundHostname 		string
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType 				string
+	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected. The default value is *http*.
+	ReqMode 				string
 	// Deprecated in favor of ReqPathReplace
 	ReqRepReplace 			string
 	// Deprecated in favor of ReqPathSearch
@@ -58,6 +58,9 @@ type Service struct {
 	// The name of the service.
 	// It must match the name of the Swarm service or the one stored in Consul.
 	ServiceName 			string
+	// Whether to skip adding proxy checks.
+	// This option is used only in the default mode.
+	SkipCheck bool
 	// The path to the template representing a snippet of the backend configuration.
 	// If specified, the backend template will be loaded from the specified file.
 	// If specified, `templateFePath` must be set as well.
@@ -68,9 +71,10 @@ type Service struct {
 	// If specified, `templateBePath` must be set as well.
 	// See the https://github.com/vfarcic/docker-flow-proxy#templates section for more info.
 	TemplateFePath 			string
-	// Whether to skip adding proxy checks.
-	// This option is used only in the default mode.
-	SkipCheck bool
+	// The server timeout in seconds
+	TimeoutServer           string
+	// The tunnel timeout in seconds
+	TimeoutTunnel           string
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users               	[]User
 	ServiceColor        	string

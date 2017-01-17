@@ -171,6 +171,8 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		ReqPathReplace:       req.URL.Query().Get("reqPathReplace"),
 		TemplateFePath:       req.URL.Query().Get("templateFePath"),
 		TemplateBePath:       req.URL.Query().Get("templateBePath"),
+		TimeoutServer:        req.URL.Query().Get("timeoutServer"),
+		TimeoutTunnel:        req.URL.Query().Get("timeoutTunnel"),
 	}
 	if len(req.URL.Query().Get("reqMode")) > 0 {
 		sr.ReqMode = req.URL.Query().Get("reqMode")
@@ -203,30 +205,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		Mode:       	m.Mode,
 		Status:     	"OK",
 		ServiceName:    sr.ServiceName,
-		Service: 	proxy.Service{
-			ServiceName:          sr.ServiceName,
-			AclName:              sr.AclName,
-			ServiceColor:         sr.ServiceColor,
-			ServiceDomain:        sr.ServiceDomain,
-			ServiceCert:          sr.ServiceCert,
-			OutboundHostname:     sr.OutboundHostname,
-			ConsulTemplateFePath: sr.ConsulTemplateFePath,
-			ConsulTemplateBePath: sr.ConsulTemplateBePath,
-			PathType:             sr.PathType,
-			SkipCheck:            sr.SkipCheck,
-			HttpsOnly:            sr.HttpsOnly,
-			HttpsPort:            sr.HttpsPort,
-			Distribute:           sr.Distribute,
-			Users:                sr.Users,
-			ReqRepSearch:         sr.ReqRepSearch, // TODO: Deprecated (dec. 2016).
-			ReqRepReplace:        sr.ReqRepReplace, // TODO: Deprecated (dec. 2016).
-			ReqPathSearch:        sr.ReqPathSearch,
-			ReqPathReplace:       sr.ReqPathReplace,
-			TemplateFePath:       sr.TemplateFePath,
-			TemplateBePath:       sr.TemplateBePath,
-			ServiceDest:          sd,
-			ReqMode:              sr.ReqMode,
-		},
+		Service: 	    sr,
 	}
 	ok, msg := m.isValidReconf(&sr)
 	if ok {
