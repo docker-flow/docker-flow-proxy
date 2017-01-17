@@ -26,6 +26,7 @@ type ConfigData struct {
 	TimeoutClient        string
 	TimeoutServer        string
 	TimeoutQueue         string
+	TimeoutTunnel        string
 	TimeoutHttpRequest   string
 	TimeoutHttpKeepAlive string
 	StatsUser            string
@@ -172,6 +173,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		TimeoutClient:        "20",
 		TimeoutServer:        "20",
 		TimeoutQueue:         "30",
+		TimeoutTunnel:        "3600",
 		TimeoutHttpRequest:   "5",
 		TimeoutHttpKeepAlive: "15",
 		StatsUser:            "admin",
@@ -188,6 +190,9 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	if len(os.Getenv("TIMEOUT_QUEUE")) > 0 {
 		d.TimeoutQueue = os.Getenv("TIMEOUT_QUEUE")
+	}
+	if len(os.Getenv("TIMEOUT_TUNNEL")) > 0 {
+		d.TimeoutTunnel = os.Getenv("TIMEOUT_TUNNEL")
 	}
 	if len(os.Getenv("TIMEOUT_HTTP_REQUEST")) > 0 {
 		d.TimeoutHttpRequest = os.Getenv("TIMEOUT_HTTP_REQUEST")

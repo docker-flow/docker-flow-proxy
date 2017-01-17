@@ -56,6 +56,7 @@ defaults
     timeout client  20s
     timeout server  20s
     timeout queue   30s
+    timeout tunnel  3600s
     timeout http-request 5s
     timeout http-keep-alive 15s
 
@@ -540,6 +541,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 		{"TIMEOUT_QUEUE", "timeout queue   30s", "timeout queue   999s", "999"},
 		{"TIMEOUT_HTTP_REQUEST", "timeout http-request 5s", "timeout http-request 999s", "999"},
 		{"TIMEOUT_HTTP_KEEP_ALIVE", "timeout http-keep-alive 15s", "timeout http-keep-alive 999s", "999"},
+		{"TIMEOUT_TUNNEL", "timeout tunnel  3600s", "timeout tunnel  999s", "999"},
 		{"STATS_USER", "stats auth admin:admin", "stats auth my-user:admin", "my-user"},
 		{"STATS_PASS", "stats auth admin:admin", "stats auth admin:my-pass", "my-pass"},
 	}
