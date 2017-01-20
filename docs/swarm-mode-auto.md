@@ -8,7 +8,7 @@ The examples that follow assume that you have Docker Machine version v0.8+ that 
 
 > If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
 
-Please note that *Docker Flow: Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
+Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
 ### Setup
 
@@ -56,19 +56,19 @@ Let's create the `swarm-listener` service.
 
 > **A note to Windows users**
 >
-> For mounts to work, you will have to enter one of the machines before executing the `docker service create` command to work. To enter the Docker Machine, execute the `docker-machine ssh node-1` command. Please exit the machine once you finish executing the `exit` command.
+> For mounts to work, you will have to enter one of the machines before executing the `docker service create` command to work. To enter the Docker Machine, execute the `docker-machine ssh node-1` command. Please exit the machine once you finish executing the command that follows.
 
 ```bash
 docker service create --name swarm-listener \
     --network proxy \
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
-    -e DF_NOTIF_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
-    -e DF_NOTIF_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
+    -e DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
+    -e DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
     --constraint 'node.role==manager' \
     vfarcic/docker-flow-swarm-listener
 ```
 
-The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIF_CREATE_SERVICE_URL` and `DF_NOTIF_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the `manager` nodes.
+The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIFY_CREATE_SERVICE_URL` and `DF_NOTIFY_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the `manager` nodes.
 
 The next step is to create the proxy service.
 
@@ -137,7 +137,7 @@ We sent a request to the proxy (the only service listening to the port 80) and g
 
 The way the process works is as follows.
 
-[Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIF_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances (for fault tolerance) and the `distribute` argument means that reconfiguration should be applied to all.
+[Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIFY_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`. The `distribute` label is not necessary in this example since we're running only a single instance of the proxy. However, in production we should run at least two proxy instances (for fault tolerance) and the `distribute` argument means that reconfiguration should be applied to all.
 
 Please see the [Reconfigure](usage.md#reconfigure) section for the list of all the arguments that can be used with the proxy.
 
@@ -728,3 +728,11 @@ The whole process sounds complicated (it actually is from the engineering point 
 One of the important things to note is that, with a system like this, everything can be fully dynamic. Before the new Swarm introduced in Docker 1.12, we would need to run our proxy instances on predefined nodes and make sure that they are registered as DNS records. With the new routing mesh, it does not matter whether the proxy runs on a node registered in DNS. It's enough to hit any of the servers, and the routing mesh will make sure that it reaches one of the proxy instances.
 
 A similar logic is used for the destination services. The proxy does not need to do load balancing. Docker networking does that for us. The only thing it needs is the name of the service and that both belong to the same network. As a result, there is no need to reconfigure the proxy every time a new release is made or when a service is scaled.
+
+## Cleanup
+
+Please remove Docker Machine VMs we created. You might need those resources for some other tasks.
+
+```bash
+docker-machine rm -f node-1 node-2 node-3
+```

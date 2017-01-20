@@ -22,8 +22,8 @@ docker service create --name flow-proxy \
 docker service create --name swarm-listener \
     --network routing \
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
-    -e DF_NOTIF_CREATE_SERVICE_URL=http://flow-proxy:8080/v1/docker-flow-proxy/reconfigure \
-    -e DF_NOTIF_REMOVE_SERVICE_URL=http://flow-proxy:8080/v1/docker-flow-proxy/remove \
+    -e DF_NOTIFY_CREATE_SERVICE_URL=http://flow-proxy:8080/v1/docker-flow-proxy/reconfigure \
+    -e DF_NOTIFY_REMOVE_SERVICE_URL=http://flow-proxy:8080/v1/docker-flow-proxy/remove \
     --constraint 'node.role == manager' \
     vfarcic/docker-flow-swarm-listener
 

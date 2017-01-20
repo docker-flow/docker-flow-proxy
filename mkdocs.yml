@@ -3,6 +3,7 @@ pages:
   - Home: index.md
   - Users Guide:
     - Swarm Mode (Automatic): swarm-mode-auto.md
+    - Swarm Mode With Docker Stack: swarm-mode-stack.md
     - Swarm Mode (Manual): swarm-mode-manual.md
     - Standard Mode: standard-mode.md
     - Configuration: config.md
