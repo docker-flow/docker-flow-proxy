@@ -9,6 +9,7 @@ The recommendation is to run *Docker Flow Proxy* inside a Swarm cluster with Aut
 *Docker Flow Proxy* examples can be found in the sections that follow.
 
 * [Swarm Mode With Automatic Reconfiguration (recommended)](swarm-mode-auto.md)
+* [Swarm Mode With Docker Stack](swarm-mode-stack.md)
 * [Swarm Mode With Manual Reconfiguration](swarm-mode-manual.md)
 * [Standard Mode](standard-mode.md)
 

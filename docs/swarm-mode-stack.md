@@ -2,7 +2,7 @@
 
 This article assumes that you already understand how *Docker Flow Proxy* works. If you don't, please visit the [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) page for a tutorial.
 
-In this article, we'll explore how to create *Docker Flow Proxy* service through *Docker Compose* and the `docker stack deploy` command.
+In this article, we'll explore how to create *Docker Flow Proxy* service through *Docker Compose* files and the `docker stack deploy` command.
 
 ## Requirements
 
@@ -14,9 +14,9 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 
 ## Swarm Cluster Setup
 
-Feel free to skip this section if you already have a working Swarm cluster.
-
 To setup an example environment using Docker Machine, please run the commands that follow.
+
+> Feel free to skip this section if you already have a working Swarm cluster.
 
 ```bash
 git clone https://github.com/vfarcic/docker-flow-proxy.git
@@ -40,11 +40,11 @@ We'll start by creating a network.
 docker network create --driver overlay proxy
 ```
 
-The *proxy* network will be dedicated to the proxy container and services that should be exposed through it.
+The *proxy* network will be dedicated to the proxy container and services that will be attached to it.
 
 We'll use [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository to create `docker-flow-proxy` and `docker-flow-swarm-listener` services.
 
-Content of the `docker-compose-stack.yml` file is as follows.
+The content of the `docker-compose-stack.yml` file is as follows.
 
 ```
 version: "3"
@@ -82,13 +82,13 @@ networks:
     external: true
 ```
 
-The format is written in version 3 (mandatory for `docker stack deploy`).
+The format is written in version `3` (mandatory for `docker stack deploy`).
 
-It contains two services; `proxy` and `swarm-listener`. Since you are already familiar with *Docker Flow Proxy* and *Docker Flow Swarm Listener*, the arguments used with the services should be self explanatory.
+It contains two services; `proxy` and `swarm-listener`. Since you are already familiar with *Docker Flow Proxy* and *Docker Flow Swarm Listener*, the arguments used with the services should be self-explanatory.
 
-The `proxy` network is defined as `external`. Even though `docker stack deploy` will create a default network for all the services that form the stack, the `proxy` network should be external so that we can attach services from other stacks to it.
+The `proxy` network is defined as `external`. Even though `docker stack deploy` will create a `default` network for all the services that form the stack, the `proxy` network should be external so that we can attach services from other stacks to it.
 
-TODO: Check whether the volume works on Windows.
+> I still haven't verified the command from a Windows machine. Please open an [issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you experience any problems. Consider yourself a beta tester of this article.
 
 Let's create the stack.
 
@@ -96,9 +96,9 @@ Let's create the stack.
 docker stack deploy -c docker-compose-stack.yml proxy
 ```
 
-The first command created the services that form the stack defined in `docker-compose-stack.yml`.
+The command created the services that form the stack defined in `docker-compose-stack.yml`.
 
-The tasks of the stack can be seen through the `docker stack ps proxy` command.
+The tasks of the stack can be seen through the `stack ps` command.
 
 ```bash
 docker stack ps proxy
@@ -113,17 +113,15 @@ proxy_swarm-listener.1 vfarcic/docker-flow-swarm-listener:latest node-1 Running 
 proxy_proxy.2          vfarcic/docker-flow-proxy:latest          node-3 Running       Running 2 minutes ago
 ```
 
-We are running two replicas of the `proxy` (in case of a failure) and one of the `swarm-listener`.
+We are running two replicas of the `proxy` (for high-availability in the case of a failure) and one of the `swarm-listener`.
 
 ## Deploying Services Alongside Docker Flow Proxy
 
-Let's deploy a demo stack. It consists of two containers; *mongo* is the database and *vfarcic/go-demo* is the actual service that uses it. They will communicate with each other through the *default* network of the stack. Since we want to expose only *vfarcic/go-demo* to the "outside" world and keep the database "private", only the *vfarcic/go-demo* container will attach itself to the *proxy* network.
+Let's deploy a demo stack. It consists of two containers; *mongo* is the database, and *vfarcic/go-demo* is the service that uses it.
 
-TODO: Continue
+We'll use Docker stack defined in the Compose file [docker-compose-stack.yml](https://github.com/vfarcic/go-demo/blob/master/docker-compose-stack.yml) located in the [vfarcic/go-demo](https://github.com/vfarcic/go-demo/) repository. It is as follows.
 
 ```
-# https://github.com/vfarcic/go-demo/blob/master/docker-compose-stack.yml
-
 version: '3'
 
 services:
@@ -155,6 +153,8 @@ networks:
     external: true
 ```
 
+The stack defines two services (`main` and `db`). They will communicate with each other through the `default` network that will be created automatically by the stack. Since the `main` service is an API, it should be accessible through the proxy, so we're attaching `proxy` network as well. The `main` service defines four labels. They are the same labels you used in the [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) tutorial.
+
 ```bash
 curl -o docker-compose-go-demo.yml \
     https://raw.githubusercontent.com/\
@@ -165,25 +165,24 @@ docker stack deploy -c docker-compose-go-demo.yml go-demo
 docker stack ps go-demo
 ```
 
+We downloaded the stack definition, executed `stack deploy` command that created the services and run the `stack ps` command that lists the tasks that belong to the `go-demo` stack. The output is as follows (IDs are removed for brevity).
+
 ```
-ID            NAME                IMAGE                   NODE    DESIRED STATE  CURRENT STATE              ERROR                      PORTS
-zqw94fk05c0m  go-demo_main.1      vfarcic/go-demo:latest  node-2  Running        Running 7 seconds ago
-b6fgata0s3lx   \_ go-demo_main.1  vfarcic/go-demo:latest  node-3  Shutdown       Failed 22 seconds ago      "task: non-zero exit (2)"
-d40gim4n7646   \_ go-demo_main.1  vfarcic/go-demo:latest  node-1  Shutdown       Failed 39 seconds ago      "task: non-zero exit (2)"
-oqq15ztn0gi3   \_ go-demo_main.1  vfarcic/go-demo:latest  node-2  Shutdown       Failed 55 seconds ago      "task: non-zero exit (2)"
-tqmwq05ydd86   \_ go-demo_main.1  vfarcic/go-demo:latest  node-3  Shutdown       Failed about a minute ago  "task: non-zero exit (2)"
-mha3hpsgy81r  go-demo_db.1        mongo:latest            node-2  Running        Running 21 seconds ago
-yvlwi44txmwh  go-demo_main.2      vfarcic/go-demo:latest  node-2  Running        Running 19 seconds ago
-a9oby2nb0jks   \_ go-demo_main.2  vfarcic/go-demo:latest  node-3  Shutdown       Failed 35 seconds ago      "task: non-zero exit (2)"
-4wway3he4cpg   \_ go-demo_main.2  vfarcic/go-demo:latest  node-1  Shutdown       Failed 51 seconds ago      "task: non-zero exit (2)"
-fyfrhdq8a2hn   \_ go-demo_main.2  vfarcic/go-demo:latest  node-2  Shutdown       Failed about a minute ago  "task: non-zero exit (2)"
-l33os992oea2   \_ go-demo_main.2  vfarcic/go-demo:latest  node-3  Shutdown       Failed about a minute ago  "task: non-zero exit (2)"
-hw5vvfz2o639  go-demo_main.3      vfarcic/go-demo:latest  node-2  Running        Running 20 seconds ago
-nmx651z6viuu   \_ go-demo_main.3  vfarcic/go-demo:latest  node-3  Shutdown       Failed 36 seconds ago      "task: non-zero exit (2)"
-14az23d434l2   \_ go-demo_main.3  vfarcic/go-demo:latest  node-1  Shutdown       Failed 52 seconds ago      "task: non-zero exit (2)"
-0x7ktxofhjct   \_ go-demo_main.3  vfarcic/go-demo:latest  node-2  Shutdown       Failed about a minute ago  "task: non-zero exit (2)"
-zjoqix8fgt3y   \_ go-demo_main.3  vfarcic/go-demo:latest  node-3  Shutdown       Failed about a minute ago  "task: non-zero exit (2)"
+NAME           IMAGE                  NODE    DESIRED STATE CURRENT STATE          ERROR PORTS
+go-demo_main.1 vfarcic/go-demo:latest node-2 Running        Running 7 seconds ago
+...
+go-demo_db.1   mongo:latest           node-2 Running        Running 21 seconds ago
+go-demo_main.2 vfarcic/go-demo:latest node-2 Running        Running 19 seconds ago
+...
+go-demo_main.3 vfarcic/go-demo:latest node-2 Running        Running 20 seconds ago
+...
 ```
+
+Since Mongo database is much bigger than the `main` service, it takes more time to pull it resulting in a few failures. The `go-demo` service is designed to fail if it cannot connect to its database. Once the `db` service is running, the `main` service should stop failing, and we'll see three replicas with the current state `Running`.
+
+After a few moments, the `swarm-listener` service will detect the `main` service from the `go-demo` stack and send the `proxy` a request to reconfigure itself. We can see the result by sending an HTTP request to the proxy.
+
+> If you used your own Swarm cluster, please replace `$(docker-machine ip node-1)` with the domain associated with it.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
@@ -199,6 +198,10 @@ Content-Type: text/plain; charset=utf-8
 
 hello, world!
 ```
+
+The proxy was reconfigured and forwards all requests with the base path `/demo` to the `main` service from the `go-demo` stack.
+
+For more advanced usage of the proxy, please see the examples from [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) tutorial or consult the [configuration](config.md) and [usage](usage.md) documentation.
 
 ## Cleanup
 
