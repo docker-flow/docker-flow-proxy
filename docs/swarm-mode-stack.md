@@ -98,7 +98,7 @@ vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
 docker stack deploy -c docker-compose-stack.yml proxy
 ```
 
-The first command downloaded the Compose file [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxyml](https://github.com/vfarcic/docker-flow-proxy) repository. The second command created the services that form the stack.
+The first command downloaded the Compose file [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository. The second command created the services that form the stack.
 
 The tasks of the stack can be seen through the `stack ps` command.
 
