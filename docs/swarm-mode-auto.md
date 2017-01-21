@@ -6,7 +6,8 @@
 
 The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
@@ -54,9 +55,10 @@ Next, we'll create the [swarm-listener](https://github.com/vfarcic/docker-flow-s
 
 Let's create the `swarm-listener` service.
 
-> **A note to Windows users**
->
-> For mounts to work, you will have to enter one of the machines before executing the `docker service create` command to work. To enter the Docker Machine, execute the `docker-machine ssh node-1` command. Please exit the machine once you finish executing the command that follows.
+!!! info
+	**A note to Windows users**
+	
+	For mounts to work, you will have to enter one of the machines before executing the `docker service create` command to work. To enter the Docker Machine, execute the `docker-machine ssh node-1` command. Please exit the machine once you finish executing the command that follows.
 
 ```bash
 docker service create --name swarm-listener \
@@ -594,7 +596,8 @@ mkdir -p tmp
 
 The certificate will be tied to the `*.xip.io` domain, which is handy for demonstration purposes. It'll let us use the same certificate even if our server IP addresses might change while testing locally. With [xip.io](http://xip.io/) don't need to re-create the self-signed certificate when, for example, our Docker machine changes IP.
 
-> I use the [xip.io](http://xip.io/) service as it allows me to use a hostname rather than directly accessing the servers via an IP address. It saves me from editing me computers' host file.
+!!! info
+	I use the [xip.io](http://xip.io/) service as it allows me to use a hostname rather than directly accessing the servers via an IP address. It saves me from editing me computers' host file.
 
 To create a certificate, first we need a key.
 

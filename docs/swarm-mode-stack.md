@@ -8,7 +8,8 @@ In this article, we'll explore how to create *Docker Flow Proxy* service through
 
 The examples that follow assume that you are using Docker v1.13+, Docker Compose v1.10+, and Docker Machine v0.9+.
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
@@ -16,7 +17,8 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 
 To setup an example environment using Docker Machine, please run the commands that follow.
 
-> Feel free to skip this section if you already have a working Swarm cluster.
+!!! tip
+	Feel free to skip this section if you already have a working Swarm cluster.
 
 ```bash
 git clone https://github.com/vfarcic/docker-flow-proxy.git
@@ -88,7 +90,8 @@ It contains two services; `proxy` and `swarm-listener`. Since you are already fa
 
 The `proxy` network is defined as `external`. Even though `docker stack deploy` will create a `default` network for all the services that form the stack, the `proxy` network should be external so that we can attach services from other stacks to it.
 
-> I still haven't verified the command from a Windows machine. Please open an [issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you experience any problems. Consider yourself a beta tester of this article.
+!!! info
+	I still haven't verified the command from a Windows machine. Please open an [issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you experience any problems. Consider yourself a beta tester of this article.
 
 Let's create the stack.
 
@@ -182,7 +185,8 @@ Since Mongo database is much bigger than the `main` service, it takes more time 
 
 After a few moments, the `swarm-listener` service will detect the `main` service from the `go-demo` stack and send the `proxy` a request to reconfigure itself. We can see the result by sending an HTTP request to the proxy.
 
-> If you used your own Swarm cluster, please replace `$(docker-machine ip node-1)` with the domain associated with it.
+!!! info
+	If you used your own Swarm cluster, please replace `$(docker-machine ip node-1)` with the domain associated with it.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
