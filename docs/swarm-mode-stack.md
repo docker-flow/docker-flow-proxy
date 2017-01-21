@@ -16,7 +16,7 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 
 To setup an example environment using Docker Machine, please run the commands that follow.
 
-> Feel free to skip this section if you already have a working Swarm cluster.
+> Feel free to skip the last three commands if you already have a working Swarm cluster.
 
 ```bash
 git clone https://github.com/vfarcic/docker-flow-proxy.git
