@@ -2,7 +2,7 @@
 
 This article assumes that you already understand how *Docker Flow Proxy* works. If you don't, please visit the [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) page for a tutorial.
 
-In this article, we'll explore how to create *Docker Flow Proxy* service through *Docker Compose* files and the `docker stack deploy` command.
+We'll explore how to create *Docker Flow Proxy* service through *Docker Compose* files and the `docker stack deploy` command.
 
 ## Requirements
 
@@ -15,21 +15,21 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 
 ## Swarm Cluster Setup
 
-To setup an example environment using Docker Machine, please run the commands that follow.
+To setup an example Swarm cluster using Docker Machine, please run the commands that follow.
 
 !!! tip
 	Feel free to skip this section if you already have a working Swarm cluster.
 
 ```bash
-git clone https://github.com/vfarcic/docker-flow-proxy.git
+curl -o swarm-cluster.sh \
+    https://raw.githubusercontent.com/\
+vfarcic/docker-flow-proxy/master/scripts/swarm-cluster.sh
 
-cd docker-flow-proxy
+chmod +x swarm-cluster.sh
 
-chmod +x scripts/swarm-cluster.sh
+./swarm-cluster.sh
 
-scripts/swarm-cluster.sh
-
-eval $(docker-machine env node-1)
+docker-machine ssh node-1
 ```
 
 Now we're ready to deploy the `docker-flow-proxy` service.
@@ -90,16 +90,17 @@ It contains two services; `proxy` and `swarm-listener`. Since you are already fa
 
 The `proxy` network is defined as `external`. Even though `docker stack deploy` will create a `default` network for all the services that form the stack, the `proxy` network should be external so that we can attach services from other stacks to it.
 
-!!! info
-	I still haven't verified the command from a Windows machine. Please open an [issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you experience any problems. Consider yourself a beta tester of this article.
-
 Let's create the stack.
 
 ```bash
+curl -o docker-compose-stack.yml \
+    https://raw.githubusercontent.com/\
+vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
+
 docker stack deploy -c docker-compose-stack.yml proxy
 ```
 
-The command created the services that form the stack defined in `docker-compose-stack.yml`.
+The first command downloaded the Compose file [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository. The second command created the services that form the stack.
 
 The tasks of the stack can be seen through the `stack ps` command.
 
@@ -181,15 +182,12 @@ go-demo_main.3 vfarcic/go-demo:latest node-2 Running        Running 20 seconds a
 ...
 ```
 
-Since Mongo database is much bigger than the `main` service, it takes more time to pull it resulting in a few failures. The `go-demo` service is designed to fail if it cannot connect to its database. Once the `db` service is running, the `main` service should stop failing, and we'll see three replicas with the current state `Running`.
+Since Mongo database is much bigger than the `main` service, it takes more time to pull it, resulting in a few failures. The `go-demo` service is designed to fail if it cannot connect to its database. Once the `db` service is running, the `main` service should stop failing, and we'll see three replicas with the current state `Running`.
 
 After a few moments, the `swarm-listener` service will detect the `main` service from the `go-demo` stack and send the `proxy` a request to reconfigure itself. We can see the result by sending an HTTP request to the proxy.
 
-!!! info
-	If you used your own Swarm cluster, please replace `$(docker-machine ip node-1)` with the domain associated with it.
-
 ```bash
-curl -i $(docker-machine ip node-1)/demo/hello
+curl -i "localhost/demo/hello"
 ```
 
 The output is as follows.
@@ -212,5 +210,7 @@ For more advanced usage of the proxy, please see the examples from [Running Dock
 Please remove Docker Machine VMs we created. You might need those resources for some other tasks.
 
 ```bash
+exit
+
 docker-machine rm -f node-1 node-2 node-3
 ```

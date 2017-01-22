@@ -18,6 +18,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. It requires a Consul instance and service data to be stored in it (e.g. through Registrator). The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).|No      |default|swarm|
 |PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.|No|proxy|my-proxy|
+|SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.|No|false|true|
 |STATS_USER         |Username for the statistics page                          |No      |admin  |my-user|
 |STATS_PASS         |Password for the statistics page                          |No      |admin  |my-pass|
 |TIMEOUT_CLIENT     |The client timeout in seconds                             |No      |20     |5      |
