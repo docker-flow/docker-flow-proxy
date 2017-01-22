@@ -4,7 +4,8 @@
 
 ## Environment Variables
 
-> The *Docker Flow Proxy* container can be configured through environment variables
+!!! tip
+	The *Docker Flow Proxy* container can be configured through environment variables
 
 The following environment variables can be used to configure the *Docker Flow Proxy*.
 

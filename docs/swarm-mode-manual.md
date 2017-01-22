@@ -6,7 +6,8 @@
 
 The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
@@ -222,7 +223,8 @@ The major difference is that, this time, we used the `--replicas` argument to sp
 
 ![The proxy scaled to three instances](img/proxy-scaled.png)
 
-> Please note that we should run multiple Consul instances in production. In such a case, please use the `CONSUL_ADDRESS` environment variable to set all addresses separated with comma (*,*). An example would be `-e CONSUL_ADDRESS=$(docker-machine ip node-1):8500,$(docker-machine ip node-2):8500,$(docker-machine ip node-3):8500`.
+!!! info
+	Please note that we should run multiple Consul instances in production. In such a case, please use the `CONSUL_ADDRESS` environment variable to set all addresses separated with comma (*,*). An example would be `-e CONSUL_ADDRESS=$(docker-machine ip node-1):8500,$(docker-machine ip node-2):8500,$(docker-machine ip node-3):8500`.
 
 We should wait for a few moments until all three instances are running. The status can be seen by executing the `service ps` command.
 
@@ -262,7 +264,8 @@ eval $(docker service ps proxy | \
 
 I won't go into details of the command we just run but only say that it removed one of the instances of the proxy.
 
-> I haven't had time to test the command in Windows. Please let me know if you experience any problems.
+!!! info
+	I haven't had time to test the command in Windows. Please let me know if you experience any problems.
 
 ![One of the proxy instances failed](img/proxy-scaled-failed.png)
 

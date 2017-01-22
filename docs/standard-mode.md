@@ -13,7 +13,8 @@ For a more detailed walkthrough and examples, please read the following articles
 
 The examples that follow assume that you have Docker Machine and Docker Compose installed. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*).
 
 ### Setup
 
