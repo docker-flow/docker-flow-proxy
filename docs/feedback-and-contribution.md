@@ -14,6 +14,10 @@ If an issue is a bug, please provide steps to reproduce it.
 
 If an issue is a request for a new feature, please specify the use-case behind it.
 
+## Discussion
+
+Please join the [DevOps20](http://slack.devops20toolkit.com/) Slack channel if you'd like to discuss the project or have a problem you'd like us to solve.
+
 ## Contributing To The Project
 
 I encourage you to contribute to the *Docker Flow: Proxy* project.
