@@ -11,6 +11,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |Variable           |Description                                               |Required|Default|Example|
 |-------------------|----------------------------------------------------------|--------|-------|-------|
 |BIND_PORTS         |Additional ports to bind. Multiple values can be separated with comma|No||8085,8086|
+|CONNECTION_MODE    |HAProxy supports 5 connection modes:\n- keep alive    : all requests and responses are processed\n- tunnel        : only the first request and response are processed, everything else is forwarded with no analysis.\n- passive close : tunnel with "Connection: close" added in both directions.\n- server close  : the server-facing connection is closed after the response.\n- forced close  : the connection is actively closed after end of response.\nIn general it is preferred to use *http-server-close* with application servers, and some static servers might benefit from *http-keep-alive*.|No|http-server-close|http-keep-alive|
 |CONSUL_ADDRESS     |The address of a Consul instance used for storing proxy information and discovering running nodes.  Multiple addresses can be separated with comma (e.g. 192.168.0.10:8500,192.168.0.11:8500).|Only in the *default* mode||192.168.0.10:8500|
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration.|No    ||http-request set-header X-Forwarded-Proto https if { ssl_fc }|
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.|Only in the *swarm* mode||swarm-listener|
@@ -27,7 +28,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |TIMEOUT_TUNNEL     |The tunnel timeout in seconds                             |No      |3600   |1800   |
 |TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |No      |5      |3      |
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |No      |15     |10     |
-|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|No||user1:pass1,user2:pass2|
+|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|No||user1:pass1, user2:pass2|
 
 ## Custom Config
 
