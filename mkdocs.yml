@@ -16,3 +16,27 @@ repo_url: https://github.com/vfarcic/docker-flow-proxy
 site_author: Viktor Farcic
 copyright: Copyright © 2017 Viktor Farcic
 strict: true
+theme: 'material'
+extra:
+  palette:
+    primary: 'blue'
+    accent: 'light blue'
+markdown_extensions:
+  - toc
+  - admonition
+  - codehilite(guess_lang=false)
+  - toc(permalink=true)
+  - footnotes
+  - pymdownx.arithmatex
+  - pymdownx.betterem(smart_enable=all)
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist(custom_checkbox=true)
+  - pymdownx.tilde

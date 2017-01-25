@@ -8,7 +8,8 @@ We'll explore how to create *Docker Flow Proxy* service through *Docker Compose*
 
 The examples that follow assume that you are using Docker v1.13+, Docker Compose v1.10+, and Docker Machine v0.9+.
 
-> If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
@@ -16,7 +17,8 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 
 To setup an example Swarm cluster using Docker Machine, please run the commands that follow.
 
-> Feel free to skip this section if you already have a working Swarm cluster.
+!!! tip
+	Feel free to skip this section if you already have a working Swarm cluster.
 
 ```bash
 curl -o swarm-cluster.sh \
