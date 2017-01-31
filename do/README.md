@@ -28,10 +28,11 @@ export TF_VAR_swarm_snapshot_id=$(\
     proxy.log \
     | cut -d, -f6 | cut -d: -f2)
 
+terraform plan
+
 terraform apply \
-    -target digitalocean_droplet.swarm-manager \
-    -var swarm_init=true \
-    -var swarm_managers=1
+    -target digitalocean_droplet.swarm-manager-1 \
+    -var swarm_init=true
 
 export TF_VAR_swarm_manager_token=$(ssh \
     -i proxy-key \
@@ -64,24 +65,11 @@ ssh -i proxy-key \
 ```bash
 docker network create --driver overlay proxy
 
-docker service create --name proxy \
-    -p 80:80 \
-    -p 443:443 \
-    --reserve-memory 10m \
-    --network proxy \
-    --replicas 2 \
-    -e MODE=swarm \
-    -e LISTENER_ADDRESS=swarm-listener \
-    vfarcic/docker-flow-proxy
+curl -o proxy.yml \
+    https://raw.githubusercontent.com/vfarcic/\
+docker-flow-proxy/master/docker-compose-stack.yml
 
-docker service create --name swarm-listener \
-    --network proxy \
-    --reserve-memory 10m \
-    --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
-    -e DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
-    -e DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
-    --constraint 'node.role==manager' \
-    vfarcic/docker-flow-swarm-listener
+docker stack deploy -c proxy.yml proxy
 
 docker service create --name proxy-docs \
     --network proxy \
@@ -115,5 +103,7 @@ docker service create --name registry \
     --network proxy \
     registry:2
 
-open "http://$(terraform output floating_ip_1)"
+exit
+
+open "http://proxy.dockerflow.com"
 ```
