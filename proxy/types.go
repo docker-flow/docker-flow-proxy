@@ -40,7 +40,6 @@ type Service struct {
 	PathType string
 	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*.
 	// Please open an GitHub issue if the mode you're using does not work as expected. The default value is *http*.
-	// Adding support for *sni*. This implies TCP with an SNI-based routing.
 	ReqMode string
 	// Deprecated in favor of ReqPathReplace
 	ReqRepReplace string

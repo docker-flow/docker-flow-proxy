@@ -38,7 +38,6 @@ type ConfigData struct {
 	ExtraFrontend        string
 	ContentFrontend      string
 	ContentFrontendTcp   string
-	ContentFrontendSNI   string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -257,7 +256,6 @@ func (m HaProxy) getConfigData() ConfigData {
 		services = append(services, s)
 	}
 	sort.Sort(services)
-	snimap := make(map[int]string)
 	httpmap := make(map[int]string)
 	for _, s := range services {
 		if len(s.ReqMode) == 0 {
@@ -282,11 +280,6 @@ func (m HaProxy) getConfigData() ConfigData {
 				_, header_exists := httpmap[80]
 				httpmap[80] += m.getFrontTemplate(s, d.CertsString, !header_exists)
 			}
-		} else if strings.EqualFold(s.ReqMode, "sni") {
-			for _, sd := range s.ServiceDest {
-				_, header_exists := snimap[sd.SrcPort]
-				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, !header_exists)
-			}
 		} else {
 			d.ContentFrontendTcp += m.getFrontTemplateTcp(s)
 		}
@@ -301,34 +294,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	for _, k := range httpports {
 		d.ContentFrontend += httpmap[k]
 	}
-	// Merge the SNI entries into one single string. Sorted by port.
-	var sniports []int
-	for k := range snimap {
-		sniports = append(sniports, k)
-	}
-	sort.Ints(sniports)
-	d.ContentFrontendSNI = ``
-	for _, k := range sniports {
-		d.ContentFrontendSNI += snimap[k]
-	}
 	return d
-}
-
-func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
-	tmplString := ``
-	if gen_header {
-		tmplString += `{{range .ServiceDest}}
-
-frontend service_{{.SrcPort}}
-    bind *:{{.SrcPort}}
-    mode tcp
-    tcp-request inspect-delay 5s
-    tcp-request content accept if { req_ssl_hello_type 1 }{{end}}`
-	}
-	tmplString += `{{range .ServiceDest}}
-    acl sni_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}{{range .ServiceDest}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if sni_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
-	return m.templateToString(tmplString, s)
 }
 
 func (m *HaProxy) getFrontTemplateTcp(s Service) string {
