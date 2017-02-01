@@ -268,8 +268,9 @@ func (m HaProxy) getConfigData() ConfigData {
 					// Ensure that only one frontend entry exists for each SrcPort
 					// This is probably better handled by splitting up getFrontTemplate
 					// to render the frontend ... part and remaining lines separately
-					if _, localexists := localports[sd.SrcPort]; !localexists {
-						_, header_exists := httpmap[sd.SrcPort]
+					_, header_exists := httpmap[sd.SrcPort]
+					_, localexists := localports[sd.SrcPort]
+					if !localexists {
 						tcontent := m.getFrontTemplate(s, d.CertsString, !header_exists)
 						httpmap[sd.SrcPort] += tcontent
 						localports[sd.SrcPort] = true

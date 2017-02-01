@@ -103,20 +103,6 @@ docker service create --name registry \
     --network proxy \
     registry:2
 
-curl -o logging.yml \
-    https://raw.githubusercontent.com/vfarcic/\
-docker-flow-stacks/master/logging/logging-df-proxy.yml
-
-docker stack deploy -c logging.yml logging
-
-curl -o metrics.yml \
-    https://raw.githubusercontent.com/vfarcic/\
-docker-flow-stacks/master/metrics/prometheus-grafana-df-proxy.yml
-
-export DOMAIN=grafana.dockerflow.com
-
-docker stack deploy -c metrics.yml metrics
-
 exit
 
 open "http://proxy.dockerflow.com"

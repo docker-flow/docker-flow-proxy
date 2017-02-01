@@ -222,20 +222,6 @@ backend myService-be1234
 	s.Equal(expected, actual)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqModeIsSni() {
-	s.reconfigure.Mode = "swarm"
-	s.reconfigure.ReqMode = "sni"
-	s.reconfigure.Service.ServiceDest[0].Port = "1234"
-	expected := `
-backend myService-be1234
-    mode tcp
-    server myService myService:1234`
-
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal(expected, actual)
-}
-
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersEnvIsPresent() {
 	usersOrig := os.Getenv("USERS")
 	defer func() { os.Setenv("USERS", usersOrig) }()
