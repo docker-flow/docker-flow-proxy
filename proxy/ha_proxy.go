@@ -6,8 +6,8 @@ import (
 	"html/template"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
+	"sort"
 )
 
 type HaProxy struct {
@@ -58,7 +58,7 @@ func (m HaProxy) AddCert(certName string) {
 
 func (m HaProxy) GetCerts() map[string]string {
 	certs := map[string]string{}
-	for cert := range data.Certs {
+	for cert, _ := range data.Certs {
 		content, _ := ReadFile(fmt.Sprintf("/certs/%s", cert))
 		certs[cert] = string(content)
 	}
@@ -164,7 +164,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	certs := []string{}
 	if len(data.Certs) > 0 {
 		certs = append(certs, " ssl")
-		for cert := range data.Certs {
+		for cert, _ := range data.Certs {
 			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
 		}
 	}
@@ -235,64 +235,22 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	services := Services{}
-	// Add the default 80 frontend
-	s := Service{
-		ReqMode:     "http",
-		ServiceName: "service",
-		ServiceDest: []ServiceDest{
-			{SrcPort: 80},
-		},
-	}
-	services = append(services, s)
 	for _, s := range data.Services {
 		if len(s.AclName) == 0 {
 			s.AclName = s.ServiceName
 		}
-		for i := 0; i < len(s.ServiceDest); i++ {
-			if s.ServiceDest[i].SrcPort == 0 {
-				s.ServiceDest[i].SrcPort = 80
-			}
-		}
 		services = append(services, s)
 	}
 	sort.Sort(services)
-	httpmap := make(map[int]string)
 	for _, s := range services {
 		if len(s.ReqMode) == 0 {
 			s.ReqMode = "http"
 		}
 		if strings.EqualFold(s.ReqMode, "http") {
-			if len(s.ServiceDest) > 0 {
-				localports := make(map[int]bool)
-				for _, sd := range s.ServiceDest {
-					// Ensure that only one frontend entry exists for each SrcPort
-					// This is probably better handled by splitting up getFrontTemplate
-					// to render the frontend ... part and remaining lines separately
-					_, header_exists := httpmap[sd.SrcPort]
-					_, localexists := localports[sd.SrcPort]
-					if !localexists {
-						tcontent := m.getFrontTemplate(s, d.CertsString, !header_exists)
-						httpmap[sd.SrcPort] += tcontent
-						localports[sd.SrcPort] = true
-					}
-				}
-			} else {
-				_, header_exists := httpmap[80]
-				httpmap[80] += m.getFrontTemplate(s, d.CertsString, !header_exists)
-			}
+			d.ContentFrontend += m.getFrontTemplate(s)
 		} else {
 			d.ContentFrontendTcp += m.getFrontTemplateTcp(s)
 		}
-	}
-	// Merge the http entries into one single string. Sorted by port.
-	var httpports []int
-	for k := range httpmap {
-		httpports = append(httpports, k)
-	}
-	sort.Ints(httpports)
-	d.ContentFrontend = ``
-	for _, k := range httpports {
-		d.ContentFrontend += httpmap[k]
 	}
 	return d
 }
@@ -303,24 +261,16 @@ func (m *HaProxy) getFrontTemplateTcp(s Service) string {
 frontend {{$.ServiceName}}_{{.SrcPort}}
     bind *:{{.SrcPort}}
     mode tcp
-    default_backend {{$.ServiceName}}-be{{.Port}}{{end}}`
+    default_backend {{$.ServiceName}}-be{{.SrcPort}}{{end}}`
 	return m.templateToString(tmplString, s)
 }
 
-func (m *HaProxy) getFrontTemplate(s Service, certs string, gen_header bool) string {
+func (m *HaProxy) getFrontTemplate(s Service) string {
 	if len(s.PathType) == 0 {
 		s.PathType = "path_beg"
 	}
-	tmplString := ``
-	if gen_header {
-		tmplString += `{{range .ServiceDest}}frontend service_{{.SrcPort}}`
-		tmplString += fmt.Sprintf(`
-    bind *:{{.SrcPort}}%s
-    mode http
-{{end}}`, certs)
-	}
-	tmplString += `{{range .ServiceDest}}{{if $.AclName}}
-    acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}{{end}}`
+	tmplString := `{{range .ServiceDest}}
+    acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(s.ServiceDomain) > 0 {
 		domFunc := "hdr_dom"
 		for i, domain := range s.ServiceDomain {
@@ -342,16 +292,16 @@ func (m *HaProxy) getFrontTemplate(s Service, certs string, gen_header bool) str
     acl https_{{.ServiceName}} src_port 443`
 	}
 	if s.HttpsOnly {
-		tmplString += `{{range .ServiceDest}}{{if $.AclName}}
-    redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}{{end}}`
+		tmplString += `{{range .ServiceDest}}
+    redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	}
 	if s.HttpsPort > 0 {
-		tmplString += `{{range .ServiceDest}}{{if $.AclName}}
+		tmplString += `{{range .ServiceDest}}
     use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}} http_{{$.ServiceName}}
-    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}{{end}}`
+    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}{{end}}`
 	} else {
-		tmplString += `{{range .ServiceDest}}{{if $.AclName}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}{{end}}`
+		tmplString += `{{range .ServiceDest}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	}
 	return m.templateToString(tmplString, s)
 }

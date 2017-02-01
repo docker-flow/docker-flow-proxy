@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
-	"os/exec"
 	"strings"
 	"testing"
+	"net/url"
+	"os/exec"
 )
 
 type IntegrationTestSuite struct {

@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"bytes"
 )
 
 // Setup
