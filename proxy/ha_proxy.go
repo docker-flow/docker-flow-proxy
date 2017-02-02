@@ -6,8 +6,8 @@ import (
 	"html/template"
 	"os"
 	"os/exec"
-	"strings"
 	"sort"
+	"strings"
 )
 
 type HaProxy struct {
@@ -35,9 +35,11 @@ type ConfigData struct {
 	UserList             string
 	ExtraGlobal          string
 	ExtraDefaults        string
+	DefaultBinds         string
 	ExtraFrontend        string
 	ContentFrontend      string
 	ContentFrontendTcp   string
+	ContentFrontendSNI   string
 }
 
 func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
@@ -58,7 +60,7 @@ func (m HaProxy) AddCert(certName string) {
 
 func (m HaProxy) GetCerts() map[string]string {
 	certs := map[string]string{}
-	for cert, _ := range data.Certs {
+	for cert := range data.Certs {
 		content, _ := ReadFile(fmt.Sprintf("/certs/%s", cert))
 		certs[cert] = string(content)
 	}
@@ -164,7 +166,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	certs := []string{}
 	if len(data.Certs) > 0 {
 		certs = append(certs, " ssl")
-		for cert, _ := range data.Certs {
+		for cert := range data.Certs {
 			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
 		}
 	}
@@ -227,6 +229,14 @@ func (m HaProxy) getConfigData() ConfigData {
     option  dontlognull
     option  dontlog-normal`
 	}
+
+	default_ports := []string{"80", fmt.Sprintf("443%s", d.CertsString)}
+	if len(os.Getenv("DEFAULT_PORTS")) > 0 {
+		default_ports = strings.Split(os.Getenv("DEFAULT_PORTS"), ",")
+	}
+	for _, bindPort := range default_ports {
+		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", bindPort)
+	}
 	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
 	if len(os.Getenv("BIND_PORTS")) > 0 {
 		bindPorts := strings.Split(os.Getenv("BIND_PORTS"), ",")
@@ -242,17 +252,52 @@ func (m HaProxy) getConfigData() ConfigData {
 		services = append(services, s)
 	}
 	sort.Sort(services)
+	snimap := make(map[int]string)
 	for _, s := range services {
 		if len(s.ReqMode) == 0 {
 			s.ReqMode = "http"
 		}
 		if strings.EqualFold(s.ReqMode, "http") {
 			d.ContentFrontend += m.getFrontTemplate(s)
+		} else if strings.EqualFold(s.ReqMode, "sni") {
+			for _, sd := range s.ServiceDest {
+				_, header_exists := snimap[sd.SrcPort]
+				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, !header_exists)
+			}
 		} else {
 			d.ContentFrontendTcp += m.getFrontTemplateTcp(s)
 		}
+
 	}
+	// Merge the SNI entries into one single string. Sorted by port.
+	var sniports []int
+	for k := range snimap {
+		sniports = append(sniports, k)
+	}
+	sort.Ints(sniports)
+	//d.ContentFrontendSNI = ``
+	for _, k := range sniports {
+		d.ContentFrontendSNI += snimap[k]
+	}
+	fmt.Println("SNI:", len(d.ContentFrontendSNI))
 	return d
+}
+
+func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
+	tmplString := ``
+	if gen_header {
+		tmplString += `{{range .ServiceDest}}
+
+frontend service_{{.SrcPort}}
+    bind *:{{.SrcPort}}
+    mode tcp
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }{{end}}`
+	}
+	tmplString += `{{range .ServiceDest}}
+    acl sni_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}{{range .ServiceDest}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if sni_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+	return m.templateToString(tmplString, s)
 }
 
 func (m *HaProxy) getFrontTemplateTcp(s Service) string {
