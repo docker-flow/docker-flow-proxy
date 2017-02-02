@@ -4,7 +4,7 @@ resource "digitalocean_ssh_key" "proxy" {
 }
 
 resource "digitalocean_floating_ip" "docker_1" {
-  droplet_id = "${digitalocean_droplet.swarm-manager.0.id}"
+  droplet_id = "${digitalocean_droplet.swarm-manager-1.id}"
   region = "${var.swarm_region}"
 }
 
