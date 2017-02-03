@@ -75,7 +75,7 @@ defaults
 
 frontend services
     bind *:80
-    bind *:443 ssl crt /certs/
+    bind *:443
     mode http
 `
 	s.ServicesContent = `
@@ -459,6 +459,25 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenHttp
 	}
 
 	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
+	var actualFilename string
+	var actualData string
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, "bind *:443", "bind *:443 ssl crt /certs/my-cert.pem", -1),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }

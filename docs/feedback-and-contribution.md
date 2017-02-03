@@ -39,6 +39,8 @@ go test ./... -cover -run UnitTest
 ### Building
 
 ```bash
+export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
+
 docker-compose -f docker-compose-test.yml run --rm unit
 
 docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
@@ -50,14 +52,14 @@ docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
 
 ```bash
 export HOST_IP=[...] # Change to the IP of your host
-
-export DOCKER_HUB_USER=vfarcic # Change vfarcic to your user
 ```
 
 #### Unit Tests & Build
 
 ```bash
 docker-compose -f docker-compose-test.yml run --rm unit
+
+export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
 
 docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
