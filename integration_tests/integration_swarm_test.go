@@ -258,7 +258,7 @@ func (s *IntegrationSwarmTestSuite) createGoDemoService() {
     --label com.df.distribute=true \
     --label com.df.servicePath=/demo \
     --label com.df.port=8080 \
-    %s/go-demo:no-health`,
+    vfarcic/go-demo:no-health`,
 		s.dockerHubUser,
 	)
 	s.createService(cmd)
