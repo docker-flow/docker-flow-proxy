@@ -1,0 +1,66 @@
+version: '3'
+
+networks: 
+  default:
+    external: false
+  proxy:
+    external: true
+
+# TODO: Fix volumes issue - volumes not created.
+volumes:
+    wp_data:
+    db_data:
+
+services:
+
+  mysql:
+    image: mysql:5.7
+    # volumes:
+    #     - db_data:/var/lib/mysql
+    environment:
+        MYSQL_ROOT_PASSWORD: wordpress
+        MYSQL_DATABASE: wordpress
+        MYSQL_USER: wordpress
+        MYSQL_PASSWORD: wordpress
+    networks:
+      - default
+
+  wordpress:
+    image: wordpress:latest
+    # volumes:
+    #   - wp_data:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/
+        - com.df.port=80
+    networks:
+      - default
+      - proxy
+    
+#   TODO: Make phpmyadmin servicePath work in parallel with wordpress service.
+#   phpmyadmin:
+#     image: phpmyadmin/phpmyadmin
+#     environment:
+#       - PMA_ARBITRARY=1
+#     # volumes:
+#     #   - /sessions
+#     extra_hosts:
+#       - "mysql:db"
+#     networks:
+#       - default
+#     deploy:
+#         labels:
+#             - com.df.notify=true
+#             - com.df.distribute=true
+#             - com.df.servicePath=/phpmyadmin
+#             - com.df.port=80
