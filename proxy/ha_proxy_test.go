@@ -31,6 +31,13 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
     pidfile /var/run/haproxy.pid
     tune.ssl.default-dh-param 2048
 
+    #disable sslv3, prefer modern ciphers
+    ssl-default-bind-options no-sslv3
+    ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+
+    ssl-default-server-options no-sslv3
+    ssl-default-server-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+
 defaults
     mode    http
     balance roundrobin
@@ -68,7 +75,7 @@ defaults
 
 frontend services
     bind *:80
-    bind *:443
+    bind *:443 ssl crt /certs/
     mode http
 `
 	s.ServicesContent = `
@@ -452,25 +459,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenHttp
 	}
 
 	p.CreateConfigFromTemplates()
-
-	s.Equal(expectedData, actualData)
-}
-
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
-	var actualFilename string
-	var actualData string
-	expectedData := fmt.Sprintf(
-		"%s%s",
-		strings.Replace(s.TemplateContent, "bind *:443", "bind *:443 ssl crt /certs/my-cert.pem", -1),
-		s.ServicesContent,
-	)
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }

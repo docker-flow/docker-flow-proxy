@@ -21,7 +21,6 @@ var Instance Proxy
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type ConfigData struct {
-	CertsString          string
 	ConnectionMode       string
 	TimeoutConnect       string
 	TimeoutClient        string
@@ -161,15 +160,7 @@ backend dummy-be
 }
 
 func (m HaProxy) getConfigData() ConfigData {
-	certs := []string{}
-	if len(data.Certs) > 0 {
-		certs = append(certs, " ssl")
-		for cert, _ := range data.Certs {
-			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
-		}
-	}
 	d := ConfigData{
-		CertsString:          strings.Join(certs, " "),
 		TimeoutConnect:       "5",
 		TimeoutClient:        "20",
 		TimeoutServer:        "20",
