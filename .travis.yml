@@ -35,6 +35,7 @@ after_success:
   - docker push vfarcic/docker-flow-proxy-docs:${VERSION}
   - docker push vfarcic/docker-flow-proxy-docs
   - ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image vfarcic/docker-flow-proxy-docs:${VERSION} proxy-docs
+  - ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --label-add PROXY_VERSION=${VERSION} letsencrypt-companion
 
 branches:
   only:
