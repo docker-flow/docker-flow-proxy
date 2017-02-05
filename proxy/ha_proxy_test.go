@@ -325,10 +325,85 @@ frontend my-service-1_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service-1"] = Service{
-		ReqMode: "tcp",
+		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend service_1234
+    bind *:1234
+    mode tcp
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+    acl sni_my-service-14321
+    use_backend my-service-1-be4321 if sni_my-service-14321%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service-1"] = Service{
+		ReqMode:     "sni",
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI443() {
+	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
+	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
+	os.Setenv("DEFAULT_PORTS", "80")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:443",
+		"",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend service_443
+    bind *:443
+    mode tcp
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+    acl sni_my-service-14321
+    use_backend my-service-1-be4321 if sni_my-service-14321%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	data.Services["my-service-1"] = Service{
+		ReqMode:     "sni",
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 443, Port: "4321"},
 		},
 	}
 
@@ -486,6 +561,33 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
     bind *:1234
     bind *:4321%s`,
 		s.TemplateContent,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
+	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
+	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
+	os.Setenv("DEFAULT_PORTS", "1234,4321 ssl crt /certs/my-cert.pem")
+	var actualFilename string
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:1234\n    bind *:4321 ssl crt /certs/my-cert.pem",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
