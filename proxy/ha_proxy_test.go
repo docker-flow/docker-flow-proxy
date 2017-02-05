@@ -31,6 +31,13 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
     pidfile /var/run/haproxy.pid
     tune.ssl.default-dh-param 2048
 
+    #disable sslv3, prefer modern ciphers
+    ssl-default-bind-options no-sslv3
+    ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+
+    ssl-default-server-options no-sslv3
+    ssl-default-server-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+
 defaults
     mode    http
     balance roundrobin

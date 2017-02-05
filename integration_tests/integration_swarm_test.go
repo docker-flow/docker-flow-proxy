@@ -249,8 +249,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int) {
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
-	cmd := fmt.Sprintf(
-		`docker service create --name go-demo \
+	cmd := `docker service create --name go-demo \
     -e DB=go-demo-db \
     --network go-demo \
     --network proxy \
@@ -258,9 +257,7 @@ func (s *IntegrationSwarmTestSuite) createGoDemoService() {
     --label com.df.distribute=true \
     --label com.df.servicePath=/demo \
     --label com.df.port=8080 \
-    %s/go-demo:no-health`,
-		s.dockerHubUser,
-	)
+    vfarcic/go-demo:no-health`
 	s.createService(cmd)
 }
 
