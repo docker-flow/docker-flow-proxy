@@ -94,6 +94,7 @@ func (s *HaProxyTestSuite) SetupTest() {
 	s.Pid = "123"
 	s.TemplatesPath = "test_configs/tmpl"
 	s.ConfigsPath = "test_configs"
+	os.Setenv("DEFAULT_PORTS", "80,443:ssl")
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		return nil
 	}

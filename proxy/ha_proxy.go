@@ -230,12 +230,10 @@ func (m HaProxy) getConfigData() ConfigData {
     option  dontlog-normal`
 	}
 
-	default_ports := []string{"80", fmt.Sprintf("443%s", d.CertsString)}
-	if len(os.Getenv("DEFAULT_PORTS")) > 0 {
-		default_ports = strings.Split(os.Getenv("DEFAULT_PORTS"), ",")
-	}
+	default_ports := strings.Split(os.Getenv("DEFAULT_PORTS"), ",")
 	for _, bindPort := range default_ports {
-		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", bindPort)
+		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
+		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
 	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
 	if len(os.Getenv("BIND_PORTS")) > 0 {
