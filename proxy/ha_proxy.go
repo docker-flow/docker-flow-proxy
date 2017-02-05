@@ -162,6 +162,7 @@ backend dummy-be
 	return content.String(), nil
 }
 
+// TODO: Too big... Refactor it.
 func (m HaProxy) getConfigData() ConfigData {
 	certs := []string{}
 	if len(data.Certs) > 0 {
@@ -273,11 +274,9 @@ func (m HaProxy) getConfigData() ConfigData {
 		sniports = append(sniports, k)
 	}
 	sort.Ints(sniports)
-	//d.ContentFrontendSNI = ``
 	for _, k := range sniports {
 		d.ContentFrontendSNI += snimap[k]
 	}
-	fmt.Println("SNI:", len(d.ContentFrontendSNI))
 	return d
 }
 
