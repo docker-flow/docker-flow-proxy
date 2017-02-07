@@ -311,6 +311,21 @@ backend myService-be1234
 	s.Equal(expectedBack, actualBack)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsXForwardedProto_WhenHttpsOnlyIsTrue() {
+	expectedBack := `
+backend myService-be1234
+    mode http
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    server myService myService:1234`
+	s.reconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.Mode = "service"
+	s.reconfigure.HttpsOnly = true
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+
+	s.Equal("", actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	sd := []proxy.ServiceDest{
 		proxy.ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},

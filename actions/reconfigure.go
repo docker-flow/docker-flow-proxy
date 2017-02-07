@@ -360,6 +360,10 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		tmpl += `
     timeout server {{$.TimeoutServer}}s`
 	}
+	if sr.HttpsOnly {
+		tmpl += `
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
+	}
 	if len(sr.TimeoutTunnel) > 0 {
 		tmpl += `
     timeout tunnel {{$.TimeoutTunnel}}s`
