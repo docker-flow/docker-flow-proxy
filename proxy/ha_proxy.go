@@ -335,8 +335,8 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 	}
 	if s.RedirectWhenHttpProto {
 		tmplString += `{{range .ServiceDest}}
-    acl is_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_http url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
+    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	} else if s.HttpsOnly {
 		tmplString += `{{range .ServiceDest}}
     redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`

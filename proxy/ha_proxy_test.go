@@ -545,8 +545,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111 path_beg /path
-    acl is_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_http url_my-service1111
+    acl is_my-service_http hdr(X-Forwarded-Proto) http
+    redirect scheme https if is_my-service_http url_my-service1111
     use_backend my-service-be1111 if url_my-service1111%s`,
 		tmpl,
 		s.ServicesContent,
