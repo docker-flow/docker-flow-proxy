@@ -326,7 +326,7 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl domain_{{.AclName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
 			domFunc,
 		)
-		s.AclCondition = fmt.Sprintf(" domain_%s", s.ServiceName)
+		s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 	}
 	if s.HttpsPort > 0 {
 		tmplString += `
