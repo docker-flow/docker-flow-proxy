@@ -52,7 +52,7 @@ services:
       - DOCKER_IP=${HOST_IP}
       - CONSUL_IP=${HOST_IP}
     working_dir: /usr/src/myapp
-    command: bash -c "go get -d -v -t && go test -v --run IntegrationTest ./..."
+    command: bash -c "go get -d -v -t && go test --run IntegrationTest ./..."
 
   staging-swarm:
     image: vfarcic/docker-flow-proxy-test
@@ -64,7 +64,7 @@ services:
       - HOST_IP=${HOST_IP}
       - DOCKER_HUB_USER=${DOCKER_HUB_USER}
     working_dir: /usr/src/myapp
-    command: bash -c "go get -d -v -t && go test -v --run IntegrationSwarmTest ./..."
+    command: bash -c "go get -d -v -t && go test --run IntegrationSwarmTest ./..."
 
   production:
     extends:

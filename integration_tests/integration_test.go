@@ -274,8 +274,9 @@ func (s IntegrationTestSuite) Test_Certs() {
 	req, _ := http.NewRequest("PUT", url, nil)
 	client := &http.Client{}
 
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
 
+	s.NoError(err)
 	s.Equal(400, resp.StatusCode)
 
 	// certName is mandatory
