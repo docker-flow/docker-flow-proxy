@@ -19,5 +19,3 @@ type Proxy interface {
 	AddService(service Service)
 	RemoveService(service string)
 }
-
-// Mock

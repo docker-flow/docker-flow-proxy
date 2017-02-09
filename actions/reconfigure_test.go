@@ -663,6 +663,31 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	mockObj.AssertCalled(s.T(), "AddService", mock.Anything)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeAddService_WhenTemplatesAreSet() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+	readTemplateFileOrig := readTemplateFile
+	defer func() { readTemplateFile = readTemplateFileOrig }()
+	readTemplateFile = func(filename string) ([]byte, error) {
+		return []byte(""), nil
+	}
+	expected := proxy.Service{
+		TemplateBePath: "something",
+		TemplateFePath: "something",
+	}
+	r := NewReconfigure(
+		BaseReconfigure{},
+		expected,
+		"",
+	)
+
+	r.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "AddService", mock.Anything)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
