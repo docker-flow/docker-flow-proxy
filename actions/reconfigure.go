@@ -68,7 +68,7 @@ func (m *Reconfigure) Execute(args []string) error {
 	if err := m.createConfigs(m.TemplatesPath, &m.Service); err != nil {
 		return err
 	}
-	if len(m.ConsulTemplateBePath) == 0 && len(m.ConsulTemplateFePath) == 0 {
+	if !m.hasTemplate() {
 		proxy.Instance.AddService(m.Service)
 	}
 	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
@@ -360,10 +360,6 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		tmpl += `
     timeout server {{$.TimeoutServer}}s`
 	}
-	if sr.HttpsOnly {
-		tmpl += `
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
-	}
 	if len(sr.TimeoutTunnel) > 0 {
 		tmpl += `
     timeout tunnel {{$.TimeoutTunnel}}s`
@@ -435,4 +431,11 @@ func (m *Reconfigure) getConsulTemplateFromFile(path string) (string, error) {
 		return "", fmt.Errorf("Could not read the file %s\n%s", path, err.Error())
 	}
 	return string(content), nil
+}
+
+func (m *Reconfigure) hasTemplate() bool {
+	return len(m.ConsulTemplateBePath) != 0 ||
+		len(m.ConsulTemplateFePath) != 0 ||
+		len(m.TemplateBePath) != 0 ||
+		len(m.TemplateFePath) != 0
 }

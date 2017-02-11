@@ -38,6 +38,8 @@ type Service struct {
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType string
+	// Whether to redirect to https when X-Forwarded-Proto is http
+	RedirectWhenHttpProto bool
 	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected. The default value is *http*.
 	// Adding support for *sni*. Setting this to "sni" implies TCP with an SNI-based routing.
 	ReqMode string

@@ -311,21 +311,6 @@ backend myService-be1234
 	s.Equal(expectedBack, actualBack)
 }
 
-func (s ReconfigureTestSuite) Test_GetTemplates_AddsXForwardedProto_WhenHttpsOnlyIsTrue() {
-	expectedBack := `
-backend myService-be1234
-    mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
-    server myService myService:1234`
-	s.reconfigure.ServiceDest[0].Port = "1234"
-	s.reconfigure.Mode = "service"
-	s.reconfigure.HttpsOnly = true
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
-
-	s.Equal("", actualFront)
-	s.Equal(expectedBack, actualBack)
-}
-
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	sd := []proxy.ServiceDest{
 		proxy.ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
@@ -676,6 +661,31 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	r.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "AddService", mock.Anything)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeAddService_WhenTemplatesAreSet() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+	readTemplateFileOrig := readTemplateFile
+	defer func() { readTemplateFile = readTemplateFileOrig }()
+	readTemplateFile = func(filename string) ([]byte, error) {
+		return []byte(""), nil
+	}
+	expected := proxy.Service{
+		TemplateBePath: "something",
+		TemplateFePath: "something",
+	}
+	r := NewReconfigure(
+		BaseReconfigure{},
+		expected,
+		"",
+	)
+
+	r.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "AddService", mock.Anything)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {

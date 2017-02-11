@@ -329,14 +329,18 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl domain_{{.AclName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
 			domFunc,
 		)
-		s.AclCondition = fmt.Sprintf(" domain_%s", s.ServiceName)
+		s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 	}
 	if s.HttpsPort > 0 {
 		tmplString += `
     acl http_{{.ServiceName}} src_port 80
     acl https_{{.ServiceName}} src_port 443`
 	}
-	if s.HttpsOnly {
+	if s.RedirectWhenHttpProto {
+		tmplString += `{{range .ServiceDest}}
+    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
+    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
+	} else if s.HttpsOnly {
 		tmplString += `{{range .ServiceDest}}
     redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}{{end}}`
 	}
