@@ -213,6 +213,27 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDebug() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
+	globalOrig := os.Getenv("EXTRA_GLOBAL")
+	defer func() { os.Setenv("EXTRA_GLOBAL", globalOrig) }()
+	os.Setenv("EXTRA_GLOBAL", "this is extra content")
+	var actualData string
+	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    this is extra content", -1)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 	extraFrontendOrig := os.Getenv("EXTRA_FRONTEND")
 	defer func() { os.Setenv("EXTRA_FRONTEND", extraFrontendOrig) }()
