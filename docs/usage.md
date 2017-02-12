@@ -32,6 +32,7 @@ The following query parameters can be used when `reqMode` is set to `http` or is
 |httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS.        |No      |false  |true         |
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No| |ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No| |path_beg|
+|RedirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| | |
 |serviceDomain|The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes| |/api/v1/books|
