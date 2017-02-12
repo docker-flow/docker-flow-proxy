@@ -237,6 +237,9 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
 	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
+	if len(os.Getenv("EXTRA_GLOBAL")) > 0 {
+		d.ExtraGlobal += fmt.Sprintf("\n    %s", os.Getenv("EXTRA_GLOBAL"))
+	}
 	if len(os.Getenv("BIND_PORTS")) > 0 {
 		bindPorts := strings.Split(os.Getenv("BIND_PORTS"), ",")
 		for _, bindPort := range bindPorts {
