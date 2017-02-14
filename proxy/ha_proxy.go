@@ -317,7 +317,7 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 	tmplString := `{{range .ServiceDest}}
     acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}{{end}}`
 	if len(s.ServiceDomain) > 0 {
-		domFunc := "hdr_dom"
+		domFunc := "hdr"
 		for i, domain := range s.ServiceDomain {
 			if strings.HasPrefix(domain, "*") {
 				s.ServiceDomain[i] = strings.Trim(domain, "*")

@@ -447,7 +447,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111 path_beg /path
-    acl domain_my-service hdr_dom(host) -i domain-1 domain-2
+    acl domain_my-service hdr(host) -i domain-1 domain-2
     use_backend my-service-be1111 if url_my-service1111 domain_my-service%s`,
 		tmpl,
 		s.ServicesContent,
