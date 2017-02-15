@@ -355,6 +355,10 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     mode %s`,
 		prefix, rmode,
 	)
+	if strings.EqualFold(rmode, "http") {
+		tmpl += `
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
+	}
 	// TODO: Deprecated (dec. 2016).
 	if len(sr.TimeoutServer) > 0 {
 		tmpl += `
