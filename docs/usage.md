@@ -8,7 +8,7 @@
 
 The proxy can be reconfigured to use request mode *http* or *tcp*. The default value of the request mode is *http* and can be changed with the parameter `reqMode`.
 
-The following query parameters can be used to send as a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **<PROXY_IP>:<PROXY_PORT>/v1/docker-flow-proxy/reconfigure**. The apply to any `reqMode`.
+The following query parameters can be used to send as a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. The apply to any `reqMode`.
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
@@ -55,7 +55,7 @@ Please consult the [Using TCP Request Mode](swarm-mode-auto.md#using-tcp-request
 An example request is as follows.
 
 ```
-<PROXY_IP>:<PROXY_PORT>/v1/docker-flow-proxy/reconfigure?serviceName=foo&servicePath.1=/&port.1=8080&srcPort.1=80&servicePath.2=/&port.2=8081&srcPort.2=443
+[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure?serviceName=foo&servicePath.1=/&port.1=8080&srcPort.1=80&servicePath.2=/&port.2=8081&srcPort.2=443
 ```
 
 The command would create a service `foo` that exposes ports `8080` and `8081`. All requests coming to proxy port `80` with the path that starts with `/` will be forwarded to the service `foo` port `8080`. Equally, all requests coming to proxy port `443` (*HTTPS*) with the path that starts with `/` will be forwarded to the service `foo` port `8081`.
