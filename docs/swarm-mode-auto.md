@@ -575,14 +575,10 @@ There are two ways we can add certificates to the proxy. One is to create your o
 ```
 FROM vfarcic/docker-flow-proxy
 COPY my-cert.pem /certs/my-cert.pem
-COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
+ENV CERTS="my-cert.pem"
 ```
 
-When the image is built, it will be based on `vfarcic/docker-flow-proxy` and include `my-cert.pem` and `haproxy.tmpl` files. The `my-cert.pem` would be your certificate and the `haproxy.tmpl` the modified version of the original proxy template located in [https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl](https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl). You'd need to replace `{{.CertsString}}` with ` ssl crt /certs/my-cert.pem` (please note that the string should start with space). The complete line would be as follows.
-
-```
-    bind *:443 ssl crt /certs/my-cert.pem
-```
+When the image is built, it will be based on `vfarcic/docker-flow-proxy` and include `my-cert.pem` file. The `my-cert.pem` would be your certificate. Finally, the list of certificates needs to be specified as the environment variable `CERTS`. Multiple certificates can be separated with comma (e.g.`my-cert-1.pem`, `my-cert-2.pem`).
 
 If your certificate is static (almost never changes) and you are willing to create your own `docker-flow-proxy` image, this might be a good option. As an alternative, certificates can be added to the proxy dynamically through an HTTP request.
 

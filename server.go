@@ -39,9 +39,14 @@ var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
 
 func (m *Serve) Execute(args []string) error {
-	// TODO: Change map[string]bool{} env vars
+	certs := map[string]bool{}
+	if len(os.Getenv("CERTS")) > 0 {
+		for _, cert := range strings.Split(os.Getenv("CERTS"), ",") {
+			certs[cert] = true
+		}
+	}
 	if proxy.Instance == nil {
-		proxy.Instance = proxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, map[string]bool{})
+		proxy.Instance = proxy.NewHaProxy(m.TemplatesPath, m.ConfigsPath, certs)
 	}
 	logPrintf("Starting HAProxy")
 	m.setConsulAddresses()
