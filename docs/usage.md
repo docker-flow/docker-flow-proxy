@@ -49,9 +49,9 @@ The following query parameters can be used when `reqMode` is set to `tcp`.
 |srcPort      |The source (entry) port of a service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|Yes| |6378|
 |port         |The internal port of a service that should be reconfigured. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Yes| |6379|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath` and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
-
 Please consult the [Using TCP Request Mode](swarm-mode-auto.md#using-tcp-request-mode) section for an example of working with `tcp` request mode.
+
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath` and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
 An example request is as follows.
 
