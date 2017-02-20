@@ -733,6 +733,60 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 	}
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecrets() {
+	tests := []struct {
+		secretFile string
+		before     string
+		after      string
+		value      string
+	}{
+		{"dfp_connection_mode", "option  http-server-close", "option  different-connection-mode", "different-connection-mode"},
+		{"dfp_timeout_connect", "timeout connect 5s", "timeout connect 999s", "999"},
+		{"dfp_timeout_client", "timeout client  20s", "timeout client  999s", "999"},
+		{"dfp_timeout_server", "timeout server  20s", "timeout server  999s", "999"},
+		{"dfp_timeout_queue", "timeout queue   30s", "timeout queue   999s", "999"},
+		{"dfp_timeout_http_request", "timeout http-request 5s", "timeout http-request 999s", "999"},
+		{"dfp_timeout_http_keep_alive", "timeout http-keep-alive 15s", "timeout http-keep-alive 999s", "999"},
+		{"dfp_timeout_tunnel", "timeout tunnel  3600s", "timeout tunnel  999s", "999"},
+		{"dfp_stats_user", "stats auth admin:admin", "stats auth my-user:admin", "my-user"},
+		{"dfp_stats_pass", "stats auth admin:admin", "stats auth admin:my-pass", "my-pass"},
+	}
+	for _, t := range tests {
+		timeoutOrig := os.Getenv(t.secretFile)
+		var actualFilename string
+		var actualData string
+		expectedData := fmt.Sprintf(
+			"%s%s",
+			strings.Replace(s.TemplateContent, t.before, t.after, -1),
+			s.ServicesContent,
+		)
+		readSecretsFileOrig := readSecretsFile
+		defer func() {
+			readSecretsFile = readSecretsFileOrig
+		}()
+		readSecretsFile = func(dirname string) ([]byte, error) {
+			if strings.HasSuffix(dirname, t.secretFile) {
+				return []byte(t.value), nil
+			} else {
+				return []byte(""), fmt.Errorf("This is an error")
+			}
+		}
+
+
+		writeFile = func(filename string, data []byte, perm os.FileMode) error {
+			actualFilename = filename
+			actualData = string(data)
+			return nil
+		}
+
+		NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+
+		s.Equal(expectedData, actualData, "Secret file %s is incorrect. It should be %s.", t.secretFile, t.value)
+
+		os.Setenv(t.secretFile, timeoutOrig)
+	}
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesMockDataIfConfigsAreNotPresent() {
 	var actualData string
 	readConfigsDirOrig := readConfigsDir

@@ -10,6 +10,7 @@ var cmdRunHa = func(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 var readConfigsFile = ioutil.ReadFile
+var readSecretsFile = ioutil.ReadFile
 var writeFile = ioutil.WriteFile
 var ReadFile = ioutil.ReadFile
 var logPrintf = log.Printf

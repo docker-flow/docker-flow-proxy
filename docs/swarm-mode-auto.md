@@ -1,6 +1,6 @@
 # Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration
 
-*Docker Flow: Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*. If you are looking for a proxy solution that would work with older Docker versions or without Swarm Mode, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) section.
+*Docker Flow Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*. If you are looking for a proxy solution that would work with older Docker versions or without Swarm Mode, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) section.
 
 ## Examples
 

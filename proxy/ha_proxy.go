@@ -172,48 +172,18 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	d := ConfigData{
-		CertsString:          strings.Join(certs, " "),
-		TimeoutConnect:       "5",
-		TimeoutClient:        "20",
-		TimeoutServer:        "20",
-		TimeoutQueue:         "30",
-		TimeoutTunnel:        "3600",
-		TimeoutHttpRequest:   "5",
-		TimeoutHttpKeepAlive: "15",
-		StatsUser:            "admin",
-		StatsPass:            "admin",
-		ConnectionMode:       "http-server-close",
+		CertsString: strings.Join(certs, " "),
 	}
-	if len(os.Getenv("CONNECTION_MODE")) > 0 {
-		d.ConnectionMode = os.Getenv("CONNECTION_MODE")
-	}
-	if len(os.Getenv("TIMEOUT_CONNECT")) > 0 {
-		d.TimeoutConnect = os.Getenv("TIMEOUT_CONNECT")
-	}
-	if len(os.Getenv("TIMEOUT_CLIENT")) > 0 {
-		d.TimeoutClient = os.Getenv("TIMEOUT_CLIENT")
-	}
-	if len(os.Getenv("TIMEOUT_SERVER")) > 0 {
-		d.TimeoutServer = os.Getenv("TIMEOUT_SERVER")
-	}
-	if len(os.Getenv("TIMEOUT_QUEUE")) > 0 {
-		d.TimeoutQueue = os.Getenv("TIMEOUT_QUEUE")
-	}
-	if len(os.Getenv("TIMEOUT_TUNNEL")) > 0 {
-		d.TimeoutTunnel = os.Getenv("TIMEOUT_TUNNEL")
-	}
-	if len(os.Getenv("TIMEOUT_HTTP_REQUEST")) > 0 {
-		d.TimeoutHttpRequest = os.Getenv("TIMEOUT_HTTP_REQUEST")
-	}
-	if len(os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")) > 0 {
-		d.TimeoutHttpKeepAlive = os.Getenv("TIMEOUT_HTTP_KEEP_ALIVE")
-	}
-	if len(os.Getenv("STATS_USER")) > 0 {
-		d.StatsUser = os.Getenv("STATS_USER")
-	}
-	if len(os.Getenv("STATS_PASS")) > 0 {
-		d.StatsPass = os.Getenv("STATS_PASS")
-	}
+	d.ConnectionMode = m.getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
+	d.TimeoutConnect = m.getSecretOrEnvVar("TIMEOUT_CONNECT", "5")
+	d.TimeoutClient = m.getSecretOrEnvVar("TIMEOUT_CLIENT", "20")
+	d.TimeoutServer = m.getSecretOrEnvVar("TIMEOUT_SERVER", "20")
+	d.TimeoutQueue = m.getSecretOrEnvVar("TIMEOUT_QUEUE", "30")
+	d.TimeoutTunnel = m.getSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
+	d.TimeoutHttpRequest = m.getSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
+	d.TimeoutHttpKeepAlive = m.getSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
+	d.StatsUser = m.getSecretOrEnvVar("STATS_USER", "admin")
+	d.StatsPass = m.getSecretOrEnvVar("STATS_PASS", "admin")
 	if len(os.Getenv("USERS")) > 0 {
 		d.UserList = "\nuserlist defaultUsers\n"
 		users := strings.Split(os.Getenv("USERS"), ",")
@@ -281,6 +251,17 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.ContentFrontendSNI += snimap[k]
 	}
 	return d
+}
+
+func (m *HaProxy) getSecretOrEnvVar(key, defaultValue string) string {
+	path := fmt.Sprintf("/run/secrets/dfp_%s", strings.ToLower(key))
+	if content, err := readSecretsFile(path); err == nil {
+		return string(content[:])
+	}
+	if len(os.Getenv(key)) > 0 {
+		return os.Getenv(key)
+	}
+	return defaultValue
 }
 
 func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
