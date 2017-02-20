@@ -2,8 +2,6 @@
 
 *Docker Flow Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*. If you are looking for a proxy solution that would work with older Docker versions or without Swarm Mode, please explore the [Docker Flow: Proxy - Standard Mode](standard-mode.md) section.
 
-## Examples
-
 The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
 
 !!! info
@@ -11,7 +9,7 @@ The examples that follow assume that you have Docker Machine version v0.8+ that 
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
-### Setup
+## Setup
 
 To setup an example environment using Docker Machine, please run the commands that follow.
 
@@ -39,7 +37,7 @@ We'll skip a detailed explanation of the Swarm cluster that is incorporated into
 
 Now we're ready to deploy a service.
 
-### Automatically Reconfiguring the Proxy
+## Automatically Reconfiguring the Proxy
 
 We'll start by creating two networks.
 
@@ -187,7 +185,7 @@ Domains can be prefixed with a wildcard.
 
 The above example would match any domain ending with `domain.com` (e.g. `my-domain.com`, `my-other-domain.com`, etc).
 
-### Removing a Service From the Proxy
+## Removing a Service From the Proxy
 
 Since `Swarm Listener` is monitoring docker services, if a service is removed, related entries in the proxy configuration will be removed as well.
 
@@ -217,7 +215,7 @@ From this moment on, the service *go-demo* is not available through the proxy.
 
 Now that you've seen how to automatically add and remove services from the proxy, let's take a look at scaling options.
 
-### Scaling the Proxy
+## Scaling the Proxy
 
 Swarm is continuously monitoring containers health. If one of them fails, it will be redeployed to one of the nodes. If a whole node fails, Swarm will recreate all the containers that were running on that node. The ability to monitor containers health and make sure that they are (almost) always running is not enough. There is a brief period between the moment an instance fails until Swarm detects that and instantiates a new one. If we want to get close to zero-downtime systems, we must scale our services to at least two instances running on different nodes. That way, while we're waiting for one instance to recuperate from a failure, the others can take over its load. Even that is not enough. We need to make sure that the state of the failed instance is recuperated.
 
@@ -236,6 +234,12 @@ docker service create --name go-demo \
   --label com.df.port=8080 \
   --replicas 3 \
   vfarcic/go-demo
+```
+
+We should wait until the `go-demo` service is up and running. We can check the status by executing `service ps` command.
+
+```bash
+docker service ps go-demo
 ```
 
 At the moment we are still running a single instance of the proxy. Before we scale it, let's confirm that the listener sent a request to reconfigure it.
@@ -276,11 +280,63 @@ curl -i $(docker-machine ip node-1)/demo/hello
 
 Since Docker's networking (`routing mesh`) is performing load balancing, each of those requests is sent to a different proxy instance. Each was forwarded to the `go-demo` service endpoint, Docker networking did load balancing and resent it to one of the `go-demo` instances. As a result, all requests returned status *200 OK* proving that the combination of the proxy and the listener indeed works. All three instances of the proxy were reconfigured.
 
-Let's remove the `go-demo` service before we proceed with an example of rewriting paths.
+## Proxy Statistics
+
+It is useful to see the statistics from the proxy. Among other things, they can reveal information that we could use to make decisions whether to scale our services.
+
+!!! info
+	If you are a Windows user, the `open` command might not be available. In that case, please execute `docker-machine ip node-1` to find out the IP of one of the VMs and open the admin page manually in your favorite browser.
 
 ```bash
-docker service rm go-demo
+open "http://$(docker-machine ip node-1)/admin?stats"
 ```
+
+You will be asked for a username and password. Please use the default values *admin/admin*. You will be presented with a screen with quite a few stats. Since we are running only one service (`go-demo`), those stats might not be of great interest. However, when many services are exposed through the proxy, HAProxy statistics provide indispensable information we should leverage when operating the cluster.
+
+!!! info
+	If you are running multiple replicas of the proxy, the statistics page will show information from one of the replicas only (randomly chosen by the ingress network). It is recommended to store stats from all the replicas in one of the monitoring systems like [Prometheus](https://prometheus.io/).
+
+Using the default username and password is not very secure. We should change them to some more unique values.
+
+There are two ways to secure the proxy statistics. One is through environment variables `STATS_USER` and `STATS_PASS`. Typically, you would set those environment variables when creating the services. Since, in this case, the proxy is already running, we'll update it.
+
+```bash
+docker service update \
+    --env-add STATS_USER=my-user \
+    --env-add STATS_PASS=my-pass \
+    proxy
+```
+
+Now we can open the `admin` page again. This time, the username and password will be `my-user/my-pass`.
+
+```bash
+open "http://$(docker-machine ip node-1)/admin?stats"
+```
+
+Even now, anyone could retrieve our username and password with a simple `service inspect` command. Fortunately, *Docker Flow Proxy* supports Docker secrets introduced in version 1.13.
+
+Secrets can be used as a replacement for any of the environment variables. They should be prefixed with `dfp_` and written in lower case. As an example, `STATS_USER` environment variable would be specified as a secret `dfp_stats_user`.
+
+Let's convert our credentials into Docker secrets.
+
+```bash
+echo "secret-user" \
+    | docker secret create dfp_stats_user -
+
+echo "secret-pass" \
+    | docker secret create dfp_stats_pass -
+```
+
+Now we can attach those secrets to the `proxy` service.
+
+```bash
+docker service update \
+    --secret-add dfp_stats_user \
+    --secret-add dfp_stats_pass \
+    proxy
+```
+
+From now on, the username and password are `secret-user` and `secret-pass`. Unlike environment variable, they are hidden from everyone and are visible only from inside the containers that form the service.
 
 ## Rewriting Paths
 
@@ -706,7 +762,7 @@ Please note that you are not limited to a single certificate. You can send multi
 
 Now you can secure your proxy communication with SSL certificates. Unless you already have a certificate, purchase it or get it for free from [Let's Encrypt](https://letsencrypt.org/). The only thing left is for you to send a request to the proxy to include the certificate and try it out with your domain.
 
-Before you start using `Docker Flow: Proxy`, you might want to get a better understanding of the flow of a request.
+Before you start using `Docker Flow Proxy`, you might want to get a better understanding of the flow of a request.
 
 ## The Flow Explained
 
