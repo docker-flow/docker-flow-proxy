@@ -184,15 +184,16 @@ func (m HaProxy) getConfigData() ConfigData {
 	d.TimeoutHttpKeepAlive = m.getSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
 	d.StatsUser = m.getSecretOrEnvVar("STATS_USER", "admin")
 	d.StatsPass = m.getSecretOrEnvVar("STATS_PASS", "admin")
-	if len(os.Getenv("USERS")) > 0 {
+	usersString := m.getSecretOrEnvVar("USERS", "")
+	if len(usersString) > 0 {
 		d.UserList = "\nuserlist defaultUsers\n"
-		users := strings.Split(os.Getenv("USERS"), ",")
+		users := strings.Split(usersString, ",")
 		for _, user := range users {
 			userPass := strings.Split(user, ":")
 			d.UserList = fmt.Sprintf("%s    user %s insecure-password %s\n", d.UserList, userPass[0], userPass[1])
 		}
 	}
-	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+	if strings.EqualFold(m.getSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `
     debug`
 	} else {
@@ -201,17 +202,20 @@ func (m HaProxy) getConfigData() ConfigData {
     option  dontlog-normal`
 	}
 
-	default_ports := strings.Split(os.Getenv("DEFAULT_PORTS"), ",")
-	for _, bindPort := range default_ports {
+	defaultPortsString := m.getSecretOrEnvVar("DEFAULT_PORTS", "")
+	defaultPorts := strings.Split(defaultPortsString, ",")
+	for _, bindPort := range defaultPorts {
 		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
 		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
-	d.ExtraFrontend = os.Getenv("EXTRA_FRONTEND")
-	if len(os.Getenv("EXTRA_GLOBAL")) > 0 {
-		d.ExtraGlobal += fmt.Sprintf("\n    %s", os.Getenv("EXTRA_GLOBAL"))
+	d.ExtraFrontend = m.getSecretOrEnvVar("EXTRA_FRONTEND", "")
+	extraGlobal := m.getSecretOrEnvVar("EXTRA_GLOBAL", "")
+	if len(extraGlobal) > 0 {
+		d.ExtraGlobal += fmt.Sprintf("\n    %s", extraGlobal)
 	}
-	if len(os.Getenv("BIND_PORTS")) > 0 {
-		bindPorts := strings.Split(os.Getenv("BIND_PORTS"), ",")
+	bindPortsString := m.getSecretOrEnvVar("BIND_PORTS", "")
+	if len(bindPortsString) > 0 {
+		bindPorts := strings.Split(bindPortsString, ",")
 		for _, bindPort := range bindPorts {
 			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
 		}

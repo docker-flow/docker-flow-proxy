@@ -34,6 +34,12 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |No      |15     |10     |
 |USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes.|No| |user1:pass1, user2:pass2|
 
+## Secrets
+
+Secrets can be used as a replacement for any of the environment variables. They should be prefixed with `dfp_` and written in lower case. As an example, `STATS_USER` environment variable would be specified as a secret `dfp_stats_user`.
+
+Please read the [Proxy Statistics](https://proxy.dockerflow.com/swarm-mode-auto/#proxy-statistics) section for an example of using Docker secrets with the proxy.
+
 ## Custom Config
 
 The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
