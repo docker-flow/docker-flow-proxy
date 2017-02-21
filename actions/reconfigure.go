@@ -379,15 +379,15 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			tmpl += `
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}`
+    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		} else {
 			tmpl += `
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}}`
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		}
 	} else { // It's Consul
 		tmpl += `
     {{"{{"}}range $i, $e := service "{{$.FullServiceName}}" "any"{{"}}"}}
-    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq $.SkipCheck false}} check{{end}}
+    server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq $.SkipCheck false}} check{{if eq $.SslVerifyNone true}} ssl verify none{{end}}{{end}}
     {{"{{end}}"}}`
 	}
 	if len(sr.Users) > 0 {

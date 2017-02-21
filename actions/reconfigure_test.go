@@ -212,6 +212,24 @@ backend myService-be1234
 	}
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddSllVerifyNone_WhenSslVerifyNoneIsSet() {
+	modes := []string{"service", "sWARm"}
+	for _, mode := range modes {
+		s.reconfigure.Mode = mode
+		s.reconfigure.Service.ServiceDest[0].Port = "1234"
+		s.reconfigure.SslVerifyNone = true
+		expected := `
+backend myService-be1234
+    mode http
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    server myService myService:1234 ssl verify none`
+
+		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+
+		s.Equal(expected, actual)
+	}
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqModeIsTcp() {
 	s.reconfigure.Mode = "swarm"
 	s.reconfigure.ReqMode = "tcp"

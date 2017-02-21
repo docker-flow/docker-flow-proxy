@@ -33,6 +33,8 @@ Fork [docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy).
 ### Unit Testing
 
 ```bash
+go get -d -v -t
+
 go test ./... -cover -run UnitTest
 ```
 

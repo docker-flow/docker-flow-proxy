@@ -229,24 +229,17 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 	} else {
 		sr.ReqMode = "http"
 	}
-	if len(req.URL.Query().Get("httpsOnly")) > 0 {
-		sr.HttpsOnly, _ = strconv.ParseBool(req.URL.Query().Get("httpsOnly"))
-	}
-	if len(req.URL.Query().Get("redirectWhenHttpProto")) > 0 {
-		sr.RedirectWhenHttpProto, _ = strconv.ParseBool(req.URL.Query().Get("redirectWhenHttpProto"))
-	}
+	sr.HttpsOnly = m.getBoolParam(req, "httpsOnly")
+	sr.RedirectWhenHttpProto = m.getBoolParam(req, "redirectWhenHttpProto")
 	if len(req.URL.Query().Get("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
 	}
 	if len(req.URL.Query().Get("serviceDomain")) > 0 {
 		sr.ServiceDomain = strings.Split(req.URL.Query().Get("serviceDomain"), ",")
 	}
-	if len(req.URL.Query().Get("skipCheck")) > 0 {
-		sr.SkipCheck, _ = strconv.ParseBool(req.URL.Query().Get("skipCheck"))
-	}
-	if len(req.URL.Query().Get("distribute")) > 0 {
-		sr.Distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
-	}
+	sr.SkipCheck = m.getBoolParam(req, "skipCheck")
+	sr.Distribute = m.getBoolParam(req, "distribute")
+	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
 	if len(req.URL.Query().Get("users")) > 0 {
 		users := strings.Split(req.URL.Query().Get("users"), ",")
 		for _, user := range users {
@@ -255,6 +248,14 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 		}
 	}
 	return sr
+}
+
+func (m *Serve) getBoolParam(req *http.Request, param string) bool {
+	value := false
+	if len(req.URL.Query().Get(param)) > 0 {
+		value, _ = strconv.ParseBool(req.URL.Query().Get(param))
+	}
+	return value
 }
 
 func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *server.Response, msg string) {
@@ -271,17 +272,14 @@ func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *server.Res
 
 func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
 	serviceName := req.URL.Query().Get("serviceName")
-	distribute := false
+	distribute := m.getBoolParam(req, "distribute")
 	response := server.Response{
 		Status:      "OK",
 		ServiceName: serviceName,
 	}
-	if len(req.URL.Query().Get("distribute")) > 0 {
-		distribute, _ = strconv.ParseBool(req.URL.Query().Get("distribute"))
-		if distribute {
-			response.Distribute = distribute
-			response.Message = DISTRIBUTED
-		}
+	if distribute {
+		response.Distribute = distribute
+		response.Message = DISTRIBUTED
 	}
 	if len(serviceName) == 0 {
 		response.Status = "NOK"

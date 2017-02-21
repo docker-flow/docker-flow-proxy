@@ -758,6 +758,28 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonTimeoutTunnel_WhenPresent() 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonSslVerifyNone_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&sslVerifyNone=true", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Service: proxy.Service{
+			ServiceName:      s.ServiceName,
+			ReqMode:          "http",
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+			SslVerifyNone:    true,
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
 	serve.Port = s.ServiceDest[0].Port

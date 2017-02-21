@@ -64,6 +64,8 @@ type Service struct {
 	// Whether to skip adding proxy checks.
 	// This option is used only in the default mode.
 	SkipCheck bool
+	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
+	SslVerifyNone bool
 	// The path to the template representing a snippet of the backend configuration.
 	// If specified, the backend template will be loaded from the specified file.
 	// If specified, `templateFePath` must be set as well.
