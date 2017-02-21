@@ -578,10 +578,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
 	data.Services["my-service"] = Service{
-		ServiceName: "my-service",
-		PathType:    "path_beg",
+		ServiceName:           "my-service",
+		PathType:              "path_beg",
 		RedirectWhenHttpProto: true,
-		AclName:     "my-service",
+		AclName:               "my-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
@@ -771,7 +771,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecre
 				return []byte(""), fmt.Errorf("This is an error")
 			}
 		}
-
 
 		writeFile = func(filename string, data []byte, perm os.FileMode) error {
 			actualFilename = filename
