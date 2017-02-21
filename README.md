@@ -4,6 +4,6 @@ The goal of the *Docker Flow Proxy* project is to provide an easy way to reconfi
 
 Since the Docker 1.12 release, *Docker Flow Proxy* supports two modes. The default mode is designed to work with any setup and requires Consul and Registrator. The *swarm* mode aims to leverage the benefits that come with *Docker Swarm* and new networking introduced in the 1.12 release. The later mode (*swarm*) does not have any dependency but Docker Engine. The *swarm* mode is recommended for all who use *Docker Swarm* features introduced in v1.12.
 
-Please visit the **[project documentation](http://proxy.dockerflow.com)** for more info or join the [DevOps20](http://slack.devops20toolkit.com/) Slack channel if you have any questions, suggestions, or problems.
+Please visit the **[project documentation](http://proxy.dockerflow.com)** for more info or join the #df-proxy Slack channel in [DevOps20](http://slack.devops20toolkit.com/) if you have any questions, suggestions, or problems.
 
 <a href='https://ko-fi.com/A655LRB' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
