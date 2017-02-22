@@ -164,7 +164,8 @@ backend myService-be
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}
     acl defaultUsersAcl http_auth(defaultUsers)
-    http-request auth realm defaultRealm if !defaultUsersAcl`
+    http-request auth realm defaultRealm if !defaultUsersAcl
+    http-request del-header Authorization`
 
 	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
@@ -188,7 +189,8 @@ backend myService-be
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}
     acl myServiceUsersAcl http_auth(myServiceUsers)
-    http-request auth realm myServiceRealm if !myServiceUsersAcl`
+    http-request auth realm myServiceRealm if !myServiceUsersAcl
+    http-request del-header Authorization`
 
 	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
@@ -256,7 +258,8 @@ backend myService-be1234
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
     acl defaultUsersAcl http_auth(defaultUsers)
-    http-request auth realm defaultRealm if !defaultUsersAcl`
+    http-request auth realm defaultRealm if !defaultUsersAcl
+    http-request del-header Authorization`
 
 	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
@@ -280,7 +283,8 @@ backend myService-be1234
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
     acl myServiceUsersAcl http_auth(myServiceUsers)
-    http-request auth realm myServiceRealm if !myServiceUsersAcl`
+    http-request auth realm myServiceRealm if !myServiceUsersAcl
+    http-request del-header Authorization`
 
 	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
 
