@@ -208,29 +208,6 @@ func (s *ServerTestSuite) Test_Init_WritesCertToFile() {
 	s.Equal("Content of my-cert-3.pem", string(actual))
 }
 
-func (s *ServerTestSuite) Test_Init_InvokesProxyAddCert() {
-	testServer := s.getCertGetAllMockServer(1, 3)
-	defer func() { testServer.Close() }()
-	tsAddr := strings.Replace(testServer.URL, "http://", "", -1)
-	ip, port, _ := net.SplitHostPort(tsAddr)
-	lookupHostOrig := lookupHost
-	defer func() { lookupHost = lookupHostOrig }()
-	lookupHost = func(host string) (addrs []string, err error) {
-		hostPort := net.JoinHostPort(ip, port)
-		return []string{hostPort}, nil
-	}
-	c := NewCert("../certs")
-	c.ProxyServiceName = s.ServiceName
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxyMock := getProxyMock("")
-	proxy.Instance = proxyMock
-
-	c.Init()
-
-	proxyMock.AssertCalled(s.T(), "AddCert", "my-cert-2.pem")
-}
-
 func (s *ServerTestSuite) Test_Init_InvokesProxyCreateConfigFromTemplates() {
 	testServer := s.getCertGetAllMockServer(1, 3)
 	defer func() { testServer.Close() }()
@@ -355,25 +332,6 @@ func (s *CertTestSuite) Test_Put_SavesBodyAsFile() {
 
 	s.NoError(err)
 	s.Equal(expected, string(actual))
-}
-
-func (s *CertTestSuite) Test_Put_InvokesProxyAddCert() {
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxyMock := getProxyMock("")
-	proxy.Instance = proxyMock
-	c := NewCert("../certs")
-	certName := "test.pem"
-	w := getResponseWriterMock()
-	req, _ := http.NewRequest(
-		"PUT",
-		fmt.Sprintf("http://acme.com/v1/docker-flow-proxy/cert?certName=%s", certName),
-		strings.NewReader("THIS IS A CERTIFICATE"),
-	)
-
-	c.Put(w, req)
-
-	proxyMock.AssertCalled(s.T(), "AddCert", certName)
 }
 
 func (s *CertTestSuite) Test_Put_SetsContentTypeToJson() {

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+"time"
 )
 
 // Setup
@@ -103,59 +104,64 @@ func (s *HaProxyTestSuite) SetupTest() {
 	}
 }
 
-// AddCertName
-
-func (s HaProxyTestSuite) Test_AddCert_StoresCertificateName() {
-	dataOrig := data
-	defer func() { data = dataOrig }()
-	orig := Instance
-	defer func() { Instance = orig }()
-	p := HaProxy{}
-
-	p.AddCert("my-cert-3")
-
-	s.Equal(1, len(data.Certs))
-	s.Equal(map[string]bool{"my-cert-3": true}, data.Certs)
-}
-
-func (s HaProxyTestSuite) Test_AddCert_DoesNotStoreDuplicates() {
-	dataOrig := data
-	defer func() { data = dataOrig }()
-	expected := map[string]bool{"cert-1": true, "cert-2": true, "cert-3": true}
-	data.Certs = expected
-	orig := Instance
-	defer func() { Instance = orig }()
-	p := HaProxy{}
-
-	p.AddCert("cert-3")
-
-	s.Equal(3, len(data.Certs))
-	s.Equal(expected, data.Certs)
-}
-
 // GetCerts
 
 func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
-	dataOrig := data
-	defer func() { data = dataOrig }()
+	readDirOrig := ReadDir
+	readFileOrig := ReadFile
+	defer func() {
+		ReadDir = readDirOrig
+		ReadFile = readFileOrig
+	}()
 	p := HaProxy{}
-	data.Certs = map[string]bool{}
 	expected := map[string]string{}
+	mockedFiles := []os.FileInfo{}
 	for i := 1; i <= 3; i++ {
 		certName := fmt.Sprintf("my-cert-%d", i)
-		data.Certs[certName] = true
-		expected[certName] = fmt.Sprintf("content of the certificate /certs/%s", certName)
+		path := fmt.Sprintf("/certs/%s", certName)
+		expected[path] = fmt.Sprintf("content of the certificate %s", path)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
 	}
-	readFileOrig := ReadFile
-	defer func() { ReadFile = readFileOrig }()
+	ReadDir = func(dir string) ([]os.FileInfo, error) {
+		return mockedFiles, nil
+	}
 	ReadFile = func(filename string) ([]byte, error) {
 		content := fmt.Sprintf("content of the certificate %s", filename)
 		return []byte(content), nil
 	}
+	dir := FileInfoMock{
+		IsDirMock: func() bool {
+			return true
+		},
+	}
+	mockedFiles = append(mockedFiles, dir)
 
 	actual := p.GetCerts()
 
 	s.EqualValues(expected, actual)
+}
+
+func (s HaProxyTestSuite) Test_GetCerts_ReturnsEmptyMap_WhenReadDirFails() {
+	readDirOrig := ReadDir
+	defer func() {
+		ReadDir = readDirOrig
+	}()
+	p := HaProxy{}
+	ReadDir = func(dir string) ([]os.FileInfo, error) {
+		return nil, fmt.Errorf("This is an error")
+	}
+
+	actual := p.GetCerts()
+
+	s.Empty(actual)
 }
 
 // CreateConfigFromTemplates
@@ -169,7 +175,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadDi
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -186,7 +192,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFi
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -208,7 +214,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDebug() {
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -229,7 +235,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -250,7 +256,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -271,7 +277,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName: "my-service-1",
 		PathType:    "path_beg",
@@ -305,7 +311,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontE
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	// Will be listed second because of AclName
 	data.Services["my-first-service"] = Service{
 		ServiceName: "my-first-service",
@@ -352,7 +358,7 @@ frontend my-service-1_1234
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
 		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
@@ -386,7 +392,7 @@ frontend service_1234
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
 		ReqMode:     "sni",
 		ServiceName: "my-service-1",
@@ -427,7 +433,7 @@ frontend service_443
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
 		ReqMode:     "sni",
 		ServiceName: "my-service-1",
@@ -456,7 +462,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName:   "my-service",
 		ServiceDomain: []string{"domain-1", "domain-2"},
@@ -485,7 +491,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName:   "my-service",
 		ServiceDomain: []string{"*domain-1"},
@@ -513,7 +519,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
@@ -544,7 +550,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenHttp
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
@@ -576,7 +582,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName:           "my-service",
 		PathType:              "path_beg",
@@ -588,25 +594,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 	}
 
 	p.CreateConfigFromTemplates()
-
-	s.Equal(expectedData, actualData)
-}
-
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCert() {
-	var actualFilename string
-	var actualData string
-	expectedData := fmt.Sprintf(
-		"%s%s",
-		strings.Replace(s.TemplateContent, "bind *:443", "bind *:443 ssl crt /certs/my-cert.pem", -1),
-		s.ServicesContent,
-	)
-	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
-		actualData = string(data)
-		return nil
-	}
-
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{"my-cert.pem": true}).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -630,7 +617,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -657,7 +644,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -686,7 +673,7 @@ frontend services`,
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -725,7 +712,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 			return nil
 		}
 
-		NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+		NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 		s.Equal(expectedData, actualData)
 
@@ -778,7 +765,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecre
 			return nil
 		}
 
-		NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+		NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 		s.Equal(expectedData, actualData, "Secret file %s is incorrect. It should be %s.", t.secretFile, t.value)
 
@@ -812,7 +799,7 @@ backend dummy-be
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
@@ -826,7 +813,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReturnsError_WhenReadCo
 		return nil, fmt.Errorf("Could not read the directory")
 	}
 
-	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	err := NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Error(err)
 }
@@ -848,7 +835,7 @@ config2 content`
 		return []byte(expectedData), nil
 	}
 
-	actualData, _ := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).ReadConfig()
+	actualData, _ := NewHaProxy(s.TemplatesPath, s.ConfigsPath).ReadConfig()
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -924,7 +911,7 @@ func (s *HaProxyTestSuite) Test_AddService_AddsService() {
 	s1 := Service{ServiceName: "my-service-1"}
 	s2 := Service{ServiceName: "my-service-2"}
 	s3 := Service{ServiceName: "my-service-2", ServiceDomain: []string{"domain-1", "domain-2"}}
-	p := NewHaProxy("anything", "doesn't", map[string]bool{}).(HaProxy)
+	p := NewHaProxy("anything", "doesn't").(HaProxy)
 
 	p.AddService(s1)
 	p.AddService(s2)
@@ -941,7 +928,7 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 	s1 := Service{ServiceName: "my-service-1"}
 	s2 := Service{ServiceName: "my-service-2"}
 	s3 := Service{ServiceName: "my-service-2", ServiceDomain: []string{"domain-1", "domain-2"}}
-	p := NewHaProxy("anything", "doesn't", map[string]bool{}).(HaProxy)
+	p := NewHaProxy("anything", "doesn't").(HaProxy)
 
 	p.AddService(s1)
 	p.AddService(s2)
@@ -953,6 +940,39 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 }
 
 // Mocks
+
+type FileInfoMock struct {
+	NameMock func() string
+	SizeMock func() int64
+	ModeMock func() os.FileMode
+	ModTimeMock func() time.Time
+	IsDirMock func() bool
+	SysMock func() interface{}
+}
+
+func (m FileInfoMock) Name() string {
+	return m.NameMock()
+}
+
+func (m FileInfoMock) Size() int64 {
+	return m.SizeMock()
+}
+
+func (m FileInfoMock) Mode() os.FileMode {
+	return m.ModeMock()
+}
+
+func (m FileInfoMock) ModTime() time.Time {
+	return m.ModTimeMock()
+}
+
+func (m FileInfoMock) IsDir() bool {
+	return m.IsDirMock()
+}
+
+func (m FileInfoMock) Sys() interface{} {
+	return m.SizeMock()
+}
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string

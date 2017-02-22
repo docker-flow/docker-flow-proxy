@@ -50,15 +50,7 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 }
 
 func (m *Cert) PutCert(certName string, certContent []byte) (string, error) {
-	path, err := m.writeFile(certName, certContent)
-	if err != nil {
-		return "", err
-	} else {
-		proxy.Instance.AddCert(certName)
-		logPrintf("Stored certificate %s", certName)
-
-		return path, nil
-	}
+	return m.writeFile(certName, certContent)
 }
 
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
@@ -99,6 +91,7 @@ func (m *Cert) Init() error {
 			if !strings.Contains(ip, ":") {
 				hostPort = net.JoinHostPort(ip, m.ServicePort)
 			}
+			// TODO: Refactor to retrieve only certs that are not stored as secrets
 			addr := fmt.Sprintf("http://%s/v1/docker-flow-proxy/certs", hostPort)
 			req, _ := http.NewRequest("GET", addr, nil)
 			if resp, err := client.Do(req); err == nil {
@@ -113,7 +106,6 @@ func (m *Cert) Init() error {
 		}
 		if len(certs) > 0 {
 			for _, cert := range certs {
-				proxy.Instance.AddCert(cert.ProxyServiceName)
 				m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
 			}
 			proxy.Instance.CreateConfigFromTemplates()

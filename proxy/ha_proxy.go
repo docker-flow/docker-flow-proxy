@@ -42,8 +42,7 @@ type ConfigData struct {
 	ContentFrontendSNI   string
 }
 
-func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy {
-	data.Certs = certs
+func NewHaProxy(templatesPath, configsPath string) Proxy {
 	data.Services = map[string]Service{}
 	return HaProxy{
 		TemplatesPath: templatesPath,
@@ -51,18 +50,17 @@ func NewHaProxy(templatesPath, configsPath string, certs map[string]bool) Proxy 
 	}
 }
 
-func (m HaProxy) AddCert(certName string) {
-	if data.Certs == nil {
-		data.Certs = map[string]bool{}
-	}
-	data.Certs[certName] = true
-}
+// TODO: Implement GetCertNames
 
 func (m HaProxy) GetCerts() map[string]string {
 	certs := map[string]string{}
-	for cert := range data.Certs {
-		content, _ := ReadFile(fmt.Sprintf("/certs/%s", cert))
-		certs[cert] = string(content)
+	files, _ := ReadDir("/certs")
+	for _, file := range files {
+		if !file.IsDir() {
+			path := fmt.Sprintf("/certs/%s", file.Name())
+			content, _ := ReadFile(path)
+			certs[path] = string(content)
+		}
 	}
 	return certs
 }
@@ -164,15 +162,16 @@ backend dummy-be
 
 // TODO: Too big... Refactor it.
 func (m HaProxy) getConfigData() ConfigData {
-	certs := []string{}
-	if len(data.Certs) > 0 {
-		certs = append(certs, " ssl")
-		for cert := range data.Certs {
-			certs = append(certs, fmt.Sprintf("crt /certs/%s", cert))
-		}
-	}
+	certsString := []string{}
+	// TODO: Refactor
+//	if len(data.Certs) > 0 {
+//		certsString = append(certsString, " ssl")
+//		for cert := range data.Certs {
+//			certsString = append(certsString, fmt.Sprintf("crt /certs/%s", cert))
+//		}
+//	}
 	d := ConfigData{
-		CertsString: strings.Join(certs, " "),
+		CertsString: strings.Join(certsString, " "),
 	}
 	d.ConnectionMode = m.getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
 	d.TimeoutConnect = m.getSecretOrEnvVar("TIMEOUT_CONNECT", "5")
