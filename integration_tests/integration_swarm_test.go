@@ -56,7 +56,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	s.createGoDemoService()
 
-	s.waitForContainers(1)
+	s.waitForContainers(1, "proxy")
 
 	suite.Run(t, s)
 
@@ -92,10 +92,10 @@ func (s IntegrationSwarmTestSuite) Test_Remove() {
 func (s IntegrationSwarmTestSuite) Test_Scale() {
 	defer func() {
 		exec.Command("/bin/sh", "-c", "docker service scale proxy=1").Output()
-		s.waitForContainers(1)
+		s.waitForContainers(1, "proxy")
 	}()
 	exec.Command("/bin/sh", "-c", "docker service scale proxy=3").Output()
-	s.waitForContainers(3)
+	s.waitForContainers(3, "proxy")
 
 	s.reconfigureGoDemo("&distribute=true")
 
@@ -125,11 +125,11 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	defer func() {
 		exec.Command("/bin/sh", "-c", `docker service update --env-rm "USERS" proxy`).Output()
-		s.waitForContainers(1)
+		s.waitForContainers(1, "proxy")
 	}()
 	_, err := exec.Command("/bin/sh", "-c", `docker service update --env-add "USERS=my-user:my-pass" proxy`).Output()
 	s.NoError(err)
-	s.waitForContainers(1)
+	s.waitForContainers(1, "proxy")
 
 	s.reconfigureGoDemo("")
 
@@ -176,12 +176,13 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 func (s IntegrationSwarmTestSuite) Test_Tcp() {
 	defer func() {
 		s.removeServices("redis")
+		s.waitForContainers(0, "redis")
 	}()
 	cmdString := `docker service create --name redis \
 	--network proxy \
 	redis:3.2`
 	exec.Command("/bin/sh", "-c", cmdString).Output()
-	s.waitForContainers(2)
+	s.waitForContainers(1, "redis")
 	s.reconfigureRedis()
 
 	cmdString = fmt.Sprintf("ADDR=%s PORT=6379 /usr/src/myapp/integration_tests/redis_check.sh", s.hostIP)
@@ -215,10 +216,10 @@ func (s IntegrationSwarmTestSuite) Test_Tcp() {
 
 // Util
 
-func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int) bool {
-	out, _ := exec.Command("/bin/sh", "-c", "docker ps").Output()
+func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
+	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name=" + name ).Output()
 	lines := strings.Split(string(out), "\n")
-	return len(lines) == (expected + 5)
+	return len(lines) == (expected +1) //+1 because there is new line at the end of ps output
 }
 
 func (s *IntegrationSwarmTestSuite) createService(command string) {
@@ -232,15 +233,15 @@ func (s *IntegrationSwarmTestSuite) removeServices(service ...string) {
 	}
 }
 
-func (s *IntegrationSwarmTestSuite) waitForContainers(expected int) {
+func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string) {
 	time.Sleep(2 * time.Second)
 	i := 1
 	for {
-		if s.areContainersRunning(expected) {
+		if s.areContainersRunning(expected, name) {
 			break
 		}
 		if i > 60 {
-			fmt.Printf("Waiting for %d services...\n", expected)
+			fmt.Printf("Waiting for %d tasks of service %s...\n", expected, name)
 		}
 		i = i + 1
 		time.Sleep(1 * time.Second)

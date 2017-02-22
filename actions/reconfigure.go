@@ -393,11 +393,13 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 	if len(sr.Users) > 0 {
 		tmpl += `
     acl {{$.ServiceName}}UsersAcl http_auth({{$.ServiceName}}Users)
-    http-request auth realm {{$.ServiceName}}Realm if !{{$.ServiceName}}UsersAcl`
+    http-request auth realm {{$.ServiceName}}Realm if !{{$.ServiceName}}UsersAcl
+    http-request del-header Authorization`
 	} else if len(os.Getenv("USERS")) > 0 {
 		tmpl += `
     acl defaultUsersAcl http_auth(defaultUsers)
-    http-request auth realm defaultRealm if !defaultUsersAcl`
+    http-request auth realm defaultRealm if !defaultUsersAcl
+    http-request del-header Authorization`
 	}
 	tmpl += "{{end}}"
 	return tmpl
