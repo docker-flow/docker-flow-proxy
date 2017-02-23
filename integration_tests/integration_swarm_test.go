@@ -202,6 +202,34 @@ func (s IntegrationSwarmTestSuite) Test_Tcp() {
 	)
 }
 
+func (s IntegrationSwarmTestSuite) Test_Reload() {
+
+	// Reconfigure
+
+	s.reconfigureGoDemo("")
+	resp, err := s.sendHelloRequest()
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
+
+	// Corrupt the config
+
+	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name=proxy").Output()
+	id := strings.TrimRight(string(out), "\n")
+	cmd := fmt.Sprintf("docker cp /tmp/haproxy.cfg %s:/cfg/haproxy.cfg", id)
+	if f, err := os.Create("/tmp/haproxy.cfg"); err != nil {
+		s.Fail(err.Error())
+	} else {
+		f.Write([]byte("This config is corrupt"))
+	}
+	out, _ = exec.Command("/bin/sh", "-c", cmd).Output()
+
+	// Reload with reconfigure
+
+	s.reloadService("?recreate=true")
+	config := s.getProxyConf()
+	s.NotEqual("This config is corrupt", config)
+}
+
 //func (s IntegrationSwarmTestSuite) Test_HttpsOnly() {
 //	s.reconfigureGoDemo("&httpsOnly=true")
 //
@@ -240,7 +268,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		if s.areContainersRunning(expected, name) {
 			break
 		}
-		if i > 60 {
+		if i > 20 {
 			fmt.Printf("Waiting for %d tasks of service %s...\n", expected, name)
 		}
 		i = i + 1
@@ -288,6 +316,28 @@ func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
 	} else {
 		msg := fmt.Sprintf(
 			`Failed to reconfigure the proxy by sending a request to URL %s
+
+CONFIGURATION:
+%s`,
+			url,
+			s.getProxyConf())
+		s.Equal(200, resp.StatusCode, msg)
+	}
+	time.Sleep(1 * time.Second)
+}
+
+func (s *IntegrationSwarmTestSuite) reloadService(params string) {
+	url := fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reload%s",
+		s.hostIP,
+		params,
+	)
+	resp, err := http.Get(url)
+	if err != nil {
+		s.Fail(err.Error())
+	} else {
+		msg := fmt.Sprintf(
+			`Failed to reload the proxy by sending a request to URL %s
 
 CONFIGURATION:
 %s`,

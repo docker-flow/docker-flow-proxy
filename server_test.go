@@ -384,7 +384,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	reloadOrig := reload
 	defer func() { reload = reloadOrig }()
 	reload = ReloadMock{
-		ExecuteMock: func() error {
+		ExecuteMock: func(recreate bool) error {
 			invoked = true
 			return nil
 		},
@@ -395,7 +395,63 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	srv := Serve{}
 	srv.ServeHTTP(s.ResponseWriter, req)
 
-	s.Assert().True(invoked)
+	s.True(invoked)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReloadWithRecreateParam() {
+	actual := false
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool) error {
+			actual = recreate
+			return nil
+		},
+	}
+	addr := fmt.Sprintf("%s/reload?recreate=true", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.True(actual)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenUrlIsReload() {
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 200)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReload() {
+	var actual string
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal("application/json", actual)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReload() {
+	expected, _ := json.Marshal(server.Response{
+		Status: "OK",
+	})
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
 // ServeHTTP > Reconfigure
@@ -1265,11 +1321,11 @@ func (m CertMock) Init() error {
 }
 
 type ReloadMock struct {
-	ExecuteMock func() error
+	ExecuteMock func(recreate bool) error
 }
 
-func (m ReloadMock) Execute() error {
-	return m.ExecuteMock()
+func (m ReloadMock) Execute(recreate bool) error {
+	return m.ExecuteMock(recreate)
 }
 
 type RunMock struct {

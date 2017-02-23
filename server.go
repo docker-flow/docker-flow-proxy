@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+// TODO: Move to server package
+
 const (
 	DISTRIBUTED = "Distributed to all instances"
 )
@@ -94,7 +96,7 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case "/v1/docker-flow-proxy/remove":
 		m.remove(w, req)
 	case "/v1/docker-flow-proxy/reload":
-		reload.Execute()
+		m.reload(w, req)
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(server.Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
@@ -129,6 +131,18 @@ func (m *Serve) isSwarm(mode string) bool {
 
 func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
+}
+
+func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
+	recreate := m.getBoolParam(req, "recreate")
+	reload.Execute(recreate)
+	w.WriteHeader(http.StatusOK)
+	httpWriterSetContentType(w, "application/json")
+	response := server.Response{
+		Status:      "OK",
+	}
+	js, _ := json.Marshal(response)
+	w.Write(js)
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {

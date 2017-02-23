@@ -27,7 +27,7 @@ func (s *ReloadTestSuite) Test_Execute_Invokes_HaProxyReload() {
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	reload.Execute()
+	reload.Execute(false)
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
@@ -40,7 +40,32 @@ func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	err := reload.Execute()
+	err := reload.Execute(false)
+
+	s.Error(err)
+}
+
+func (s *ReloadTestSuite) Test_Execute_InvokesCreateConfigFromTemplates_WhenRecreateIsTrue() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	mockObj := getProxyMock("")
+	proxy.Instance = mockObj
+	reload := Reload{}
+
+	reload.Execute(true)
+
+	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
+}
+
+func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenCreateConfigFromTemplatesFails() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	mockObj := getProxyMock("CreateConfigFromTemplates")
+	mockObj.On("CreateConfigFromTemplates").Return(fmt.Errorf("This is an error"))
+	proxy.Instance = mockObj
+	reload := Reload{}
+
+	err := reload.Execute(true)
 
 	s.Error(err)
 }
