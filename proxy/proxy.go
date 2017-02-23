@@ -13,6 +13,7 @@ type Proxy interface {
 	CreateConfigFromTemplates() error
 	ReadConfig() (string, error)
 	Reload() error
+	GetCertPaths() []string
 	GetCerts() map[string]string
 	AddService(service Service)
 	RemoveService(service string)

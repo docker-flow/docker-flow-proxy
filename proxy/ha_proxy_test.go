@@ -104,6 +104,45 @@ func (s *HaProxyTestSuite) SetupTest() {
 	}
 }
 
+// GetCertPaths
+
+func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsAllCerts() {
+	readDirOrig := ReadDir
+	defer func() {
+		ReadDir = readDirOrig
+	}()
+	p := HaProxy{}
+	expected := []string{}
+	mockedFiles := []os.FileInfo{}
+	for i := 1; i <= 3; i++ {
+		certName := fmt.Sprintf("my-cert-%d", i)
+		path := fmt.Sprintf("/certs/%s", certName)
+		expected = append(expected, path)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
+	}
+	ReadDir = func(dir string) ([]os.FileInfo, error) {
+		return mockedFiles, nil
+	}
+	dir := FileInfoMock{
+		IsDirMock: func() bool {
+			return true
+		},
+	}
+	mockedFiles = append(mockedFiles, dir)
+
+	actual := p.GetCertPaths()
+
+	s.EqualValues(expected, actual)
+}
+
 // GetCerts
 
 func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {

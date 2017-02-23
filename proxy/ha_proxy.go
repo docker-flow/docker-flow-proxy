@@ -50,17 +50,24 @@ func NewHaProxy(templatesPath, configsPath string) Proxy {
 	}
 }
 
-// TODO: Implement GetCertNames
-
-func (m HaProxy) GetCerts() map[string]string {
-	certs := map[string]string{}
+func (m HaProxy) GetCertPaths() []string {
+	paths := []string{}
 	files, _ := ReadDir("/certs")
 	for _, file := range files {
 		if !file.IsDir() {
 			path := fmt.Sprintf("/certs/%s", file.Name())
-			content, _ := ReadFile(path)
-			certs[path] = string(content)
+			paths = append(paths, path)
 		}
+	}
+	return paths
+}
+
+func (m HaProxy) GetCerts() map[string]string {
+	certs := map[string]string{}
+	paths := m.GetCertPaths()
+	for _, path := range paths {
+		content, _ := ReadFile(path)
+		certs[path] = string(content)
 	}
 	return certs
 }
