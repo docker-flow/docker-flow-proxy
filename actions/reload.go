@@ -3,21 +3,29 @@ package actions
 import "../proxy"
 
 type Reloader interface {
-	Execute(recreate bool) error
+	Execute(recreate bool, listenerAddr string) error
 }
 
 type Reload struct{}
 
-func (m *Reload) Execute(recreate bool) error {
-	if recreate {
-		if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
+func (m *Reload) Execute(recreate bool, listenerAddr string) error {
+	if len(listenerAddr) > 0 {
+		recon := NewReconfigure(BaseReconfigure{}, proxy.Service{}, "")
+		if err := recon.ReloadAllServices([]string{}, "", "", listenerAddr); err != nil {
 			logPrintf(err.Error())
 			return err
 		}
-	}
-	if err := proxy.Instance.Reload(); err != nil {
-		logPrintf(err.Error())
-		return err
+	} else {
+		if recreate {
+			if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
+				logPrintf(err.Error())
+				return err
+			}
+		}
+		if err := proxy.Instance.Reload(); err != nil {
+			logPrintf(err.Error())
+			return err
+		}
 	}
 	return nil
 }

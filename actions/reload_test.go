@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"testing"
+	"github.com/stretchr/testify/mock"
 )
 
 type ReloadTestSuite struct {
@@ -27,7 +28,7 @@ func (s *ReloadTestSuite) Test_Execute_Invokes_HaProxyReload() {
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	reload.Execute(false)
+	reload.Execute(false, "")
 
 	mockObj.AssertCalled(s.T(), "Reload")
 }
@@ -40,7 +41,7 @@ func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	err := reload.Execute(false)
+	err := reload.Execute(false, "")
 
 	s.Error(err)
 }
@@ -52,7 +53,7 @@ func (s *ReloadTestSuite) Test_Execute_InvokesCreateConfigFromTemplates_WhenRecr
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	reload.Execute(true)
+	reload.Execute(true, "")
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
@@ -65,9 +66,82 @@ func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenCreateConfigFromTemplate
 	proxy.Instance = mockObj
 	reload := Reload{}
 
-	err := reload.Execute(true)
+	err := reload.Execute(true, "")
 
 	s.Error(err)
+}
+
+func (s *ReloadTestSuite) Test_Execute_InvokesReloadAllServices_WhenFromListenerIsTrue() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+	reload := Reload{}
+	newReconfigureOrig := NewReconfigure
+	defer func() { NewReconfigure = newReconfigureOrig }()
+	reconfigureMock := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
+		return reconfigureMock
+	}
+
+	reload.Execute(false, "listener-addr")
+
+	reconfigureMock.AssertCalled(s.T(), "ReloadAllServices", []string{}, "", "", "listener-addr")
+}
+
+func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	mockObj := getProxyMock("")
+	proxy.Instance = mockObj
+	reload := Reload{}
+	newReconfigureOrig := NewReconfigure
+	defer func() { NewReconfigure = newReconfigureOrig }()
+	reconfigureMock := getReconfigureMock("ReloadAllServices")
+	reconfigureMock.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
+		return reconfigureMock
+	}
+
+	err := reload.Execute(false, "listener-addr")
+
+	s.Error(err)
+}
+
+func (s *ReloadTestSuite) Test_Execute_DoesNotInvokeCreateConfigFromTemplates_WhenFromListenerIsTrue() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+	reload := Reload{}
+	newReconfigureOrig := NewReconfigure
+	defer func() { NewReconfigure = newReconfigureOrig }()
+	reconfigureMock := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
+		return reconfigureMock
+	}
+
+	reload.Execute(true, "listener-addr")
+
+	proxyMock.AssertNotCalled(s.T(), "CreateConfigFromTemplates")
+}
+
+func (s *ReloadTestSuite) Test_Execute_DoesNotInvokeReload_WhenFromListenerIsTrue() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxyMock := getProxyMock("")
+	proxy.Instance = proxyMock
+	reload := Reload{}
+	newReconfigureOrig := NewReconfigure
+	defer func() { NewReconfigure = newReconfigureOrig }()
+	reconfigureMock := getReconfigureMock("")
+	NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
+		return reconfigureMock
+	}
+
+	reload.Execute(true, "listener-addr")
+
+	proxyMock.AssertNotCalled(s.T(), "Reload")
 }
 
 // NewReload

@@ -384,7 +384,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	reloadOrig := reload
 	defer func() { reload = reloadOrig }()
 	reload = ReloadMock{
-		ExecuteMock: func(recreate bool) error {
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
 			invoked = true
 			return nil
 		},
@@ -398,23 +398,27 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	s.True(invoked)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesReloadWithRecreateParam() {
-	actual := false
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReloadWithParams() {
+	actualRecreate := false
+	actualListenerAddress := ""
 	reloadOrig := reload
 	defer func() { reload = reloadOrig }()
 	reload = ReloadMock{
-		ExecuteMock: func(recreate bool) error {
-			actual = recreate
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			actualRecreate = recreate
+			actualListenerAddress = listenerAddr
 			return nil
 		},
 	}
-	addr := fmt.Sprintf("%s/reload?recreate=true", s.BaseUrl)
+	addr := fmt.Sprintf("%s/reload?recreate=true&fromListener=true", s.BaseUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := Serve{}
+	srv.ListenerAddress = "listener-addr"
 	srv.ServeHTTP(s.ResponseWriter, req)
 
-	s.True(actual)
+	s.True(actualRecreate)
+	s.Equal(srv.ListenerAddress, actualListenerAddress)
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenUrlIsReload() {
@@ -1321,11 +1325,11 @@ func (m CertMock) Init() error {
 }
 
 type ReloadMock struct {
-	ExecuteMock func(recreate bool) error
+	ExecuteMock func(recreate bool, listenerAddr string) error
 }
 
-func (m ReloadMock) Execute(recreate bool) error {
-	return m.ExecuteMock(recreate)
+func (m ReloadMock) Execute(recreate bool, listenerAddr string) error {
+	return m.ExecuteMock(recreate, listenerAddr)
 }
 
 type RunMock struct {

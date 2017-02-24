@@ -108,7 +108,19 @@ The example would send a certificate stored in the `my-certificate.pem` file. Th
 
 > Reloads proxy configuration
 
-The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**
+The following query arguments can be used to send a *reload* request to *Docker Flow Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**.
+
+|Query      |Description                                                |Required|Default|Example |
+|-----------|-----------------------------------------------------------|--------|-------|--------|
+|fromListener|Whether the proxy should be reloaded from *Docker Flow Swarm Listener*. If set to true, configuration will be recreated independently of the `recreate` parameter. This operation is asynchronous.|No|false|true|
+|recreate   |Recreates configuration using the information already available in the proxy. This param is useful in case config gets corrupted.|No|false|true|
+
+An example is as follows.
+
+```bash
+curl -i \
+    "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload?recreate=false&fromListener=true"
+```
 
 ## Config
 

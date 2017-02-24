@@ -54,12 +54,12 @@ func (m *Serve) Execute(args []string) error {
 	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
 	lAddr := ""
 	if len(m.ListenerAddress) > 0 {
 		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
 	}
 	cert.Init()
+	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
 	if err := recon.ReloadAllServices(
 		m.ConsulAddresses,
 		m.InstanceName,
@@ -134,8 +134,12 @@ func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 }
 
 func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
+	listenerAddr := ""
 	recreate := m.getBoolParam(req, "recreate")
-	reload.Execute(recreate)
+	if m.getBoolParam(req, "fromListener") {
+		listenerAddr = m.ListenerAddress
+	}
+	reload.Execute(recreate, listenerAddr)
 	w.WriteHeader(http.StatusOK)
 	httpWriterSetContentType(w, "application/json")
 	response := server.Response{

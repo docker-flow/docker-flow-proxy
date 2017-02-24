@@ -75,7 +75,7 @@ func (m *Reconfigure) Execute(args []string) error {
 		return err
 	}
 	reload := Reload{}
-	if err := reload.Execute(false); err != nil {
+	if err := reload.Execute(false, ""); err != nil {
 		return err
 	}
 	if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
@@ -169,7 +169,7 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 		return err
 	}
 	reload := Reload{}
-	return reload.Execute(false)
+	return reload.Execute(false, "")
 }
 
 func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan proxy.Service) {
