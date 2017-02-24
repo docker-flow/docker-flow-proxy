@@ -112,7 +112,7 @@ The following query arguments can be used to send a *reload* request to *Docker 
 
 |Query      |Description                                                |Required|Default|Example |
 |-----------|-----------------------------------------------------------|--------|-------|--------|
-|fromListener|Whether the proxy should be reloaded from *Docker Flow Swarm Listener*. If set to true, configuration will be recreated independently of the `recreate` parameter. This operation is asynchronous.|No|false|true|
+|fromListener|Whether proxy configuration should be recreated from *Docker Flow Swarm Listener*. If set to true, configuration will be recreated independently of the `recreate` parameter. This operation is asynchronous.|No|false|true|
 |recreate   |Recreates configuration using the information already available in the proxy. This param is useful in case config gets corrupted.|No|false|true|
 
 An example is as follows.

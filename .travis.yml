@@ -35,7 +35,7 @@ after_success:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker push vfarcic/docker-flow-proxy-docs:${VERSION}; fi'
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker push vfarcic/docker-flow-proxy-docs; fi'
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service update --image vfarcic/docker-flow-proxy-docs:${VERSION} proxy-docs; fi'
-  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service; fi' scale letsencrypt-companion=0; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service scale letsencrypt-companion=0; fi'
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ssh -o "StrictHostKeyChecking no" -i proxy-key root@${SWARM_MANAGER_1_PUBLIC_IP} docker service scale letsencrypt-companion=1; fi'
 
 branches:
