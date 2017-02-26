@@ -58,6 +58,8 @@ type Service struct {
 	// The domain of the service.
 	// If set, the proxy will allow access only to requests coming to that domain.
 	ServiceDomain []string
+	// Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.
+	ServiceDomainMatchAll bool
 	// The name of the service.
 	// It must match the name of the Swarm service or the one stored in Consul.
 	ServiceName string

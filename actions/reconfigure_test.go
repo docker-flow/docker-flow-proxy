@@ -979,7 +979,7 @@ func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mo
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetTemplates(sr proxy.Service) (front, back string, err error) {
+func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
 	params := m.Called(sr)
 	return params.String(0), params.String(1), params.Error(2)
 }

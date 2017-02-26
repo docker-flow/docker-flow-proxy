@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+// TODO: Move to server package
+
 const (
 	DISTRIBUTED = "Distributed to all instances"
 )
@@ -46,12 +48,12 @@ func (m *Serve) Execute(args []string) error {
 	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
 	lAddr := ""
 	if len(m.ListenerAddress) > 0 {
 		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
 	}
 	cert.Init()
+	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
 	if err := recon.ReloadAllServices(
 		m.ConsulAddresses,
 		m.InstanceName,
@@ -88,7 +90,7 @@ func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case "/v1/docker-flow-proxy/remove":
 		m.remove(w, req)
 	case "/v1/docker-flow-proxy/reload":
-		reload.Execute()
+		m.reload(w, req)
 	case "/v1/test", "/v2/test":
 		js, _ := json.Marshal(server.Response{Status: "OK"})
 		httpWriterSetContentType(w, "application/json")
@@ -123,6 +125,22 @@ func (m *Serve) isSwarm(mode string) bool {
 
 func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
+}
+
+func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
+	listenerAddr := ""
+	recreate := m.getBoolParam(req, "recreate")
+	if m.getBoolParam(req, "fromListener") {
+		listenerAddr = m.ListenerAddress
+	}
+	reload.Execute(recreate, listenerAddr)
+	w.WriteHeader(http.StatusOK)
+	httpWriterSetContentType(w, "application/json")
+	response := server.Response{
+		Status:      "OK",
+	}
+	js, _ := json.Marshal(response)
+	w.Write(js)
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
@@ -234,6 +252,7 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 	sr.SkipCheck = m.getBoolParam(req, "skipCheck")
 	sr.Distribute = m.getBoolParam(req, "distribute")
 	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
+	sr.ServiceDomainMatchAll = m.getBoolParam(req, "serviceDomainMatchAll")
 	if len(req.URL.Query().Get("users")) > 0 {
 		users := strings.Split(req.URL.Query().Get("users"), ",")
 		for _, user := range users {
