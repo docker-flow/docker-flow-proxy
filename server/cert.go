@@ -40,9 +40,20 @@ type CertResponse struct {
 func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, error) {
 	pCerts := proxy.Instance.GetCerts()
 	certs := []Cert{}
-	for name, content := range pCerts {
-		cert := Cert{ProxyServiceName: name, CertsDir: "/certs", CertContent: content}
-		certs = append(certs, cert)
+	for path, content := range pCerts {
+		if !strings.HasPrefix(path, "/run/secrets") {
+			parts := strings.Split(path, "/")
+			cert := Cert{CertContent: content}
+			nameIndex := len(parts) - 1
+			for index, part := range parts {
+				if index == nameIndex {
+					cert.ProxyServiceName = part
+				} else if len(part) > 0 {
+					cert.CertsDir += "/" + part
+				}
+			}
+			certs = append(certs, cert)
+		}
 	}
 	msg := CertResponse{Status: "OK", Message: "", Certs: certs}
 	m.writeOK(w, msg)
@@ -50,15 +61,7 @@ func (m *Cert) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, e
 }
 
 func (m *Cert) PutCert(certName string, certContent []byte) (string, error) {
-	path, err := m.writeFile(certName, certContent)
-	if err != nil {
-		return "", err
-	} else {
-		proxy.Instance.AddCert(certName)
-		logPrintf("Stored certificate %s", certName)
-
-		return path, nil
-	}
+	return m.writeFile(certName, certContent)
 }
 
 func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
@@ -113,7 +116,6 @@ func (m *Cert) Init() error {
 		}
 		if len(certs) > 0 {
 			for _, cert := range certs {
-				proxy.Instance.AddCert(cert.ProxyServiceName)
 				m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
 			}
 			proxy.Instance.CreateConfigFromTemplates()

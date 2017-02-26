@@ -245,9 +245,9 @@ func (s IntegrationSwarmTestSuite) Test_Reload() {
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
-	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name=" + name ).Output()
+	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name="+name).Output()
 	lines := strings.Split(string(out), "\n")
-	return len(lines) == (expected +1) //+1 because there is new line at the end of ps output
+	return len(lines) == (expected + 1) //+1 because there is new line at the end of ps output
 }
 
 func (s *IntegrationSwarmTestSuite) createService(command string) {

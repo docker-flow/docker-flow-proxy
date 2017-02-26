@@ -326,6 +326,11 @@ func (m *ProxyMock) RemoveService(service string) {
 	m.Called(service)
 }
 
+func (m *ProxyMock) GetCertPaths() []string {
+	params := m.Called()
+	return params.Get(0).([]string)
+}
+
 func getProxyMock(skipMethod string) *ProxyMock {
 	mockObj := new(ProxyMock)
 	if skipMethod != "RunCmd" {
@@ -351,6 +356,9 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "RemoveService" {
 		mockObj.On("RemoveService", mock.Anything)
+	}
+	if skipMethod != "GetCertPaths" {
+		mockObj.On("GetCertPaths")
 	}
 	return mockObj
 }
