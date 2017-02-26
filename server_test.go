@@ -840,6 +840,28 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonSslVerifyNone_WhenPresent() 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithServiceDomainMatchAll_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&serviceDomainMatchAll=true", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Service: proxy.Service{
+			ServiceName:      s.ServiceName,
+			ReqMode:          "http",
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+			ServiceDomainMatchAll: true,
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
 	serve.Port = s.ServiceDest[0].Port

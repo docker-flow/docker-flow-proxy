@@ -258,6 +258,7 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 	sr.SkipCheck = m.getBoolParam(req, "skipCheck")
 	sr.Distribute = m.getBoolParam(req, "distribute")
 	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
+	sr.ServiceDomainMatchAll = m.getBoolParam(req, "serviceDomainMatchAll")
 	if len(req.URL.Query().Get("users")) > 0 {
 		users := strings.Split(req.URL.Query().Get("users"), ",")
 		for _, user := range users {
