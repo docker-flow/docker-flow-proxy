@@ -68,10 +68,6 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string, registr
 	defer mu.Unlock()
 	for _, path := range paths {
 		OsRemove(path)
-		// TODO: Remove commented. Files not be used when everything is moved to in-memory
-		//		if err := OsRemove(path); err != nil {
-		//			return err
-		//		}
 	}
 	if !strings.EqualFold(mode, "service") && !strings.EqualFold(mode, "swarm") {
 		var err error

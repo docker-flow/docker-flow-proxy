@@ -532,7 +532,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		actualData = string(data)
 		return nil
 	}
-	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{})
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
 		ServiceName:   "my-service",
 		ServiceDomain: []string{"domain-1", "domain-2"},
@@ -697,7 +697,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
 	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
 	os.Setenv("DEFAULT_PORTS", "1234,4321 ssl crt /certs/my-cert.pem")
-	var actualFilename string
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
@@ -710,7 +709,51 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
+	readDirOrig := ReadDir
+	defer func() {
+		ReadDir = readDirOrig
+	}()
+	expected := "ssl"
+	mockedFiles := []os.FileInfo{}
+	for i := 1; i <= 3; i++ {
+		certName := fmt.Sprintf("my-cert-%d", i)
+		path := fmt.Sprintf("/certs/%s", certName)
+		expected = fmt.Sprintf("%s crt %s", expected, path)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
+	}
+	ReadDir = func(dir string) ([]os.FileInfo, error) {
+		return mockedFiles, nil
+	}
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:80\n    bind *:443 " + expected,
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
 		actualData = string(data)
 		return nil
 	}

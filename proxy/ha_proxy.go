@@ -169,14 +169,14 @@ backend dummy-be
 
 // TODO: Too big... Refactor it.
 func (m HaProxy) getConfigData() ConfigData {
+	certPaths := m.GetCertPaths()
 	certsString := []string{}
-	// TODO: Refactor
-//	if len(data.Certs) > 0 {
-//		certsString = append(certsString, " ssl")
-//		for cert := range data.Certs {
-//			certsString = append(certsString, fmt.Sprintf("crt /certs/%s", cert))
-//		}
-//	}
+	if len(certPaths) > 0 {
+		certsString = append(certsString, " ssl")
+		for _, certPath := range certPaths {
+			certsString = append(certsString, fmt.Sprintf("crt %s", certPath))
+		}
+	}
 	d := ConfigData{
 		CertsString: strings.Join(certsString, " "),
 	}

@@ -77,12 +77,14 @@ func (s *CertTestSuite) Test_GetAll_WritesReturnsCert() {
 	certs := []Cert{}
 	proxyCerts := map[string]string{}
 	name := "my-service"
+	path := fmt.Sprintf("/my/certs/dir/%s", name)
 	cert := Cert{
 		ProxyServiceName: name,
-		CertsDir:         "/certs",
+		CertsDir:         "/my/certs/dir",
 		CertContent:      "Content of the cert",
 	}
-	proxyCerts[name] = "Content of the cert"
+	proxyCerts[path] = "Content of the cert"
+	proxyCerts["/run/secrets"] = "Content of a cert from secrets. This cert should be ignored."
 	certs = append(certs, cert)
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
