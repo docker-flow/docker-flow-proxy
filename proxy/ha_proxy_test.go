@@ -106,7 +106,7 @@ func (s *HaProxyTestSuite) SetupTest() {
 
 // GetCertPaths
 
-func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsAllCerts() {
+func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
 	readDirOrig := ReadDir
 	defer func() {
 		ReadDir = readDirOrig
@@ -129,7 +129,10 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsAllCerts() {
 		mockedFiles = append(mockedFiles, file)
 	}
 	ReadDir = func(dir string) ([]os.FileInfo, error) {
-		return mockedFiles, nil
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
 	}
 	dir := FileInfoMock{
 		IsDirMock: func() bool {
@@ -137,6 +140,53 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsAllCerts() {
 		},
 	}
 	mockedFiles = append(mockedFiles, dir)
+
+	actual := p.GetCertPaths()
+
+	s.EqualValues(expected, actual)
+}
+
+func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
+	readDirOrig := ReadDir
+	defer func() {
+		ReadDir = readDirOrig
+	}()
+	p := HaProxy{}
+	expected := []string{}
+	mockedFiles := []os.FileInfo{}
+	expected = append(expected, "/run/secrets/cert-anything")
+	mockedFiles = append(mockedFiles, FileInfoMock{
+		NameMock: func() string {
+			return "cert-anything"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	})
+	expected = append(expected, "/run/secrets/cert_anything")
+	mockedFiles = append(mockedFiles, FileInfoMock{
+		NameMock: func() string {
+			return "cert_anything"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	})
+	mockedFiles = append(mockedFiles, FileInfoMock{
+		NameMock: func() string {
+			return "not-a-cert"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	})
+
+	ReadDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/run/secrets" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
 
 	actual := p.GetCertPaths()
 
@@ -170,7 +220,10 @@ func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
 		mockedFiles = append(mockedFiles, file)
 	}
 	ReadDir = func(dir string) ([]os.FileInfo, error) {
-		return mockedFiles, nil
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
 	}
 	ReadFile = func(filename string) ([]byte, error) {
 		content := fmt.Sprintf("content of the certificate %s", filename)
@@ -740,7 +793,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 		mockedFiles = append(mockedFiles, file)
 	}
 	ReadDir = func(dir string) ([]os.FileInfo, error) {
-		return mockedFiles, nil
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
 	}
 	var actualData string
 	tmpl := strings.Replace(

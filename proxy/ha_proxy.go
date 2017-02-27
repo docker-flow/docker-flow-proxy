@@ -59,6 +59,16 @@ func (m HaProxy) GetCertPaths() []string {
 			paths = append(paths, path)
 		}
 	}
+	files, _ = ReadDir("/run/secrets")
+	for _, file := range files {
+		if !file.IsDir() {
+			lName := strings.ToLower(file.Name())
+			if strings.HasPrefix(lName, "cert-") || strings.HasPrefix(lName, "cert_") {
+				path := fmt.Sprintf("/run/secrets/%s", file.Name())
+				paths = append(paths, path)
+			}
+		}
+	}
 	return paths
 }
 
