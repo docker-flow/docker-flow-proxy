@@ -819,7 +819,7 @@ frontend services`,
 		return nil
 	}
 
-	NewHaProxy(s.TemplatesPath, s.ConfigsPath, map[string]bool{}).CreateConfigFromTemplates()
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }

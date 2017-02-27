@@ -71,6 +71,7 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ResponseWriter = getResponseWriterMock()
 	s.RequestReconfigure, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
 	s.RequestRemove, _ = http.NewRequest("GET", s.RemoveUrl, nil)
+	usersBasePath = "./test_configs/%s.txt"
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
@@ -718,7 +719,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsersFromUsersFile_WhenP
 		{Username: "user1", Password: "pass1"},
 		{Username: "user2", Password: "pass2"},
 	}
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&usersPath=./test_configs/users.txt", nil)
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&usersSecret=users", nil)
 	expected, _ := json.Marshal(server.Response{
 		Status:      "OK",
 		ServiceName: s.ServiceName,
@@ -894,12 +895,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithServiceDomainMatchAll_Wh
 		Status:      "OK",
 		ServiceName: s.ServiceName,
 		Service: proxy.Service{
-			ServiceName:      s.ServiceName,
-			ReqMode:          "http",
-			ServiceColor:     s.ServiceColor,
-			ServiceDomain:    s.ServiceDomain,
-			OutboundHostname: s.OutboundHostname,
-			ServiceDest:      []proxy.ServiceDest{s.sd},
+			ServiceName:           s.ServiceName,
+			ReqMode:               "http",
+			ServiceColor:          s.ServiceColor,
+			ServiceDomain:         s.ServiceDomain,
+			OutboundHostname:      s.OutboundHostname,
+			ServiceDest:           []proxy.ServiceDest{s.sd},
 			ServiceDomainMatchAll: true,
 		},
 	})

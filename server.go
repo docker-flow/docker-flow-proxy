@@ -41,6 +41,8 @@ type Serve struct {
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
+//exposed as global so can be changed in tests
+var usersBasePath string = "/run/secrets/dfp_users_%s"
 
 func (m *Serve) Execute(args []string) error {
 	if proxy.Instance == nil {
@@ -267,15 +269,16 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 
 	if len(req.URL.Query().Get("users")) > 0 {
 		appendUsersFromString(&sr, req.URL.Query().Get("users"))
-	} else if len(req.URL.Query().Get("usersPath")) > 0 {
-		usersPath := req.URL.Query().Get("usersPath");
-		if content, err := ioutil.ReadFile(usersPath); err == nil {
+	} else if len(req.URL.Query().Get("usersSecret")) > 0 {
+		usersSecret := req.URL.Query().Get("usersSecret")
+		usersFile := fmt.Sprintf(usersBasePath, usersSecret)
+		if content, err := ioutil.ReadFile(usersFile); err == nil {
 			userContents := strings.TrimRight(string(content[:]), "\n")
 			appendUsersFromString(&sr, userContents)
 		}else {
 			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
-				sr.ServiceName, usersPath, err.Error())
-			//shouldn't we add some rondom user? if Users is empty the service will be unprotected,
+				sr.ServiceName, usersFile, err.Error())
+			//shouldn't we add some random user? if Users is empty the service will be unprotected,
 			// but obviously someone wanted it to be secured
 			sr.Users = append(sr.Users, proxy.User{
 				Username: "dummyUser",

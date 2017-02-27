@@ -195,7 +195,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	if len(usersString) > 0 {
 		d.UserList = "\nuserlist defaultUsers\n"
 		passwordType := "insecure-password";
-		if encryptedString == "true" || encryptedString == "1" {
+		if strings.EqualFold(encryptedString ,"true") || strings.EqualFold(encryptedString , "1") {
 			passwordType = "password";
 		}
 		users := strings.Split(usersString, ",")
