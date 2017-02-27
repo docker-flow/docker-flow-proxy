@@ -1005,7 +1005,7 @@ func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mo
 	return params.Error(0)
 }
 
-func (m *ReconfigureMock) GetTemplates(sr proxy.Service) (front, back string, err error) {
+func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
 	params := m.Called(sr)
 	return params.String(0), params.String(1), params.Error(2)
 }
@@ -1126,6 +1126,11 @@ func (m *ProxyMock) RemoveService(service string) {
 	m.Called(service)
 }
 
+func (m *ProxyMock) GetCertPaths() []string {
+	params := m.Called()
+	return params.Get(0).([]string)
+}
+
 func getProxyMock(skipMethod string) *ProxyMock {
 	mockObj := new(ProxyMock)
 	if skipMethod != "RunCmd" {
@@ -1151,6 +1156,9 @@ func getProxyMock(skipMethod string) *ProxyMock {
 	}
 	if skipMethod != "RemoveService" {
 		mockObj.On("RemoveService", mock.Anything)
+	}
+	if skipMethod != "GetCertPaths" {
+		mockObj.On("GetCertPaths")
 	}
 	return mockObj
 }

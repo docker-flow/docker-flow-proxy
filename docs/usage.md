@@ -35,6 +35,7 @@ The following query parameters can be used when `reqMode` is set to `http` or is
 |RedirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| | |
 |serviceDomain|The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
+|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.|No|false|true|
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes| |/api/v1/books|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 |sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services.|No|false|true|
@@ -108,7 +109,19 @@ The example would send a certificate stored in the `my-certificate.pem` file. Th
 
 > Reloads proxy configuration
 
-The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**
+The following query arguments can be used to send a *reload* request to *Docker Flow Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload**.
+
+|Query      |Description                                                |Required|Default|Example |
+|-----------|-----------------------------------------------------------|--------|-------|--------|
+|fromListener|Whether proxy configuration should be recreated from *Docker Flow Swarm Listener*. If set to true, configuration will be recreated independently of the `recreate` parameter. This operation is asynchronous.|No|false|true|
+|recreate   |Recreates configuration using the information already available in the proxy. This param is useful in case config gets corrupted.|No|false|true|
+
+An example is as follows.
+
+```bash
+curl -i \
+    "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload?recreate=false&fromListener=true"
+```
 
 ## Config
 

@@ -384,7 +384,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	reloadOrig := reload
 	defer func() { reload = reloadOrig }()
 	reload = ReloadMock{
-		ExecuteMock: func() error {
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
 			invoked = true
 			return nil
 		},
@@ -395,7 +395,67 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
 	srv := Serve{}
 	srv.ServeHTTP(s.ResponseWriter, req)
 
-	s.Assert().True(invoked)
+	s.True(invoked)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_InvokesReloadWithParams() {
+	actualRecreate := false
+	actualListenerAddress := ""
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			actualRecreate = recreate
+			actualListenerAddress = listenerAddr
+			return nil
+		},
+	}
+	addr := fmt.Sprintf("%s/reload?recreate=true&fromListener=true", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ListenerAddress = "listener-addr"
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.True(actualRecreate)
+	s.Equal(srv.ListenerAddress, actualListenerAddress)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenUrlIsReload() {
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 200)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReload() {
+	var actual string
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.Equal("application/json", actual)
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReload() {
+	expected, _ := json.Marshal(server.Response{
+		Status: "OK",
+	})
+	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
 // ServeHTTP > Reconfigure
@@ -819,6 +879,28 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonSslVerifyNone_WhenPresent() 
 			OutboundHostname: s.OutboundHostname,
 			ServiceDest:      []proxy.ServiceDest{s.sd},
 			SslVerifyNone:    true,
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithServiceDomainMatchAll_WhenPresent() {
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&serviceDomainMatchAll=true", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Service: proxy.Service{
+			ServiceName:      s.ServiceName,
+			ReqMode:          "http",
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+			ServiceDomainMatchAll: true,
 		},
 	})
 
@@ -1313,11 +1395,11 @@ func (m CertMock) Init() error {
 }
 
 type ReloadMock struct {
-	ExecuteMock func() error
+	ExecuteMock func(recreate bool, listenerAddr string) error
 }
 
-func (m ReloadMock) Execute() error {
-	return m.ExecuteMock()
+func (m ReloadMock) Execute(recreate bool, listenerAddr string) error {
+	return m.ExecuteMock(recreate, listenerAddr)
 }
 
 type RunMock struct {
