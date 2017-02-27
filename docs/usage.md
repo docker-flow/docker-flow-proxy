@@ -77,6 +77,16 @@ The following query arguments can be used to send a *remove* request to *Docker 
 |serviceName|The name of the service. It must match the name stored in Consul            |Yes     |       |go-demo|
 |distribute |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
 
+## Certificates
+
+All certificates stored in `/certs` directory are loaded automatically. If you already have a set of certificates you might choose to store them on a network drive and mount it to the service as `/certs`.
+
+*Docker Flow Proxy* supports [Docker Secrets](https://docs.docker.com/engine/swarm/secrets/) for storing certificates. It will automatically load all certificate files added to the service as a secret. Only secrets with names that start with `cert-` or `cert_` will be considered a certificate.
+
+During runtime, additional certificates can be added through [Put Certificate](#put-certificate) request.
+
+Please consult [Configuring SSL Certificates](/certs) for a few examples of working with certificates.
+
 ## Put Certificate
 
 > Puts SSL certificate to proxy configuration
