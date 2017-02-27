@@ -85,6 +85,8 @@ All certificates stored in `/certs` directory are loaded automatically. If you a
 
 During runtime, additional certificates can be added through [Put Certificate](#put-certificate) request.
 
+Please consult [Configuring SSL Certificates](/certs) for a few examples of working with certificates.
+
 ## Put Certificate
 
 > Puts SSL certificate to proxy configuration
