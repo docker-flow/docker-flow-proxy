@@ -288,7 +288,6 @@ func mergeUsers(serviceName, usersParam, usersSecret string, usersPassEncrypted 
 	var collectedUsers []*proxy.User
 	paramUsers := getUsersFromString(serviceName,usersParam, usersPassEncrypted)
 	fileUsers, _ := getUsersFromFile(serviceName, usersSecret, usersPassEncrypted)
-	fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!PARAM USERS:%d\n", len(paramUsers))
 	if len(paramUsers) > 0 {
 		if !allUsersHavePasswords(paramUsers) {
 			if len(usersSecret) == 0 {

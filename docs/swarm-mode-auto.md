@@ -533,6 +533,40 @@ The first request should return the status code `401 Unauthorized` while the sec
 
 Please note that both *global* and *service* authentication can be combined. In that case, all services would be protected with the users specified through the `proxy` environment variable `USERS` and individual services could overwrite that through the `reconfigure` parameter `users`.
 
+Please note that user password should not be provided in clear text. Above case is just an example but you should consider encrypting them. Passwords will be persisted in HAProxy configuration and they will be visible while inspecting service details in docker. To encrypt them you should use `mkpasswd` utility and set parameter 'com.df.usersPassEncrypted=true' for passwords provided in `com.df.users` label or environment variable `USERS_PASS_ENCRYPTED` when using `USERS` variable. To show that let's restart the `go-demo`:
+
+```bash
+docker service rm go-demo
+docker service create --name go-demo \
+    -e DB=go-demo-db \
+    --network go-demo \
+    --network proxy \
+    --label com.df.notify=true \
+    --label com.df.distribute=true \
+    --label com.df.servicePath=/demo \
+    --label com.df.port=8080 \
+    --label com.df.usersPassEncrypted=true \
+    --label com.df.users=admin:$6$F2eJJA.G$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0 \
+    vfarcic/go-demo
+```
+
+In above example password was encrypted with command:
+
+```bash
+mkpasswd -m sha-512 password
+```
+
+You can verify it by running again:
+
+```bash
+curl -i $(docker-machine ip node-1)/demo/hello
+
+curl -i -u admin:password \
+    $(docker-machine ip node-1)/demo/hello
+```
+
+In case we want to use the same set of users to protect a group of services you can also utilize `com.df.usersSecret` label which should contain a name of a secret mounted in Docker Flow Proxy. Secret should be mounted in /run/secrets/dfp_users_* file. For example if `com.df.usersSecret` is set to `monitoring`, proxy expects file /run/secrets/dfp_users_monitoring to be present and to contain user credentials definition. This way multiple services can share same user set.
+
 Before we move into the next subject, please remove the service and create it again without authentication.
 
 ```bash
