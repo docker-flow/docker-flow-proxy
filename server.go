@@ -141,7 +141,7 @@ func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	httpWriterSetContentType(w, "application/json")
 	response := server.Response{
-		Status:      "OK",
+		Status: "OK",
 	}
 	js, _ := json.Marshal(response)
 	w.Write(js)
@@ -220,12 +220,115 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func appendUsersFromString(sr *proxy.Service, commaSeparatedUsers string) {
+func getUsersFromString(serviceName, commaSeparatedUsers string, passEncrypted bool) ([]*proxy.User) {
+	collectedUsers := []*proxy.User{}
+	if len(commaSeparatedUsers) == 0 {
+		return collectedUsers
+	}
 	users := strings.Split(commaSeparatedUsers, ",")
 	for _, user := range users {
-		userPass := strings.Split(strings.Trim(user, "\n\t "), ":")
-		sr.Users = append(sr.Users, proxy.User{Username: userPass[0], Password: userPass[1]})
+		user = strings.Trim(user, "\n\t ")
+		if strings.Contains(user, ":") {
+			userDetails := strings.Split(user, ":")
+			if len(userDetails) != 2 || len(userDetails[0]) == 0 {
+				logPrintf("For service %s there is an invalid user with no name or invalid format",
+					serviceName)
+			} else {
+				collectedUsers = append(collectedUsers, &proxy.User{Username: userDetails[0], Password: userDetails[1], PassEncrypted: passEncrypted})
+			}
+		} else {
+			if len(user) == 0 {
+				logPrintf("For service %s there is an invalid user with no name or invalid format",
+					serviceName)
+			} else {
+				collectedUsers = append(collectedUsers, &proxy.User{Username: user})
+			}
+		}
 	}
+	return collectedUsers
+}
+
+func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*proxy.User, error) {
+	if len(fileName) > 0 {
+		usersFile := fmt.Sprintf(usersBasePath, fileName)
+
+		if content, err := ioutil.ReadFile(usersFile); err == nil {
+			userContents := strings.TrimRight(string(content[:]), "\n")
+			return getUsersFromString(serviceName,userContents, passEncrypted), nil
+		} else {
+			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
+				serviceName, usersFile, err.Error())
+			return []*proxy.User{}, err
+		}
+	} else {
+		return []*proxy.User{}, nil
+	}
+}
+
+func allUsersHavePasswords(users []*proxy.User) bool {
+	for _, u := range users {
+		if !u.HasPassword() {
+			return false
+		}
+	}
+	return true
+}
+
+func findUserByName(users []*proxy.User, name string) *proxy.User {
+	for _, u := range users {
+		if strings.EqualFold(name, u.Username) {
+			return u
+		}
+	}
+	return nil
+}
+
+func mergeUsers(serviceName, usersParam, usersSecret string, usersPassEncrypted bool,
+	globalUsersString string, globalUsersEncrypted bool) ([]proxy.User) {
+	var collectedUsers []*proxy.User
+	paramUsers := getUsersFromString(serviceName,usersParam, usersPassEncrypted)
+	fileUsers, _ := getUsersFromFile(serviceName, usersSecret, usersPassEncrypted)
+	fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!PARAM USERS:%d\n", len(paramUsers))
+	if len(paramUsers) > 0 {
+		if !allUsersHavePasswords(paramUsers) {
+			if len(usersSecret) == 0 {
+				fileUsers = getUsersFromString(serviceName, globalUsersString, globalUsersEncrypted)
+			}
+			for _, u := range paramUsers {
+				if !u.HasPassword() {
+					if userByName := findUserByName(fileUsers, u.Username); userByName != nil {
+						u.Password = userByName.Password
+						u.PassEncrypted = userByName.PassEncrypted
+					} else {
+						logPrintf("For service %s it was impossible to find password for user %s.",
+							serviceName, u.Username)
+					}
+				}
+			}
+		}
+		collectedUsers = paramUsers
+	} else {
+		collectedUsers = fileUsers
+
+	}
+	ret := []proxy.User{}
+	for _, u := range collectedUsers {
+		if u.HasPassword() {
+			ret = append(ret, *u)
+		}
+	}
+	if len(ret) == 0 && (len(usersParam) != 0 || len(usersSecret) != 0) {
+		//we haven't found any users but they were requested so generating dummy one
+		ret = append(ret, proxy.User{
+			Username: "dummyUser",
+			Password: strconv.FormatInt(rand.Int63(), 3)},
+		)
+	}
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
+
 }
 
 func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
@@ -265,27 +368,14 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 	sr.Distribute = m.getBoolParam(req, "distribute")
 	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
 	sr.ServiceDomainMatchAll = m.getBoolParam(req, "serviceDomainMatchAll")
-	sr.UsersPassEncrypted = m.getBoolParam(req, "usersPassEncrypted")
 
-	if len(req.URL.Query().Get("users")) > 0 {
-		appendUsersFromString(&sr, req.URL.Query().Get("users"))
-	} else if len(req.URL.Query().Get("usersSecret")) > 0 {
-		usersSecret := req.URL.Query().Get("usersSecret")
-		usersFile := fmt.Sprintf(usersBasePath, usersSecret)
-		if content, err := ioutil.ReadFile(usersFile); err == nil {
-			userContents := strings.TrimRight(string(content[:]), "\n")
-			appendUsersFromString(&sr, userContents)
-		}else {
-			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
-				sr.ServiceName, usersFile, err.Error())
-			//shouldn't we add some random user? if Users is empty the service will be unprotected,
-			// but obviously someone wanted it to be secured
-			sr.Users = append(sr.Users, proxy.User{
-				Username: "dummyUser",
-				Password: strconv.FormatInt(rand.Int63(), 3)},
-			)
-		}
-	}
+	globalUsersString := proxy.GetSecretOrEnvVar("USERS", "")
+	globalUsersEncrypted := strings.EqualFold(proxy.GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
+	sr.Users = mergeUsers(sr.ServiceName,
+		req.URL.Query().Get("users"),
+		req.URL.Query().Get("usersSecret"),
+		m.getBoolParam(req, "usersPassEncrypted"),
+		globalUsersString, globalUsersEncrypted)
 	return sr
 }
 

@@ -407,7 +407,7 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 func (m *Reconfigure) getUsersList(sr *proxy.Service) string {
 	if len(sr.Users) > 0 {
 		return `userlist {{.ServiceName}}Users{{range .Users}}
-    user {{.Username}} {{if $.UsersPassEncrypted}}password{{end}}{{if not $.UsersPassEncrypted}}insecure-password{{end}} {{.Password}}{{end}}
+    user {{.Username}} {{if .PassEncrypted}}password{{end}}{{if not .PassEncrypted}}insecure-password{{end}} {{.Password}}{{end}}
 
 `
 	}

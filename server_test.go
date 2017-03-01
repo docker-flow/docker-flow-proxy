@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"time"
+	"github.com/docker/docker/pkg/testutil/assert"
 )
 
 type ServerTestSuite struct {
@@ -497,17 +498,17 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReconfigure() {
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSONWithAllPortsAndPaths() {
 	sd := []proxy.ServiceDest{
-		proxy.ServiceDest{
+		{
 			ServicePath: []string{"/path/to/my-service"},
 			Port:        "1111",
 			SrcPort:     2222,
 		},
-		proxy.ServiceDest{
+		{
 			ServicePath: []string{"/path/to/my-service-1"},
 			Port:        "3333",
 			SrcPort:     4444,
 		},
-		proxy.ServiceDest{
+		{
 			ServicePath: []string{"/path/to/my-service-2"},
 			Port:        "4444",
 		},
@@ -642,7 +643,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithMode_WhenPresent() {
 			ReqPathSearch:    search,
 			ReqPathReplace:   replace,
 			ServiceDest: []proxy.ServiceDest{
-				proxy.ServiceDest{
+				{
 					ServicePath: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
 					SrcPort:     1234,
 					Port:        "4321",
@@ -690,8 +691,8 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithTemplatePaths_WhenPresen
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	users := []proxy.User{
-		{Username: "user1", Password: "pass1"},
-		{Username: "user2", Password: "pass2"},
+		{Username: "user1", Password: "pass1", PassEncrypted:false},
+		{Username: "user2", Password: "pass2", PassEncrypted:false},
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2", nil)
 	expected, _ := json.Marshal(server.Response{
@@ -714,10 +715,36 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsers_WhenPresent() {
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
+func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsersAndPassEncrypted_WhenPresent() {
+	users := []proxy.User{
+		{Username: "user1", Password: "pass1", PassEncrypted:true},
+		{Username: "user2", Password: "pass2", PassEncrypted:true},
+	}
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&users=user1:pass1,user2:pass2&usersPassEncrypted=true", nil)
+	expected, _ := json.Marshal(server.Response{
+		Status:      "OK",
+		ServiceName: s.ServiceName,
+		Service: proxy.Service{
+			ReqMode:          "http",
+			ServiceName:      s.ServiceName,
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			Users:            users,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
+		},
+	})
+
+	srv := Serve{}
+	srv.ServeHTTP(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsersFromUsersFile_WhenPresent() {
 	users := []proxy.User{
-		{Username: "user1", Password: "pass1"},
-		{Username: "user2", Password: "pass2"},
+		{Username: "user1", Password: "pass1", PassEncrypted:false},
+		{Username: "user2", Password: "pass2", PassEncrypted:false},
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&usersSecret=users", nil)
 	expected, _ := json.Marshal(server.Response{
@@ -741,18 +768,22 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsersFromUsersFile_WhenP
 }
 
 func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJsonWithUsersPassEncrypted_WhenPresent() {
-	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&usersPassEncrypted=true", nil)
+	users := []proxy.User{
+		{Username: "user1", Password: "pass1", PassEncrypted:true},
+		{Username: "user2", Password: "pass2", PassEncrypted:true},
+	}
+	req, _ := http.NewRequest("GET", s.ReconfigureUrl+"&usersSecret=users&usersPassEncrypted=true", nil)
 	expected, _ := json.Marshal(server.Response{
 		Status:      "OK",
 		ServiceName: s.ServiceName,
 		Service: proxy.Service{
-			ReqMode:            "http",
-			ServiceName:        s.ServiceName,
-			ServiceColor:       s.ServiceColor,
-			ServiceDomain:      s.ServiceDomain,
-			OutboundHostname:   s.OutboundHostname,
-			UsersPassEncrypted: true,
-			ServiceDest:        []proxy.ServiceDest{s.sd},
+			ReqMode:          "http",
+			ServiceName:      s.ServiceName,
+			ServiceColor:     s.ServiceColor,
+			ServiceDomain:    s.ServiceDomain,
+			OutboundHostname: s.OutboundHostname,
+			Users:            users,
+			ServiceDest:      []proxy.ServiceDest{s.sd},
 		},
 	})
 
@@ -1278,6 +1309,113 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
+
+func (s *ServerTestSuite) Test_getUsersFromString_AllCases(){
+	users := getUsersFromString("sn","u:p", false)
+	assert.DeepEqual(s.T(),users, []*proxy.User{
+		{PassEncrypted: false, Password: "p", Username: "u"},
+	})
+
+	users = getUsersFromString("sn","u:p", true)
+	assert.DeepEqual(s.T(),users, []*proxy.User{
+		{PassEncrypted: true, Password: "p", Username: "u"},
+	})
+
+	users = getUsersFromString("sn","u", false)
+	assert.DeepEqual(s.T(),users, []*proxy.User{
+		{PassEncrypted: false, Password: "", Username: "u"},
+	})
+
+	users = getUsersFromString("sn","u   ,    uu     ", false)
+	assert.DeepEqual(s.T(),users, []*proxy.User{
+		{PassEncrypted: false, Password: "", Username: "u"},
+		{PassEncrypted: false, Password: "", Username: "uu"},
+	})
+
+	users = getUsersFromString("sn","", false)
+	assert.DeepEqual(s.T(),users, []*proxy.User{
+	})
+}
+
+
+func (s *ServerTestSuite) Test_UsersMerge_AllCases(){
+	users := mergeUsers("someService", "user1:pass1,user2:pass2", "", false, "", false)
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+	users = mergeUsers("someService", "user1:pass1,user2", "", false, "", false)
+	//user without password will not be included
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+	})
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "", false)
+	//user2 password will come from users file
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", true, "", false)
+	//user2 password will come from users file, all encrypted
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "user1:pass1,user2:pass2", false)
+	//user2 password will come from users file, but not from global one
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", false)
+	//user2 password will come from global file
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", true)
+	//user2 password will come from global file, globals encrypted only
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", true, "user1:pass1,user2:pass2", true)
+	//user2 password will come from global file, all encrypted
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1,user2", "", false, "", false)
+	//no users found dummy one generated
+	assert.Equal(s.T(), len(users), 1)
+	assert.Equal(s.T(), users[0].Username, "dummyUser")
+
+
+	users = mergeUsers("someService", "", "users", false, "", false)
+	//Users from file only
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "", "", false, "user1:pass1,user2:pass2", false)
+	//No users when only globals present
+	assert.Equal(s.T(), len(users), 0)
+
+
+
+}
+
 
 // Suite
 

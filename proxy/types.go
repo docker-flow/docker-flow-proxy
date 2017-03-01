@@ -1,5 +1,7 @@
 package proxy
 
+import "strings"
+
 type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
@@ -84,7 +86,6 @@ type Service struct {
 	TimeoutTunnel string
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users               []User
-	UsersPassEncrypted  bool
 	ServiceColor        string
 	ServicePort         string
 	AclCondition        string
@@ -110,6 +111,11 @@ func (slice Services) Swap(i, j int) {
 }
 
 type User struct {
-	Username string
-	Password string
+	Username      string
+	Password      string
+	PassEncrypted bool
+}
+
+func (user *User) HasPassword() (bool) {
+	return !strings.EqualFold(user.Password, "")
 }

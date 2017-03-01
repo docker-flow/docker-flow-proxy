@@ -30,3 +30,5 @@ var GetSecretOrEnvVar = func(key, defaultValue string) string {
 	}
 	return defaultValue
 }
+
+
