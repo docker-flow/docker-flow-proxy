@@ -84,11 +84,14 @@ docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
 ##### Locally simulating CI
 
-All above can be run in same manner as CI is running them before build using:
+All above can be executed in same manner as CI is running it before a build using the command that follows.
+
 ```bash
 ./scripts/local-ci.sh
 ```
-script requires:
+
+The script requires:
+
 * DOCKER_HUB_USER environment variable to be set
 * HOST_IP to be set
 * docker logged in to docker hub with $DOCKER_HUB_USER user
