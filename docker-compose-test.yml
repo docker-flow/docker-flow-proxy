@@ -9,7 +9,7 @@ services:
       - .:/usr/src/myapp
       - /tmp/go:/go
     working_dir: /usr/src/myapp
-    command: sh -c "xxx && go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
+    command: sh -c "go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
 
   staging-dep:
     image: ${DOCKER_HUB_USER}/docker-flow-proxy
@@ -64,7 +64,7 @@ services:
       - HOST_IP=${HOST_IP}
       - DOCKER_HUB_USER=${DOCKER_HUB_USER}
     working_dir: /usr/src/myapp
-    command: bash -c "go get -d -v -t && go test --run IntegrationSwarmTest ./..."
+    command: bash -c "go get -d -v -t && go test -v --run IntegrationSwarmTest ./..."
 
   production:
     extends:

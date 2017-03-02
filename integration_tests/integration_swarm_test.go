@@ -29,6 +29,10 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s.hostIP = os.Getenv("HOST_IP")
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
 
+	for _, image := range []string{"redis:3.2", fmt.Sprintf("%s/docker-flow-proxy:beta", s.dockerHubUser), "mongo", "vfarcic/go-demo:no-health"} {
+		exec.Command("/bin/sh", "-c", fmt.Sprintf(`docker pull %s`, image)).Output()
+	}
+
 	exec.Command("/bin/sh", "-c", `docker rm $(docker ps -qa)`).Output()
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
