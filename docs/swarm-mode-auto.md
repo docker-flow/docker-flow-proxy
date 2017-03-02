@@ -533,39 +533,58 @@ The first request should return the status code `401 Unauthorized` while the sec
 
 Please note that both *global* and *service* authentication can be combined. In that case, all services would be protected with the users specified through the `proxy` environment variable `USERS` and individual services could overwrite that through the `reconfigure` parameter `users`.
 
-Please note that user password should not be provided in clear text. Above case is just an example but you should consider encrypting them. Passwords will be persisted in HAProxy configuration and they will be visible while inspecting service details in docker. To encrypt them you should use `mkpasswd` utility and set parameter 'com.df.usersPassEncrypted=true' for passwords provided in `com.df.users` label or environment variable `USERS_PASS_ENCRYPTED` when using `USERS` variable. To show that let's restart the `go-demo`:
+Above all note that user password should not be provided in clear text. Above case is just an example but you should consider encrypting them. Passwords will be persisted in HAProxy configuration and they will be visible while inspecting service details in docker. To encrypt them you should use `mkpasswd` utility and set parameter 'com.df.usersPassEncrypted=true' for passwords provided in `com.df.users` label or environment variable `USERS_PASS_ENCRYPTED` when using `USERS` variable. 
 
-```bash
-docker service rm go-demo
-docker service create --name go-demo \
-    -e DB=go-demo-db \
-    --network go-demo \
-    --network proxy \
-    --label com.df.notify=true \
-    --label com.df.distribute=true \
-    --label com.df.servicePath=/demo \
-    --label com.df.port=8080 \
-    --label com.df.usersPassEncrypted=true \
-    --label com.df.users=admin:$6$F2eJJA.G$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0 \
-    vfarcic/go-demo
-```
-
-In above example password was encrypted with command:
-
+To show that let's update the `go-demo`. First lets hash password:
 ```bash
 mkpasswd -m sha-512 password
+```
+
+This should output something like `$6$F2eJJA.G$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0`. Be aware that `$` signs needs to be escaped. In `mkpasswd` output there will be always 3 `$` characters. Let's update out go demo service:
+
+```bash
+docker service update \
+    --label-add com.df.usersPassEncrypted=true \
+    --label-add com.df.users=admin:\$6\$F2eJJA.G\$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0 \
+    go-demo
 ```
 
 You can verify it by running again:
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
+```
 
+Which will fail with `HTTP/1.0 401 Unauthorized` as expected, but with proper password it will work:
+```bash
 curl -i -u admin:password \
     $(docker-machine ip node-1)/demo/hello
 ```
 
 In case we want to use the same set of users to protect a group of services you can also utilize `com.df.usersSecret` label which should contain a name of a secret mounted in Docker Flow Proxy. Secret should be mounted in /run/secrets/dfp_users_* file. For example if `com.df.usersSecret` is set to `monitoring`, proxy expects file /run/secrets/dfp_users_monitoring to be present and to contain user credentials definition. This way multiple services can share same user set.
+
+To show how it works lets create passwords secret for our proxy:
+```bash
+echo "observer:\$6\$F2eJJA.G\$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0" \
+    | docker secret create dfp_users_monitoring -
+docker service update \
+    --secret-add dfp_users_monitoring \
+    proxy    
+```
+Now we need to change configuration of our test service so that proxy will fetch users for it from this secret:
+
+```bash
+docker service update \
+    --label-rm com.df.users \
+    --label-add com.df.usersSecret=monitoring \
+    go-demo
+```
+Now we can verify that aour service is reachable with `observer` user:
+```bash
+curl -i -u observer:password \
+    $(docker-machine ip node-1)/demo/hello
+```
+
 
 Before we move into the next subject, please remove the service and create it again without authentication.
 
