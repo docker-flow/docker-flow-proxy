@@ -1310,32 +1310,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
-func (s *ServerTestSuite) Test_getUsersFromString_AllCases(){
-	users := getUsersFromString("sn","u:p", false)
-	assert.DeepEqual(s.T(),users, []*proxy.User{
-		{PassEncrypted: false, Password: "p", Username: "u"},
-	})
 
-	users = getUsersFromString("sn","u:p", true)
-	assert.DeepEqual(s.T(),users, []*proxy.User{
-		{PassEncrypted: true, Password: "p", Username: "u"},
-	})
-
-	users = getUsersFromString("sn","u", false)
-	assert.DeepEqual(s.T(),users, []*proxy.User{
-		{PassEncrypted: false, Password: "", Username: "u"},
-	})
-
-	users = getUsersFromString("sn","u   ,    uu     ", false)
-	assert.DeepEqual(s.T(),users, []*proxy.User{
-		{PassEncrypted: false, Password: "", Username: "u"},
-		{PassEncrypted: false, Password: "", Username: "uu"},
-	})
-
-	users = getUsersFromString("sn","", false)
-	assert.DeepEqual(s.T(),users, []*proxy.User{
-	})
-}
 
 
 func (s *ServerTestSuite) Test_UsersMerge_AllCases(){

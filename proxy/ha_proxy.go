@@ -194,15 +194,17 @@ func (m HaProxy) getConfigData() ConfigData {
 	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
 	if len(usersString) > 0 {
 		d.UserList = "\nuserlist defaultUsers\n"
-		passwordType := "insecure-password";
-		if strings.EqualFold(encryptedString ,"true") {
-			passwordType = "password";
+		encrypted :=strings.EqualFold(encryptedString ,"true")
+		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
+		if len(users) == 0 {
+			users = append(users, RandomUser())
 		}
-		users := strings.Split(usersString, ",")
 		for _, user := range users {
-			//trimming to allow new lines in file
-			userPass := strings.Split(strings.Trim(user, "\n\t "), ":")
-			d.UserList = fmt.Sprintf("%s    user %s %s %s\n", d.UserList, userPass[0], passwordType, userPass[1])
+			passwordType := "insecure-password"
+			if user.PassEncrypted {
+				passwordType = "password"
+			}
+			d.UserList = fmt.Sprintf("%s    user %s %s %s\n", d.UserList, user.Username, passwordType, user.Password)
 		}
 	}
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {

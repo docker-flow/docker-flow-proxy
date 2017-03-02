@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"io/ioutil"
-	"math/rand"
 )
 
 // TODO: Move to server package
@@ -220,33 +219,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func getUsersFromString(serviceName, commaSeparatedUsers string, passEncrypted bool) ([]*proxy.User) {
-	collectedUsers := []*proxy.User{}
-	if len(commaSeparatedUsers) == 0 {
-		return collectedUsers
-	}
-	users := strings.Split(commaSeparatedUsers, ",")
-	for _, user := range users {
-		user = strings.Trim(user, "\n\t ")
-		if strings.Contains(user, ":") {
-			userDetails := strings.Split(user, ":")
-			if len(userDetails) != 2 || len(userDetails[0]) == 0 {
-				logPrintf("For service %s there is an invalid user with no name or invalid format",
-					serviceName)
-			} else {
-				collectedUsers = append(collectedUsers, &proxy.User{Username: userDetails[0], Password: userDetails[1], PassEncrypted: passEncrypted})
-			}
-		} else {
-			if len(user) == 0 {
-				logPrintf("For service %s there is an invalid user with no name or invalid format",
-					serviceName)
-			} else {
-				collectedUsers = append(collectedUsers, &proxy.User{Username: user})
-			}
-		}
-	}
-	return collectedUsers
-}
+
 
 func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*proxy.User, error) {
 	if len(fileName) > 0 {
@@ -254,7 +227,7 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*prox
 
 		if content, err := ioutil.ReadFile(usersFile); err == nil {
 			userContents := strings.TrimRight(string(content[:]), "\n")
-			return getUsersFromString(serviceName,userContents, passEncrypted), nil
+			return proxy.ExtractUsersFromString(serviceName,userContents, passEncrypted, true), nil
 		} else {
 			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
 				serviceName, usersFile, err.Error())
@@ -286,12 +259,12 @@ func findUserByName(users []*proxy.User, name string) *proxy.User {
 func mergeUsers(serviceName, usersParam, usersSecret string, usersPassEncrypted bool,
 	globalUsersString string, globalUsersEncrypted bool) ([]proxy.User) {
 	var collectedUsers []*proxy.User
-	paramUsers := getUsersFromString(serviceName,usersParam, usersPassEncrypted)
+	paramUsers := proxy.ExtractUsersFromString(serviceName,usersParam, usersPassEncrypted, false)
 	fileUsers, _ := getUsersFromFile(serviceName, usersSecret, usersPassEncrypted)
 	if len(paramUsers) > 0 {
 		if !allUsersHavePasswords(paramUsers) {
 			if len(usersSecret) == 0 {
-				fileUsers = getUsersFromString(serviceName, globalUsersString, globalUsersEncrypted)
+				fileUsers = proxy.ExtractUsersFromString(serviceName, globalUsersString, globalUsersEncrypted, true)
 			}
 			for _, u := range paramUsers {
 				if !u.HasPassword() {
@@ -318,10 +291,7 @@ func mergeUsers(serviceName, usersParam, usersSecret string, usersPassEncrypted 
 	}
 	if len(ret) == 0 && (len(usersParam) != 0 || len(usersSecret) != 0) {
 		//we haven't found any users but they were requested so generating dummy one
-		ret = append(ret, proxy.User{
-			Username: "dummyUser",
-			Password: strconv.FormatInt(rand.Int63(), 3)},
-		)
+		ret = append(ret, *proxy.RandomUser())
 	}
 	if len(ret) == 0 {
 		return nil
