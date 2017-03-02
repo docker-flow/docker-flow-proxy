@@ -48,7 +48,6 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ConsulTemplateBe = `
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}`
@@ -159,7 +158,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPrese
 	expected := `
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}
@@ -184,7 +182,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent(
 
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}
@@ -209,7 +206,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresentA
 
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     {{range $i, $e := service "myService" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
     {{end}}
@@ -230,7 +226,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 		expected := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234`
 
 		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
@@ -248,7 +243,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddSllVerifyNone_WhenSslVerifyNo
 		expected := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234 ssl verify none`
 
 		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
@@ -280,7 +274,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	expected := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl
@@ -305,7 +298,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
@@ -320,12 +312,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedBack := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
 
 backend https-myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:4321`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
@@ -340,7 +330,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutServer_WhenPresent() 
 	expectedBack := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     timeout server 9999s
     server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
@@ -356,7 +345,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutTunnel_WhenPresent() 
 	expectedBack := `
 backend myService-be1234
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     timeout tunnel 9999s
     server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
@@ -377,15 +365,12 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	expectedBack := `
 backend myService-be1111
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1111
 backend myService-be3333
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:3333
 backend myService-be5555
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:5555`
 	s.reconfigure.ServiceDest = sd
 	s.reconfigure.Mode = "service"
@@ -402,7 +387,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndRe
 	expected := fmt.Sprintf(`
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     reqrep %s     %s
     {{range $i, $e := service "%s" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
@@ -423,7 +407,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPa
 	expected := fmt.Sprintf(`
 backend myService-be
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     http-request set-path %%[path,regsub(%s,%s)]
     {{range $i, $e := service "%s" "any"}}
     server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
@@ -576,7 +559,6 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 		`
 backend %s-be%s
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
@@ -600,7 +582,36 @@ backend %s-be%s
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 	s.reconfigure.Mode = "sWArm"
-	s.reconfigure.ServiceDest[0].Port = "1234"
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
+	expectedData := fmt.Sprintf(
+		`
+backend %s-be%s
+    mode http
+    server %s %s:%s`,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+		s.ServiceName,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+	)
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_AddsXForwardedProto_WhenTrue() {
+	s.reconfigure.Mode = "swarm"
+	s.reconfigure.XForwardedProto = true
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(

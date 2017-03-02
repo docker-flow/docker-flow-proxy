@@ -20,6 +20,7 @@ The following query parameters can be used to send as a *reconfigure* request to
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes| |go-demo |
 |timeoutServer|The server timeout in seconds.                                                  |No      |       |60           |
 |timeoutTunnel|The tunnel timeout in seconds.                                                  |No      |       |1800         |
+|xForwardedProto|Whether to add "X-Forwarded-Proto https" header.                              |No      |false  |true         |
 
 The following query parameters can be used when `reqMode` is set to `http` or is empty.
 

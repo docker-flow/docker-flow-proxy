@@ -354,7 +354,7 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     mode %s`,
 		prefix, rmode,
 	)
-	if strings.EqualFold(rmode, "http") {
+	if sr.XForwardedProto {
 		tmpl += `
     http-request add-header X-Forwarded-Proto https if { ssl_fc }`
 	}

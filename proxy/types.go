@@ -90,6 +90,8 @@ type Service struct {
 	TimeoutTunnel string
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users               []User
+	// Whether to add "X-Forwarded-Proto https" header.
+	XForwardedProto     bool
 	ServiceColor        string
 	ServicePort         string
 	AclCondition        string

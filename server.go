@@ -326,6 +326,7 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 		sr.ReqMode = "http"
 	}
 	sr.HttpsOnly = m.getBoolParam(req, "httpsOnly")
+	sr.XForwardedProto = m.getBoolParam(req, "xForwardedProto")
 	sr.RedirectWhenHttpProto = m.getBoolParam(req, "redirectWhenHttpProto")
 	if len(req.URL.Query().Get("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
