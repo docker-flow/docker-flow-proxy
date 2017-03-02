@@ -533,14 +533,23 @@ The first request should return the status code `401 Unauthorized` while the sec
 
 Please note that both *global* and *service* authentication can be combined. In that case, all services would be protected with the users specified through the `proxy` environment variable `USERS` and individual services could overwrite that through the `reconfigure` parameter `users`.
 
-Above all note that user password should not be provided in clear text. Above case is just an example but you should consider encrypting them. Passwords will be persisted in HAProxy configuration and they will be visible while inspecting service details in docker. To encrypt them you should use `mkpasswd` utility and set parameter 'com.df.usersPassEncrypted=true' for passwords provided in `com.df.users` label or environment variable `USERS_PASS_ENCRYPTED` when using `USERS` variable. 
+Please note that passwords should not be provided in clear text. The above commands were only an example. You should consider encrypting passwords. They will be persisted in HAProxy configuration and they will be visible while inspecting service details in Docker. To encrypt them you should use `mkpasswd` utility and set parameter 'com.df.usersPassEncrypted=true' for passwords provided in `com.df.users` label or environment variable `USERS_PASS_ENCRYPTED` when using `USERS` variable. 
 
-To show that let's update the `go-demo`. First lets hash password:
+To demonstrated how encrypted passwords work we'll start by hashing a password.
+
 ```bash
 mkpasswd -m sha-512 password
 ```
 
-This should output something like `$6$F2eJJA.G$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0`. Be aware that `$` signs needs to be escaped. In `mkpasswd` output there will be always 3 `$` characters. Let's update out go demo service:
+The out should be similar to the one that follows.
+
+```
+$6$F2eJJA.G$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0
+```
+
+Please note that `$` signs needs to be escaped. In `mkpasswd` output there will be always three `$` characters.
+
+Let's update out go demo service:
 
 ```bash
 docker service update \
@@ -549,29 +558,39 @@ docker service update \
     go-demo
 ```
 
-You can verify it by running again:
+You can verify that the authentication is required by executing the command that follows.
 
 ```bash
 curl -i $(docker-machine ip node-1)/demo/hello
 ```
 
-Which will fail with `HTTP/1.0 401 Unauthorized` as expected, but with proper password it will work:
+The output should indicate a `HTTP/1.0 401 Unauthorized` failure.
+
+Let's repeat the request but, this time, with the proper password.
+
 ```bash
 curl -i -u admin:password \
     $(docker-machine ip node-1)/demo/hello
 ```
 
-In case we want to use the same set of users to protect a group of services you can also utilize `com.df.usersSecret` label which should contain a name of a secret mounted in Docker Flow Proxy. Secret should be mounted in /run/secrets/dfp_users_* file. For example if `com.df.usersSecret` is set to `monitoring`, proxy expects file /run/secrets/dfp_users_monitoring to be present and to contain user credentials definition. This way multiple services can share same user set.
+Since Docker release 1.13, the preferable way to store confidential information is through Docker secrets. *Docker Flow Proxy* supports passwords stored as secrets through the `com.df.usersSecret` label. It should contain a name of a secret mounted in *Docker Flow Proxy*. The name of the secret should be prefixed with `dfp_users_`. For example if `com.df.usersSecret` is set to `monitoring`, proxy expects the secret name to be dfp_users_monitoring.
 
-To show how it works lets create passwords secret for our proxy:
+To show how it works, lets create a secret with the username `observer` and the hashed password. The commands are as follows.
+
 ```bash
 echo "observer:\$6\$F2eJJA.G\$BfoxX38MoNS10tywEzQZVDZOAjJn9wyTZJecYg.CymjwE8Rgm7xJn0KG3faT36GZbOtrsu4ba.vhsnHrPCNAa0" \
     | docker secret create dfp_users_monitoring -
+    
 docker service update \
     --secret-add dfp_users_monitoring \
     proxy    
 ```
-Now we need to change configuration of our test service so that proxy will fetch users for it from this secret:
+
+The first command stored the username and the hashed password as the secret `dfp_users_monitoring`. Username and password were separated with the colon (`:`).
+
+The second command updated the proxy by adding the secret to it.
+
+Now we need to change configuration of our test service so that the proxy can get the information about the name of the secret that contains the username and the hashed password.
 
 ```bash
 docker service update \
@@ -579,12 +598,15 @@ docker service update \
     --label-add com.df.usersSecret=monitoring \
     go-demo
 ```
-Now we can verify that aour service is reachable with `observer` user:
+
+We should verify that our service is reachable and protected with the user `observer`.
+
 ```bash
 curl -i -u observer:password \
     $(docker-machine ip node-1)/demo/hello
 ```
 
+As expected, the status code of the response is `200`, indicating that the request was successfull.
 
 Before we move into the next subject, please remove the service and create it again without authentication.
 
