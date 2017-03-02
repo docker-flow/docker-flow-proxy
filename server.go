@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"io/ioutil"
 )
 
 // TODO: Move to server package
@@ -39,6 +40,8 @@ type Serve struct {
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
+//exposed as global so can be changed in tests
+var usersBasePath string = "/run/secrets/dfp_users_%s"
 
 func (m *Serve) Execute(args []string) error {
 	if proxy.Instance == nil {
@@ -137,7 +140,7 @@ func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	httpWriterSetContentType(w, "application/json")
 	response := server.Response{
-		Status:      "OK",
+		Status: "OK",
 	}
 	js, _ := json.Marshal(response)
 	w.Write(js)
@@ -216,6 +219,87 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
+
+
+func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*proxy.User, error) {
+	if len(fileName) > 0 {
+		usersFile := fmt.Sprintf(usersBasePath, fileName)
+
+		if content, err := ioutil.ReadFile(usersFile); err == nil {
+			userContents := strings.TrimRight(string(content[:]), "\n")
+			return proxy.ExtractUsersFromString(serviceName,userContents, passEncrypted, true), nil
+		} else {
+			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
+				serviceName, usersFile, err.Error())
+			return []*proxy.User{}, err
+		}
+	} else {
+		return []*proxy.User{}, nil
+	}
+}
+
+func allUsersHavePasswords(users []*proxy.User) bool {
+	for _, u := range users {
+		if !u.HasPassword() {
+			return false
+		}
+	}
+	return true
+}
+
+func findUserByName(users []*proxy.User, name string) *proxy.User {
+	for _, u := range users {
+		if strings.EqualFold(name, u.Username) {
+			return u
+		}
+	}
+	return nil
+}
+
+func mergeUsers(serviceName, usersParam, usersSecret string, usersPassEncrypted bool,
+	globalUsersString string, globalUsersEncrypted bool) ([]proxy.User) {
+	var collectedUsers []*proxy.User
+	paramUsers := proxy.ExtractUsersFromString(serviceName,usersParam, usersPassEncrypted, false)
+	fileUsers, _ := getUsersFromFile(serviceName, usersSecret, usersPassEncrypted)
+	if len(paramUsers) > 0 {
+		if !allUsersHavePasswords(paramUsers) {
+			if len(usersSecret) == 0 {
+				fileUsers = proxy.ExtractUsersFromString(serviceName, globalUsersString, globalUsersEncrypted, true)
+			}
+			for _, u := range paramUsers {
+				if !u.HasPassword() {
+					if userByName := findUserByName(fileUsers, u.Username); userByName != nil {
+						u.Password = userByName.Password
+						u.PassEncrypted = userByName.PassEncrypted
+					} else {
+						logPrintf("For service %s it was impossible to find password for user %s.",
+							serviceName, u.Username)
+					}
+				}
+			}
+		}
+		collectedUsers = paramUsers
+	} else {
+		collectedUsers = fileUsers
+
+	}
+	ret := []proxy.User{}
+	for _, u := range collectedUsers {
+		if u.HasPassword() {
+			ret = append(ret, *u)
+		}
+	}
+	if len(ret) == 0 && (len(usersParam) != 0 || len(usersSecret) != 0) {
+		//we haven't found any users but they were requested so generating dummy one
+		ret = append(ret, *proxy.RandomUser())
+	}
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
+
+}
+
 func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
 	sr := proxy.Service{
 		ServiceDest:          sd,
@@ -253,13 +337,14 @@ func (m *Serve) getService(sd []proxy.ServiceDest, req *http.Request) proxy.Serv
 	sr.Distribute = m.getBoolParam(req, "distribute")
 	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
 	sr.ServiceDomainMatchAll = m.getBoolParam(req, "serviceDomainMatchAll")
-	if len(req.URL.Query().Get("users")) > 0 {
-		users := strings.Split(req.URL.Query().Get("users"), ",")
-		for _, user := range users {
-			userPass := strings.Split(user, ":")
-			sr.Users = append(sr.Users, proxy.User{Username: userPass[0], Password: userPass[1]})
-		}
-	}
+
+	globalUsersString := proxy.GetSecretOrEnvVar("USERS", "")
+	globalUsersEncrypted := strings.EqualFold(proxy.GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
+	sr.Users = mergeUsers(sr.ServiceName,
+		req.URL.Query().Get("users"),
+		req.URL.Query().Get("usersSecret"),
+		m.getBoolParam(req, "usersPassEncrypted"),
+		globalUsersString, globalUsersEncrypted)
 	return sr
 }
 

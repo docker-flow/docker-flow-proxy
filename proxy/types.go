@@ -1,5 +1,11 @@
 package proxy
 
+import (
+	"strings"
+	"strconv"
+	"math/rand"
+)
+
 type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
@@ -109,6 +115,58 @@ func (slice Services) Swap(i, j int) {
 }
 
 type User struct {
-	Username string
-	Password string
+	Username      string
+	Password      string
+	PassEncrypted bool
 }
+
+func (user *User) HasPassword() (bool) {
+	return !strings.EqualFold(user.Password, "")
+}
+
+func RandomUser() *User {
+	return &User{
+		Username:      "dummyUser",
+		PassEncrypted: true,
+		Password:      strconv.FormatInt(rand.Int63(), 3)}
+}
+
+func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) ([]*User) {
+	collectedUsers := []*User{}
+	if len(usersString) == 0 {
+		return collectedUsers
+	}
+	splitter := func(x rune) bool {
+		return x == '\n' || x == ','
+	}
+	users := strings.FieldsFunc(usersString, splitter)
+	for _, user := range users {
+		user = strings.Trim(user, "\n\t ")
+		if len(user) == 0 {
+			continue
+		}
+		if strings.Contains(user, ":") {
+			colonIndex := strings.Index(user, ":")
+			userName := strings.Trim(user[0:colonIndex], "\t ")
+			userPass := strings.Trim(user[colonIndex+1:], "\t ")
+			if len(userName) == 0 || len(userPass) == 0 {
+				logPrintf("For service %s there is an invalid user with no name or invalid format",
+					context)
+			} else {
+				collectedUsers = append(collectedUsers, &User{Username: userName, Password: userPass, PassEncrypted: encrypted})
+			}
+		} else {
+			if len(user) == 0 {
+				logPrintf("For service %s there is an invalid user with no name or invalid format",
+					context)
+			} else if skipEmptyPassword {
+				logPrintf("For service %s there is an user %s with no password which is not allowed here",
+					context, user)
+			} else if !skipEmptyPassword {
+				collectedUsers = append(collectedUsers, &User{Username: user})
+			}
+		}
+	}
+	return collectedUsers
+}
+
