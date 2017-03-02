@@ -9,8 +9,8 @@ services:
   - docker
 
 before_install:
-  - openssl aes-256-cbc -K $encrypted_fdd0765d255b_key -iv $encrypted_fdd0765d255b_iv -in proxy-key.enc -out proxy-key -d
-  - chmod 600 proxy-key
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then openssl aes-256-cbc -K $encrypted_fdd0765d255b_key -iv $encrypted_fdd0765d255b_iv -in proxy-key.enc -out proxy-key -d; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then chmod 600 proxy-key; fi'
 
 script:
   - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.6 bash -c "go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
