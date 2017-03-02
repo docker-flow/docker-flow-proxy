@@ -32,8 +32,8 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |TIMEOUT_TUNNEL     |The tunnel timeout in seconds                             |No      |3600   |1800   |
 |TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |No      |5      |3      |
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |No      |15     |10     |
-|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of /run/secrets/dfp_users file overrides this setting, when is present credentials are read from it. |No| |user1:pass1, user2:pass2|
-|USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or /run/secrets/dfp_users file are encrypted. Passwords can be encrypted like this: `mkpasswd -m sha-512 password1` |No| false |true|
+|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it. |No| |user1:pass1, user2:pass2|
+|USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command |No| false |true|
 
 ## Secrets
 
