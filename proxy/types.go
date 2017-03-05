@@ -109,7 +109,25 @@ func (slice Services) Len() int {
 }
 
 func (slice Services) Less(i, j int) bool {
-	return slice[i].AclName < slice[j].AclName
+	firstHasRoot := hasRoot(slice[i])
+	secondHasRoot := hasRoot(slice[j])
+	if (firstHasRoot && secondHasRoot) || (!firstHasRoot && !secondHasRoot) {
+		return slice[i].AclName < slice[j].AclName
+	} else if firstHasRoot {
+		return false
+	}
+	return true
+}
+
+func hasRoot(service Service) bool {
+	for _, sd := range service.ServiceDest {
+		for _, path := range sd.ServicePath {
+			if path == "/" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (slice Services) Swap(i, j int) {
