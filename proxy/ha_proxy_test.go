@@ -433,6 +433,54 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontE
 	s.Equal(expectedData, actualData)
 }
 
+//func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWithRootPathToTheEnd() {
+//	var actualData string
+//	tmpl := s.TemplateContent
+//	expectedData := fmt.Sprintf(
+//		`%s
+//    acl url_acl11111 path_beg /path
+//    use_backend my-second-service-be1111 if url_acl11111
+//    acl url_acl21111 path_beg /path
+//    use_backend my-first-service-be1111 if url_acl21111
+//    acl url_the-last-service1111 path_beg /path
+//    use_backend the-last-service-be1111 if url_the-last-service1111%s`,
+//		tmpl,
+//		s.ServicesContent,
+//	)
+//	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+//		actualData = string(data)
+//		return nil
+//	}
+//	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+//	// Will be listed second because of AclName
+//	data.Services["my-first-service"] = Service{
+//		ServiceName: "my-first-service",
+//		AclName:     "acl2",
+//		ServiceDest: []ServiceDest{
+//			{Port: "1111", ServicePath: []string{"/path"}},
+//		},
+//	}
+//	// Will be listed last because of ServiceName (there is no AclName)
+//	data.Services["the-last-service"] = Service{
+//		ServiceName: "the-last-service",
+//		ServiceDest: []ServiceDest{
+//			{Port: "1111", ServicePath: []string{"/path"}},
+//		},
+//	}
+//	// Will be listed first because of AclName
+//	data.Services["my-second-service"] = Service{
+//		ServiceName: "my-second-service",
+//		AclName:     "acl1",
+//		ServiceDest: []ServiceDest{
+//			{Port: "1111", ServicePath: []string{"/path"}},
+//		},
+//	}
+//
+//	p.CreateConfigFromTemplates()
+//
+//	s.Equal(expectedData, actualData)
+//}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp() {
 	var actualData string
 	tmpl := s.TemplateContent

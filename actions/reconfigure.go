@@ -99,7 +99,7 @@ func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode, 
 			return fmt.Errorf("Swarm Listener responded with the status code %d", resp.StatusCode)
 		}
 		logPrintf("A request was sent to the Swarm listener running on %s. The proxy will be reconfigured soon.", listenerAddress)
-	} else if len(addresses) > 0 || !isSwarm(mode) {
+	} else if len(addresses) > 0 {
 		return m.reloadFromRegistry(addresses, instanceName, mode)
 	}
 	return nil
@@ -111,17 +111,11 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	logPrintf("Configuring existing services")
 	found := false
 	for _, address := range addresses {
-		var servicesUrl string
 		address = strings.ToLower(address)
 		if !strings.HasPrefix(address, "http") {
 			address = fmt.Sprintf("http://%s", address)
 		}
-		if isSwarm(mode) {
-			// TODO: Test
-			servicesUrl = fmt.Sprintf("%s/v1/kv/docker-flow/service?recurse", address)
-		} else {
-			servicesUrl = fmt.Sprintf("%s/v1/catalog/services", address)
-		}
+		servicesUrl := fmt.Sprintf("%s/v1/catalog/services", address)
 		resp, err = http.Get(servicesUrl)
 		if err == nil {
 			found = true
@@ -135,26 +129,11 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	body, _ := ioutil.ReadAll(resp.Body)
 	c := make(chan proxy.Service)
 	count := 0
-	if isSwarm(mode) {
-		// TODO: Test
-		type Key struct {
-			Value string `json:"Key"`
-		}
-		data := []Key{}
-		json.Unmarshal(body, &data)
-		count = len(data)
-		for _, key := range data {
-			parts := strings.Split(key.Value, "/")
-			serviceName := parts[len(parts)-1]
-			go m.getService(addresses, serviceName, instanceName, c)
-		}
-	} else {
-		var data map[string]interface{}
-		json.Unmarshal(body, &data)
-		count = len(data)
-		for key, _ := range data {
-			go m.getService(addresses, key, instanceName, c)
-		}
+	var data map[string]interface{}
+	json.Unmarshal(body, &data)
+	count = len(data)
+	for key, _ := range data {
+		go m.getService(addresses, key, instanceName, c)
 	}
 	logPrintf("\tFound %d services", count)
 	for i := 0; i < count; i++ {

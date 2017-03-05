@@ -135,6 +135,7 @@ func RandomUser() *User {
 
 func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) ([]*User) {
 	collectedUsers := []*User{}
+	// TODO: Test
 	if len(usersString) == 0 {
 		return collectedUsers
 	}
@@ -152,18 +153,19 @@ func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPas
 			userName := strings.Trim(user[0:colonIndex], "\t ")
 			userPass := strings.Trim(user[colonIndex+1:], "\t ")
 			if len(userName) == 0 || len(userPass) == 0 {
-				logPrintf("For service %s there is an invalid user with no name or invalid format",
-					context)
+				logPrintf("There is a user with no name or with invalid format for the service %s", context)
 			} else {
 				collectedUsers = append(collectedUsers, &User{Username: userName, Password: userPass, PassEncrypted: encrypted})
 			}
 		} else {
-			if len(user) == 0 {
-				logPrintf("For service %s there is an invalid user with no name or invalid format",
-					context)
-			} else if skipEmptyPassword {
-				logPrintf("For service %s there is an user %s with no password which is not allowed here",
-					context, user)
+			if len(user) == 0 { // TODO: Test
+				logPrintf("There is a user with no name or with invalid format for the service %s", context)
+			} else if skipEmptyPassword { // TODO: Test
+				logPrintf(
+					"For service %s There is a user %s with no password for the service %s",
+					user,
+					context,
+				)
 			} else if !skipEmptyPassword {
 				collectedUsers = append(collectedUsers, &User{Username: user})
 			}

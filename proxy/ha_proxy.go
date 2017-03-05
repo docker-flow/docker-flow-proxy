@@ -206,6 +206,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.UserList = "\nuserlist defaultUsers\n"
 		encrypted :=strings.EqualFold(encryptedString ,"true")
 		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
+		// TODO: Test
 		if len(users) == 0 {
 			users = append(users, RandomUser())
 		}
