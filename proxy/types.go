@@ -140,8 +140,8 @@ type User struct {
 	PassEncrypted bool
 }
 
-func (user *User) HasPassword() (bool) {
-	return !strings.EqualFold(user.Password, "")
+func (user *User) HasPassword() bool {
+	return len(user.Password) > 0
 }
 
 func RandomUser() *User {

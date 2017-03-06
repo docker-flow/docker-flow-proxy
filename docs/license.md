@@ -1,6 +1,6 @@
 # Docker Flow Proxy License (MIT)
 
-Copyright (c) 2016 Viktor Farcic
+Copyright (c) 2017 Viktor Farcic
 
 The MIT License (MIT)
 

@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"../proxy"
+	"github.com/docker/docker/pkg/testutil/assert" // TODO: Remove
 )
 
 type ServerTestSuite struct {
@@ -198,6 +200,209 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenRequestFa
 	s.Assertions.Error(err)
 }
 
+// GetServiceFromUrl
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
+	expected := proxy.Service{
+		ServiceName:          "serviceName",
+		AclName:              "aclName",
+		ServiceColor:         "serviceColor",
+		ServiceCert:          "serviceCert",
+		OutboundHostname:     "outboundHostname",
+		ConsulTemplateFePath: "consulTemplateFePath",
+		ConsulTemplateBePath: "consulTemplateBePath",
+		PathType:             "pathType",
+		ReqPathSearch:        "reqPathSearch",
+		ReqPathReplace:       "reqPathReplace",
+		TemplateFePath:       "templateFePath",
+		TemplateBePath:       "templateBePath",
+		TimeoutServer:        "timeoutServer",
+		TimeoutTunnel:        "timeoutTunnel",
+		ReqMode:              "reqMode",
+		HttpsOnly:            true,
+		XForwardedProto:	  true,
+		RedirectWhenHttpProto: true,
+		HttpsPort:			  1234,
+		ServiceDomain:        []string{"domain1", "domain2"},
+		SkipCheck:				true,
+		Distribute:				true,
+		SslVerifyNone:			true,
+		ServiceDomainMatchAll:  true,
+		ServiceDest:          []proxy.ServiceDest{},
+	}
+	addr := fmt.Sprintf(
+		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",
+		s.BaseUrl,
+		expected.ServiceName,
+		expected.AclName,
+		expected.ServiceColor,
+		expected.ServiceCert,
+		expected.OutboundHostname,
+		expected.ConsulTemplateFePath,
+		expected.ConsulTemplateBePath,
+		expected.PathType,
+		expected.ReqPathSearch,
+		expected.ReqPathReplace,
+		expected.TemplateFePath,
+		expected.TemplateBePath,
+		expected.TimeoutServer,
+		expected.TimeoutTunnel,
+		expected.ReqMode,
+		expected.HttpsOnly,
+		expected.XForwardedProto,
+		expected.RedirectWhenHttpProto,
+		expected.HttpsPort,
+		strings.Join(expected.ServiceDomain, ","),
+		expected.SkipCheck,
+		expected.Distribute,
+		expected.SslVerifyNone,
+		expected.ServiceDomainMatchAll,
+	)
+	req, _ := http.NewRequest("GET", addr, nil)
+	srv := Serve{}
+
+	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+
+	s.Equal(expected, actual)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
+	req, _ := http.NewRequest("GET", s.BaseUrl, nil)
+	srv := Serve{}
+
+	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+
+	s.Equal("http", actual.ReqMode)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_GetsUsersFromProxyExtractUsersFromString() {
+	user1 := proxy.User{
+		Username: "user1",
+		Password: "pass1",
+		PassEncrypted: false,
+	}
+	user2 := proxy.User{
+		Username: "user2",
+		Password: "pass2",
+		PassEncrypted: true,
+	}
+	extractUsersFromStringOrig := extractUsersFromString
+	defer func() { extractUsersFromString = extractUsersFromStringOrig }()
+	actualServiceName := ""
+	expectedServiceName := "my-service"
+	actualUsers := ""
+	expectedUsers := "user1,user2"
+	actualUsersPassEncrypted := false
+	expectedUsersPassEncrypted := true
+	actualSkipEmptyPassword := true
+	expectedSkipEmptyPassword := false
+	extractUsersFromString = func(serviceName, usersString string, usersPassEncrypted, skipEmptyPassword bool) ([]*proxy.User) {
+		actualServiceName = serviceName
+		actualUsers = usersString
+		actualUsersPassEncrypted = usersPassEncrypted
+		actualSkipEmptyPassword = skipEmptyPassword
+		return []*proxy.User{&user1, &user2}
+	}
+	addr := fmt.Sprintf(
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t",
+		s.BaseUrl,
+		expectedServiceName,
+		expectedUsers,
+		expectedUsersPassEncrypted,
+	)
+	req, _ := http.NewRequest("GET", addr, nil)
+	srv := Serve{}
+
+	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+
+	s.Contains(actual.Users, user1)
+	s.Contains(actual.Users, user2)
+	s.Equal(expectedServiceName, actualServiceName)
+	s.Equal(expectedUsers, actualUsers)
+	s.Equal(expectedUsersPassEncrypted, actualUsersPassEncrypted)
+	s.Equal(expectedSkipEmptyPassword, actualSkipEmptyPassword)
+}
+
+// mergeUsers
+
+func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
+	usersBasePathOrig := usersBasePath
+	defer func() { usersBasePath = usersBasePathOrig }()
+	usersBasePath = "../test_configs/%s.txt"
+	users := mergeUsers("someService", "user1:pass1,user2:pass2", "", false, "", false)
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+	users = mergeUsers("someService", "user1:pass1,user2", "", false, "", false)
+	//user without password will not be included
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+	})
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "", false)
+	//user2 password will come from users file
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", true, "", false)
+	//user2 password will come from users file, all encrypted
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "user1:pass1,user2:pass2", false)
+	//user2 password will come from users file, but not from global one
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", false)
+	//user2 password will come from global file
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", true)
+	//user2 password will come from global file, globals encrypted only
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1:passWoRd,user2", "", true, "user1:pass1,user2:pass2", true)
+	//user2 password will come from global file, all encrypted
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
+		{PassEncrypted: true, Password: "pass2", Username: "user2"},
+	})
+
+
+	users = mergeUsers("someService", "user1,user2", "", false, "", false)
+	//no users found dummy one generated
+	assert.Equal(s.T(), len(users), 1)
+	assert.Equal(s.T(), users[0].Username, "dummyUser")
+
+
+	users = mergeUsers("someService", "", "users", false, "", false)
+	//Users from file only
+	assert.DeepEqual(s.T(),users, []proxy.User{
+		{PassEncrypted: false, Password: "pass1", Username: "user1"},
+		{PassEncrypted: false, Password: "pass2", Username: "user2"},
+	})
+
+	users = mergeUsers("someService", "", "", false, "user1:pass1,user2:pass2", false)
+	//No users when only globals present
+	assert.Equal(s.T(), len(users), 0)
+
+}
+
 // Mocks
 
 type ServerMock struct {
@@ -207,6 +412,11 @@ type ServerMock struct {
 func (m *ServerMock) SendDistributeRequests(req *http.Request, port, serviceName string) (status int, err error) {
 	params := m.Called(req, port, serviceName)
 	return params.Int(0), params.Error(1)
+}
+
+func (m *ServerMock) GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
+	params := m.Called(sd, req)
+	return params.Get(0).(proxy.Service)
 }
 
 func getServerMock(skipMethod string) *ServerMock {

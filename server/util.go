@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"io/ioutil"
 )
 
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
@@ -11,3 +12,4 @@ var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 }
 var logPrintf = log.Printf
 var lookupHost = net.LookupHost
+var readFile = ioutil.ReadFile
