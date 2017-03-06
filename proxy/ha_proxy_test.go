@@ -488,6 +488,61 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWithRootPat
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWellKnownPathToTheBeginning() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_02-another-well-known-service1111 path_beg /.well-known/and/somrthing/else
+    use_backend 02-another-well-known-service-be1111 if url_02-another-well-known-service1111
+    acl url_02-well-known-service1111 path_beg /.well-known
+    use_backend 02-well-known-service-be1111 if url_02-well-known-service1111
+    acl url_01-first-service1111 path_beg /path
+    use_backend 01-first-service-be1111 if url_01-first-service1111
+    acl url_03-third-service1111 path_beg /path
+    use_backend 03-third-service-be1111 if url_03-third-service1111%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	// Will be listed third
+	data.Services["01-first-service"] = Service{
+		ServiceName: "01-first-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+	// Will be listed second bacause of the well-known path and service name
+	data.Services["02-well-known-service"] = Service{
+		ServiceName: "02-well-known-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/.well-known"}},
+		},
+	}
+	// Will be listed first because of the well-known path and service name
+	data.Services["02-another-well-known-service"] = Service{
+		ServiceName: "02-another-well-known-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/.well-known/and/somrthing/else"}},
+		},
+	}
+	// Will be listed last
+	data.Services["03-third-service"] = Service{
+		ServiceName: "03-third-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp() {
 	var actualData string
 	tmpl := s.TemplateContent

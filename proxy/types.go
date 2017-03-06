@@ -111,10 +111,18 @@ func (slice Services) Len() int {
 func (slice Services) Less(i, j int) bool {
 	firstHasRoot := hasRoot(slice[i])
 	secondHasRoot := hasRoot(slice[j])
-	if (firstHasRoot && secondHasRoot) || (!firstHasRoot && !secondHasRoot) {
-		return slice[i].AclName < slice[j].AclName
-	} else if firstHasRoot {
+	firstHasWelKnown := hasWellKnown(slice[i])
+	secondHasWelKnown := hasWellKnown(slice[j])
+	if firstHasRoot && !secondHasRoot {
 		return false
+	} else if !firstHasRoot && secondHasRoot {
+		return true
+	} else if firstHasWelKnown && !secondHasWelKnown {
+		return true
+	} else if !firstHasWelKnown && secondHasWelKnown {
+		return false
+	} else {
+		return slice[i].AclName < slice[j].AclName
 	}
 	return true
 }
@@ -123,6 +131,17 @@ func hasRoot(service Service) bool {
 	for _, sd := range service.ServiceDest {
 		for _, path := range sd.ServicePath {
 			if path == "/" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasWellKnown(service Service) bool {
+	for _, sd := range service.ServiceDest {
+		for _, path := range sd.ServicePath {
+			if strings.HasPrefix(strings.ToLower(path), "/.well-known") {
 				return true
 			}
 		}
