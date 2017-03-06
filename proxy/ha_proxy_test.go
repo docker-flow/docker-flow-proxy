@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-"time"
+	"time"
 )
 
 // Setup
@@ -697,11 +697,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
-		ServiceName:   "my-service",
-		ServiceDomain: []string{"domain-1", "domain-2"},
+		ServiceName:           "my-service",
+		ServiceDomain:         []string{"domain-1", "domain-2"},
 		ServiceDomainMatchAll: true,
-		AclName:       "my-service",
-		PathType:      "path_beg",
+		AclName:               "my-service",
+		PathType:              "path_beg",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
@@ -912,7 +912,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 	tmpl := strings.Replace(
 		s.TemplateContent,
 		"\n    bind *:80\n    bind *:443",
-		"\n    bind *:80\n    bind *:443 " + expected,
+		"\n    bind *:80\n    bind *:443 "+expected,
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s%s`,
@@ -958,12 +958,11 @@ frontend services`,
 	s.Equal(expectedData, actualData)
 }
 
-
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsUserListWithEncryptedPasswordsOn() {
 	var actualData string
 	usersOrig := os.Getenv("USERS")
 	encOrig := os.Getenv("USERS_PASS_ENCRYPTED")
-	defer func() { os.Setenv("USERS", usersOrig); os.Setenv("USERS_PASS_ENCRYPTED", encOrig)}()
+	defer func() { os.Setenv("USERS", usersOrig); os.Setenv("USERS_PASS_ENCRYPTED", encOrig) }()
 	os.Setenv("USERS", "my-user-1:my-password-1,my-user-2:my-password-2")
 	os.Setenv("USERS_PASS_ENCRYPTED", "true")
 	expectedData := fmt.Sprintf(
@@ -1254,12 +1253,12 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 // Mocks
 
 type FileInfoMock struct {
-	NameMock func() string
-	SizeMock func() int64
-	ModeMock func() os.FileMode
+	NameMock    func() string
+	SizeMock    func() int64
+	ModeMock    func() os.FileMode
 	ModTimeMock func() time.Time
-	IsDirMock func() bool
-	SysMock func() interface{}
+	IsDirMock   func() bool
+	SysMock     func() interface{}
 }
 
 func (m FileInfoMock) Name() string {

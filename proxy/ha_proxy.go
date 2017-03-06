@@ -204,7 +204,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
 	if len(usersString) > 0 {
 		d.UserList = "\nuserlist defaultUsers\n"
-		encrypted :=strings.EqualFold(encryptedString ,"true")
+		encrypted := strings.EqualFold(encryptedString, "true")
 		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
 		// TODO: Test
 		if len(users) == 0 {
@@ -281,8 +281,6 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	return d
 }
-
-
 
 func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
 	tmplString := ``

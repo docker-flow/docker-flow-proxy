@@ -196,8 +196,8 @@ backend myService-be
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresentAndPasswordsEncrypted() {
 	s.reconfigure.Users = []proxy.User{
-		{Username: "user-1", Password: "pass-1", PassEncrypted:true},
-		{Username: "user-2", Password: "pass-2", PassEncrypted:false},
+		{Username: "user-1", Password: "pass-1", PassEncrypted: true},
+		{Username: "user-2", Password: "pass-2", PassEncrypted: false},
 	}
 	expected := `userlist myServiceUsers
     user user-1 password pass-1

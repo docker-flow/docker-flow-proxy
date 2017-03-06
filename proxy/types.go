@@ -1,9 +1,9 @@
 package proxy
 
 import (
-	"strings"
-	"strconv"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 type ServiceDest struct {
@@ -89,7 +89,7 @@ type Service struct {
 	// The tunnel timeout in seconds
 	TimeoutTunnel string
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
-	Users               []User
+	Users []User
 	// Whether to add "X-Forwarded-Proto https" header.
 	XForwardedProto     bool
 	ServiceColor        string
@@ -170,7 +170,7 @@ func RandomUser() *User {
 		Password:      strconv.FormatInt(rand.Int63(), 3)}
 }
 
-func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) ([]*User) {
+func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) []*User {
 	collectedUsers := []*User{}
 	// TODO: Test
 	if len(usersString) == 0 {
@@ -210,4 +210,3 @@ func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPas
 	}
 	return collectedUsers
 }
-

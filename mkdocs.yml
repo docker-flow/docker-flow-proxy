@@ -1,14 +1,14 @@
 site_name: Docker Flow Proxy
 pages:
   - Home: index.md
-  - Users Guide:
+  - Tutorials:
     - Swarm Mode (Automatic): swarm-mode-auto.md
     - Swarm Mode With Docker Stack: swarm-mode-stack.md
     - Swarm Mode (Manual): swarm-mode-manual.md
     - Standard Mode: standard-mode.md
     - Managing SSL Certificates: certs.md
-    - Configuration: config.md
-    - Usage: usage.md
+  - Configuration: config.md
+  - Usage: usage.md
   - About:
     - Release Notes: release-notes.md
     - Feedback and Contribution: feedback-and-contribution.md

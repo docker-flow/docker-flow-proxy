@@ -1,12 +1,12 @@
 package proxy
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
-	"os/exec"
-	"fmt"
-	"strings"
 	"os"
+	"os/exec"
+	"strings"
 )
 
 var cmdRunHa = func(cmd *exec.Cmd) error {
@@ -30,7 +30,3 @@ var GetSecretOrEnvVar = func(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-
-
-
-

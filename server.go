@@ -39,6 +39,7 @@ type Serve struct {
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
+
 //exposed as global so can be changed in tests
 var usersBasePath string = "/run/secrets/dfp_users_%s"
 

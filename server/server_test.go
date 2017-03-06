@@ -1,6 +1,7 @@
 package server
 
 import (
+	"../proxy"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -10,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"../proxy"
 )
 
 type ServerTestSuite struct {
@@ -203,31 +203,31 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenRequestFa
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	expected := proxy.Service{
-		ServiceName:          "serviceName",
-		AclName:              "aclName",
-		ServiceColor:         "serviceColor",
-		ServiceCert:          "serviceCert",
-		OutboundHostname:     "outboundHostname",
-		ConsulTemplateFePath: "consulTemplateFePath",
-		ConsulTemplateBePath: "consulTemplateBePath",
-		PathType:             "pathType",
-		ReqPathSearch:        "reqPathSearch",
-		ReqPathReplace:       "reqPathReplace",
-		TemplateFePath:       "templateFePath",
-		TemplateBePath:       "templateBePath",
-		TimeoutServer:        "timeoutServer",
-		TimeoutTunnel:        "timeoutTunnel",
-		ReqMode:              "reqMode",
-		HttpsOnly:            true,
-		XForwardedProto:	  true,
+		ServiceName:           "serviceName",
+		AclName:               "aclName",
+		ServiceColor:          "serviceColor",
+		ServiceCert:           "serviceCert",
+		OutboundHostname:      "outboundHostname",
+		ConsulTemplateFePath:  "consulTemplateFePath",
+		ConsulTemplateBePath:  "consulTemplateBePath",
+		PathType:              "pathType",
+		ReqPathSearch:         "reqPathSearch",
+		ReqPathReplace:        "reqPathReplace",
+		TemplateFePath:        "templateFePath",
+		TemplateBePath:        "templateBePath",
+		TimeoutServer:         "timeoutServer",
+		TimeoutTunnel:         "timeoutTunnel",
+		ReqMode:               "reqMode",
+		HttpsOnly:             true,
+		XForwardedProto:       true,
 		RedirectWhenHttpProto: true,
-		HttpsPort:			  1234,
-		ServiceDomain:        []string{"domain1", "domain2"},
-		SkipCheck:				true,
-		Distribute:				true,
-		SslVerifyNone:			true,
-		ServiceDomainMatchAll:  true,
-		ServiceDest:          []proxy.ServiceDest{},
+		HttpsPort:             1234,
+		ServiceDomain:         []string{"domain1", "domain2"},
+		SkipCheck:             true,
+		Distribute:            true,
+		SslVerifyNone:         true,
+		ServiceDomainMatchAll: true,
+		ServiceDest:           []proxy.ServiceDest{},
 	}
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",
@@ -276,13 +276,13 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_GetsUsersFromProxyExtractUsersFromString() {
 	user1 := proxy.User{
-		Username: "user1",
-		Password: "pass1",
+		Username:      "user1",
+		Password:      "pass1",
 		PassEncrypted: false,
 	}
 	user2 := proxy.User{
-		Username: "user2",
-		Password: "pass2",
+		Username:      "user2",
+		Password:      "pass2",
 		PassEncrypted: true,
 	}
 	extractUsersFromStringOrig := extractUsersFromString
@@ -295,7 +295,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_GetsUsersFromProxyExtractUsersF
 	expectedUsersPassEncrypted := true
 	actualSkipEmptyPassword := true
 	expectedSkipEmptyPassword := false
-	extractUsersFromString = func(serviceName, usersString string, usersPassEncrypted, skipEmptyPassword bool) ([]*proxy.User) {
+	extractUsersFromString = func(serviceName, usersString string, usersPassEncrypted, skipEmptyPassword bool) []*proxy.User {
 		actualServiceName = serviceName
 		actualUsers = usersString
 		actualUsersPassEncrypted = usersPassEncrypted
@@ -359,7 +359,6 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
 
-
 	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", false)
 	//user2 password will come from global file
 	s.Equal(users, []proxy.User{
@@ -374,7 +373,6 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 		{PassEncrypted: true, Password: "pass2", Username: "user2"},
 	})
 
-
 	users = mergeUsers("someService", "user1:passWoRd,user2", "", true, "user1:pass1,user2:pass2", true)
 	//user2 password will come from global file, all encrypted
 	s.Equal(users, []proxy.User{
@@ -382,12 +380,10 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 		{PassEncrypted: true, Password: "pass2", Username: "user2"},
 	})
 
-
 	users = mergeUsers("someService", "user1,user2", "", false, "", false)
 	//no users found dummy one generated
 	s.Equal(len(users), 1)
 	s.Equal(users[0].Username, "dummyUser")
-
 
 	users = mergeUsers("someService", "", "users", false, "", false)
 	//Users from file only

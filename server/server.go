@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var server Server = NewServer()
@@ -179,7 +179,7 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*prox
 		usersFile := fmt.Sprintf(usersBasePath, fileName)
 		if content, err := readFile(usersFile); err == nil {
 			userContents := strings.TrimRight(string(content[:]), "\n")
-			return proxy.ExtractUsersFromString(serviceName,userContents, passEncrypted, true), nil
+			return proxy.ExtractUsersFromString(serviceName, userContents, passEncrypted, true), nil
 		} else { // TODO: Test
 			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
 				serviceName, usersFile, err.Error())

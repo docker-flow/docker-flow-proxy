@@ -12,14 +12,14 @@ The following query parameters can be used to send as a *reconfigure* request to
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
-|httpsPort    |The internal HTTPS port of a service that should be reconfigured. The port is used only in the *swarm* mode. If not specified, the `port` parameter will be used instead.|No| ||443|
-|port         |The internal port of a service that should be reconfigured. The port is used only in the *swarm* mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in *swarm* mode| |8080|
-|reqMode      |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected.|Yes |http   |tcp          |
+|httpsPort    |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.|No| |443|
+|port         |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode| |8080|
+|reqMode      |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.|No|http|tcp|
 |reqPathReplace|A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.|No| |/demo/|
 |reqPathSearch|A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No| |/something/|
 |serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes| |go-demo |
-|timeoutServer|The server timeout in seconds.                                                  |No      |       |60           |
-|timeoutTunnel|The tunnel timeout in seconds.                                                  |No      |       |1800         |
+|timeoutServer|The server timeout in seconds.                                                  |No      |20     |60           |
+|timeoutTunnel|The tunnel timeout in seconds.                                                  |No      |3600   |1800         |
 |xForwardedProto|Whether to add "X-Forwarded-Proto https" header.                              |No      |false  |true         |
 
 The following query parameters can be used when `reqMode` is set to `http` or is empty.

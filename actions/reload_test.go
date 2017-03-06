@@ -3,9 +3,9 @@ package actions
 import (
 	"../proxy"
 	"fmt"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
-	"github.com/stretchr/testify/mock"
 )
 
 type ReloadTestSuite struct {

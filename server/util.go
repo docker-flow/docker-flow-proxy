@@ -1,10 +1,10 @@
 package server
 
 import (
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"io/ioutil"
 )
 
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
