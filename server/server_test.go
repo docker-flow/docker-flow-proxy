@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 	"../proxy"
-	"github.com/docker/docker/pkg/testutil/assert" // TODO: Remove
 )
 
 type ServerTestSuite struct {
@@ -330,32 +329,32 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 	defer func() { usersBasePath = usersBasePathOrig }()
 	usersBasePath = "../test_configs/%s.txt"
 	users := mergeUsers("someService", "user1:pass1,user2:pass2", "", false, "", false)
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "pass1", Username: "user1"},
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
 	users = mergeUsers("someService", "user1:pass1,user2", "", false, "", false)
 	//user without password will not be included
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "pass1", Username: "user1"},
 	})
 	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "", false)
 	//user2 password will come from users file
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
 
 	users = mergeUsers("someService", "user1:passWoRd,user2", "users", true, "", false)
 	//user2 password will come from users file, all encrypted
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: true, Password: "pass2", Username: "user2"},
 	})
 
 	users = mergeUsers("someService", "user1:passWoRd,user2", "users", false, "user1:pass1,user2:pass2", false)
 	//user2 password will come from users file, but not from global one
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
@@ -363,14 +362,14 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 
 	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", false)
 	//user2 password will come from global file
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
 
 	users = mergeUsers("someService", "user1:passWoRd,user2", "", false, "user1:pass1,user2:pass2", true)
 	//user2 password will come from global file, globals encrypted only
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: true, Password: "pass2", Username: "user2"},
 	})
@@ -378,7 +377,7 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 
 	users = mergeUsers("someService", "user1:passWoRd,user2", "", true, "user1:pass1,user2:pass2", true)
 	//user2 password will come from global file, all encrypted
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: true, Password: "passWoRd", Username: "user1"},
 		{PassEncrypted: true, Password: "pass2", Username: "user2"},
 	})
@@ -386,20 +385,20 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 
 	users = mergeUsers("someService", "user1,user2", "", false, "", false)
 	//no users found dummy one generated
-	assert.Equal(s.T(), len(users), 1)
-	assert.Equal(s.T(), users[0].Username, "dummyUser")
+	s.Equal(len(users), 1)
+	s.Equal(users[0].Username, "dummyUser")
 
 
 	users = mergeUsers("someService", "", "users", false, "", false)
 	//Users from file only
-	assert.DeepEqual(s.T(),users, []proxy.User{
+	s.Equal(users, []proxy.User{
 		{PassEncrypted: false, Password: "pass1", Username: "user1"},
 		{PassEncrypted: false, Password: "pass2", Username: "user2"},
 	})
 
 	users = mergeUsers("someService", "", "", false, "user1:pass1,user2:pass2", false)
 	//No users when only globals present
-	assert.Equal(s.T(), len(users), 0)
+	s.Equal(len(users), 0)
 
 }
 
