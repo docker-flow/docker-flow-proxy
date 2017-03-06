@@ -111,15 +111,15 @@ func (slice Services) Len() int {
 func (slice Services) Less(i, j int) bool {
 	firstHasRoot := hasRoot(slice[i])
 	secondHasRoot := hasRoot(slice[j])
-	firstHasWelKnown := hasWellKnown(slice[i])
-	secondHasWelKnown := hasWellKnown(slice[j])
+	firstHasWellKnown := hasWellKnown(slice[i])
+	secondHasWellKnown := hasWellKnown(slice[j])
 	if firstHasRoot && !secondHasRoot {
 		return false
 	} else if !firstHasRoot && secondHasRoot {
 		return true
-	} else if firstHasWelKnown && !secondHasWelKnown {
+	} else if firstHasWellKnown && !secondHasWellKnown {
 		return true
-	} else if !firstHasWelKnown && secondHasWelKnown {
+	} else if !firstHasWellKnown && secondHasWellKnown {
 		return false
 	} else {
 		return slice[i].AclName < slice[j].AclName
