@@ -18,16 +18,16 @@ ssh-keygen -t rsa # proxy-key
 packer build -machine-readable \
     proxy.json \
     | tee proxy.log
-```
 
-## Swarm Instances
-
-```bash
 export TF_VAR_swarm_snapshot_id=$(\
     grep 'artifact,0,id' \
     proxy.log \
-    | cut -d, -f6 | cut -d: -f2)
+    | cut -d: -f2)
+```
 
+## New cluster
+
+```bash
 terraform plan
 
 terraform apply \
@@ -52,6 +52,14 @@ export TF_VAR_swarm_manager_ip=$(terraform \
 terraform apply
 ```
 
+## Cluster update
+
+```bash
+# Add a new manager node to the cluster
+
+# Start replacing nodes one by one
+```
+
 ## SSH
 
 ```bash
@@ -65,45 +73,9 @@ ssh -i proxy-key \
 ```bash
 docker network create --driver overlay proxy
 
-curl -o proxy.yml \
+curl -o stack.yml \
     https://raw.githubusercontent.com/vfarcic/\
-docker-flow-proxy/master/docker-compose-stack.yml
+docker-flow-proxy/master/do/stack.yml
 
-docker stack deploy -c proxy.yml proxy
-
-docker service create --name proxy-docs \
-    --network proxy \
-    --replicas 2 \
-    --label com.df.notify=true \
-    --label com.df.distribute=true \
-    --label com.df.servicePath=/ \
-    --label com.df.port=80 \
-    vfarcic/docker-flow-proxy-docs
-
-docker service create --name letsencrypt-companion \
-    --label com.df.notify=true \
-    --label com.df.distribute=true \
-    --label com.df.servicePath=/.well-known/acme-challenge \
-    --label com.df.port=80 \
-    -e DOMAIN_1="('dockerflow.com' 'www.dockerflow.com' 'proxy.dockerflow.com' 'registry.dockerflow.com')" \
-    -e DOMAIN_COUNT=1 \
-    -e CERTBOT_EMAIL="viktor@farcic.com" \
-    -e PROXY_ADDRESS="proxy" \
-    -e CERTBOT_CRON_RENEW="('0 3 * * *' '0 15 * * *')" \
-    --network proxy \
-    --mount type=bind,source=/etc/letsencrypt,destination=/etc/letsencrypt \
-    hamburml/docker-flow-letsencrypt
-
-docker service create --name registry \
-    --label com.df.notify=true \
-    --label com.df.servicePath=/ \
-    --label com.df.serviceDomain=registry.dockerflow.com \
-    --label com.df.distribute=true \
-    --label com.df.port=5000 \
-    --network proxy \
-    registry:2
-
-exit
-
-open "http://proxy.dockerflow.com"
+docker stack deploy -c stack.yml proxy
 ```

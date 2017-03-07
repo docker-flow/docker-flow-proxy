@@ -15,6 +15,7 @@ resource "digitalocean_droplet" "swarm-manager-1" {
   provisioner "remote-exec" {
     inline = [
       "if ${var.swarm_init}; then docker swarm init --advertise-addr ${self.ipv4_address_private}; fi",
+      "echo \"docker swarm join --token ${var.swarm_manager_token} --advertise-addr ${self.ipv4_address_private} ${var.swarm_manager_ip}:2377\"",
       "if ! ${var.swarm_init}; then docker swarm join --token ${var.swarm_manager_token} --advertise-addr ${self.ipv4_address_private} ${var.swarm_manager_ip}:2377; fi"
     ]
   }
