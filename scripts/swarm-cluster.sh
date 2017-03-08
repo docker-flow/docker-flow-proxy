@@ -3,7 +3,10 @@
 set -e
 
 for i in 1 2 3; do
-    docker-machine create -d virtualbox node-$i
+    docker-machine create \
+        -d virtualbox \
+        --engine-opt experimental=true \
+        node-$i
 done
 
 eval $(docker-machine env node-1)

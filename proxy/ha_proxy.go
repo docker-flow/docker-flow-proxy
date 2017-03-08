@@ -3,7 +3,7 @@ package proxy
 import (
 	"bytes"
 	"fmt"
-	"html/template"
+	"text/template"
 	"os"
 	"os/exec"
 	"sort"
@@ -218,9 +218,13 @@ func (m HaProxy) getConfigData() ConfigData {
 			d.UserList = fmt.Sprintf("%s    user %s %s %s\n", d.UserList, user.Username, passwordType, user.Password)
 		}
 	}
+	d.ExtraFrontend = GetSecretOrEnvVar("EXTRA_FRONTEND", "")
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `
-    debug`
+    log 127.0.0.1:1514 local0`
+		d.ExtraFrontend += `
+    log global
+    log-format "%ft %b/%s %Tq/%Tw/%Tc/%Tr/%Tt %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs {%[ssl_c_verify],%{+Q}[ssl_c_s_dn],%{+Q}[ssl_c_i_dn]} %{+Q}r"`
 	} else {
 		d.ExtraDefaults += `
     option  dontlognull
@@ -233,7 +237,6 @@ func (m HaProxy) getConfigData() ConfigData {
 		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
 		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
-	d.ExtraFrontend = GetSecretOrEnvVar("EXTRA_FRONTEND", "")
 	extraGlobal := GetSecretOrEnvVar("EXTRA_GLOBAL", "")
 	if len(extraGlobal) > 0 {
 		d.ExtraGlobal += fmt.Sprintf("\n    %s", extraGlobal)
