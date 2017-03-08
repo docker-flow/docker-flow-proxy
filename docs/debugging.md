@@ -6,9 +6,10 @@ While the decision to provide minimal logging is a good one when things are work
 
 The examples that follow will show you how to enable *Docker Flow Proxy* debugging mode.
 
-## Create a Swarm Cluster
+## Creating a Swarm Cluster
 
-Feel free to skip this section if you already have a working Swarm cluster.
+!!! tip
+    Feel free to skip this section if you already have a working Swarm cluster.
 
 !!! info
 	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
@@ -29,7 +30,12 @@ chmod +x swarm-cluster.sh
 eval $(docker-machine env node-1)
 ```
 
-## Deploy Docker Flow Proxy
+Now that we have a Swarm cluster, we can deploy the *Docker Flow Proxy* stack together with a demo service.
+
+## Deploying Docker Flow Proxy And a Demo Service
+
+!!! tip
+    You might already have the `proxy` and `go-demo` services deployed from following one of the other tutorials. If that's the case, feel free to skip this section.
 
 ```bash
 docker network create -d overlay proxy
@@ -43,9 +49,9 @@ curl -o go-demo.yml \
     https://raw.githubusercontent.com/vfarcic/go-demo/master/docker-compose-stack.yml
 
 docker stack deploy -c go-demo.yml go-demo
-
-docker stack ps go-demo # Wait until it's running
 ```
+
+Please wait until the `go-demo` service is running. You can see the status by executing the `docker stack ps go-demo` command.
 
 ## Without Debugging
 

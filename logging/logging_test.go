@@ -7,6 +7,7 @@ import (
 	"log/syslog"
 	"log"
 	"time"
+	"strings"
 )
 
 type LoggingTestSuite struct {
@@ -38,8 +39,15 @@ func (s LoggingTestSuite) Test_StartLogging_OutputsSyslogToStdOut() {
 			log.Fatal(err)
 		}
 		expected := fmt.Sprintf("This is a syslog message %d", i)
-		sysLog.Info(expected)
-		time.Sleep(10 * time.Millisecond)
-		s.Contains(actual, expected)
+		go sysLog.Info(expected)
+		logged := false
+		for c := 0; c < 200; c++ {
+			if strings.Contains(actual, expected) {
+				logged = true
+				break;
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		s.True(logged)
 	}
 }
