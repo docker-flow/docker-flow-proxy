@@ -5,6 +5,10 @@ package main
 import (
 	"github.com/stretchr/testify/suite"
 	"testing"
+	"./logging"
+	"time"
+	"os"
+	"strconv"
 )
 
 // Setup
@@ -27,6 +31,30 @@ func (s MainTestSuite) Test_Main_InvokesArgsParse() {
 	main()
 
 	s.True(actual)
+}
+
+func (s MainTestSuite) Test_Main_InvokesLogging() {
+	defer func() { os.Unsetenv("DEBUG") }()
+	tests := []struct {
+		debug bool
+	}{
+		{ true },
+		{ false },
+	}
+	for _, t := range tests{
+		os.Setenv("DEBUG", strconv.FormatBool(t.debug))
+		startLoggingOrig := logging.StartLogging
+		defer func () { logging.StartLogging = startLoggingOrig }()
+		invoked := false
+		logging.StartLogging = func () {
+			invoked = true
+		}
+
+		main()
+		time.Sleep(10 * time.Millisecond)
+
+		s.Equal(invoked, t.debug)
+	}
 }
 
 // Suite

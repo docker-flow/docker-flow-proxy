@@ -45,7 +45,7 @@ export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
 
 docker-compose -f docker-compose-test.yml run --rm unit
 
-docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
+docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
 
 ### The Complete Cycle (Unit, Build, Staging)
@@ -63,7 +63,7 @@ docker-compose -f docker-compose-test.yml run --rm unit
 
 export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
 
-docker build -t $DOCKER_HUB_USER/docker-flow-proxy .
+docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
 
 #### Staging (Integration) Tests
@@ -75,9 +75,9 @@ docker-compose -f docker-compose-test.yml run --rm staging
 
 docker-compose -f docker-compose-test.yml down
 
-docker tag $DOCKER_HUB_USER/docker-flow-proxy $DOCKER_HUB_USER/docker-flow-proxy:beta
+docker image tag $DOCKER_HUB_USER/docker-flow-proxy $DOCKER_HUB_USER/docker-flow-proxy:beta
 
-docker push $DOCKER_HUB_USER/docker-flow-proxy:beta
+docker image push $DOCKER_HUB_USER/docker-flow-proxy:beta
 
 docker-compose -f docker-compose-test.yml run --rm staging-swarm
 ```
