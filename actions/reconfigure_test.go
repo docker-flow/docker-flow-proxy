@@ -234,6 +234,23 @@ backend myService-be1234
 	}
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsLoggin_WhenDebug() {
+	debugOrig := os.Getenv("DEBUG")
+	defer func() { os.Setenv("DEBUG", debugOrig) }()
+	os.Setenv("DEBUG", "true")
+	expected := strings.Replace(
+		s.ConsulTemplateBe,
+		"mode http",
+		`mode http
+    log global`,
+		-1,
+	)
+
+	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+
+	s.Equal(expected, back)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddSllVerifyNone_WhenSslVerifyNoneIsSet() {
 	modes := []string{"service", "sWARm"}
 	for _, mode := range modes {

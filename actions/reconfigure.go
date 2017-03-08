@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"os"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -333,6 +334,10 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     mode %s`,
 		prefix, rmode,
 	)
+	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+		tmpl += `
+    log global`
+	}
 	if sr.XForwardedProto {
 		tmpl += `
     http-request add-header X-Forwarded-Proto https if { ssl_fc }`
