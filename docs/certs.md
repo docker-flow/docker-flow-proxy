@@ -2,6 +2,9 @@
 
 This article provides examples that can be used as a starting point when configuring SSL certificates.
 
+!!! tip
+    Docker Secrets are a preferable way of managing SSL certificates. If you think secrets are a good fit for your use case, feel free to skip other methods and just straight into [Adding Certificates As Docker Secrets](#adding-certificates-as-docker-secrets).
+
 ## Requirements
 
 The examples that follow assume that you are using Docker v1.13+, Docker Compose v1.10+, and Docker Machine v0.9+.

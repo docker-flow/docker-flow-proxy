@@ -565,7 +565,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp(
 	expectedData := fmt.Sprintf(
 		`%s
 
-frontend my-service-1_1234
+frontend tcpFE_1234
     bind *:1234
     mode tcp
     default_backend my-service-1-be1234%s`,
@@ -583,6 +583,56 @@ frontend my-service-1_1234
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321"},
 		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_GroupsTcpFrontendsByPort() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    acl domain_my-service-1 hdr(host) -i my-domain.com
+    use_backend my-service-1-be1234 if domain_my-service-1
+    acl domain_my-service-2 hdr(host) -i my-domain-1.com my-domain-2.com
+    use_backend my-service-2-be1234 if domain_my-service-2
+
+frontend tcpFE_5678
+    bind *:5678
+    mode tcp
+    acl domain_my-service-2 hdr(host) -i my-domain-1.com my-domain-2.com
+    use_backend my-service-2-be5678 if domain_my-service-2%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	data.Services["my-service-1"] = Service{
+		ReqMode:     "tcp",
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321"},
+		},
+		ServiceDomain: []string{"my-domain.com"},
+	}
+	data.Services["my-service-2"] = Service{
+		ReqMode:     "tcp",
+		ServiceName: "my-service-2",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 5678, Port: "8765"},
+		},
+		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
 	}
 
 	p.CreateConfigFromTemplates()

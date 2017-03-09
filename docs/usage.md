@@ -8,25 +8,31 @@
 
 The proxy can be reconfigured to use request mode *http* or *tcp*. The default value of the request mode is *http* and can be changed with the parameter `reqMode`.
 
-The following query parameters can be used to send as a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. The apply to any `reqMode`.
+## Reconfigure General Parameters
+
+The following query parameters can be used to send a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. The apply to any `reqMode`.
+
+|Query          |Description                                                                               |Required|Default|Example      |
+|---------------|------------------------------------------------------------------------------------------|--------|-------|-------------|
+|aclName        |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No  |       |05-go-demo-acl|
+|httpsPort      |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.|No| |443|
+|port           |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode| |8080|
+|reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.|No|http|tcp|
+|reqPathReplace |A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.|No| |/demo/|
+|reqPathSearch  |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No| |/something/|
+|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
+|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.|No|false|true|
+|serviceName    |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes| |go-demo |
+|timeoutServer  |The server timeout in seconds.                                                            |No      |20     |60           |
+|timeoutTunnel  |The tunnel timeout in seconds.                                                            |No      |3600   |1800         |
+|xForwardedProto|Whether to add "X-Forwarded-Proto https" header.                                          |No      |false  |true         |
+
+## Reconfigure HTTP Mode Parameters
+
+The following query parameters can be used only when `reqMode` is set to `http` or is empty.
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
-|httpsPort    |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.|No| |443|
-|port         |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode| |8080|
-|reqMode      |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.|No|http|tcp|
-|reqPathReplace|A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.|No| |/demo/|
-|reqPathSearch|A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No| |/something/|
-|serviceName  |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes| |go-demo |
-|timeoutServer|The server timeout in seconds.                                                  |No      |20     |60           |
-|timeoutTunnel|The tunnel timeout in seconds.                                                  |No      |3600   |1800         |
-|xForwardedProto|Whether to add "X-Forwarded-Proto https" header.                              |No      |false  |true         |
-
-The following query parameters can be used when `reqMode` is set to `http` or is empty.
-
-|Query        |Description                                                                     |Required|Default|Example      |
-|-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
-|aclName      |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No| |05-go-demo-acl|
 |consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If set, proxy template will be loaded from the specified file.| | |/tmpl/be.tmpl|
 |consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If set, proxy template will be loaded from the specified file.| | |/tmpl/fe.tmpl|
 |distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
@@ -35,8 +41,6 @@ The following query parameters can be used when `reqMode` is set to `http` or is
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No| |path_beg|
 |RedirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| | |
-|serviceDomain|The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
-|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.|No|false|true|
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes| |/api/v1/books|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
 |sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services.|No|false|true|
@@ -47,7 +51,12 @@ The following query parameters can be used when `reqMode` is set to `http` or is
 |usersSecret  |Suffix of Docker secret from which credentials will be taken for this service. Files must be a comma-separated list of credentials (<user>:<pass>). This suffix will be prepended with `dfp_users_`. For example, if the value is `mysecrets` the expected name of the Docker secret is `dfp_users_mysecrets`.|No| |monitoring|
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`|No|false|true|
 
-The following query parameters can be used when `reqMode` is set to `tcp`.
+## Reconfigure TCP Mode Parameters
+
+The following query parameters can be used only when `reqMode` is set to `tcp`.
+
+!!! warning
+    If multiple TCP services are defined to use the same `srcPort`, `serviceDomain` must be set for those services.
 
 |Query        |Description                                                                     |Required|Default|Example      |
 |-------------|--------------------------------------------------------------------------------|--------|-------|-------------|

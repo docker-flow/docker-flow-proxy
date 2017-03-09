@@ -2,8 +2,8 @@ package main
 
 import (
 	"./logging"
-	"strings"
 	"os"
+	"strings"
 )
 
 func main() {

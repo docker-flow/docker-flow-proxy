@@ -9,10 +9,10 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"os"
 )
 
 const ServiceTemplateFeFilename = "service-formatted-fe.ctmpl"
