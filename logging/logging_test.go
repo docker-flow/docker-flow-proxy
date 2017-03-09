@@ -1,13 +1,13 @@
 package logging
 
 import (
-"github.com/stretchr/testify/suite"
-"testing"
 	"fmt"
-	"log/syslog"
+	"github.com/stretchr/testify/suite"
 	"log"
-	"time"
+	"log/syslog"
 	"strings"
+	"testing"
+	"time"
 )
 
 type LoggingTestSuite struct {
@@ -44,7 +44,7 @@ func (s LoggingTestSuite) Test_StartLogging_OutputsSyslogToStdOut() {
 		for c := 0; c < 200; c++ {
 			if strings.Contains(actual, expected) {
 				logged = true
-				break;
+				break
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
