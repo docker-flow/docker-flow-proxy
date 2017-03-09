@@ -44,7 +44,7 @@ The format used for logging in debug mode is as follows.
 %ft %b/%s %Tq/%Tw/%Tc/%Tr/%Tt %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs {%[ssl_c_verify],%{+Q}[ssl_c_s_dn],%{+Q}[ssl_c_i_dn]} %{+Q}r
 ```
 
-Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#8.2.4) of HAProxy documentation for the info about each field.
+Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#8.2.4) from the HAProxy documentation for the info about each field.
 
 ## Secrets
 
