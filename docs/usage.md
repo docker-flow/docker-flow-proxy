@@ -57,7 +57,7 @@ Multiple destinations for a single service can be specified by adding index as a
 
 ### Reconfigure TCP Mode Parameters
 
-The `reqMode` is set to `tcp` does not have any specific parameters beyond those specified in the [Reconfigure General Parameters](#reconfigure-general-parameters) section.
+The `reqMode` set to `tcp` does not have any specific parameters beyond those specified in the [Reconfigure General Parameters](#reconfigure-general-parameters) section.
 
 !!! warning
     If multiple TCP services are defined to use the same `srcPort`, `serviceDomain` must be set for those services.
