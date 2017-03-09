@@ -15,6 +15,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |CERTS              |This parameter is **deprecated** as of February 2017. All the certificates from the `/cets/` directory are now loaded automatically| | | |
 |CONNECTION_MODE    |HAProxy supports 5 connection modes.<br><br>`http-keep-alive`: all requests and responses are processed.<br>`http-tunnel`: only the first request and response are processed, everything else is forwarded with no analysis.<br>`httpclose`: tunnel with "Connection: close" added in both directions.<br>`http-server-close`: the server-facing connection is closed after the response.<br>`forceclose`: the connection is actively closed after end of response.<br><br>In general, it is preferred to use `http-server-close` with application servers, and some static servers might benefit from `http-keep-alive`.|No|http-server-close|http-keep-alive|
 |CONSUL_ADDRESS     |The address of a Consul instance used for storing proxy information and discovering running nodes.  Multiple addresses can be separated with comma (e.g. 192.168.0.10:8500,192.168.0.11:8500).|Only in the `default` mode| |192.168.0.10:8500|
+|DEBUG              |Enables logging of each request sent through the proxy. Please consult [Debug Format](#debug-format) for info about the log entries. This feature should be used with caution. Do not use it in production unless necessary.|No|false|true|
 |DEFAULT_PORTS      |The default ports used by the proxy. Multiple values can be separated with comma (`,`). If a port should be for SSL connections, append it with `:ssl.|No|80,443:ssl| |
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration.|No    | | |
 |EXTRA_GLOBAL       |Value will be added to the default `global` configuration.|No      | | |
@@ -34,6 +35,16 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |No      |15     |10     |
 |USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it. |No| |user1:pass1, user2:pass2|
 |USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command |No| false |true|
+
+## Debug Format
+
+The format used for logging in debug mode is as follows.
+
+```
+%ft %b/%s %Tq/%Tw/%Tc/%Tr/%Tt %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs {%[ssl_c_verify],%{+Q}[ssl_c_s_dn],%{+Q}[ssl_c_i_dn]} %{+Q}r
+```
+
+Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#8.2.4) of HAProxy documentation for the info about each field.
 
 ## Secrets
 

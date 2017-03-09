@@ -7,6 +7,7 @@ pages:
     - Swarm Mode (Manual): swarm-mode-manual.md
     - Standard Mode: standard-mode.md
     - Managing SSL Certificates: certs.md
+    - Debuggin: debugging.md
   - Configuration: config.md
   - Usage: usage.md
   - About:
