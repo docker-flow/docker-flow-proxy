@@ -294,27 +294,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	defer func() { os.Setenv("DEBUG", debugOrig) }()
 	os.Setenv("DEBUG", "true")
 	var actualData string
-	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    log 127.0.0.1:1514 local0", -1)
-	tmpl = strings.Replace(tmpl, "    option  dontlognull\n    option  dontlog-normal\n", "", -1)
-	tmpl = strings.Replace(
-		tmpl,
-		`frontend services
-    bind *:80
-    bind *:443
-    mode http
-`,
-		`frontend services
-    bind *:80
-    bind *:443
-    mode http
-
-    log global
-    log-format "%ft %b/%s %Tq/%Tw/%Tc/%Tr/%Tt %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs {%[ssl_c_verify],%{+Q}[ssl_c_s_dn],%{+Q}[ssl_c_i_dn]} %{+Q}r"`,
-		-1,
-	)
 	expectedData := fmt.Sprintf(
 		"%s%s",
-		tmpl,
+		s.getTemplateWithLogs(),
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -633,6 +615,41 @@ frontend tcpFE_5678
 			{SrcPort: 5678, Port: "8765"},
 		},
 		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLoggingToTcpFrontends() {
+	debugOrig := os.Getenv("DEBUG")
+	defer func() { os.Setenv("DEBUG", debugOrig) }()
+	os.Setenv("DEBUG", "true")
+	var actualData string
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    option tcplog
+    log global
+    default_backend my-service-1-be1234%s`,
+		s.getTemplateWithLogs(),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	data.Services["my-service-1"] = Service{
+		ReqMode:     "tcp",
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321"},
+		},
 	}
 
 	p.CreateConfigFromTemplates()
@@ -1314,6 +1331,30 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 
 	s.Len(data.Services, 1)
 	s.Equal(data.Services[s3.ServiceName], s3)
+}
+
+// Util
+
+func (s *HaProxyTestSuite) getTemplateWithLogs() string {
+	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    log 127.0.0.1:1514 local0", -1)
+	tmpl = strings.Replace(tmpl, "    option  dontlognull\n    option  dontlog-normal\n", "", -1)
+	tmpl = strings.Replace(
+		tmpl,
+		`frontend services
+    bind *:80
+    bind *:443
+    mode http
+`,
+		`frontend services
+    bind *:80
+    bind *:443
+    mode http
+
+    option httplog
+    log global`,
+		-1,
+	)
+	return tmpl
 }
 
 // Mocks

@@ -75,7 +75,7 @@ docker service logs proxy_proxy
 
 We can see log entries from the requests sent by `swarm-listener`, but there is no trace of the two requests we made. We need to enable debugging.
 
-## Logging With The Debug Mode
+## Logging HTTP Requests With The Debug Mode
 
 By default, debugging is disabled for a reason. It slows down the proxy. While that might not be noticeable in this demo, when working with thousands of requests per second, debugging can prove to be a bottleneck.
 
@@ -118,8 +118,8 @@ Please go back to the other terminal and observe the logs.
 The relevant part of the output is as follows.
 
 ```
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 150 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/hello HTTP/1.1"
-HAPRoxy: services services/<NOSRV> -1/-1/-1/-1/0 503 1271 - - SC-- 0/0/0/0/0 0/0 {-,"",""} "GET /this/endpoint/does/not/exist HTTP/1.1"
+HAPRoxy: 10.255.0.3:52639 [10/Mar/2017:13:18:00.780] services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 150 - - ---- 1/1/0/0/0 0/0 "GET /dem
+HAPRoxy: 10.255.0.3:52647 [10/Mar/2017:13:18:00.995] services services/<NOSRV> -1/-1/-1/-1/0 503 1271 - - SC-- 0/0/0/0/0 0/0 "GET /this/endpoint/
 ```
 
 As you can see, both requests were recorded.
@@ -135,34 +135,84 @@ do
 done
 ```
 
-The output with only relevant parts is as follows.
+The output, stripped from the fields before status codes, is as follows.
 
 ```
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 500 196 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 500 196 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/0/0 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/1/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 500 196 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
-HAPRoxy: services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 159 - - ---- 1/1/0/0/0 0/0 {-,"",""} "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/1/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/1/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+500 196 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+500 196 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+500 196 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/0/0 0/0 "GET /demo/random-error HTTP/1.1"
+200 159 - - ---- 1/1/0/1/0 0/0 "GET /demo/random-error HTTP/1.1"
 ```
 
 Approximately, one out of ten responses returned status code `500`.
 
 Logs contain quite a lot of other useful information. I suggest you consult [Debug Format](#debug-format) for a complete description of the output.
+
+What about debugging TCP requests?
+
+## Logging TCP Requests With The Debug Mode
+
+*Docker Flow Proxy* supports debugging of TCP requests as well.
+
+Let's take a look at an example.
+
+We'll deploy the [Redis](https://github.com/vfarcic/docker-flow-stacks/blob/master/db/redis-df-proxy.yml) from the [vfarcic/docker-flow-stacks repository](https://github.com/vfarcic/docker-flow-stacks).
+
+```bash
+curl -o redis.yml \
+    https://raw.githubusercontent.com/vfarcic/docker-flow-stacks/master/db/redis-df-proxy.yml
+
+docker stack deploy -c redis.yml redis
+
+docker service update --publish-add 6379:6379 proxy_proxy
+```
+
+We deployed the `redis` stack and opened the port `6379`.
+
+!!! tip
+    Normally, you would not need to route DB requests through the proxy unless they should be accessed from outside Swarm. Your services should be able to connect to your DBs through Docker Overlay network. In this case, we're adding Redis to the proxy only as a demonstration of TCP debugging.
+
+It might take a while until the `redis` stack is deployed. Please use the `docker stack ps redis` to confirm that it is running.
+
+We'll use the [redis_check.sh](https://github.com/vfarcic/docker-flow-proxy/blob/master/integration_tests/redis_check.sh) script to send a TCP request to Redis through the proxy. The same script is used by *Docker Flow Proxy* automated tests.
+
+```bash
+curl -o redis_check.sh \
+    https://raw.githubusercontent.com/vfarcic/docker-flow-proxy/master/scripts/redis_check.sh
+
+chmod +x redis_check.sh
+
+ADDR=$(docker-machine ip node-1) PORT=6379 \
+    ./redis_check.sh
+```
+
+We sent a request to Redis (through the proxy) and it responded.
+
+The log entry from the request is as follows.
+
+```
+HAPRoxy: 10.255.0.3:55569 [10/Mar/2017:16:15:40.806] tcpFE_6379 redis_main-be6379/redis_main 1/0/1 12 -- 0/0/0/0/0 0/0
+```
+
+As you can see, the TCP request is recorded.
+
+## What Now?
 
 We are finished with the short introduction to *Docker Flow Proxy* debugging feature. We should destroy the demo cluster and free our resources for something else.
 

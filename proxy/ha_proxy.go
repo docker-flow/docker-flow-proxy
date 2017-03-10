@@ -223,8 +223,8 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.ExtraGlobal += `
     log 127.0.0.1:1514 local0`
 		d.ExtraFrontend += `
-    log global
-    log-format "%ft %b/%s %Tq/%Tw/%Tc/%Tr/%Tt %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs {%[ssl_c_verify],%{+Q}[ssl_c_s_dn],%{+Q}[ssl_c_i_dn]} %{+Q}r"`
+    option httplog
+    log global`
 	} else {
 		d.ExtraDefaults += `
     option  dontlognull
@@ -319,6 +319,11 @@ frontend tcpFE_%d
 		port,
 		port,
 	)
+	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+		tmpl += `
+    option tcplog
+    log global`
+	}
 	for _, s := range services {
 		var backend string
 		if len(s.ServiceDomain) > 0 {
