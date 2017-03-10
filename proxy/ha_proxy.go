@@ -225,6 +225,10 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.ExtraFrontend += `
     option httplog
     log global`
+		if strings.EqualFold(GetSecretOrEnvVar("DEBUG_ERRORS_ONLY", ""), "true") {
+			d.ExtraDefaults += `
+    option  dontlog-normal`
+		}
 	} else {
 		d.ExtraDefaults += `
     option  dontlognull
@@ -319,7 +323,7 @@ frontend tcpFE_%d
 		port,
 		port,
 	)
-	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		tmpl += `
     option tcplog
     log global`

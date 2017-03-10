@@ -4,6 +4,9 @@
 
 While the decision to provide minimal logging is a good one when things are working correctly, you might find yourself in a situation when the proxy is not behaving as expected. In such a case, additional logging for a limited time can come in handy.
 
+!!! danger
+	Do not enable debugging in production. It might severally impact *Docker Flow Proxy* performance.
+
 The examples that follow will show you how to enable *Docker Flow Proxy* debugging mode.
 
 ## Creating a Swarm Cluster
@@ -79,9 +82,6 @@ We can see log entries from the requests sent by `swarm-listener`, but there is 
 
 By default, debugging is disabled for a reason. It slows down the proxy. While that might not be noticeable in this demo, when working with thousands of requests per second, debugging can prove to be a bottleneck.
 
-!!! danger
-	Do not enable debugging in production.
-
 We'll start by updating the `proxy` service.
 
 ```bash
@@ -118,8 +118,8 @@ Please go back to the other terminal and observe the logs.
 The relevant part of the output is as follows.
 
 ```
-HAPRoxy: 10.255.0.3:52639 [10/Mar/2017:13:18:00.780] services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 150 - - ---- 1/1/0/0/0 0/0 "GET /dem
-HAPRoxy: 10.255.0.3:52647 [10/Mar/2017:13:18:00.995] services services/<NOSRV> -1/-1/-1/-1/0 503 1271 - - SC-- 0/0/0/0/0 0/0 "GET /this/endpoint/
+HAPRoxy: 10.255.0.3:52639 [10/Mar/2017:13:18:00.780] services go-demo_main-be8080/go-demo_main 0/0/0/1/1 200 150 - - ---- 1/1/0/0/0 0/0 "GET /demo HTTP/1.1"
+HAPRoxy: 10.255.0.3:52647 [10/Mar/2017:13:18:00.995] services services/<NOSRV> -1/-1/-1/-1/0 503 1271 - - SC-- 0/0/0/0/0 0/0 "GET /this/endpoint/does/not/exist HTTP/1.1"
 ```
 
 As you can see, both requests were recorded.
@@ -211,6 +211,36 @@ HAPRoxy: 10.255.0.3:55569 [10/Mar/2017:16:15:40.806] tcpFE_6379 redis_main-be637
 ```
 
 As you can see, the TCP request is recorded.
+
+## Debugging Only Errors
+
+Running the proxy in *debug* mode in production might severally impact *Docker Flow Proxy* performance. On the other, not having the relevant information might cause some operational problems. Ideally, you would use a specialized monitoring tool (e.g. Prometheus) that would collect metrics. However, there are cases when you do want to display debugging information directly in the proxy but to have the data limited to errors. Such a choice has much smaller impact on proxy performance then full debugging mode.
+
+Debugging limited to errors can be enabled through the environment variable `DEBUG_ERRORS_ONLY`. Let's try it out.
+
+```bash
+docker service update --env-add DEBUG_ERRORS_ONLY=true proxy_proxy
+```
+
+We updated the `proxy` service by adding the environment variable `DEBUG_ERROR_ONLY`.
+
+Now we should repeat the two requests we tried before.
+
+```bash
+curl -i "http://$(docker-machine ip node-1)/demo/hello"
+
+curl -i "http://$(docker-machine ip node-1)/this/endpoint/does/not/exist"
+```
+
+The relevant parts of the `proxy` service log output is as follows.
+
+```
+HAPRoxy: 10.255.0.3:59755 [10/Mar/2017:19:11:24.860] services services/<NOSRV> -1/-1/-1/-1/0 503 1271 - - SC-- 0/0/0/0/0 0/0 "GET /this/endpoint/does/not/exist HTTP/1.1"
+```
+
+Even though we made two requests, only one was recorded in Docker logs.
+
+With the environment variable `DEBUG_ERRORS_ONLY`, only requests that resulted in an error are output.
 
 ## What Now?
 

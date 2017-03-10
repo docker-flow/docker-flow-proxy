@@ -1,2 +1,0 @@
-* Release
-* Close #66

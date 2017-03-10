@@ -309,6 +309,31 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDoNotLogNormal_WhenDebugErrorsOnlyIsSet() {
+	debugOrig := os.Getenv("DEBUG")
+	debugErrorsOnlyOrig := os.Getenv("DEBUG")
+	defer func() {
+		os.Setenv("DEBUG", debugOrig)
+		os.Setenv("DEBUG_ERRORS_ONLY", debugErrorsOnlyOrig)
+	}()
+	os.Setenv("DEBUG", "true")
+	os.Setenv("DEBUG_ERRORS_ONLY", "true")
+	var actualData string
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		s.getTemplateWithLogsAndErrorsOnly(),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 	globalOrig := os.Getenv("EXTRA_GLOBAL")
 	defer func() { os.Setenv("EXTRA_GLOBAL", globalOrig) }()
@@ -584,13 +609,7 @@ frontend tcpFE_1234
     acl domain_my-service-1 hdr(host) -i my-domain.com
     use_backend my-service-1-be1234 if domain_my-service-1
     acl domain_my-service-2 hdr(host) -i my-domain-1.com my-domain-2.com
-    use_backend my-service-2-be1234 if domain_my-service-2
-
-frontend tcpFE_5678
-    bind *:5678
-    mode tcp
-    acl domain_my-service-2 hdr(host) -i my-domain-1.com my-domain-2.com
-    use_backend my-service-2-be5678 if domain_my-service-2%s`,
+    use_backend my-service-2-be1234 if domain_my-service-2%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -612,7 +631,6 @@ frontend tcpFE_5678
 		ServiceName: "my-service-2",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321"},
-			{SrcPort: 5678, Port: "8765"},
 		},
 		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
 	}
@@ -1338,6 +1356,28 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 func (s *HaProxyTestSuite) getTemplateWithLogs() string {
 	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    log 127.0.0.1:1514 local0", -1)
 	tmpl = strings.Replace(tmpl, "    option  dontlognull\n    option  dontlog-normal\n", "", -1)
+	tmpl = strings.Replace(
+		tmpl,
+		`frontend services
+    bind *:80
+    bind *:443
+    mode http
+`,
+		`frontend services
+    bind *:80
+    bind *:443
+    mode http
+
+    option httplog
+    log global`,
+		-1,
+	)
+	return tmpl
+}
+
+func (s *HaProxyTestSuite) getTemplateWithLogsAndErrorsOnly() string {
+	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    log 127.0.0.1:1514 local0", -1)
+	tmpl = strings.Replace(tmpl, "    option  dontlognull\n", "", -1)
 	tmpl = strings.Replace(
 		tmpl,
 		`frontend services
