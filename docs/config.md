@@ -129,7 +129,7 @@ Default error messages are stored in the `/errorfiles` directory inside the *Doc
 
 ## Statistics
 
-Proxy statistics can be seen through [http://<NODE_IP_OR_DNS>/admin?stats](http://<NODE_IP_OR_DNS>/admin?stats).
+Proxy statistics can be seen through **http://[NODE_IP_OR_DNS]/admin?stats**.
 
 Please note that if you are running *Docker Flow Proxy* inside a Swarm cluster and with multiple replicas, Docker Ingress network will open one of the replicas only and every time you refresh the screen you'll be forwarded to a different replica.
 
