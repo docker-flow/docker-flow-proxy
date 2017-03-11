@@ -17,7 +17,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |CONSUL_ADDRESS     |The address of a Consul instance used for storing proxy information and discovering running nodes.  Multiple addresses can be separated with comma (e.g. 192.168.0.10:8500,192.168.0.11:8500).|Only in the `default` mode| |192.168.0.10:8500|
 |DEBUG              |Enables logging of each request sent through the proxy. Please consult [Debug Format](#debug-format) for info about the log entries. This feature should be used with caution. Do not use it in production unless necessary.|No|false|true|
 |DEBUG              |Enables logging of each request sent through the proxy. Please consult [Debug Format](#debug-format) for info about the log entries. This feature should be used with caution. **Do not enable debugging in production unless necessary.**|No|false|true|
-|DEBUG_ERRORS_ONLY  |If set to `true`, only requests that resulted in an error, timeout, retry, and redispatch will be logged. If a request is HTTP, responses with a status 5xx will be logged too.|No|false|true|
+|DEBUG_ERRORS_ONLY  |If set to `true`, only requests that resulted in an error, timeout, retry, and redispatch will be logged. If a request is HTTP, responses with a status 5xx will be logged too. This variable will take effect only if `DEBUG` is set to `true`.|No|false|true|
 |DEFAULT_PORTS      |The default ports used by the proxy. Multiple values can be separated with comma (`,`). If a port should be for SSL connections, append it with `:ssl.|No|80,443:ssl| |
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration.|No    | | |
 |EXTRA_GLOBAL       |Value will be added to the default `global` configuration.|No      | | |
@@ -126,3 +126,11 @@ COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 ## Custom Errors
 
 Default error messages are stored in the `/errorfiles` directory inside the *Docker Flow Proxy* image. They can be customized by creating a new image with custom error files or mounting a volume. Currently supported errors are `400`, `403`, `405`, `408`, `429`, `500`, `502`, `503`, and `504`.
+
+## Statistics
+
+Proxy statistics can be seen through [http://<NODE_IP_OR_DNS>/admin?stats](http://<NODE_IP_OR_DNS>/admin?stats).
+
+Please note that if you are running *Docker Flow Proxy* inside a Swarm cluster and with multiple replicas, Docker Ingress network will open one of the replicas only and every time you refresh the screen you'll be forwarded to a different replica.
+
+If you'd like to exploit those statistics, I suggest you pull data into one of monitoring tools like Prometheus. You'll find the link to raw data inside the statistics UI.
