@@ -1,7 +1,7 @@
 package server
 
 type ReloadParams struct {
-	Recreate bool  `schema:"recreate"`
+	Recreate     bool `schema:"recreate"`
 	FromListener bool `schema:"fromListener"`
 }
 
@@ -10,9 +10,3 @@ type RemoveParams struct {
 	Distribute  bool   `schema:"distribute"`
 	ServiceName string `schema:"serviceName"`
 }
-
-type ReconfigureParams struct {
-	Distribute  bool   `schema:"distribute"`
-	ServiceName string `schema:"serviceName"`
-}
-

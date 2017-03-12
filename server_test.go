@@ -506,7 +506,6 @@ func getRunMock(skipMethod string) *ReconfigureMock {
 	return mockObj
 }
 
-
 type ReconfigureMock struct {
 	mock.Mock
 }

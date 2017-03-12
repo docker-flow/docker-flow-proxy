@@ -5,11 +5,11 @@ import (
 	"./proxy"
 	"./server"
 	"fmt"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"github.com/gorilla/mux"
 )
 
 // TODO: Move to server package

@@ -43,6 +43,7 @@ type BaseReconfigure struct {
 
 var ReconfigureInstance Reconfigure
 
+// TODO: Change proxy.Service to *proxy.Service
 var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
 	return &Reconfigure{
 		BaseReconfigure: baseData,

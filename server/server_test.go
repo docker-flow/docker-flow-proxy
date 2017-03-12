@@ -1,7 +1,9 @@
 package server
 
 import (
+	"../actions"
 	"../proxy"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -11,8 +13,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"encoding/json"
-	"../actions"
 )
 
 type ServerTestSuite struct {
@@ -275,7 +275,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus200_WhenReqModeIs
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock {
+		return ReconfigureMock{
 			ExecuteMock: func(args []string) error {
 				return nil
 			},
@@ -350,7 +350,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock {
+		return ReconfigureMock{
 			ExecuteMock: func(args []string) error {
 				invoked = true
 				return nil
@@ -371,7 +371,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecut
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock {
+		return ReconfigureMock{
 			ExecuteMock: func(args []string) error {
 				invoked = true
 				return nil
@@ -389,7 +389,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus500_WhenReconfigu
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock {
+		return ReconfigureMock{
 			ExecuteMock: func(args []string) error {
 				return fmt.Errorf("This is an error")
 			},
@@ -477,7 +477,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_When
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
 		actualBase = baseData
 		actualService = serviceData
-		return ReconfigureMock {
+		return ReconfigureMock{
 			ExecuteMock: func(args []string) error {
 				invoked = true
 				return nil
@@ -735,7 +735,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		Distribute:            true,
 		SslVerifyNone:         true,
 		ServiceDomainMatchAll: true,
-		ServiceDest:           []proxy.ServiceDest{},
+		ServiceDest:           []proxy.ServiceDest{proxy.ServiceDest{ServicePath: []string{}}},
 	}
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",
@@ -768,16 +768,16 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
-	s.Equal(expected, actual)
+	s.Equal(expected, *actual)
 }
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 	req, _ := http.NewRequest("GET", s.BaseUrl, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
 	s.Equal("http", actual.ReqMode)
 }
@@ -820,7 +820,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_GetsUsersFromProxyExtractUsersF
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
 	s.Contains(actual.Users, user1)
 	s.Contains(actual.Users, user2)
