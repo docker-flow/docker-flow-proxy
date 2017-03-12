@@ -80,9 +80,6 @@ func (s *ServerTestSuite) SetupTest() {
 			InstanceName:    s.InstanceName,
 		},
 	}
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return getReconfigureMock("")
-	}
 	logPrintfOrig := logPrintf
 	defer func() { logPrintf = logPrintfOrig }()
 	logPrintf = func(format string, v ...interface{}) {}
@@ -509,6 +506,7 @@ func getRunMock(skipMethod string) *ReconfigureMock {
 	return mockObj
 }
 
+
 type ReconfigureMock struct {
 	mock.Mock
 }
@@ -549,4 +547,3 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	}
 	return mockObj
 }
-

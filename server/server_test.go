@@ -453,6 +453,55 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_W
 	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
 }
 
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+	sd := proxy.ServiceDest{
+		ServicePath: []string{},
+	}
+	pathFe := "/path/to/consul/fe/template"
+	pathBe := "/path/to/consul/be/template"
+	var actualBase actions.BaseReconfigure
+	expectedBase := actions.BaseReconfigure{
+		ConsulAddresses: []string{"http://my-consul.com"},
+	}
+	var actualService proxy.Service
+	expectedService := proxy.Service{
+		ServiceName:          "my-service",
+		ConsulTemplateFePath: pathFe,
+		ConsulTemplateBePath: pathBe,
+		ReqMode:              "http",
+		ServiceDest:          []proxy.ServiceDest{sd},
+	}
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	invoked := false
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		actualBase = baseData
+		actualService = serviceData
+		return ReconfigureMock {
+			ExecuteMock: func(args []string) error {
+				invoked = true
+				return nil
+			},
+		}
+	}
+	serverImpl := Serve{
+		ConsulAddresses: []string{"http://my-consul.com"},
+	}
+	addr := fmt.Sprintf(
+		"/v1/docker-flow-proxy/reconfigure?serviceName=my-service&consulTemplateFePath=%s&consulTemplateBePath=%s",
+		pathFe,
+		pathBe,
+	)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	serverImpl.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.Equal(expectedBase, actualBase)
+	s.Equal(expectedService, actualService)
+	s.True(invoked)
+	s.Fail("xxx")
+}
+
 // ReloadHandler
 
 func (s *ServerTestSuite) Test_ReloadHandler_ReturnsStatus200() {

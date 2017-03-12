@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"encoding/json"
+	"os"
 )
 
 var usersBasePath string = "/run/secrets/dfp_users_%s"
@@ -120,13 +121,17 @@ func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 	params := new(ReconfigureParams)
 	decoder.Decode(params, req.Form)
 	path := []string{}
+	// TODO: Move to Mux Schema
 	if len(req.URL.Query().Get("servicePath")) > 0 {
 		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
 	}
 	port := req.URL.Query().Get("port")
+	// TODO: Move to Mux Schema
 	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
 	sd := []proxy.ServiceDest{}
+	// TODO: Move to Mux Schema
 	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
+	// TODO: Move to Mux Schema
 	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
 	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
 		sd = append(
@@ -178,7 +183,7 @@ func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 			br := actions.BaseReconfigure {
 				ConsulAddresses: m.ConsulAddresses,
 				ConfigsPath: m.ConfigsPath,
-				InstanceName: m.ServiceName,
+				InstanceName: os.Getenv("PROXY_INSTANCE_NAME"),
 				TemplatesPath: m.TemplatesPath,
 			}
 			action := actions.NewReconfigure(br, sr, m.Mode)
