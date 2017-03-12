@@ -9,10 +9,7 @@ RUN apk add --no-cache --virtual .build-deps curl unzip && \
     apk del .build-deps
 
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
-RUN mkdir -p /cfg/tmpl
-RUN mkdir /consul_templates
-RUN mkdir /templates
-RUN mkdir /certs
+RUN mkdir -p /cfg/tmpl /consul_templates /templates /certs /logs
 
 ENV CONNECTION_MODE="http-server-close" \
     CONSUL_ADDRESS="" \

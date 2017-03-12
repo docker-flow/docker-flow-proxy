@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"encoding/json"
+	"../actions"
 )
 
 type ServerTestSuite struct {
@@ -34,7 +36,6 @@ func TestServerUnitTestSuite(t *testing.T) {
 		s.BaseUrl,
 		s.ServiceName,
 	)
-
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actualPath := r.URL.Path
 		if r.Method == "GET" {
@@ -88,13 +89,12 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_InvokesLookupHost() {
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	srv := Serve{}
-	srv.SendDistributeRequests(req, "8080", s.ServiceName)
+	SendDistributeRequests(req, "8080", s.ServiceName)
 
 	s.Assert().Equal(fmt.Sprintf("tasks.%s", s.ServiceName), actualHost)
 }
 
-func (s *ServerTestSuite) Test_SednDistributeRequests_ReturnsError_WhenLookupHostFails() {
+func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenLookupHostFails() {
 	lookupHostOrig := lookupHost
 	defer func() { lookupHost = lookupHostOrig }()
 	lookupHost = func(host string) (addrs []string, err error) {
@@ -102,8 +102,7 @@ func (s *ServerTestSuite) Test_SednDistributeRequests_ReturnsError_WhenLookupHos
 	}
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
-	srv := Serve{}
-	status, err := srv.SendDistributeRequests(req, "8080", s.ServiceName)
+	status, err := SendDistributeRequests(req, "8080", s.ServiceName)
 
 	s.Assertions.Equal(http.StatusBadRequest, status)
 	s.Assertions.Error(err)
@@ -123,11 +122,10 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_SendsHttpRequestForEachIp(
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
 	port := strings.Split(tsAddr, ":")[1]
 
-	srv := Serve{}
 	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	srv.SendDistributeRequests(req, port, s.ServiceName)
+	SendDistributeRequests(req, port, s.ServiceName)
 
 	s.Assert().Equal(s.BaseUrl, actualPath)
 	s.Assert().Equal("false", actualQuery.Get("distribute"))
@@ -145,11 +143,10 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_SendsHttpRequestForEachIpW
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
 	port := strings.Split(tsAddr, ":")[1]
 
-	srv := Serve{}
 	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("PUT", addr, nil)
 
-	srv.SendDistributeRequests(req, port, s.ServiceName)
+	SendDistributeRequests(req, port, s.ServiceName)
 
 	s.Assert().Equal("PUT", actualProtocol)
 }
@@ -168,11 +165,10 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_SendsHttpRequestForEachIpW
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
 	port := strings.Split(tsAddr, ":")[1]
 
-	srv := Serve{}
 	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("PUT", addr, strings.NewReader(expectedBody))
 
-	srv.SendDistributeRequests(req, port, s.ServiceName)
+	SendDistributeRequests(req, port, s.ServiceName)
 
 	s.Assert().Equal(expectedBody, actualBody)
 }
@@ -189,14 +185,233 @@ func (s *ServerTestSuite) Test_SendDistributeRequests_ReturnsError_WhenRequestFa
 	s.DnsIps = []string{strings.Split(tsAddr, ":")[0]}
 	port := strings.Split(tsAddr, ":")[1]
 
-	srv := Serve{}
 	addr := fmt.Sprintf("http://initial-proxy-address:%s%s&distribute=true", port, s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	status, err := srv.SendDistributeRequests(req, port, s.ServiceName)
+	status, err := SendDistributeRequests(req, port, s.ServiceName)
 
 	s.Assertions.Equal(http.StatusBadRequest, status)
 	s.Assertions.Error(err)
+}
+
+// TestHandler
+
+func (s *ServerTestSuite) Test_TestHandler_ReturnsStatus200() {
+	for ver := 1; ver <= 2; ver++ {
+		rw := getResponseWriterMock()
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
+
+		srv := Serve{}
+		srv.TestHandler(rw, req)
+
+		rw.AssertCalled(s.T(), "WriteHeader", 200)
+	}
+}
+
+// ReloadHandler
+
+func (s *ServerTestSuite) Test_ReloadHandler_ReturnsStatus200() {
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			return nil
+		},
+	}
+	for ver := 1; ver <= 2; ver++ {
+		rw := getResponseWriterMock()
+		req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
+
+		srv := Serve{}
+		srv.ReloadHandler(rw, req)
+
+		rw.AssertCalled(s.T(), "WriteHeader", 200)
+	}
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_InvokesReload() {
+	invoked := false
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			invoked = true
+			return nil
+		},
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
+
+	srv := Serve{}
+	srv.ReloadHandler(getResponseWriterMock(), req)
+
+	s.True(invoked)
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithRecreateParam() {
+	actualRecreate := false
+	actualListenerAddr := ""
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			actualRecreate = recreate
+			actualListenerAddr = listenerAddr
+			return nil
+		},
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?recreate=true", nil)
+
+	srv := Serve{}
+	srv.ListenerAddress = "my-listener"
+	srv.ReloadHandler(getResponseWriterMock(), req)
+
+	s.True(actualRecreate)
+	s.Empty(actualListenerAddr)
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam() {
+	actualListenerAddr := ""
+	reloadOrig := reload
+	defer func() { reload = reloadOrig }()
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			actualListenerAddr = listenerAddr
+			return nil
+		},
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?fromListener=true", nil)
+
+	srv := Serve{}
+	srv.ListenerAddress = "my-listener"
+	srv.ReloadHandler(getResponseWriterMock(), req)
+
+	s.Equal(srv.ListenerAddress, actualListenerAddr)
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_SetsContentTypeToJSON() {
+	var actual string
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			return nil
+		},
+	}
+
+	srv := Serve{}
+	srv.ReloadHandler(getResponseWriterMock(), req)
+
+	s.Equal("application/json", actual)
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_ReturnsJSON() {
+	expected, _ := json.Marshal(Response{
+		Status: "OK",
+	})
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
+	reload = ReloadMock{
+		ExecuteMock: func(recreate bool, listenerAddr string) error {
+			return nil
+		},
+	}
+	respWriterMock := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.ReloadHandler(respWriterMock, req)
+
+	respWriterMock.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+// Remove Handler
+
+func (s *ServerTestSuite) Test_RemoveHandler_SetsContentTypeToJSON() {
+	var actual string
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/remove", nil)
+
+	srv := Serve{}
+	srv.RemoveHandler(getResponseWriterMock(), req)
+
+	s.Equal("application/json", actual)
+}
+
+func (s *ServerTestSuite) Test_RemoveHandler_ReturnsJSON() {
+	expected, _ := json.Marshal(Response{
+		Status:      "OK",
+		ServiceName: "my-service",
+	})
+	addr := "/v1/docker-flow-proxy/remove?serviceName=my-service"
+	req, _ := http.NewRequest("GET", addr, nil)
+	respWriterMock := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.RemoveHandler(respWriterMock, req)
+
+	respWriterMock.AssertCalled(s.T(), "Write", []byte(expected))
+}
+
+func (s *ServerTestSuite) Test_RemoveHandler_ReturnsStatus400_WhenServiceNameIsNotPresent() {
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/remove", nil)
+	respWriterMock := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.RemoveHandler(respWriterMock, req)
+
+	respWriterMock.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
+	mockObj := getRemoveMock("")
+	aclName := "my-acl"
+	var actual actions.Remove
+	expected := actions.Remove{
+		ServiceName:     s.ServiceName,
+		TemplatesPath:   "",
+		ConfigsPath:     "",
+		ConsulAddresses: []string{"http://1.2.3.4:1234"},
+		InstanceName:    "proxy-test-instance",
+		AclName:         aclName,
+	}
+	actions.NewRemove = func(
+		serviceName, aclName, configsPath, templatesPath string,
+		consulAddresses []string,
+		instanceName, mode string,
+	) actions.Removable {
+		actual = actions.Remove{
+			ServiceName:     serviceName,
+			AclName:         aclName,
+			TemplatesPath:   templatesPath,
+			ConfigsPath:     configsPath,
+			ConsulAddresses: consulAddresses,
+			InstanceName:    instanceName,
+			Mode:            mode,
+		}
+		return mockObj
+	}
+	url := fmt.Sprintf("/v1/docker-flow-proxy/remove?serviceName=%s&aclName=%s", s.ServiceName, aclName)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	srv := Serve{
+		ConsulAddresses: expected.ConsulAddresses,
+		ServiceName:     expected.InstanceName,
+	}
+	srv.RemoveHandler(getResponseWriterMock(), req)
+
+	s.Equal(expected, actual)
+	mockObj.AssertCalled(s.T(), "Execute", []string{})
+}
+
+func (s *ServerTestSuite) Test_RemoveHandler_WritesErrorHeader_WhenRemoveDistributeIsTrueAndItFails() {
+	addr := "/v1/docker-flow-proxy/remove?serviceName=my-service&distribute=true"
+	req, _ := http.NewRequest("GET", addr, nil)
+	respWriterMock := getResponseWriterMock()
+
+	serve := Serve{}
+	serve.RemoveHandler(respWriterMock, req)
+
+	respWriterMock.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
 // GetServiceFromUrl
@@ -404,20 +619,58 @@ type ServerMock struct {
 	mock.Mock
 }
 
-func (m *ServerMock) SendDistributeRequests(req *http.Request, port, serviceName string) (status int, err error) {
-	params := m.Called(req, port, serviceName)
-	return params.Int(0), params.Error(1)
-}
-
 func (m *ServerMock) GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
 	params := m.Called(sd, req)
 	return params.Get(0).(proxy.Service)
 }
 
+func (m *ServerMock) TestHandler(w http.ResponseWriter, req *http.Request) {
+	m.Called(w, req)
+}
+
+func (m *ServerMock) ReloadHandler(w http.ResponseWriter, req *http.Request) {
+	m.Called(w, req)
+}
+
+func (m *ServerMock) RemoveHandler(w http.ResponseWriter, req *http.Request) {
+	m.Called(w, req)
+}
+
 func getServerMock(skipMethod string) *ServerMock {
 	mockObj := new(ServerMock)
-	if skipMethod != "SendDistributeRequests" {
-		mockObj.On("SendDistributeRequests", mock.Anything, mock.Anything, mock.Anything).Return(200, nil)
+	if skipMethod != "ReloadHandler" {
+		mockObj.On("ReloadHandler", mock.Anything, mock.Anything)
+	}
+	if skipMethod != "RemoveHandler" {
+		mockObj.On("RemoveHandler", mock.Anything, mock.Anything)
+	}
+	if skipMethod != "TestHandler" {
+		mockObj.On("TestHandler", mock.Anything, mock.Anything)
+	}
+	return mockObj
+}
+
+type ReloadMock struct {
+	ExecuteMock func(recreate bool, listenerAddr string) error
+}
+
+func (m ReloadMock) Execute(recreate bool, listenerAddr string) error {
+	return m.ExecuteMock(recreate, listenerAddr)
+}
+
+type RemoveMock struct {
+	mock.Mock
+}
+
+func (m *RemoveMock) Execute(args []string) error {
+	params := m.Called(args)
+	return params.Error(0)
+}
+
+func getRemoveMock(skipMethod string) *RemoveMock {
+	mockObj := new(RemoveMock)
+	if skipMethod != "Execute" {
+		mockObj.On("Execute", mock.Anything).Return(nil)
 	}
 	return mockObj
 }

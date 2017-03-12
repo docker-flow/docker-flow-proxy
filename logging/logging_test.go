@@ -21,7 +21,7 @@ func TestLoggingUnitTestSuite(t *testing.T) {
 
 func (s *LoggingTestSuite) SetupTest() {}
 
-//
+// StartLogging
 
 func (s LoggingTestSuite) Test_StartLogging_OutputsSyslogToStdOut() {
 	logPrintfOrig := logPrintf

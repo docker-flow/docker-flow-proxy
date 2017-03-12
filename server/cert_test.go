@@ -375,10 +375,10 @@ func (s *CertTestSuite) Test_Put_WritesHeaderStatus200() {
 }
 
 func (s *CertTestSuite) Test_Put_SendsDistributeRequests_WhenDistruibuteParamIsPresent() {
-	serviceName := "my-proxy-service"
+	expectedServiceName := "my-proxy-service"
 	serviceNameOrig := os.Getenv("SERVICE_NAME")
 	defer func() { os.Setenv("SERVICE_NAME", serviceNameOrig) }()
-	os.Setenv("SERVICE_NAME", serviceName)
+	os.Setenv("SERVICE_NAME", expectedServiceName)
 	c := NewCert("../certs")
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
@@ -386,14 +386,19 @@ func (s *CertTestSuite) Test_Put_SendsDistributeRequests_WhenDistruibuteParamIsP
 		"http://acme.com:1234/v1/docker-flow-proxy/cert?certName=my-cert.pem&distribute=true",
 		strings.NewReader("cert content"),
 	)
-	serverOrig := server
-	defer func() { server = serverOrig }()
-	mockObj := getServerMock("")
-	server = mockObj
-
+	actualServiceName := ""
+	actualPort := ""
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		actualServiceName = serviceName
+		actualPort = port
+		return 0, nil
+	}
 	c.Put(w, req)
 
-	mockObj.AssertCalled(s.T(), "SendDistributeRequests", req, "1234", serviceName)
+	s.Equal(expectedServiceName, actualServiceName)
+	s.Equal("1234", actualPort)
 }
 
 func (s *CertTestSuite) Test_Put_ReturnsError_WhenCertNameIsNotPresent() {
@@ -411,10 +416,10 @@ func (s *CertTestSuite) Test_Put_ReturnsError_WhenCertNameIsNotPresent() {
 }
 
 func (s *CertTestSuite) Test_Put_SendsDistributeRequestsToPort8080_WhenPortIsNotAvailable() {
-	serviceName := "my-proxy-service"
+	expectedServiceName := "my-proxy-service"
 	serviceNameOrig := os.Getenv("SERVICE_NAME")
 	defer func() { os.Setenv("SERVICE_NAME", serviceNameOrig) }()
-	os.Setenv("SERVICE_NAME", serviceName)
+	os.Setenv("SERVICE_NAME", expectedServiceName)
 	c := NewCert("../certs")
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
@@ -422,14 +427,20 @@ func (s *CertTestSuite) Test_Put_SendsDistributeRequestsToPort8080_WhenPortIsNot
 		"http://acme.com/v1/docker-flow-proxy/cert?certName=my-cert.pem&distribute=true",
 		strings.NewReader("cert content"),
 	)
-	serverOrig := server
-	defer func() { server = serverOrig }()
-	mockObj := getServerMock("")
-	server = mockObj
+	actualServiceName := ""
+	actualPort := ""
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		actualServiceName = serviceName
+		actualPort = port
+		return 0, nil
+	}
 
 	c.Put(w, req)
 
-	mockObj.AssertCalled(s.T(), "SendDistributeRequests", req, "8080", serviceName)
+	s.Equal("8080", actualPort)
+	s.Equal(expectedServiceName, actualServiceName)
 }
 
 func (s *CertTestSuite) Test_Put_ReturnsError_WhenSendDistributeRequestsReturnsError() {
@@ -444,11 +455,11 @@ func (s *CertTestSuite) Test_Put_ReturnsError_WhenSendDistributeRequestsReturnsE
 		"http://acme.com/v1/docker-flow-proxy/cert?certName=my-cert.pem&distribute=true",
 		strings.NewReader("cert content"),
 	)
-	serverOrig := server
-	defer func() { server = serverOrig }()
-	mockObj := getServerMock("SendDistributeRequests")
-	mockObj.On("SendDistributeRequests", mock.Anything, mock.Anything, mock.Anything).Return(200, fmt.Errorf("This is an error"))
-	server = mockObj
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		return 0, fmt.Errorf("This is an error")
+	}
 
 	_, err := c.Put(w, req)
 
@@ -467,11 +478,11 @@ func (s *CertTestSuite) Test_Put_ReturnsError_WhenSendDistributeRequestsReturnsN
 		"http://acme.com/v1/docker-flow-proxy/cert?certName=my-cert.pem&distribute=true",
 		strings.NewReader("cert content"),
 	)
-	serverOrig := server
-	defer func() { server = serverOrig }()
-	mockObj := getServerMock("SendDistributeRequests")
-	mockObj.On("SendDistributeRequests", mock.Anything, mock.Anything, mock.Anything).Return(400, nil)
-	server = mockObj
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		return 400, nil
+	}
 
 	_, err := c.Put(w, req)
 

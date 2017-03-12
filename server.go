@@ -10,21 +10,23 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"github.com/gorilla/mux"
 )
 
 // TODO: Move to server package
 
+// TODO: Remove
 const (
 	DISTRIBUTED = "Distributed to all instances"
 )
 
 type Server interface {
 	Execute(args []string) error
-	ServeHTTP(w http.ResponseWriter, req *http.Request)
 }
 
 type Serve struct {
 	IP string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	// TODO: Remove
 	// The default mode is designed to work with any setup and requires Consul and Registrator.
 	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
 	// The later mode (swarm) does not have any dependency but Docker Engine.
@@ -33,6 +35,7 @@ type Serve struct {
 	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
 	Port            string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
 	ServiceName     string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
+	// TODO: Remove
 	actions.BaseReconfigure
 }
 
@@ -66,43 +69,48 @@ func (m *Serve) Execute(args []string) error {
 		return err
 	}
 	logPrintf(`Starting "Docker Flow: Proxy"`)
-	if err := httpListenAndServe(address, m); err != nil {
+	r := mux.NewRouter().StrictSlash(true)
+	var server2 = server.NewServer(
+		m.ListenerAddress,
+		m.Mode,
+		m.Port,
+		m.ServiceName,
+		m.ConfigsPath,
+		m.TemplatesPath,
+		m.ConsulAddresses,
+	)
+	r.HandleFunc("/v1/docker-flow-proxy/cert", m.CertPutHandler).Methods("PUT")
+	r.HandleFunc("/v1/docker-flow-proxy/certs", m.CertsHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/config", m.ConfigHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", m.ReconfigureHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
+	r.HandleFunc("/v1/test", server2.TestHandler)
+	r.HandleFunc("/v2/test", server2.TestHandler)
+	if err := httpListenAndServe(address, r); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Serve) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if !strings.EqualFold(req.URL.Path, "/v1/test") {
-		logPrintf("Processing request %s", req.URL)
-	}
-	switch req.URL.Path {
-	case "/v1/docker-flow-proxy/cert":
-		if req.Method == "PUT" {
-			cert.Put(w, req)
-		} else {
-			logPrintf("/v1/docker-flow-proxy/cert endpoint allows only PUT requests. Yours was %s", req.Method)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	case "/v1/docker-flow-proxy/certs":
-		cert.GetAll(w, req)
-	case "/v1/docker-flow-proxy/config":
-		m.config(w, req)
-	case "/v1/docker-flow-proxy/reconfigure":
-		m.reconfigure(w, req)
-	case "/v1/docker-flow-proxy/remove":
-		m.remove(w, req)
-	case "/v1/docker-flow-proxy/reload":
-		m.reload(w, req)
-	case "/v1/test", "/v2/test":
-		js, _ := json.Marshal(server.Response{Status: "OK"})
-		httpWriterSetContentType(w, "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(js)
-	default:
-		logPrintf("The endpoint %s is not supported", req.URL.Path)
-		w.WriteHeader(http.StatusNotFound)
-	}
+// TODO: Move to server package
+func (m *Serve) CertPutHandler(w http.ResponseWriter, req *http.Request) {
+	cert.Put(w, req)
+}
+
+// TODO: Move to server package
+func (m *Serve) CertsHandler(w http.ResponseWriter, req *http.Request) {
+	cert.GetAll(w, req)
+}
+
+// TODO: Move to server package
+func (m *Serve) ConfigHandler(w http.ResponseWriter, req *http.Request) {
+	m.config(w, req)
+}
+
+// TODO: Move to server package
+func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
+	m.reconfigure(w, req)
 }
 
 func (m *Serve) isValidReconf(service *proxy.Service) (bool, string) {
@@ -128,22 +136,6 @@ func (m *Serve) isSwarm(mode string) bool {
 
 func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
-}
-
-func (m *Serve) reload(w http.ResponseWriter, req *http.Request) {
-	listenerAddr := ""
-	recreate := m.getBoolParam(req, "recreate")
-	if m.getBoolParam(req, "fromListener") {
-		listenerAddr = m.ListenerAddress
-	}
-	reload.Execute(recreate, listenerAddr)
-	w.WriteHeader(http.StatusOK)
-	httpWriterSetContentType(w, "application/json")
-	response := server.Response{
-		Status: "OK",
-	}
-	js, _ := json.Marshal(response)
-	w.Write(js)
 }
 
 func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
@@ -188,8 +180,7 @@ func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
 		if m.isSwarm(m.Mode) && !m.hasPort(sd) {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
-			srv := server.Serve{}
-			if status, err := srv.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+			if status, err := server.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
 				m.writeInternalServerError(w, &response, err.Error())
 			} else {
 				response.Message = DISTRIBUTED
@@ -238,49 +229,6 @@ func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *server.Res
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
-}
-
-func (m *Serve) remove(w http.ResponseWriter, req *http.Request) {
-	serviceName := req.URL.Query().Get("serviceName")
-	distribute := m.getBoolParam(req, "distribute")
-	response := server.Response{
-		Status:      "OK",
-		ServiceName: serviceName,
-	}
-	if distribute {
-		response.Distribute = distribute
-		response.Message = DISTRIBUTED
-	}
-	if len(serviceName) == 0 {
-		response.Status = "NOK"
-		response.Message = "The serviceName query is mandatory"
-		w.WriteHeader(http.StatusBadRequest)
-	} else if distribute {
-		srv := server.Serve{}
-		if status, err := srv.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
-			m.writeInternalServerError(w, &response, err.Error())
-		} else {
-			response.Message = DISTRIBUTED
-			w.WriteHeader(http.StatusOK)
-		}
-	} else {
-		logPrintf("Processing remove request %s", req.URL.Path)
-		aclName := req.URL.Query().Get("aclName")
-		action := actions.NewRemove(
-			serviceName,
-			aclName,
-			m.BaseReconfigure.ConfigsPath,
-			m.BaseReconfigure.TemplatesPath,
-			m.ConsulAddresses,
-			m.InstanceName,
-			m.Mode,
-		)
-		action.Execute([]string{})
-		w.WriteHeader(http.StatusOK)
-	}
-	httpWriterSetContentType(w, "application/json")
-	js, _ := json.Marshal(response)
-	w.Write(js)
 }
 
 func (m *Serve) config(w http.ResponseWriter, req *http.Request) {
