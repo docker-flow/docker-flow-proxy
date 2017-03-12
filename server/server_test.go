@@ -499,7 +499,6 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_When
 	s.Equal(expectedBase, actualBase)
 	s.Equal(expectedService, actualService)
 	s.True(invoked)
-	s.Fail("xxx")
 }
 
 // ReloadHandler
