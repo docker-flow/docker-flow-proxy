@@ -1,12 +1,12 @@
 package server
 
 import (
+	"fmt"
+	"github.com/gorilla/schema"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"github.com/gorilla/schema"
-	"fmt"
 	"strings"
 )
 

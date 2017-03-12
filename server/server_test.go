@@ -1,7 +1,9 @@
 package server
 
 import (
+	"../actions"
 	"../proxy"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -11,13 +13,11 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"encoding/json"
-	"../actions"
 )
 
 type ServerTestSuite struct {
 	BaseUrl        string
-	ReconfigureUrl string
+	ReconfigureUrl string // TODO: Remove
 	ServiceName    string
 	Server         *httptest.Server
 	DnsIps         []string
@@ -206,6 +206,299 @@ func (s *ServerTestSuite) Test_TestHandler_ReturnsStatus200() {
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
 	}
+}
+
+// ReconfigureHandler
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_SetsContentTypeToJSON() {
+	var actual string
+	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
+		actual = value
+	}
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reconfigure?serviceName=my-service", nil)
+
+	srv := Serve{}
+	srv.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.Equal("application/json", actual)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
+	serve := Serve{}
+	serve.Port = "1234"
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		return 0, fmt.Errorf("This is an error")
+	}
+
+	serve.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 500)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_WritesStatusOK_WhenReconfigureDistributeIsTrue() {
+	serve := Serve{}
+	serve.Port = "1234"
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+	sendDistributeRequestsOrig := SendDistributeRequests
+	defer func() { SendDistributeRequests = sendDistributeRequestsOrig }()
+	SendDistributeRequests = func(req *http.Request, port, serviceName string) (status int, err error) {
+		return 0, nil
+	}
+
+	serve.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 200)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenServiceNameQueryIsNotPresent() {
+	addr := "/v1/docker-flow-proxy/reconfigure"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus200_WhenReqModeIsTcp() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=redis&port=6379&srcPort=6379&reqMode=tcp"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return ReconfigureMock{
+			ExecuteMock: func(args []string) error {
+				return nil
+			},
+		}
+	}
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 200)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenReqModeIsTcpAndSrcPortIsNotPresent() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=redis&port=6379&reqMode=tcp"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenReqModeIsTcpAndPortIsNotPresent() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=redis&srcPort=6379&reqMode=tcp"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
+	url := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service"
+	req, _ := http.NewRequest("GET", url, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
+	url := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&serviceColor=orange&servicePath=/demo&serviceDomain=my-domain.com"
+	req, _ := http.NewRequest("GET", url, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{Mode: "service"}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&serviceColor=orange&servicePath=/demo&serviceDomain=my-domain.com"
+	req, _ := http.NewRequest("GET", addr, nil)
+	rw := getResponseWriterMock()
+
+	srv := Serve{Mode: "swARM"}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 400)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath.1=/demo&port.1=1234"
+	req, _ := http.NewRequest("GET", addr, nil)
+	invoked := false
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return ReconfigureMock{
+			ExecuteMock: func(args []string) error {
+				invoked = true
+				return nil
+			},
+		}
+	}
+
+	srv := Serve{Mode: "swarm"}
+	srv.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.True(invoked)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecute_WhenDistributeIsTrue() {
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&distribute=true"
+	req, _ := http.NewRequest("GET", addr, nil)
+	invoked := false
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return ReconfigureMock{
+			ExecuteMock: func(args []string) error {
+				invoked = true
+				return nil
+			},
+		}
+	}
+
+	srv := Serve{Mode: "swarm"}
+	srv.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.False(invoked)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus500_WhenReconfigureExecuteFails() {
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return ReconfigureMock{
+			ExecuteMock: func(args []string) error {
+				return fmt.Errorf("This is an error")
+			},
+		}
+	}
+	rw := getResponseWriterMock()
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234"
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{}
+	srv.ReconfigureHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 500)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCert_WhenServiceCertIsPresent() {
+	actualCertName := ""
+	expectedCert := "my-cert with new line \\n"
+	actualCert := ""
+	cert := CertMock{
+		PutCertMock: func(certName string, certContent []byte) (string, error) {
+			actualCertName = certName
+			actualCert = string(certContent[:])
+			return "", nil
+		},
+	}
+	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceCert=%s", expectedCert)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{
+		Mode: "swarm",
+		Cert: cert,
+	}
+	srv.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.Equal("my-service", actualCertName)
+	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
+	actualCertName := ""
+	expectedCert := "my-cert with new line \\n"
+	actualCert := ""
+	cert := CertMock{
+		PutCertMock: func(certName string, certContent []byte) (string, error) {
+			actualCertName = certName
+			actualCert = string(certContent[:])
+			return "", nil
+		},
+	}
+	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceDomain=my-domain.com&serviceCert=%s", expectedCert)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	srv := Serve{
+		Mode: "swarm",
+		Cert: cert,
+	}
+	srv.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.Equal("my-domain.com", actualCertName)
+	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
+}
+
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+	sd := proxy.ServiceDest{
+		ServicePath: []string{},
+	}
+	pathFe := "/path/to/consul/fe/template"
+	pathBe := "/path/to/consul/be/template"
+	var actualBase actions.BaseReconfigure
+	expectedBase := actions.BaseReconfigure{
+		ConsulAddresses: []string{"http://my-consul.com"},
+	}
+	var actualService proxy.Service
+	expectedService := proxy.Service{
+		ServiceName:          "my-service",
+		ConsulTemplateFePath: pathFe,
+		ConsulTemplateBePath: pathBe,
+		ReqMode:              "http",
+		ServiceDest:          []proxy.ServiceDest{sd},
+	}
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
+	invoked := false
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		actualBase = baseData
+		actualService = serviceData
+		return ReconfigureMock{
+			ExecuteMock: func(args []string) error {
+				invoked = true
+				return nil
+			},
+		}
+	}
+	serverImpl := Serve{
+		ConsulAddresses: []string{"http://my-consul.com"},
+	}
+	addr := fmt.Sprintf(
+		"/v1/docker-flow-proxy/reconfigure?serviceName=my-service&consulTemplateFePath=%s&consulTemplateBePath=%s",
+		pathFe,
+		pathBe,
+	)
+	req, _ := http.NewRequest("GET", addr, nil)
+
+	serverImpl.ReconfigureHandler(getResponseWriterMock(), req)
+
+	s.Equal(expectedBase, actualBase)
+	s.Equal(expectedService, actualService)
+	s.True(invoked)
 }
 
 // ReloadHandler
@@ -442,7 +735,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		Distribute:            true,
 		SslVerifyNone:         true,
 		ServiceDomainMatchAll: true,
-		ServiceDest:           []proxy.ServiceDest{},
+		ServiceDest:           []proxy.ServiceDest{proxy.ServiceDest{ServicePath: []string{}}},
 	}
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",
@@ -475,16 +768,16 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
-	s.Equal(expected, actual)
+	s.Equal(expected, *actual)
 }
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 	req, _ := http.NewRequest("GET", s.BaseUrl, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
 	s.Equal("http", actual.ReqMode)
 }
@@ -527,7 +820,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_GetsUsersFromProxyExtractUsersF
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := Serve{}
 
-	actual := srv.GetServiceFromUrl([]proxy.ServiceDest{}, req)
+	actual := srv.GetServiceFromUrl(req)
 
 	s.Contains(actual.Users, user1)
 	s.Contains(actual.Users, user2)
@@ -673,4 +966,50 @@ func getRemoveMock(skipMethod string) *RemoveMock {
 		mockObj.On("Execute", mock.Anything).Return(nil)
 	}
 	return mockObj
+}
+
+type ReconfigureMock struct {
+	ExecuteMock           func(args []string) error
+	GetDataMock           func() (actions.BaseReconfigure, proxy.Service)
+	ReloadAllServicesMock func(addresses []string, instanceName, mode, listenerAddress string) error
+	GetTemplatesMock      func(sr *proxy.Service) (front, back string, err error)
+}
+
+func (m ReconfigureMock) Execute(args []string) error {
+	return m.ExecuteMock(args)
+}
+
+func (m ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
+	return m.GetDataMock()
+}
+
+func (m ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+	return m.ReloadAllServicesMock(addresses, instanceName, mode, listenerAddress)
+}
+
+func (m ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
+	return m.GetTemplatesMock(sr)
+}
+
+type CertMock struct {
+	PutMock     func(http.ResponseWriter, *http.Request) (string, error)
+	PutCertMock func(certName string, certContent []byte) (string, error)
+	GetAllMock  func(w http.ResponseWriter, req *http.Request) (CertResponse, error)
+	GetInitMock func() error
+}
+
+func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) {
+	return m.PutMock(w, req)
+}
+
+func (m CertMock) PutCert(certName string, certContent []byte) (string, error) {
+	return m.PutCertMock(certName, certContent)
+}
+
+func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse, error) {
+	return m.GetAllMock(w, req)
+}
+
+func (m CertMock) Init() error {
+	return m.GetInitMock()
 }

@@ -1,13 +1,14 @@
 package server
 
 import (
-	"../proxy"
 	"../actions"
+	"../proxy"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
-	"encoding/json"
 )
 
 var usersBasePath string = "/run/secrets/dfp_users_%s"
@@ -15,7 +16,7 @@ var extractUsersFromString = proxy.ExtractUsersFromString
 var reload actions.Reloader = actions.NewReload()
 
 type Server interface {
-	GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service
+	GetServiceFromUrl(req *http.Request) proxy.Service
 	TestHandler(w http.ResponseWriter, req *http.Request)
 	ReloadHandler(w http.ResponseWriter, req *http.Request)
 	RemoveHandler(w http.ResponseWriter, req *http.Request)
@@ -25,32 +26,18 @@ const (
 	DISTRIBUTED = "Distributed to all instances"
 )
 
-type Serve struct{
+type Serve struct {
 	ListenerAddress string
-	// The default mode is designed to work with any setup and requires Consul and Registrator.
-	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
-	// The later mode (swarm) does not have any dependency but Docker Engine.
-	// The swarm mode is recommended for all who use Docker Swarm features introduced in v1.12.
 	Mode            string
 	Port            string
 	ServiceName     string
 	ConfigsPath     string
 	TemplatesPath   string
 	ConsulAddresses []string
+	Cert            Certer
 }
 
-type ReloadParams struct {
-	Recreate bool  `schema:"recreate"`
-	FromListener bool `schema:"fromListener"`
-}
-
-type RemoveParams struct {
-	AclName     string `schema:"aclName"`
-	Distribute  bool   `schema:"distribute"`
-	ServiceName string `schema:"serviceName"`
-}
-
-func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string) *Serve {
+func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) *Serve {
 	return &Serve{
 		ListenerAddress: listenerAddr,
 		Mode:            mode,
@@ -59,6 +46,7 @@ func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath
 		ConfigsPath:     configsPath,
 		TemplatesPath:   templatesPath,
 		ConsulAddresses: consulAddresses,
+		Cert:            cert,
 	}
 }
 
@@ -70,54 +58,56 @@ type Response struct {
 	proxy.Service
 }
 
-// TODO: Refactor to mux schema
-func (m *Serve) GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
-	sr := proxy.Service{
-		ServiceDest:          sd,
-		ServiceName:          req.URL.Query().Get("serviceName"),
-		AclName:              req.URL.Query().Get("aclName"),
-		ServiceColor:         req.URL.Query().Get("serviceColor"),
-		ServiceCert:          req.URL.Query().Get("serviceCert"),
-		OutboundHostname:     req.URL.Query().Get("outboundHostname"),
-		ConsulTemplateFePath: req.URL.Query().Get("consulTemplateFePath"),
-		ConsulTemplateBePath: req.URL.Query().Get("consulTemplateBePath"),
-		PathType:             req.URL.Query().Get("pathType"),
-		ReqRepSearch:         req.URL.Query().Get("reqRepSearch"),  // TODO: Deprecated (dec. 2016).
-		ReqRepReplace:        req.URL.Query().Get("reqRepReplace"), // TODO: Deprecated (dec. 2016).
-		ReqPathSearch:        req.URL.Query().Get("reqPathSearch"),
-		ReqPathReplace:       req.URL.Query().Get("reqPathReplace"),
-		TemplateFePath:       req.URL.Query().Get("templateFePath"),
-		TemplateBePath:       req.URL.Query().Get("templateBePath"),
-		TimeoutServer:        req.URL.Query().Get("timeoutServer"),
-		TimeoutTunnel:        req.URL.Query().Get("timeoutTunnel"),
-	}
-	if len(req.URL.Query().Get("reqMode")) > 0 {
-		sr.ReqMode = req.URL.Query().Get("reqMode")
-	} else {
+func (m *Serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
+	req.ParseForm()
+	sr := new(proxy.Service)
+	decoder.Decode(sr, req.Form)
+	if len(sr.ReqMode) == 0 {
 		sr.ReqMode = "http"
 	}
-	sr.HttpsOnly = m.getBoolParam(req, "httpsOnly")
-	sr.XForwardedProto = m.getBoolParam(req, "xForwardedProto")
-	sr.RedirectWhenHttpProto = m.getBoolParam(req, "redirectWhenHttpProto")
 	if len(req.URL.Query().Get("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(req.URL.Query().Get("httpsPort"))
 	}
 	if len(req.URL.Query().Get("serviceDomain")) > 0 {
 		sr.ServiceDomain = strings.Split(req.URL.Query().Get("serviceDomain"), ",")
 	}
-	sr.SkipCheck = m.getBoolParam(req, "skipCheck")
-	sr.Distribute = m.getBoolParam(req, "distribute")
-	sr.SslVerifyNone = m.getBoolParam(req, "sslVerifyNone")
-	sr.ServiceDomainMatchAll = m.getBoolParam(req, "serviceDomainMatchAll")
 	globalUsersString := proxy.GetSecretOrEnvVar("USERS", "")
 	globalUsersEncrypted := strings.EqualFold(proxy.GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
-	sr.Users = mergeUsers(sr.ServiceName,
+	sr.Users = mergeUsers(
+		sr.ServiceName,
 		req.URL.Query().Get("users"),
 		req.URL.Query().Get("usersSecret"),
 		m.getBoolParam(req, "usersPassEncrypted"),
 		globalUsersString,
 		globalUsersEncrypted,
 	)
+	path := []string{}
+	if len(req.URL.Query().Get("servicePath")) > 0 {
+		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
+	}
+	port := req.URL.Query().Get("port")
+	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
+	sd := []proxy.ServiceDest{}
+	if len(path) > 0 || len(port) > 0 || (len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0) {
+		sd = append(
+			sd,
+			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+		)
+	}
+	for i := 1; i <= 10; i++ {
+		port := req.URL.Query().Get(fmt.Sprintf("port.%d", i))
+		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
+		srcPort, _ := strconv.Atoi(req.URL.Query().Get(fmt.Sprintf("srcPort.%d", i)))
+		if len(path) > 0 && len(port) > 0 {
+			sd = append(
+				sd,
+				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+			)
+		} else {
+			break
+		}
+	}
+	sr.ServiceDest = sd
 	return sr
 }
 
@@ -125,6 +115,56 @@ func (m *Serve) TestHandler(w http.ResponseWriter, req *http.Request) {
 	js, _ := json.Marshal(Response{Status: "OK"})
 	httpWriterSetContentType(w, "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(js)
+}
+
+func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
+	sr := m.GetServiceFromUrl(req)
+	response := Response{
+		Mode:        m.Mode,
+		Status:      "OK",
+		ServiceName: sr.ServiceName,
+		Service:     *sr,
+	}
+	ok, msg := m.isValidReconf(sr)
+	if ok {
+		if m.isSwarm(m.Mode) && !m.hasPort(sr.ServiceDest) {
+			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
+		} else if sr.Distribute {
+			if status, err := SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				response.Message = DISTRIBUTED
+				w.WriteHeader(http.StatusOK)
+			}
+		} else {
+			if len(sr.ServiceCert) > 0 {
+				// Replace \n with proper carriage return as new lines are not supported in labels
+				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
+				if len(sr.ServiceDomain) > 0 {
+					m.Cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
+				} else {
+					m.Cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+				}
+			}
+			br := actions.BaseReconfigure{
+				ConsulAddresses: m.ConsulAddresses,
+				ConfigsPath:     m.ConfigsPath,
+				InstanceName:    os.Getenv("PROXY_INSTANCE_NAME"),
+				TemplatesPath:   m.TemplatesPath,
+			}
+			action := actions.NewReconfigure(br, *sr, m.Mode)
+			if err := action.Execute([]string{}); err != nil {
+				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+	} else {
+		m.writeBadRequest(w, &response, msg)
+	}
+	httpWriterSetContentType(w, "application/json")
+	js, _ := json.Marshal(response)
 	w.Write(js)
 }
 
@@ -186,6 +226,45 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func (m *Serve) isSwarm(mode string) bool {
+	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
+}
+
+func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
+	return len(sd) > 0 && len(sd[0].Port) > 0
+}
+
+func (m *Serve) isValidReconf(service *proxy.Service) (bool, string) {
+	if len(service.ServiceName) == 0 {
+		return false, "serviceName parameter is mandatory"
+	} else if len(service.ServiceDest) == 0 {
+		return false, "There must be at least one destination"
+	}
+	hasPath := len(service.ServiceDest[0].ServicePath) > 0
+	hasSrcPort := service.ServiceDest[0].SrcPort > 0
+	hasPort := len(service.ServiceDest[0].Port) > 0
+	if strings.EqualFold(service.ReqMode, "http") {
+		if !hasPath && len(service.ConsulTemplateFePath) == 0 {
+			return false, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
+		}
+	} else if !hasSrcPort || !hasPort {
+		return false, "When NOT using reqMode http (e.g. tcp), srcPort and port parameters are mandatory."
+	}
+	return true, ""
 }
 
 func (m *Serve) getBoolParam(req *http.Request, param string) bool {
@@ -254,8 +333,12 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*prox
 			userContents := strings.TrimRight(string(content[:]), "\n")
 			return proxy.ExtractUsersFromString(serviceName, userContents, passEncrypted, true), nil
 		} else { // TODO: Test
-			logPrintf("For service %s it was impossible to load userFile %s due to error %s",
-				serviceName, usersFile, err.Error())
+			logPrintf(
+				"For service %s it was impossible to load userFile %s due to error %s",
+				serviceName,
+				usersFile,
+				err.Error(),
+			)
 			return []*proxy.User{}, err
 		}
 	}
