@@ -3,7 +3,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -288,32 +287,9 @@ func (s *ServerTestSuite) Test_Execute_AddsHttpToConsulAddresses() {
 	s.Equal(expected, srv.ConsulAddresses)
 }
 
-// ServeHTTP
+// CertPutHandler
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus404WhenURLIsUnknown() {
-	req, _ := http.NewRequest("GET", "/this/url/does/not/exist", nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200WhenUrlIsTest() {
-	for ver := 1; ver <= 2; ver++ {
-		rw := getResponseWriterMock()
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
-
-		srv := Serve{}
-		srv.ServeHTTP(rw, req)
-
-		rw.AssertCalled(s.T(), "WriteHeader", 200)
-	}
-}
-
-// ServeHTTP > Cert
-
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertPut_WhenUrlIsCert() {
+func (s *ServerTestSuite) Test_CertPutHandler_InvokesCertPut_WhenUrlIsCert() {
 	invoked := false
 	certOrig := cert
 	defer func() { cert = certOrig }()
@@ -326,41 +302,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertPut_WhenUrlIsCert() {
 	req, _ := http.NewRequest("PUT", s.CertUrl, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.CertPutHandler(s.ResponseWriter, req)
 
 	s.Assert().True(invoked)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvoke_WhenUrlIsCertAndMethodIsNotPut() {
-	invoked := false
-	certOrig := cert
-	defer func() { cert = certOrig }()
-	cert = CertMock{
-		PutMock: func(http.ResponseWriter, *http.Request) (string, error) {
-			invoked = true
-			return "", nil
-		},
-	}
-	req, _ := http.NewRequest("GET", s.CertUrl, nil)
+// CertsHandler
 
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.Assert().False(invoked)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatusNotFound_WhenUrlIsCertAndMethodIsNotPut() {
-	req, _ := http.NewRequest("GET", s.CertUrl, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 404)
-}
-
-// ServeHTTP > Certs
-
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertGetAll_WhenUrlIsCerts() {
+func (s *ServerTestSuite) Test_CertsHandler_InvokesCertGetAll_WhenUrlIsCerts() {
 	invoked := false
 	certOrig := cert
 	defer func() { cert = certOrig }()
@@ -373,95 +322,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesCertGetAll_WhenUrlIsCerts() {
 	req, _ := http.NewRequest("GET", s.CertsUrl, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.CertsHandler(s.ResponseWriter, req)
 
 	s.Assert().True(invoked)
 }
 
-// ServeHTTP > Reload
+// ReconfigureHandler
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesReload_WhenUrlIsReload() {
-	invoked := false
-	reloadOrig := reload
-	defer func() { reload = reloadOrig }()
-	reload = ReloadMock{
-		ExecuteMock: func(recreate bool, listenerAddr string) error {
-			invoked = true
-			return nil
-		},
-	}
-	url := fmt.Sprintf("%s/reload", s.BaseUrl)
-	req, _ := http.NewRequest("GET", url, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.True(invoked)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesReloadWithParams() {
-	actualRecreate := false
-	actualListenerAddress := ""
-	reloadOrig := reload
-	defer func() { reload = reloadOrig }()
-	reload = ReloadMock{
-		ExecuteMock: func(recreate bool, listenerAddr string) error {
-			actualRecreate = recreate
-			actualListenerAddress = listenerAddr
-			return nil
-		},
-	}
-	addr := fmt.Sprintf("%s/reload?recreate=true&fromListener=true", s.BaseUrl)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	srv := Serve{}
-	srv.ListenerAddress = "listener-addr"
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.True(actualRecreate)
-	s.Equal(srv.ListenerAddress, actualListenerAddress)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenUrlIsReload() {
-	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 200)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReload() {
-	var actual string
-	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
-	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
-		actual = value
-	}
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.Equal("application/json", actual)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsReload() {
-	expected, _ := json.Marshal(server.Response{
-		Status: "OK",
-	})
-	addr := fmt.Sprintf("%s/reload", s.BaseUrl)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
-}
-
-// ServeHTTP > Reconfigure
-
-func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfigure() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_SetsContentTypeToJSON_WhenUrlIsReconfigure() {
 	var actual string
 	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 		actual = value
@@ -469,101 +337,90 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsReconfig
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.Equal("application/json", actual)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := Serve{}
 	serve.Port = s.ServiceDest[0].Port
 	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	serve.ServeHTTP(s.ResponseWriter, req)
+	serve.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_WritesErrorHeader_WhenRemoveDistributeIsTrueAndError() {
-	serve := Serve{}
-	serve.Port = s.ServiceDest[0].Port
-	addr := fmt.Sprintf("http://127.0.0.1:8080%s&distribute=true&returnError=true", s.RemoveUrl)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	serve.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenUrlIsReconfigureAndServiceNameQueryIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureBaseUrl, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus200_WhenUrlIsReconfigureAndReqModeIsTcp() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus200_WhenUrlIsReconfigureAndReqModeIsTcp() {
 	addr := fmt.Sprintf("%s?serviceName=redis&port=6379&srcPort=6379&reqMode=tcp", s.ReconfigureBaseUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 200)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndReqModeIsTcpAndSrcPortIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenUrlIsReconfigureAndReqModeIsTcpAndSrcPortIsNotPresent() {
 	addr := fmt.Sprintf("%s?serviceName=redis&port=6379&reqMode=tcp", s.ReconfigureBaseUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsReconfigureAndReqModeIsTcpAndPortIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenUrlIsReconfigureAndReqModeIsTcpAndPortIsNotPresent() {
 	addr := fmt.Sprintf("%s?serviceName=redis&srcPort=6379&reqMode=tcp", s.ReconfigureBaseUrl)
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenServicePathQueryIsNotPresent() {
 	url := fmt.Sprintf("%s?serviceName=my-service", s.ReconfigureBaseUrl)
 	req, _ := http.NewRequest("GET", url, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
 	srv := Serve{Mode: "service"}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
 	req, _ := http.NewRequest("GET", s.ReconfigureUrl, nil)
 
 	srv := Serve{Mode: "swARM"}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
 	s.Service.AclName = "my-acl"
 	url := fmt.Sprintf("%s&aclName=my-acl", s.ReconfigureUrl)
 	req, _ := http.NewRequest("GET", url, nil)
@@ -571,7 +428,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute() {
 	s.invokesReconfigure(req, true)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeReconfigureExecute_WhenDistributeIsTrue() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecute_WhenDistributeIsTrue() {
 	req, _ := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s&distribute=true", s.ReconfigureUrl),
@@ -580,7 +437,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeReconfigureExecute_WhenDis
 	s.invokesReconfigure(req, false)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeRemoveExecute_WhenDistributeIsTrue() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeRemoveExecute_WhenDistributeIsTrue() {
 	req, _ := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s&distribute=true", s.RemoveUrl),
@@ -589,7 +446,7 @@ func (s *ServerTestSuite) Test_ServeHTTP_DoesNotInvokeRemoveExecute_WhenDistribu
 	s.invokesReconfigure(req, false)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecuteFails() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus500_WhenReconfigureExecuteFails() {
 	mockObj := getReconfigureMock("Execute")
 	mockObj.On("Execute", []string{}).Return(fmt.Errorf("This is an error"))
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
@@ -597,12 +454,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReconfigureExecute
 	}
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, s.RequestReconfigure)
+	srv.ReconfigureHandler(s.ResponseWriter, s.RequestReconfigure)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
 	sd := proxy.ServiceDest{
 		ServicePath: []string{},
 	}
@@ -636,14 +493,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesReconfigureExecute_WhenConsulTem
 		pathBe)
 	req, _ := http.NewRequest("GET", address, nil)
 
-	serverImpl.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.Equal(expectedBase, actualBase)
 	s.Equal(expectedService, actualService)
 	mockObj.AssertCalled(s.T(), "Execute", []string{})
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCert_WhenServiceCertIsPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCert_WhenServiceCertIsPresent() {
 	actualCertName := ""
 	expectedCert := "my-cert with new line \\n"
 	actualCert := ""
@@ -665,13 +522,13 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCert_WhenServiceCertIsPresent
 	)
 	req, _ := http.NewRequest("GET", address, nil)
 
-	serverImpl.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.Equal(s.ServiceName, actualCertName)
 	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
 	actualCertName := ""
 	expectedCert := "my-cert"
 	actualCert := ""
@@ -687,88 +544,15 @@ func (s *ServerTestSuite) Test_ServeHTTP_InvokesPutCertWithDomainName_WhenServic
 	address := fmt.Sprintf("%s&serviceDomain=%s&serviceCert=%s", s.ReconfigureUrl, s.ServiceDomain[0], expectedCert)
 	req, _ := http.NewRequest("GET", address, nil)
 
-	serverImpl.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ReconfigureHandler(s.ResponseWriter, req)
 
 	s.Equal(s.ServiceDomain[0], actualCertName)
 	s.Equal(expectedCert, actualCert)
 }
 
-// ServeHTTP > Remove
-
-func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToJSON_WhenUrlIsRemove() {
-	var actual string
-	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
-		actual = value
-	}
-	req, _ := http.NewRequest("GET", s.RemoveUrl, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.Equal("application/json", actual)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsJSON_WhenUrlIsRemove() {
-	expected, _ := json.Marshal(server.Response{
-		Status:      "OK",
-		ServiceName: s.ServiceName,
-	})
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, s.RequestRemove)
-
-	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus400_WhenUrlIsRemoveAndServiceNameQueryIsNotPresent() {
-	req, _ := http.NewRequest("GET", s.RemoveBaseUrl, nil)
-
-	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 400)
-}
-
-func (s *ServerTestSuite) Test_ServeHTTP_InvokesRemoveExecute() {
-	mockObj := getRemoveMock("")
-	aclName := "my-acl"
-	var actual actions.Remove
-	expected := actions.Remove{
-		ServiceName:     s.ServiceName,
-		TemplatesPath:   "",
-		ConfigsPath:     "",
-		ConsulAddresses: []string{s.ConsulAddress},
-		InstanceName:    s.InstanceName,
-		AclName:         aclName,
-	}
-	actions.NewRemove = func(
-		serviceName, aclName, configsPath, templatesPath string,
-		consulAddresses []string,
-		instanceName, mode string,
-	) actions.Removable {
-		actual = actions.Remove{
-			ServiceName:     serviceName,
-			AclName:         aclName,
-			TemplatesPath:   templatesPath,
-			ConfigsPath:     configsPath,
-			ConsulAddresses: consulAddresses,
-			InstanceName:    instanceName,
-			Mode:            mode,
-		}
-		return mockObj
-	}
-	url := fmt.Sprintf("%s?serviceName=%s&aclName=%s", s.RemoveBaseUrl, s.ServiceName, aclName)
-	req, _ := http.NewRequest("GET", url, nil)
-
-	serverImpl.ServeHTTP(s.ResponseWriter, req)
-
-	s.Equal(expected, actual)
-	mockObj.AssertCalled(s.T(), "Execute", []string{})
-}
-
 // ServeHTTP > Config
 
-func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToText_WhenUrlIsConfig() {
+func (s *ServerTestSuite) Test_ConfigHandler_SetsContentTypeToText_WhenUrlIsConfig() {
 	var actual string
 	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 		actual = value
@@ -776,12 +560,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_SetsContentTypeToText_WhenUrlIsConfig()
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
 
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ConfigHandler(s.ResponseWriter, req)
 
 	s.Equal("text/html", actual)
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
+func (s *ServerTestSuite) Test_ConfigHandler_ReturnsConfig_WhenUrlIsConfig() {
 	expected := "some text"
 	readFileOrig := proxy.ReadFile
 	defer func() { proxy.ReadFile = readFileOrig }()
@@ -791,12 +575,12 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsConfig_WhenUrlIsConfig() {
 
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ConfigHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
 
-func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
+func (s *ServerTestSuite) Test_ConfigHandler_ReturnsStatus500_WhenReadFileFails() {
 	readFileOrig := readFile
 	defer func() { readFile = readFileOrig }()
 	readFile = func(filename string) ([]byte, error) {
@@ -805,13 +589,14 @@ func (s *ServerTestSuite) Test_ServeHTTP_ReturnsStatus500_WhenReadFileFails() {
 
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
 	srv := Serve{}
-	srv.ServeHTTP(s.ResponseWriter, req)
+	srv.ConfigHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
 
 // Suite
 
+// TODO: Review whether everything is needed
 func TestServerUnitTestSuite(t *testing.T) {
 	s := new(ServerTestSuite)
 	logPrintf = func(format string, v ...interface{}) {}
@@ -827,12 +612,8 @@ func TestServerUnitTestSuite(t *testing.T) {
 					w.Header().Set("Content-Type", "application/json")
 				}
 			case "/v1/docker-flow-proxy/remove":
-				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
-					w.WriteHeader(http.StatusInternalServerError)
-				} else {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-				}
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -1028,7 +809,7 @@ func (s *ServerTestSuite) invokesReconfigure(req *http.Request, invoke bool) {
 	defer func() { s.ServiceDest[0].Port = portOrig }()
 	s.ServiceDest[0].Port = ""
 
-	serverImpl.ServeHTTP(s.ResponseWriter, req)
+	serverImpl.ReconfigureHandler(s.ResponseWriter, req)
 
 	if invoke {
 		s.Equal(expectedBase, actualBase)

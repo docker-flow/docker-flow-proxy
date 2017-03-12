@@ -2,26 +2,64 @@ package server
 
 import (
 	"../proxy"
+	"../actions"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"encoding/json"
 )
 
-var server Server = NewServer()
 var usersBasePath string = "/run/secrets/dfp_users_%s"
 var extractUsersFromString = proxy.ExtractUsersFromString
+var reload actions.Reloader = actions.NewReload()
 
 type Server interface {
-	SendDistributeRequests(req *http.Request, port, proxyServiceName string) (status int, err error)
 	GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service
+	TestHandler(w http.ResponseWriter, req *http.Request)
+	ReloadHandler(w http.ResponseWriter, req *http.Request)
+	RemoveHandler(w http.ResponseWriter, req *http.Request)
 }
 
-type Serve struct{}
+const (
+	DISTRIBUTED = "Distributed to all instances"
+)
 
-func NewServer() *Serve {
-	return &Serve{}
+type Serve struct{
+	ListenerAddress string
+	// The default mode is designed to work with any setup and requires Consul and Registrator.
+	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
+	// The later mode (swarm) does not have any dependency but Docker Engine.
+	// The swarm mode is recommended for all who use Docker Swarm features introduced in v1.12.
+	Mode            string
+	Port            string
+	ServiceName     string
+	ConfigsPath     string
+	TemplatesPath   string
+	ConsulAddresses []string
+}
+
+type ReloadParams struct {
+	Recreate bool  `schema:"recreate"`
+	FromListener bool `schema:"fromListener"`
+}
+
+type RemoveParams struct {
+	AclName     string `schema:"aclName"`
+	Distribute  bool   `schema:"distribute"`
+	ServiceName string `schema:"serviceName"`
+}
+
+func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string) *Serve {
+	return &Serve{
+		ListenerAddress: listenerAddr,
+		Mode:            mode,
+		Port:            port,
+		ServiceName:     serviceName,
+		ConfigsPath:     configsPath,
+		TemplatesPath:   templatesPath,
+		ConsulAddresses: consulAddresses,
+	}
 }
 
 type Response struct {
@@ -32,39 +70,7 @@ type Response struct {
 	proxy.Service
 }
 
-func (m *Serve) SendDistributeRequests(req *http.Request, port, proxyServiceName string) (status int, err error) {
-	values := req.URL.Query()
-	values.Set("distribute", "false")
-	req.URL.RawQuery = values.Encode()
-	dns := fmt.Sprintf("tasks.%s", proxyServiceName)
-	failedDns := []string{}
-	method := req.Method
-	body := ""
-	if req.Body != nil {
-		defer func() { req.Body.Close() }()
-		reqBody, _ := ioutil.ReadAll(req.Body)
-		body = string(reqBody)
-	}
-	if ips, err := lookupHost(dns); err == nil {
-		for i := 0; i < len(ips); i++ {
-			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], port)
-			client := &http.Client{}
-			addr := fmt.Sprintf("http://%s:%s%s?%s", ips[i], port, req.URL.Path, req.URL.RawQuery)
-			logPrintf("Sending distribution request to %s", addr)
-			req, _ := http.NewRequest(method, addr, strings.NewReader(body))
-			if resp, err := client.Do(req); err != nil || resp.StatusCode >= 300 {
-				failedDns = append(failedDns, ips[i])
-			}
-		}
-	} else {
-		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy>.", dns)
-	}
-	if len(failedDns) > 0 {
-		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
-	}
-	return http.StatusOK, err
-}
-
+// TODO: Refactor to mux schema
 func (m *Serve) GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) proxy.Service {
 	sr := proxy.Service{
 		ServiceDest:          sd,
@@ -113,6 +119,73 @@ func (m *Serve) GetServiceFromUrl(sd []proxy.ServiceDest, req *http.Request) pro
 		globalUsersEncrypted,
 	)
 	return sr
+}
+
+func (m *Serve) TestHandler(w http.ResponseWriter, req *http.Request) {
+	js, _ := json.Marshal(Response{Status: "OK"})
+	httpWriterSetContentType(w, "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(js)
+}
+
+func (m *Serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
+	params := new(ReloadParams)
+	decoder.Decode(params, req.Form)
+	listenerAddr := ""
+	if params.FromListener {
+		listenerAddr = m.ListenerAddress
+	}
+	reload.Execute(params.Recreate, listenerAddr)
+	w.WriteHeader(http.StatusOK)
+	httpWriterSetContentType(w, "application/json")
+	response := Response{
+		Status: "OK",
+	}
+	js, _ := json.Marshal(response)
+	w.Write(js)
+}
+
+func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
+	params := new(RemoveParams)
+	decoder.Decode(params, req.Form)
+	header := http.StatusOK
+	response := Response{
+		Status:      "OK",
+		ServiceName: params.ServiceName,
+	}
+	if params.Distribute {
+		response.Distribute = params.Distribute
+		response.Message = DISTRIBUTED
+	}
+	if len(params.ServiceName) == 0 {
+		response.Status = "NOK"
+		response.Message = "The serviceName query is mandatory"
+		header = http.StatusBadRequest
+	} else if params.Distribute {
+		if status, err := SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+			response.Status = "NOK"
+			response.Message = err.Error()
+			header = http.StatusInternalServerError
+		}
+	} else {
+		logPrintf("Processing remove request %s", req.URL.Path)
+		action := actions.NewRemove(
+			params.ServiceName,
+			params.AclName,
+			m.ConfigsPath,
+			m.TemplatesPath,
+			m.ConsulAddresses,
+			m.ServiceName,
+			m.Mode,
+		)
+		action.Execute([]string{})
+	}
+	w.WriteHeader(header)
+	httpWriterSetContentType(w, "application/json")
+	js, _ := json.Marshal(response)
+	w.Write(js)
 }
 
 func (m *Serve) getBoolParam(req *http.Request, param string) bool {
