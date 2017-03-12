@@ -27,30 +27,16 @@ const (
 
 type Serve struct{
 	ListenerAddress string
-	// The default mode is designed to work with any setup and requires Consul and Registrator.
-	// The swarm mode aims to leverage the benefits that come with Docker Swarm and new networking introduced in the 1.12 release.
-	// The later mode (swarm) does not have any dependency but Docker Engine.
-	// The swarm mode is recommended for all who use Docker Swarm features introduced in v1.12.
 	Mode            string
 	Port            string
 	ServiceName     string
 	ConfigsPath     string
 	TemplatesPath   string
 	ConsulAddresses []string
+	Cert            Certer
 }
 
-type ReloadParams struct {
-	Recreate bool  `schema:"recreate"`
-	FromListener bool `schema:"fromListener"`
-}
-
-type RemoveParams struct {
-	AclName     string `schema:"aclName"`
-	Distribute  bool   `schema:"distribute"`
-	ServiceName string `schema:"serviceName"`
-}
-
-func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string) *Serve {
+func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) *Serve {
 	return &Serve{
 		ListenerAddress: listenerAddr,
 		Mode:            mode,
@@ -59,6 +45,7 @@ func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath
 		ConfigsPath:     configsPath,
 		TemplatesPath:   templatesPath,
 		ConsulAddresses: consulAddresses,
+		Cert:            cert,
 	}
 }
 
@@ -128,6 +115,87 @@ func (m *Serve) TestHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
+func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
+	params := new(ReconfigureParams)
+	decoder.Decode(params, req.Form)
+	path := []string{}
+	if len(req.URL.Query().Get("servicePath")) > 0 {
+		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
+	}
+	port := req.URL.Query().Get("port")
+	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
+	sd := []proxy.ServiceDest{}
+	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
+	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
+	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
+		sd = append(
+			sd,
+			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+		)
+	}
+	for i := 1; i <= 10; i++ {
+		port := req.URL.Query().Get(fmt.Sprintf("port.%d", i))
+		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
+		srcPort, _ := strconv.Atoi(req.URL.Query().Get(fmt.Sprintf("srcPort.%d", i)))
+		if len(path) > 0 && len(port) > 0 {
+			sd = append(
+				sd,
+				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+			)
+		} else {
+			break
+		}
+	}
+	sr := m.GetServiceFromUrl(sd, req)
+	response := Response{
+		Mode:        m.Mode,
+		Status:      "OK",
+		ServiceName: params.ServiceName,
+		Service:     sr,
+	}
+	ok, msg := m.isValidReconf(&sr)
+	if ok {
+		if m.isSwarm(m.Mode) && !m.hasPort(sd) {
+			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
+		} else if params.Distribute {
+			if status, err := SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				response.Message = DISTRIBUTED
+				w.WriteHeader(http.StatusOK)
+			}
+		} else {
+			if len(sr.ServiceCert) > 0 {
+				// Replace \n with proper carriage return as new lines are not supported in labels
+				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
+				if len(sr.ServiceDomain) > 0 {
+					m.Cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
+				} else {
+					m.Cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+				}
+			}
+			br := actions.BaseReconfigure {
+				ConsulAddresses: m.ConsulAddresses,
+				ConfigsPath: m.ConfigsPath,
+				InstanceName: m.ServiceName,
+				TemplatesPath: m.TemplatesPath,
+			}
+			action := actions.NewReconfigure(br, sr, m.Mode)
+			if err := action.Execute([]string{}); err != nil {
+				m.writeInternalServerError(w, &response, err.Error())
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+	} else {
+		m.writeBadRequest(w, &response, msg)
+	}
+	httpWriterSetContentType(w, "application/json")
+	js, _ := json.Marshal(response)
+	w.Write(js)
+}
+
 func (m *Serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	params := new(ReloadParams)
@@ -186,6 +254,45 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+	resp.Status = "NOK"
+	resp.Message = msg
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func (m *Serve) isSwarm(mode string) bool {
+	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
+}
+
+func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
+	return len(sd) > 0 && len(sd[0].Port) > 0
+}
+
+func (m *Serve) isValidReconf(service *proxy.Service) (bool, string) {
+	if len(service.ServiceName) == 0 {
+		return false, "serviceName parameter is mandatory"
+	} else if len(service.ServiceDest) == 0 {
+		return false, "There must be at least one destination"
+	}
+	hasPath := len(service.ServiceDest[0].ServicePath) > 0
+	hasSrcPort := service.ServiceDest[0].SrcPort > 0
+	hasPort := len(service.ServiceDest[0].Port) > 0
+	if strings.EqualFold(service.ReqMode, "http") {
+		if !hasPath && len(service.ConsulTemplateFePath) == 0 {
+			return false, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
+		}
+	} else if !hasSrcPort || !hasPort {
+		return false, "When NOT using reqMode http (e.g. tcp), srcPort and port parameters are mandatory."
+	}
+	return true, ""
 }
 
 func (m *Serve) getBoolParam(req *http.Request, param string) bool {

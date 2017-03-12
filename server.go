@@ -4,7 +4,6 @@ import (
 	"./actions"
 	"./proxy"
 	"./server"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,11 +13,6 @@ import (
 )
 
 // TODO: Move to server package
-
-// TODO: Remove
-const (
-	DISTRIBUTED = "Distributed to all instances"
-)
 
 type Server interface {
 	Execute(args []string) error
@@ -43,7 +37,7 @@ var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
 var reload actions.Reloader = actions.NewReload()
 
-//exposed as global so can be changed in tests
+// Exposed as global so can be changed in tests
 var usersBasePath string = "/run/secrets/dfp_users_%s"
 
 func (m *Serve) Execute(args []string) error {
@@ -78,11 +72,12 @@ func (m *Serve) Execute(args []string) error {
 		m.ConfigsPath,
 		m.TemplatesPath,
 		m.ConsulAddresses,
+		cert,
 	)
 	r.HandleFunc("/v1/docker-flow-proxy/cert", m.CertPutHandler).Methods("PUT")
 	r.HandleFunc("/v1/docker-flow-proxy/certs", m.CertsHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/config", m.ConfigHandler)
-	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", m.ReconfigureHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
 	r.HandleFunc("/v1/test", server2.TestHandler)
@@ -108,107 +103,12 @@ func (m *Serve) ConfigHandler(w http.ResponseWriter, req *http.Request) {
 	m.config(w, req)
 }
 
-// TODO: Move to server package
-func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
-	m.reconfigure(w, req)
-}
-
-func (m *Serve) isValidReconf(service *proxy.Service) (bool, string) {
-	if len(service.ServiceName) == 0 || len(service.ServiceDest) == 0 {
-		return false, "serviceName parameter is mandatory"
-	}
-	hasPath := len(service.ServiceDest[0].ServicePath) > 0
-	hasSrcPort := service.ServiceDest[0].SrcPort > 0
-	hasPort := len(service.ServiceDest[0].Port) > 0
-	if strings.EqualFold(service.ReqMode, "http") {
-		if !hasPath && len(service.ConsulTemplateFePath) == 0 {
-			return false, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
-		}
-	} else if !hasSrcPort || !hasPort {
-		return false, "When NOT using reqMode http (e.g. tcp), srcPort and port parameters are mandatory."
-	}
-	return true, ""
-}
-
 func (m *Serve) isSwarm(mode string) bool {
 	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
 }
 
 func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
-}
-
-func (m *Serve) reconfigure(w http.ResponseWriter, req *http.Request) {
-	path := []string{}
-	if len(req.URL.Query().Get("servicePath")) > 0 {
-		path = strings.Split(req.URL.Query().Get("servicePath"), ",")
-	}
-	port := req.URL.Query().Get("port")
-	srcPort, _ := strconv.Atoi(req.URL.Query().Get("srcPort"))
-	sd := []proxy.ServiceDest{}
-	ctmplFePath := req.URL.Query().Get("consulTemplateFePath")
-	ctmplBePath := req.URL.Query().Get("consulTemplateBePath")
-	if len(path) > 0 || len(port) > 0 || (len(ctmplFePath) > 0 && len(ctmplBePath) > 0) {
-		sd = append(
-			sd,
-			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
-		)
-	}
-	for i := 1; i <= 10; i++ {
-		port := req.URL.Query().Get(fmt.Sprintf("port.%d", i))
-		path := req.URL.Query().Get(fmt.Sprintf("servicePath.%d", i))
-		srcPort, _ := strconv.Atoi(req.URL.Query().Get(fmt.Sprintf("srcPort.%d", i)))
-		if len(path) > 0 && len(port) > 0 {
-			sd = append(
-				sd,
-				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
-			)
-		} else {
-			break
-		}
-	}
-	srv := server.Serve{}
-	sr := srv.GetServiceFromUrl(sd, req)
-	response := server.Response{
-		Mode:        m.Mode,
-		Status:      "OK",
-		ServiceName: sr.ServiceName,
-		Service:     sr,
-	}
-	ok, msg := m.isValidReconf(&sr)
-	if ok {
-		if m.isSwarm(m.Mode) && !m.hasPort(sd) {
-			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
-		} else if sr.Distribute {
-			if status, err := server.SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
-				m.writeInternalServerError(w, &response, err.Error())
-			} else {
-				response.Message = DISTRIBUTED
-				w.WriteHeader(http.StatusOK)
-			}
-		} else {
-			if len(sr.ServiceCert) > 0 {
-				// Replace \n with proper carriage return as new lines are not supported in labels
-				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
-				if len(sr.ServiceDomain) > 0 {
-					cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
-				} else {
-					cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
-				}
-			}
-			action := actions.NewReconfigure(m.BaseReconfigure, sr, m.Mode)
-			if err := action.Execute([]string{}); err != nil {
-				m.writeInternalServerError(w, &response, err.Error())
-			} else {
-				w.WriteHeader(http.StatusOK)
-			}
-		}
-	} else {
-		m.writeBadRequest(w, &response, msg)
-	}
-	httpWriterSetContentType(w, "application/json")
-	js, _ := json.Marshal(response)
-	w.Write(js)
 }
 
 func (m *Serve) getBoolParam(req *http.Request, param string) bool {
