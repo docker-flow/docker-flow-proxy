@@ -64,7 +64,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	suite.Run(t, s)
 
-	s.removeServices("go-demo", "go-demo-db", "proxy")
+	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env")
 }
 
 // Tests
@@ -264,17 +264,18 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
     -e MODE=swarm \
     -e DFP_SERVICE_1_SERVICE_NAME=go-demo \
     -e DFP_SERVICE_1_SERVICE_PATH=/demo \
-    -e DFP_SERVICE_1_SERVICE_PORT=8080 \
+    -e DFP_SERVICE_1_PORT=8080 \
     %s/docker-flow-proxy:beta`,
 		s.dockerHubUser)
 	s.createService(cmd)
+	s.waitForContainers(1, "proxy-env")
 
 	url := fmt.Sprintf("http://%s:8090/demo/hello", s.hostIP)
 	resp, err := http.Get(url)
 
-	s.NoError(err, s.getProxyConf())
+	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode)
 	} else {
 		s.Fail("No response")
 	}
