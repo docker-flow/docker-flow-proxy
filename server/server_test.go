@@ -11,6 +11,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"os"
+	"strconv"
 )
 
 type ServerTestSuite struct {
@@ -787,6 +789,165 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 
 }
 
+// GetServicesFromEnvVars
+
+func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
+	service := proxy.Service{
+		AclName: "my-AclName",
+		ConsulTemplateBePath: "my-ConsulTemplateBePath",
+		ConsulTemplateFePath: "my-ConsulTemplateFePath",
+		Distribute: true,
+		HttpsOnly: true,
+		HttpsPort: 1234,
+		OutboundHostname: "my-OutboundHostname",
+		PathType: "my-PathType",
+		RedirectWhenHttpProto: true,
+		ReqMode: "my-ReqMode",
+		ReqPathReplace: "my-ReqPathReplace",
+		ReqPathSearch: "my-ReqPathSearch",
+		ServiceCert: "my-ServiceCert",
+		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
+		ServiceDomainMatchAll: true,
+		ServiceName: "my-ServiceName",
+		SkipCheck: true,
+		SslVerifyNone: true,
+		TemplateBePath: "my-TemplateBePath",
+		TemplateFePath: "my-TemplateFePath",
+		TimeoutServer: "my-TimeoutServer",
+		TimeoutTunnel: "my-TimeoutTunnel",
+		XForwardedProto: true,
+		ServiceDest: []proxy.ServiceDest{
+			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112},
+		},
+	}
+	os.Setenv("DFP_SERVICE_ACL_NAME", service.AclName)
+	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH", service.ConsulTemplateFePath)
+	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH", service.ConsulTemplateBePath)
+	os.Setenv("DFP_SERVICE_DISTRIBUTE", strconv.FormatBool(service.Distribute))
+	os.Setenv("DFP_SERVICE_HTTPS_ONLY", strconv.FormatBool(service.HttpsOnly))
+	os.Setenv("DFP_SERVICE_HTTPS_PORT", strconv.Itoa(service.HttpsPort))
+	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.OutboundHostname)
+	os.Setenv("DFP_SERVICE_PATH_TYPE", service.PathType)
+	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
+	os.Setenv("DFP_SERVICE_REQ_MODE", service.ReqMode)
+	os.Setenv("DFP_SERVICE_REQ_PATH_REPLACE", service.ReqPathReplace)
+	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH", service.ReqPathSearch)
+	os.Setenv("DFP_SERVICE_SERVICE_CERT", service.ServiceCert)
+	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN", strings.Join(service.ServiceDomain, ","))
+	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN_MATCH_ALL", strconv.FormatBool(service.ServiceDomainMatchAll))
+	os.Setenv("DFP_SERVICE_SERVICE_NAME", service.ServiceName)
+	os.Setenv("DFP_SERVICE_SKIP_CHECK", strconv.FormatBool(service.SkipCheck))
+	os.Setenv("DFP_SERVICE_SSL_VERIFY_NONE", strconv.FormatBool(service.SslVerifyNone))
+	os.Setenv("DFP_SERVICE_TEMPLATE_BE_PATH", service.TemplateBePath)
+	os.Setenv("DFP_SERVICE_TEMPLATE_FE_PATH", service.TemplateFePath)
+	os.Setenv("DFP_SERVICE_TIMEOUT_SERVER", service.TimeoutServer)
+	os.Setenv("DFP_SERVICE_TIMEOUT_TUNNEL", service.TimeoutTunnel)
+	os.Setenv("DFP_SERVICE_X_FORWARDED_PROTO", strconv.FormatBool(service.XForwardedProto))
+	os.Setenv("DFP_SERVICE_PORT", service.ServiceDest[0].Port)
+	os.Setenv("DFP_SERVICE_SERVICE_PATH", strings.Join(service.ServiceDest[0].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SRC_PORT", strconv.Itoa(service.ServiceDest[0].SrcPort))
+
+	defer func() {
+		os.Unsetenv("DFP_SERVICE_ACL_NAME")
+		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH")
+		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH")
+		os.Unsetenv("DFP_SERVICE_DISTRIBUTE")
+		os.Unsetenv("DFP_SERVICE_HTTPS_ONLY")
+		os.Unsetenv("DFP_SERVICE_HTTPS_PORT")
+		os.Unsetenv("DFP_SERVICE_OUTBOUND_HOSTNAME")
+		os.Unsetenv("DFP_SERVICE_PATH_TYPE")
+		os.Unsetenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO")
+		os.Unsetenv("DFP_SERVICE_REQ_MODE")
+		os.Unsetenv("DFP_SERVICE_REQ_PATH_REPLACE")
+		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH")
+		os.Unsetenv("DFP_SERVICE_SERVICE_CERT")
+		os.Unsetenv("DFP_SERVICE_SERVICE_DOMAIN")
+		os.Unsetenv("DFP_SERVICE_SERVICE_DOMAIN_MATCH_ALL")
+		os.Unsetenv("DFP_SERVICE_SERVICE_NAME")
+		os.Unsetenv("DFP_SERVICE_SKIP_CHECK")
+		os.Unsetenv("DFP_SERVICE_SSL_VERIFY_NONE")
+		os.Unsetenv("DFP_SERVICE_TEMPLATE_BE_PATH")
+		os.Unsetenv("DFP_SERVICE_TEMPLATE_FE_PATH")
+		os.Unsetenv("DFP_SERVICE_TIMEOUT_SERVER")
+		os.Unsetenv("DFP_SERVICE_TIMEOUT_TUNNEL")
+		os.Unsetenv("DFP_SERVICE_X_FORWARDED_PROTO")
+		os.Unsetenv("DFP_SERVICE_PORT")
+		os.Unsetenv("DFP_SERVICE_SERVICE_PATH")
+		os.Unsetenv("DFP_SERVICE_SRC_PORT")
+	}()
+	srv := Serve{}
+	actual := srv.GetServicesFromEnvVars()
+
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
+}
+
+func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexedData() {
+	service := proxy.Service{
+		ServiceName: "my-ServiceName",
+		ServiceDest: []proxy.ServiceDest{
+			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112},
+			{Port: "2221", ServicePath: []string{"my-path-21", "my-path-22"}, SrcPort: 2222},
+		},
+	}
+	os.Setenv("DFP_SERVICE_SERVICE_NAME", service.ServiceName)
+	os.Setenv("DFP_SERVICE_PORT_1", service.ServiceDest[0].Port)
+	os.Setenv("DFP_SERVICE_SERVICE_PATH_1", strings.Join(service.ServiceDest[0].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SRC_PORT_1", strconv.Itoa(service.ServiceDest[0].SrcPort))
+	os.Setenv("DFP_SERVICE_PORT_2", service.ServiceDest[1].Port)
+	os.Setenv("DFP_SERVICE_SERVICE_PATH_2", strings.Join(service.ServiceDest[1].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SRC_PORT_2", strconv.Itoa(service.ServiceDest[1].SrcPort))
+
+	defer func() {
+		os.Unsetenv("DFP_SERVICE_SERVICE_NAME")
+		os.Unsetenv("DFP_SERVICE_PORT_1")
+		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_1")
+		os.Unsetenv("DFP_SERVICE_SRC_PORT_1")
+		os.Unsetenv("DFP_SERVICE_PORT_2")
+		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_2")
+		os.Unsetenv("DFP_SERVICE_SRC_PORT_2")
+	}()
+	srv := Serve{}
+	actual := srv.GetServicesFromEnvVars()
+
+	service.ReqMode = "http"
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
+}
+
+func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameIsNotSet() {
+	srv := Serve{}
+	actual := srv.GetServicesFromEnvVars()
+
+	s.Len(*actual, 0)
+}
+
+func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() {
+	service := proxy.Service{
+		ServiceName: "my-ServiceName",
+		ReqMode:     "http",
+		ServiceDest: []proxy.ServiceDest{
+			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112},
+		},
+	}
+	os.Setenv("DFP_SERVICE_1_SERVICE_NAME", service.ServiceName)
+	os.Setenv("DFP_SERVICE_1_PORT", service.ServiceDest[0].Port)
+	os.Setenv("DFP_SERVICE_1_SERVICE_PATH", strings.Join(service.ServiceDest[0].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_1_SRC_PORT", strconv.Itoa(service.ServiceDest[0].SrcPort))
+	defer func() {
+		os.Unsetenv("DFP_SERVICE_1_SERVICE_NAME")
+		os.Unsetenv("DFP_SERVICE_1_PORT")
+		os.Unsetenv("DFP_SERVICE_1_SERVICE_PATH")
+		os.Unsetenv("DFP_SERVICE_1_SRC_PORT")
+	}()
+
+	srv := Serve{}
+	actual := srv.GetServicesFromEnvVars()
+
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
+}
+
 // Mocks
 
 type ServerMock struct {
@@ -850,10 +1011,11 @@ func getRemoveMock(skipMethod string) *RemoveMock {
 }
 
 type ReconfigureMock struct {
-	ExecuteMock           func(args []string) error
-	GetDataMock           func() (actions.BaseReconfigure, proxy.Service)
-	ReloadAllServicesMock func(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplatesMock      func(sr *proxy.Service) (front, back string, err error)
+	ExecuteMock           		func(args []string) error
+	GetDataMock           		func() (actions.BaseReconfigure, proxy.Service)
+	ReloadServicesFromListenerMock 		func(addresses []string, instanceName, mode, listenerAddress string) error
+	GetTemplatesMock      		func(sr *proxy.Service) (front, back string, err error)
+	GetServicesFromEnvVarsMock 	func() []proxy.Service
 }
 
 func (m ReconfigureMock) Execute(args []string) error {
@@ -864,12 +1026,16 @@ func (m ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
 	return m.GetDataMock()
 }
 
-func (m ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
-	return m.ReloadAllServicesMock(addresses, instanceName, mode, listenerAddress)
+func (m ReconfigureMock) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
+	return m.ReloadServicesFromListenerMock(addresses, instanceName, mode, listenerAddress)
 }
 
 func (m ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
 	return m.GetTemplatesMock(sr)
+}
+
+func (m ReconfigureMock) GetServicesFromEnvVars() []proxy.Service {
+	return m.GetServicesFromEnvVarsMock()
 }
 
 type CertMock struct {

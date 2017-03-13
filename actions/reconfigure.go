@@ -23,7 +23,7 @@ var mu = &sync.Mutex{}
 type Reconfigurable interface {
 	Executable
 	GetData() (BaseReconfigure, proxy.Service)
-	ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error
+	ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error
 	GetTemplates(sr *proxy.Service) (front, back string, err error)
 }
 
@@ -91,7 +91,7 @@ func (m *Reconfigure) GetData() (BaseReconfigure, proxy.Service) {
 	return m.BaseReconfigure, m.Service
 }
 
-func (m *Reconfigure) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+func (m *Reconfigure) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
 	if len(listenerAddress) > 0 {
 		fullAddress := fmt.Sprintf("%s/v1/docker-flow-swarm-listener/notify-services", listenerAddress)
 		resp, err := httpGet(fullAddress)

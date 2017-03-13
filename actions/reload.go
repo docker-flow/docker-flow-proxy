@@ -11,7 +11,7 @@ type Reload struct{}
 func (m *Reload) Execute(recreate bool, listenerAddr string) error {
 	if len(listenerAddr) > 0 {
 		recon := NewReconfigure(BaseReconfigure{}, proxy.Service{}, "")
-		if err := recon.ReloadAllServices([]string{}, "", "", listenerAddr); err != nil {
+		if err := recon.ReloadServicesFromListener([]string{}, "", "", listenerAddr); err != nil {
 			logPrintf(err.Error())
 			return err
 		}

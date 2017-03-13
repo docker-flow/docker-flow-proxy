@@ -86,7 +86,7 @@ func (s *ReloadTestSuite) Test_Execute_InvokesReloadAllServices_WhenFromListener
 
 	reload.Execute(false, "listener-addr")
 
-	reconfigureMock.AssertCalled(s.T(), "ReloadAllServices", []string{}, "", "", "listener-addr")
+	reconfigureMock.AssertCalled(s.T(), "ReloadServicesFromListener", []string{}, "", "", "listener-addr")
 }
 
 func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
@@ -97,8 +97,8 @@ func (s *ReloadTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails()
 	reload := Reload{}
 	newReconfigureOrig := NewReconfigure
 	defer func() { NewReconfigure = newReconfigureOrig }()
-	reconfigureMock := getReconfigureMock("ReloadAllServices")
-	reconfigureMock.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	reconfigureMock := getReconfigureMock("ReloadServicesFromListener")
+	reconfigureMock.On("ReloadServicesFromListener", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
 		return reconfigureMock
 	}
