@@ -17,6 +17,7 @@ var logPrintf = log.Printf
 var lookupHost = net.LookupHost
 var readFile = ioutil.ReadFile
 var decoder = schema.NewDecoder()
+
 var SendDistributeRequests = func(req *http.Request, port, proxyServiceName string) (status int, err error) {
 	values := req.URL.Query()
 	values.Set("distribute", "false")
@@ -31,6 +32,14 @@ var SendDistributeRequests = func(req *http.Request, port, proxyServiceName stri
 		body = string(reqBody)
 	}
 	if ips, err := lookupHost(dns); err == nil {
+		if len(ips) == 0 {
+			err := fmt.Errorf(
+				`Could not resend distribution requests since no replicas of the "%s" were found. Please check that the name of the service is "%s". If it isn't, set the environment variable "SERVICE_NAME" with the name of the proxy service as value.`,
+				proxyServiceName,
+				proxyServiceName,
+			)
+			return http.StatusBadRequest, err
+		}
 		for i := 0; i < len(ips); i++ {
 			req.URL.Host = fmt.Sprintf("%s:%s", ips[i], port)
 			client := &http.Client{}
@@ -42,10 +51,15 @@ var SendDistributeRequests = func(req *http.Request, port, proxyServiceName stri
 			}
 		}
 	} else {
-		return http.StatusBadRequest, fmt.Errorf("Could not perform DNS %s lookup. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy>.", dns)
+		err := fmt.Errorf(
+			"Could not perform DNS %s lookup. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy>.",
+			dns,
+		)
+		return http.StatusBadRequest, err
 	}
 	if len(failedDns) > 0 {
-		return http.StatusBadRequest, fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
+		err := fmt.Errorf("Could not send distribute request to the following addresses: %s", failedDns)
+		return http.StatusBadRequest, err
 	}
 	return http.StatusOK, err
 }

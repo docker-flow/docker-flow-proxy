@@ -24,7 +24,7 @@ services:
         - com.df.distribute=true
         - com.df.notify=true
         - com.df.port=80
-        - com.df.serviceDomain=proxy.dockerflow.com
+        - com.df.serviceDomain=proxy.dockerflow.com,dockerflow.com
         - com.df.servicePath=/
       replicas: 2
 
