@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"github.com/kelseyhightower/envconfig"
 )
 
 var usersBasePath string = "/run/secrets/dfp_users_%s"
@@ -20,6 +21,7 @@ type Server interface {
 	TestHandler(w http.ResponseWriter, req *http.Request)
 	ReloadHandler(w http.ResponseWriter, req *http.Request)
 	RemoveHandler(w http.ResponseWriter, req *http.Request)
+	GetServicesFromEnvVars() []proxy.Service
 }
 
 const (
@@ -226,6 +228,60 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, "application/json")
 	js, _ := json.Marshal(response)
 	w.Write(js)
+}
+
+func (m *Serve) GetServicesFromEnvVars() []proxy.Service {
+	services := []proxy.Service{}
+	s, err := m.getServiceFromEnvVars("DFP_SERVICE")
+	if err == nil {
+		services = append(services, s)
+	}
+	i := 1
+	for {
+		s, err := m.getServiceFromEnvVars(fmt.Sprintf("DFP_SERVICE_%d", i))
+		if err != nil {
+			break
+		}
+		services = append(services, s)
+		i++
+	}
+	return services
+}
+
+func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
+	var s proxy.Service
+	envconfig.Process(prefix, &s)
+	if len(s.ServiceName) == 0 {
+		return proxy.Service{}, fmt.Errorf("%s_SERVICE_NAME is not set", prefix)
+	}
+	sd := []proxy.ServiceDest{}
+	path := []string{}
+	if len(os.Getenv(prefix + "_SERVICE_PATH")) > 0 {
+		path = strings.Split(os.Getenv(prefix + "_SERVICE_PATH"), ",")
+	}
+	port := os.Getenv(prefix + "_PORT")
+	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
+	if len(path) > 0 || len(port) > 0 {
+		sd = append(
+			sd,
+			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+		)
+	}
+	for i := 1; i <= 10; i++ {
+		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
+		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
+		srcPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_PORT_%d", prefix, i)))
+		if len(path) > 0 && len(port) > 0 {
+			sd = append(
+				sd,
+				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+			)
+		} else {
+			break
+		}
+	}
+	s.ServiceDest = sd
+	return s, nil
 }
 
 func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {

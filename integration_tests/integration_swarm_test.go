@@ -233,16 +233,13 @@ func (s IntegrationSwarmTestSuite) Test_Tcp() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_Reload() {
-
 	// Reconfigure
-
 	s.reconfigureGoDemo("")
 	resp, err := s.sendHelloRequest()
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 
 	// Corrupt the config
-
 	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name=proxy").Output()
 	id := strings.TrimRight(string(out), "\n")
 	cmd := fmt.Sprintf("docker cp /tmp/haproxy.cfg %s:/cfg/haproxy.cfg", id)
@@ -254,10 +251,33 @@ func (s IntegrationSwarmTestSuite) Test_Reload() {
 	out, _ = exec.Command("/bin/sh", "-c", cmd).Output()
 
 	// Reload with reconfigure
-
 	s.reloadService("?recreate=true")
 	config := s.getProxyConf()
 	s.NotEqual("This config is corrupt", config)
+}
+
+func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
+	cmd := fmt.Sprintf(
+		`docker service create --name proxy-env \
+    -p 8090:80 \
+    --network proxy \
+    -e MODE=swarm \
+    -e DFP_SERVICE_1_SERVICE_NAME=go-demo \
+    -e DFP_SERVICE_1_SERVICE_PATH=/demo \
+    -e DFP_SERVICE_1_SERVICE_PORT=8080 \
+    %s/docker-flow-proxy:beta`,
+		s.dockerHubUser)
+	s.createService(cmd)
+
+	url := fmt.Sprintf("http://%s:8090/demo/hello", s.hostIP)
+	resp, err := http.Get(url)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	} else {
+		s.Fail("No response")
+	}
 }
 
 //func (s IntegrationSwarmTestSuite) Test_HttpsOnly() {

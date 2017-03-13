@@ -152,9 +152,16 @@ func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
-	mockObj := getReconfigureMock("")
+	actualAddresses := []string{}
+	actualInstanceName := ""
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return mockObj
+		return ReconfigureMock{
+			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
+				actualAddresses = addresses
+				actualInstanceName = instanceName
+				return nil
+			},
+		}
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
 	defer func() {
@@ -165,14 +172,20 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 
 	serverImpl.Execute([]string{})
 
-	mockObj.AssertCalled(s.T(), "ReloadAllServices", []string{s.ConsulAddress}, s.InstanceName, "", "")
+	s.Equal([]string{s.ConsulAddress}, actualAddresses)
+	s.Equal(s.InstanceName, actualInstanceName)
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
-	listenerAddress := "swarm-listener"
-	mockObj := getReconfigureMock("")
+	expectedListenerAddress := "swarm-listener"
+	actualListenerAddress := ""
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return mockObj
+		return ReconfigureMock{
+			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
+				actualListenerAddress = listenerAddress
+				return nil
+			},
+		}
 	}
 	consulAddressesOrig := []string{s.ConsulAddress}
 	defer func() {
@@ -181,49 +194,20 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
-	serverImpl.ListenerAddress = listenerAddress
+	serverImpl.ListenerAddress = expectedListenerAddress
 
 	serverImpl.Execute([]string{})
 
-	mockObj.AssertCalled(
-		s.T(),
-		"ReloadAllServices",
-		[]string{s.ConsulAddress},
-		s.InstanceName,
-		"",
-		fmt.Sprintf("http://%s:8080", listenerAddress),
-	)
-}
-
-func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsService() {
-	serverImpl.Mode = "seRviCe"
-	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return mockObj
-	}
-
-	serverImpl.Execute([]string{})
-
-	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, "")
-}
-
-func (s *ServerTestSuite) Test_Execute_DoesNotInvokeReloadAllServices_WhenModeIsSwarm() {
-	serverImpl.Mode = "SWarM"
-	mockObj := getReconfigureMock("")
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return mockObj
-	}
-
-	serverImpl.Execute([]string{})
-
-	mockObj.AssertNotCalled(s.T(), "ReloadAllServices", s.ConsulAddress, s.InstanceName, "")
+	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress), actualListenerAddress)
 }
 
 func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
-	mockObj := getReconfigureMock("ReloadAllServices")
-	mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return mockObj
+		return ReconfigureMock{
+			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
+				return fmt.Errorf("This is an error")
+			},
+		}
 	}
 
 	actual := serverImpl.Execute([]string{})
@@ -498,51 +482,79 @@ func (m *RunMock) Execute(args []string) error {
 	return params.Error(0)
 }
 
-func getRunMock(skipMethod string) *ReconfigureMock {
-	mockObj := new(ReconfigureMock)
+func getRunMock(skipMethod string) *RunMock {
+	mockObj := new(RunMock)
 	if skipMethod != "Execute" {
 		mockObj.On("Execute", mock.Anything).Return(nil)
 	}
 	return mockObj
 }
+
+//type ReconfigureMock struct {
+//	mock.Mock
+//}
+//
+//func (m *ReconfigureMock) Execute(args []string) error {
+//	params := m.Called(args)
+//	return params.Error(0)
+//}
+//
+//func (m *ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
+//	m.Called()
+//	return actions.BaseReconfigure{}, proxy.Service{}
+//}
+//
+//func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
+//	params := m.Called(addresses, instanceName, mode, listenerAddress)
+//	return params.Error(0)
+//}
+//
+//func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
+//	params := m.Called(sr)
+//	return params.String(0), params.String(1), params.Error(2)
+//}
+//
+//func getReconfigureMock(skipMethod string) *ReconfigureMock {
+//	mockObj := new(ReconfigureMock)
+//	if skipMethod != "Execute" {
+//		mockObj.On("Execute", mock.Anything).Return(nil)
+//	}
+//	if skipMethod != "GetData" {
+//		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
+//	}
+//	if skipMethod != "ReloadAllServices" {
+//		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+//	}
+//	if skipMethod != "GetTemplates" {
+//		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
+//	}
+//	return mockObj
+//}
 
 type ReconfigureMock struct {
-	mock.Mock
+	ExecuteMock           		func(args []string) error
+	GetDataMock           		func() (actions.BaseReconfigure, proxy.Service)
+	ReloadServicesFromListenerMock 		func(addresses []string, instanceName, mode, listenerAddress string) error
+	GetTemplatesMock      		func(sr *proxy.Service) (front, back string, err error)
+	GetServicesFromEnvVarsMock 	func() []proxy.Service
 }
 
-func (m *ReconfigureMock) Execute(args []string) error {
-	params := m.Called(args)
-	return params.Error(0)
+func (m ReconfigureMock) Execute(args []string) error {
+	return m.ExecuteMock(args)
 }
 
-func (m *ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
-	m.Called()
-	return actions.BaseReconfigure{}, proxy.Service{}
+func (m ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
+	return m.GetDataMock()
 }
 
-func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
-	params := m.Called(addresses, instanceName, mode, listenerAddress)
-	return params.Error(0)
+func (m ReconfigureMock) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
+	return m.ReloadServicesFromListenerMock(addresses, instanceName, mode, listenerAddress)
 }
 
-func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
-	params := m.Called(sr)
-	return params.String(0), params.String(1), params.Error(2)
+func (m ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
+	return m.GetTemplatesMock(sr)
 }
 
-func getReconfigureMock(skipMethod string) *ReconfigureMock {
-	mockObj := new(ReconfigureMock)
-	if skipMethod != "Execute" {
-		mockObj.On("Execute", mock.Anything).Return(nil)
-	}
-	if skipMethod != "GetData" {
-		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
-	}
-	if skipMethod != "ReloadAllServices" {
-		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	}
-	if skipMethod != "GetTemplates" {
-		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
-	}
-	return mockObj
+func (m ReconfigureMock) GetServicesFromEnvVars() []proxy.Service {
+	return m.GetServicesFromEnvVarsMock()
 }

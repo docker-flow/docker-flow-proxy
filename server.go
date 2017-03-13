@@ -54,7 +54,7 @@ func (m *Serve) Execute(args []string) error {
 	}
 	cert.Init()
 	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
-	if err := recon.ReloadAllServices(
+	if err := recon.ReloadServicesFromListener(
 		m.ConsulAddresses,
 		m.InstanceName,
 		m.Mode,
@@ -62,6 +62,15 @@ func (m *Serve) Execute(args []string) error {
 	); err != nil {
 		return err
 	}
+
+//	TODO: Continue
+//	action := actions.NewReconfigure(br, *sr, m.Mode)
+//	if err := action.Execute([]string{}); err != nil {
+//		m.writeInternalServerError(w, &response, err.Error())
+//	} else {
+//		w.WriteHeader(http.StatusOK)
+//	}
+
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	r := mux.NewRouter().StrictSlash(true)
 	var server2 = server.NewServer(
