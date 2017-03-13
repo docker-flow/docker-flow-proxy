@@ -272,7 +272,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 	url := fmt.Sprintf("http://%s:8090/demo/hello", s.hostIP)
 	resp, err := http.Get(url)
 
-	s.NoError(err)
+	s.NoError(err, s.getProxyConf())
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf())
 	} else {

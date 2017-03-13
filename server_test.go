@@ -154,11 +154,16 @@ func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	actualAddresses := []string{}
 	actualInstanceName := ""
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() { actions.NewReconfigure = newReconfigureOrig }()
 	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
 		return ReconfigureMock{
 			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
 				actualAddresses = addresses
 				actualInstanceName = instanceName
+				return nil
+			},
+			ExecuteMock: func(args []string) error {
 				return nil
 			},
 		}
@@ -176,6 +181,38 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	s.Equal(s.InstanceName, actualInstanceName)
 }
 
+func (s *ServerTestSuite) Test_Execute_InvokesReconfigureExecuteForEachServiceDefinedInEnvVars() {
+	called := 0
+	newServerOrig := server.NewServer
+	newReconfigureOrig := actions.NewReconfigure
+	defer func() {
+		actions.NewReconfigure = newReconfigureOrig
+		server.NewServer = newServerOrig
+	}()
+	server.NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert server.Certer) server.Server {
+		return ServerMock{
+			GetServicesFromEnvVarsMock: func() *[]proxy.Service {
+				return &[]proxy.Service{proxy.Service{}, proxy.Service{}}
+			},
+		}
+	}
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return ReconfigureMock{
+			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
+				return nil
+			},
+			ExecuteMock: func(args []string) error {
+				called++
+				return nil
+			},
+		}
+	}
+
+	serverImpl.Execute([]string{})
+
+	s.Equal(2, called)
+}
+
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
 	expectedListenerAddress := "swarm-listener"
 	actualListenerAddress := ""
@@ -183,6 +220,9 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 		return ReconfigureMock{
 			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
 				actualListenerAddress = listenerAddress
+				return nil
+			},
+			ExecuteMock: func(args []string) error {
 				return nil
 			},
 		}
@@ -396,26 +436,6 @@ func TestServerUnitTestSuite(t *testing.T) {
 
 // Mock
 
-type ServerMock struct {
-	mock.Mock
-}
-
-func (m *ServerMock) Execute(args []string) error {
-	params := m.Called(args)
-	return params.Error(0)
-}
-
-func (m *ServerMock) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	m.Called(w, req)
-}
-
-func getServerMock() *ServerMock {
-	mockObj := new(ServerMock)
-	mockObj.On("Execute", mock.Anything).Return(nil)
-	mockObj.On("ServeHTTP", mock.Anything, mock.Anything)
-	return mockObj
-}
-
 type ResponseWriterMock struct {
 	mock.Mock
 }
@@ -465,12 +485,37 @@ func (m CertMock) Init() error {
 	return m.GetInitMock()
 }
 
-type ReloadMock struct {
-	ExecuteMock func(recreate bool, listenerAddr string) error
+type ServerMock struct {
+	GetServiceFromUrlMock func(req *http.Request) *proxy.Service
+	TestHandlerMock func(w http.ResponseWriter, req *http.Request)
+	ReconfigureHandlerMock func(w http.ResponseWriter, req *http.Request)
+	ReloadHandlerMock func(w http.ResponseWriter, req *http.Request)
+	RemoveHandlerMock func(w http.ResponseWriter, req *http.Request)
+	GetServicesFromEnvVarsMock func() *[]proxy.Service
 }
 
-func (m ReloadMock) Execute(recreate bool, listenerAddr string) error {
-	return m.ExecuteMock(recreate, listenerAddr)
+func (m ServerMock) GetServiceFromUrl(req *http.Request) *proxy.Service {
+	return m.GetServiceFromUrlMock(req)
+}
+
+func (m ServerMock) TestHandler(w http.ResponseWriter, req *http.Request) {
+	m.TestHandlerMock(w, req)
+}
+
+func (m ServerMock) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
+	m.ReconfigureHandlerMock(w, req)
+}
+
+func (m ServerMock) ReloadHandler(w http.ResponseWriter, req *http.Request) {
+	m.ReloadHandlerMock(w, req)
+}
+
+func (m ServerMock) RemoveHandler(w http.ResponseWriter, req *http.Request) {
+	m.RemoveHandlerMock(w, req)
+}
+
+func (m ServerMock) GetServicesFromEnvVars() *[]proxy.Service {
+	return m.GetServicesFromEnvVarsMock()
 }
 
 type RunMock struct {
@@ -489,47 +534,6 @@ func getRunMock(skipMethod string) *RunMock {
 	}
 	return mockObj
 }
-
-//type ReconfigureMock struct {
-//	mock.Mock
-//}
-//
-//func (m *ReconfigureMock) Execute(args []string) error {
-//	params := m.Called(args)
-//	return params.Error(0)
-//}
-//
-//func (m *ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
-//	m.Called()
-//	return actions.BaseReconfigure{}, proxy.Service{}
-//}
-//
-//func (m *ReconfigureMock) ReloadAllServices(addresses []string, instanceName, mode, listenerAddress string) error {
-//	params := m.Called(addresses, instanceName, mode, listenerAddress)
-//	return params.Error(0)
-//}
-//
-//func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
-//	params := m.Called(sr)
-//	return params.String(0), params.String(1), params.Error(2)
-//}
-//
-//func getReconfigureMock(skipMethod string) *ReconfigureMock {
-//	mockObj := new(ReconfigureMock)
-//	if skipMethod != "Execute" {
-//		mockObj.On("Execute", mock.Anything).Return(nil)
-//	}
-//	if skipMethod != "GetData" {
-//		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
-//	}
-//	if skipMethod != "ReloadAllServices" {
-//		mockObj.On("ReloadAllServices", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-//	}
-//	if skipMethod != "GetTemplates" {
-//		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
-//	}
-//	return mockObj
-//}
 
 type ReconfigureMock struct {
 	ExecuteMock           		func(args []string) error

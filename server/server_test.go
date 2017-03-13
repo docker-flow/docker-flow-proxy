@@ -878,8 +878,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	srv := Serve{}
 	actual := srv.GetServicesFromEnvVars()
 
-	s.Len(actual, 1)
-	s.Contains(actual, service)
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexedData() {
@@ -911,15 +911,15 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 	actual := srv.GetServicesFromEnvVars()
 
 	service.ReqMode = "http"
-	s.Len(actual, 1)
-	s.Contains(actual, service)
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameIsNotSet() {
 	srv := Serve{}
 	actual := srv.GetServicesFromEnvVars()
 
-	s.Len(actual, 0)
+	s.Len(*actual, 0)
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() {
@@ -944,8 +944,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() 
 	srv := Serve{}
 	actual := srv.GetServicesFromEnvVars()
 
-	s.Len(actual, 1)
-	s.Contains(actual, service)
+	s.Len(*actual, 1)
+	s.Contains(*actual, service)
 }
 
 // Mocks

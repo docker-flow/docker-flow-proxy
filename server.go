@@ -48,31 +48,7 @@ func (m *Serve) Execute(args []string) error {
 	m.setConsulAddresses()
 	NewRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
-	lAddr := ""
-	if len(m.ListenerAddress) > 0 {
-		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
-	}
 	cert.Init()
-	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
-	if err := recon.ReloadServicesFromListener(
-		m.ConsulAddresses,
-		m.InstanceName,
-		m.Mode,
-		lAddr,
-	); err != nil {
-		return err
-	}
-
-//	TODO: Continue
-//	action := actions.NewReconfigure(br, *sr, m.Mode)
-//	if err := action.Execute([]string{}); err != nil {
-//		m.writeInternalServerError(w, &response, err.Error())
-//	} else {
-//		w.WriteHeader(http.StatusOK)
-//	}
-
-	logPrintf(`Starting "Docker Flow: Proxy"`)
-	r := mux.NewRouter().StrictSlash(true)
 	var server2 = server.NewServer(
 		m.ListenerAddress,
 		m.Mode,
@@ -83,6 +59,11 @@ func (m *Serve) Execute(args []string) error {
 		m.ConsulAddresses,
 		cert,
 	)
+	if err := m.reconfigure(server2); err != nil {
+		return err
+	}
+	logPrintf(`Starting "Docker Flow: Proxy"`)
+	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/v1/docker-flow-proxy/cert", m.CertPutHandler).Methods("PUT")
 	r.HandleFunc("/v1/docker-flow-proxy/certs", m.CertsHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/config", m.ConfigHandler)
@@ -94,6 +75,33 @@ func (m *Serve) Execute(args []string) error {
 	if err := httpListenAndServe(address, r); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (m *Serve) reconfigure(server server.Server) error {
+	lAddr := ""
+	if len(m.ListenerAddress) > 0 {
+		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
+	}
+	recon := actions.NewReconfigure(m.BaseReconfigure, proxy.Service{}, m.Mode)
+	if err := recon.ReloadServicesFromListener(
+		m.ConsulAddresses,
+		m.InstanceName,
+		m.Mode,
+		lAddr,
+	); err != nil {
+		return err
+	}
+	services := server.GetServicesFromEnvVars()
+	for _, service := range *services {
+		recon = actions.NewReconfigure(m.BaseReconfigure, service, m.Mode)
+		recon.Execute([]string{})
+	}
+	//	if err := action.Execute([]string{}); err != nil {
+	//		m.writeInternalServerError(w, &response, err.Error())
+	//	} else {
+	//		w.WriteHeader(http.StatusOK)
+	//	}
 	return nil
 }
 

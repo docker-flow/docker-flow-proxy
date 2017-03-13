@@ -17,11 +17,12 @@ var extractUsersFromString = proxy.ExtractUsersFromString
 var reload actions.Reloader = actions.NewReload()
 
 type Server interface {
-	GetServiceFromUrl(req *http.Request) proxy.Service
+	GetServiceFromUrl(req *http.Request) *proxy.Service
 	TestHandler(w http.ResponseWriter, req *http.Request)
+	ReconfigureHandler(w http.ResponseWriter, req *http.Request)
 	ReloadHandler(w http.ResponseWriter, req *http.Request)
 	RemoveHandler(w http.ResponseWriter, req *http.Request)
-	GetServicesFromEnvVars() []proxy.Service
+	GetServicesFromEnvVars() *[]proxy.Service
 }
 
 const (
@@ -39,7 +40,7 @@ type Serve struct {
 	Cert            Certer
 }
 
-func NewServer(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) *Serve {
+var NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) Server {
 	return &Serve{
 		ListenerAddress: listenerAddr,
 		Mode:            mode,
@@ -230,7 +231,7 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m *Serve) GetServicesFromEnvVars() []proxy.Service {
+func (m *Serve) GetServicesFromEnvVars() *[]proxy.Service {
 	services := []proxy.Service{}
 	s, err := m.getServiceFromEnvVars("DFP_SERVICE")
 	if err == nil {
@@ -245,7 +246,7 @@ func (m *Serve) GetServicesFromEnvVars() []proxy.Service {
 		services = append(services, s)
 		i++
 	}
-	return services
+	return &services
 }
 
 func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
