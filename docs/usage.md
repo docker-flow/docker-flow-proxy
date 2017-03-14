@@ -124,7 +124,7 @@ The map between the HTTP query parameters and environment variables is as follow
 |usersPassEncrypted   |**Not supported**       |
 |xForwardedProto      |X_FORWARDED_PROTO       |
 
-Please explore the [Configuring Non-Swarm Services](configuring-non-swarm-services.md) tutorial for more info.
+Please explore the [Configuring Non-Swarm Services](configuring-non---swarm-services.md) tutorial for more info.
 
 ## Remove
 
