@@ -8,6 +8,7 @@ pages:
     - Standard Mode: standard-mode.md
     - Managing SSL Certificates: certs.md
     - Debugging: debugging.md
+    - Configuring Non-Swarm Services: non-swarm.md
   - Configuration: config.md
   - Usage: usage.md
   - About:
