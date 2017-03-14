@@ -9,13 +9,13 @@ While the decision to provide minimal logging is a good one when things are work
 
 The examples that follow will show you how to enable *Docker Flow Proxy* debugging mode.
 
+!!! info
+	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox* or *Git*).
+
 ## Creating a Swarm Cluster
 
 !!! tip
     Feel free to skip this section if you already have a working Swarm cluster.
-
-!!! info
-	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox* or *Git*).
 
 We'll use the [swarm-cluster.sh](https://github.com/vfarcic/docker-flow-proxy/blob/master/scripts/swarm-cluster.sh) script from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository. It'll create a Swarm cluster based on three Docker Machine nodes.
 

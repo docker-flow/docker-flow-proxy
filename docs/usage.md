@@ -1,6 +1,6 @@
 # Usage
 
-*Docker Flow Proxy* can be reconfigured by sending HTTP requests or through Docker Service labels when combined with [Docker Flow Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener).
+*Docker Flow Proxy* can be controlled by sending HTTP requests or through Docker Service labels when combined with [Docker Flow Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener).
 
 ## Reconfigure
 
@@ -8,9 +8,9 @@
 
 The proxy can be reconfigured to use request mode *http* or *tcp*. The default value of the request mode is *http* and can be changed with the parameter `reqMode`.
 
-### Reconfigure General Parameters
+### General HTTP Query Parameters
 
-The following query parameters can be used to send a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. The apply to any `reqMode`.
+The following query parameters can be used to send a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. They apply to any `reqMode`.
 
 |Query          |Description                                                                               |Required|Default|Example      |
 |---------------|------------------------------------------------------------------------------------------|--------|-------|-------------|
@@ -30,7 +30,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `serviceDomain`, `srcPort`, and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
-### Reconfigure HTTP Mode Parameters
+### HTTP Mode HTTP Query Parameters
 
 The following query parameters can be used only when `reqMode` is set to `http` or is empty.
 
@@ -42,7 +42,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS.        |No      |false  |true         |
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No| |ecme.com|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No| |path_beg|
-|RedirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
+|redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| | |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes| |/api/v1/books|
 |skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
@@ -55,7 +55,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `serviceDomain`, `srcPort`, and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
-### Reconfigure TCP Mode Parameters
+### TCP Mode HTTP Query Parameters
 
 The `reqMode` set to `tcp` does not have any specific parameters beyond those specified in the [Reconfigure General Parameters](#reconfigure-general-parameters) section.
 
@@ -73,6 +73,58 @@ An example request is as follows.
 The command would create a service `foo` that exposes ports `8080` and `8081`. All requests coming to proxy port `80` with the path that starts with `/` will be forwarded to the service `foo` port `8080`. Equally, all requests coming to proxy port `443` (*HTTPS*) with the path that starts with `/` will be forwarded to the service `foo` port `8081`.
 
 Indexes are incremental and start with `1`.
+
+## Environment Variables
+
+When a service is not part of the same Swarm cluster, a failure of a proxy instance means that the information about those services cannot be obtained through Docker API and *Docker Flow Swarm Listener*. In such a case, data loss can be prevented through the usage of environment variables.
+
+!!! tip
+    In most cases, there is no need to use environment variables for services running inside the same Swarm cluster as the proxy.
+
+The environment variables that can be used for the initial configuration of services follow the same naming standards as the [HTTP Query Parameters](#general-http-query-parameters).
+
+The environment variables must apply the rules that follow.
+
+* The names of the environment variables must be prefixed with `DFP_SERVICE_`.
+* The names of the environment variables must be in upper case and words must be separated by an underscore (`_`). As an example, the HTTP query parameter `aclName` would be defined as the environment variable `DFP_SERVICE_ACL_NAME`.
+* Multiple services must be defined by adding an index to the prefix. Indexing starts from `1`. As an example, the `aclName` of the second service would be defined as `DFP_SERVICE_2_ACL_NAME`.
+* All other rules applied to `reconfigure` HTTP query parameters apply to environment variables as well.
+
+The map between the HTTP query parameters and environment variables is as follows.
+
+|Query                |Environment variable    |
+|---------------------|------------------------|
+|aclName              |ACL_NAME                |
+|consulTemplateBePath |CONSUL_TEMPLATE_BE_PATH |
+|consulTemplateFePath |CONSUL_TEMPLATE_FE_PATH |
+|distribute           |DISTRIBUTE              |
+|httpsOnly            |HTTPS_ONLY              |
+|httpsPort            |HTTPS_PORT              |
+|outboundHostname     |OUTBOUND_HOSTNAME       |
+|pathType             |PATH_TYPE               |
+|port                 |PORT                    |
+|redirectWhenHttpProto|REDIRECT_WHEN_HTTP_PROTO|
+|reqMode              |REQ_MODE                |
+|reqPathReplace       |REQ_PATH_REPLACE        |
+|reqPathSearch        |REQ_PATH_SEARCH         |
+|serviceCert          |SERVICE_CERT            |
+|serviceDomain        |SERVICE_DOMAIN          |
+|serviceDomainMatchAll|SERVICE_DOMAIN_MATCH_ALL|
+|serviceName          |SERVICE_NAME            |
+|servicePath          |SERVICE_PATH            |
+|skipCheck            |SKIP_CHECK              |
+|srcPort              |SRC_PORT                |
+|sslVerifyNone        |SSL_VERIFY_NONE         |
+|templateBePath       |TEMPLATE_BE_PATH        |
+|templateFePath       |TEMPLATE_FE_PATH        |
+|timeoutServer        |TIMEOUT_SERVER          |
+|timeoutTunnel        |TIMEOUT_TUNNEL          |
+|users                |**Not supported**       |
+|usersSecret          |**Not supported**       |
+|usersPassEncrypted   |**Not supported**       |
+|xForwardedProto      |X_FORWARDED_PROTO       |
+
+Please explore the [Configuring Non-Swarm Services](configuring-non-swarm-services.md) tutorial for more info.
 
 ## Remove
 
