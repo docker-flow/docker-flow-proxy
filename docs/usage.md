@@ -74,7 +74,7 @@ The command would create a service `foo` that exposes ports `8080` and `8081`. A
 
 Indexes are incremental and start with `1`.
 
-## Environment Variables
+### Environment Variables
 
 When a service is not part of the same Swarm cluster, a failure of a proxy instance means that the information about those services cannot be obtained through Docker API and *Docker Flow Swarm Listener*. In such a case, data loss can be prevented through the usage of environment variables.
 
