@@ -486,11 +486,11 @@ func (m CertMock) Init() error {
 }
 
 type ServerMock struct {
-	GetServiceFromUrlMock func(req *http.Request) *proxy.Service
-	TestHandlerMock func(w http.ResponseWriter, req *http.Request)
-	ReconfigureHandlerMock func(w http.ResponseWriter, req *http.Request)
-	ReloadHandlerMock func(w http.ResponseWriter, req *http.Request)
-	RemoveHandlerMock func(w http.ResponseWriter, req *http.Request)
+	GetServiceFromUrlMock      func(req *http.Request) *proxy.Service
+	TestHandlerMock            func(w http.ResponseWriter, req *http.Request)
+	ReconfigureHandlerMock     func(w http.ResponseWriter, req *http.Request)
+	ReloadHandlerMock          func(w http.ResponseWriter, req *http.Request)
+	RemoveHandlerMock          func(w http.ResponseWriter, req *http.Request)
 	GetServicesFromEnvVarsMock func() *[]proxy.Service
 }
 
@@ -536,11 +536,11 @@ func getRunMock(skipMethod string) *RunMock {
 }
 
 type ReconfigureMock struct {
-	ExecuteMock           		func(args []string) error
-	GetDataMock           		func() (actions.BaseReconfigure, proxy.Service)
-	ReloadServicesFromListenerMock 		func(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplatesMock      		func(sr *proxy.Service) (front, back string, err error)
-	GetServicesFromEnvVarsMock 	func() []proxy.Service
+	ExecuteMock                    func(args []string) error
+	GetDataMock                    func() (actions.BaseReconfigure, proxy.Service)
+	ReloadServicesFromListenerMock func(addresses []string, instanceName, mode, listenerAddress string) error
+	GetTemplatesMock               func(sr *proxy.Service) (front, back string, err error)
+	GetServicesFromEnvVarsMock     func() []proxy.Service
 }
 
 func (m ReconfigureMock) Execute(args []string) error {

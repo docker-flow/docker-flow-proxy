@@ -5,11 +5,11 @@ import (
 	"../proxy"
 	"encoding/json"
 	"fmt"
+	"github.com/kelseyhightower/envconfig"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"github.com/kelseyhightower/envconfig"
 )
 
 var usersBasePath string = "/run/secrets/dfp_users_%s"
@@ -257,8 +257,8 @@ func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	}
 	sd := []proxy.ServiceDest{}
 	path := []string{}
-	if len(os.Getenv(prefix + "_SERVICE_PATH")) > 0 {
-		path = strings.Split(os.Getenv(prefix + "_SERVICE_PATH"), ",")
+	if len(os.Getenv(prefix+"_SERVICE_PATH")) > 0 {
+		path = strings.Split(os.Getenv(prefix+"_SERVICE_PATH"), ",")
 	}
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))

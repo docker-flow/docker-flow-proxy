@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"testing"
 	"os"
 	"strconv"
+	"strings"
+	"testing"
 )
 
 type ServerTestSuite struct {
@@ -793,29 +793,29 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	service := proxy.Service{
-		AclName: "my-AclName",
-		ConsulTemplateBePath: "my-ConsulTemplateBePath",
-		ConsulTemplateFePath: "my-ConsulTemplateFePath",
-		Distribute: true,
-		HttpsOnly: true,
-		HttpsPort: 1234,
-		OutboundHostname: "my-OutboundHostname",
-		PathType: "my-PathType",
+		AclName:               "my-AclName",
+		ConsulTemplateBePath:  "my-ConsulTemplateBePath",
+		ConsulTemplateFePath:  "my-ConsulTemplateFePath",
+		Distribute:            true,
+		HttpsOnly:             true,
+		HttpsPort:             1234,
+		OutboundHostname:      "my-OutboundHostname",
+		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
-		ReqMode: "my-ReqMode",
-		ReqPathReplace: "my-ReqPathReplace",
-		ReqPathSearch: "my-ReqPathSearch",
-		ServiceCert: "my-ServiceCert",
-		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
+		ReqMode:               "my-ReqMode",
+		ReqPathReplace:        "my-ReqPathReplace",
+		ReqPathSearch:         "my-ReqPathSearch",
+		ServiceCert:           "my-ServiceCert",
+		ServiceDomain:         []string{"my-domain-1.com", "my-domain-2.com"},
 		ServiceDomainMatchAll: true,
-		ServiceName: "my-ServiceName",
-		SkipCheck: true,
-		SslVerifyNone: true,
-		TemplateBePath: "my-TemplateBePath",
-		TemplateFePath: "my-TemplateFePath",
-		TimeoutServer: "my-TimeoutServer",
-		TimeoutTunnel: "my-TimeoutTunnel",
-		XForwardedProto: true,
+		ServiceName:           "my-ServiceName",
+		SkipCheck:             true,
+		SslVerifyNone:         true,
+		TemplateBePath:        "my-TemplateBePath",
+		TemplateFePath:        "my-TemplateFePath",
+		TimeoutServer:         "my-TimeoutServer",
+		TimeoutTunnel:         "my-TimeoutTunnel",
+		XForwardedProto:       true,
 		ServiceDest: []proxy.ServiceDest{
 			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112},
 		},
@@ -1011,11 +1011,11 @@ func getRemoveMock(skipMethod string) *RemoveMock {
 }
 
 type ReconfigureMock struct {
-	ExecuteMock           		func(args []string) error
-	GetDataMock           		func() (actions.BaseReconfigure, proxy.Service)
-	ReloadServicesFromListenerMock 		func(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplatesMock      		func(sr *proxy.Service) (front, back string, err error)
-	GetServicesFromEnvVarsMock 	func() []proxy.Service
+	ExecuteMock                    func(args []string) error
+	GetDataMock                    func() (actions.BaseReconfigure, proxy.Service)
+	ReloadServicesFromListenerMock func(addresses []string, instanceName, mode, listenerAddress string) error
+	GetTemplatesMock               func(sr *proxy.Service) (front, back string, err error)
+	GetServicesFromEnvVarsMock     func() []proxy.Service
 }
 
 func (m ReconfigureMock) Execute(args []string) error {

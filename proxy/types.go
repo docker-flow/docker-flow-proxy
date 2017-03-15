@@ -100,7 +100,6 @@ type Service struct {
 	LookupRetry         int
 	LookupRetryInterval int
 	ServiceDest         []ServiceDest
-
 }
 
 type Services []Service

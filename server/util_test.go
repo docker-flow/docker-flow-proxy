@@ -1,14 +1,14 @@
 package server
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
-	"net/http"
 	"fmt"
-	"net/url"
-	"net/http/httptest"
-	"strings"
+	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
 )
 
 type UtilTestSuite struct {
