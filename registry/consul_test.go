@@ -78,15 +78,15 @@ func (s *ConsulTestSuite) Test_PutService_PutsDataToConsul() {
 	type data struct{ key, value string }
 
 	d := []data{
-		data{"color", s.registry.ServiceColor},
-		data{"path", strings.Join(s.registry.ServicePath, ",")},
-		data{"domain", strings.Join(s.registry.ServiceDomain, ",")},
-		data{"hostname", s.registry.OutboundHostname},
-		data{"pathtype", s.registry.PathType},
-		data{"skipcheck", fmt.Sprintf("%t", s.registry.SkipCheck)},
-		data{"consultemplatefepath", s.registry.ConsulTemplateFePath},
-		data{"consultemplatebepath", s.registry.ConsulTemplateBePath},
-		data{"port", string(s.registry.Port)},
+		{"color", s.registry.ServiceColor},
+		{"path", strings.Join(s.registry.ServicePath, ",")},
+		{"domain", strings.Join(s.registry.ServiceDomain, ",")},
+		{"hostname", s.registry.OutboundHostname},
+		{"pathtype", s.registry.PathType},
+		{"skipcheck", fmt.Sprintf("%t", s.registry.SkipCheck)},
+		{"consultemplatefepath", s.registry.ConsulTemplateFePath},
+		{"consultemplatebepath", s.registry.ConsulTemplateBePath},
+		{"port", string(s.registry.Port)},
 	}
 	for _, e := range d {
 		s.Contains(actualUrl, fmt.Sprintf("/v1/kv/%s/%s/%s", instanceName, s.registry.ServiceName, e.key))

@@ -618,7 +618,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		Distribute:            true,
 		SslVerifyNone:         true,
 		ServiceDomainMatchAll: true,
-		ServiceDest:           []proxy.ServiceDest{proxy.ServiceDest{ServicePath: []string{}}},
+		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{}}},
 	}
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",

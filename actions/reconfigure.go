@@ -134,7 +134,7 @@ func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode 
 	var data map[string]interface{}
 	json.Unmarshal(body, &data)
 	count = len(data)
-	for key, _ := range data {
+	for key := range data {
 		go m.getService(addresses, key, instanceName, c)
 	}
 	logPrintf("\tFound %d services", count)

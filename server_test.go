@@ -192,7 +192,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReconfigureExecuteForEachServiceDe
 	server.NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert server.Certer) server.Server {
 		return ServerMock{
 			GetServicesFromEnvVarsMock: func() *[]proxy.Service {
-				return &[]proxy.Service{proxy.Service{}, proxy.Service{}}
+				return &[]proxy.Service{{}, {}}
 			},
 		}
 	}

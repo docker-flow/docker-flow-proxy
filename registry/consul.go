@@ -32,15 +32,15 @@ func (m Consul) PutService(addresses []string, instanceName string, r Registry) 
 	consulChannel := make(chan error)
 	type data struct{ key, value string }
 	d := []data{
-		data{COLOR_KEY, r.ServiceColor},
-		data{PATH_KEY, strings.Join(r.ServicePath, ",")},
-		data{DOMAIN_KEY, strings.Join(r.ServiceDomain, ",")},
-		data{HOSTNAME_KEY, r.OutboundHostname},
-		data{PATH_TYPE_KEY, r.PathType},
-		data{SKIP_CHECK_KEY, fmt.Sprintf("%t", r.SkipCheck)},
-		data{CONSUL_TEMPLATE_FE_PATH_KEY, r.ConsulTemplateFePath},
-		data{CONSUL_TEMPLATE_BE_PATH_KEY, r.ConsulTemplateBePath},
-		data{PORT, r.Port},
+		{COLOR_KEY, r.ServiceColor},
+		{PATH_KEY, strings.Join(r.ServicePath, ",")},
+		{DOMAIN_KEY, strings.Join(r.ServiceDomain, ",")},
+		{HOSTNAME_KEY, r.OutboundHostname},
+		{PATH_TYPE_KEY, r.PathType},
+		{SKIP_CHECK_KEY, fmt.Sprintf("%t", r.SkipCheck)},
+		{CONSUL_TEMPLATE_FE_PATH_KEY, r.ConsulTemplateFePath},
+		{CONSUL_TEMPLATE_BE_PATH_KEY, r.ConsulTemplateBePath},
+		{PORT, r.Port},
 	}
 	for _, e := range d {
 		go m.SendPutRequest(addresses, r.ServiceName, e.key, e.value, instanceName, consulChannel)

@@ -83,7 +83,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 			case "/v1/catalog/services":
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
-				data := map[string][]string{"service1": []string{}, "service2": []string{}, s.ServiceName: []string{}}
+				data := map[string][]string{"service1": {}, "service2": {}, s.ServiceName: {}}
 				js, _ := json.Marshal(data)
 				w.Write(js)
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
@@ -375,9 +375,9 @@ backend myService-be1234
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	sd := []proxy.ServiceDest{
-		proxy.ServiceDest{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
-		proxy.ServiceDest{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
-		proxy.ServiceDest{Port: "5555", ServicePath: []string{"path-3"}},
+		{Port: "1111", ServicePath: []string{"path-1"}, SrcPort: 2222},
+		{Port: "3333", ServicePath: []string{"path-2"}, SrcPort: 4444},
+		{Port: "5555", ServicePath: []string{"path-3"}},
 	}
 	expectedBack := `
 backend myService-be1111
