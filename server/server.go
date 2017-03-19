@@ -74,6 +74,12 @@ func (m *Serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
 	if len(req.URL.Query().Get("serviceDomain")) > 0 {
 		sr.ServiceDomain = strings.Split(req.URL.Query().Get("serviceDomain"), ",")
 	}
+	if len(req.URL.Query().Get("addHeader")) > 0 {
+		sr.AddHeader = strings.Split(req.URL.Query().Get("addHeader"), ",")
+	}
+	if len(req.URL.Query().Get("setHeader")) > 0 {
+		sr.SetHeader = strings.Split(req.URL.Query().Get("setHeader"), ",")
+	}
 	globalUsersString := proxy.GetSecretOrEnvVar("USERS", "")
 	globalUsersEncrypted := strings.EqualFold(proxy.GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
 	sr.Users = mergeUsers(

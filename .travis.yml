@@ -20,7 +20,7 @@ script:
   - docker-compose -f docker-compose-test.yml run --rm staging
   - docker-compose -f docker-compose-test.yml down
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
-  - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - docker push vfarcic/docker-flow-proxy:beta
   - HOST_IP=$(ifconfig eth0 | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1') docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
@@ -42,7 +42,3 @@ after_success:
 branches:
   only:
     - master
-
-notifications:
-  slack:
-    secure: h5AN2Q3Ft3LYkBZWsEtQIVTZBmZYc/yGcqBcO7zCts2I4eTYCNPl419nkQiMbPBCL6s7mQv2bY2hA9mhm271ssc3JgoQ8A7yMoR+tlGWrdDwR7vhvs85o+GUiVM27sqCCNNz/pE/HU6F5h5h4vQAEBZzC1WGJkdxKQGNohDh+xWJMxB+SFynC5qtbVjXYiKwGf9EvAa7qWbJ7OgzqvU5QAdpUMa0CptEkNsGxgTF7onvx/6TYJTnDTmmiGlwkeo83895qbROxxUE6Az0lRa/4P8sAKpa4Gc+nxInk41KpZud5XW85lrs6Ncesh2TzIlac/RboE68zhP+MJgobzjDyDZdSnm3tRH8k5vK+2FvaqOtWEFink0H42n96rcuGKVeGe56TJRoHMou5H1qWwc8caIJm4yLRR4kwed+Ao73iQLnSfQeTCEk/WUUm7a4JaChR55EXnRfI5gcd54C+ONCT6JnvCGRhRnPClFiGgQ274D4QUCgm5nLm1+XVReTUo/us9L1fraAQtc/UMTbAsD+1MFddSYRmE8pMh0FZfYWqf8UPlVvmTjtSOPK8g+WoCdi4qqhnBJapmNuSMRrhf7EYxzvFbFG5EBKdSDCgNffYtOMQSwWY09IaufyJFQYjVlCuT+tYi1unzlOJmFWps+qxl/CcoB6guM+YNj0vqFbApw=

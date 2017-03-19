@@ -594,34 +594,36 @@ func (s *ServerTestSuite) Test_RemoveHandler_WritesErrorHeader_WhenRemoveDistrib
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	expected := proxy.Service{
-		ServiceName:           "serviceName",
 		AclName:               "aclName",
-		ServiceColor:          "serviceColor",
-		ServiceCert:           "serviceCert",
-		OutboundHostname:      "outboundHostname",
+		AddHeader:             []string{"add-header-1", "add-header-2"},
 		ConsulTemplateFePath:  "consulTemplateFePath",
 		ConsulTemplateBePath:  "consulTemplateBePath",
+		Distribute:            true,
+		HttpsOnly:             true,
+		HttpsPort:             1234,
+		OutboundHostname:      "outboundHostname",
 		PathType:              "pathType",
-		ReqPathSearch:         "reqPathSearch",
+		RedirectWhenHttpProto: true,
+		ReqMode:               "reqMode",
 		ReqPathReplace:        "reqPathReplace",
-		TemplateFePath:        "templateFePath",
+		ReqPathSearch:         "reqPathSearch",
+		ServiceCert:           "serviceCert",
+		ServiceColor:          "serviceColor",
+		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{}}},
+		ServiceDomain:         []string{"domain1", "domain2"},
+		ServiceDomainMatchAll: true,
+		ServiceName:           "serviceName",
+		SetHeader:             []string{"set-header-1", "set-header-2"},
+		SkipCheck:             true,
+		SslVerifyNone:         true,
 		TemplateBePath:        "templateBePath",
+		TemplateFePath:        "templateFePath",
 		TimeoutServer:         "timeoutServer",
 		TimeoutTunnel:         "timeoutTunnel",
-		ReqMode:               "reqMode",
-		HttpsOnly:             true,
 		XForwardedProto:       true,
-		RedirectWhenHttpProto: true,
-		HttpsPort:             1234,
-		ServiceDomain:         []string{"domain1", "domain2"},
-		SkipCheck:             true,
-		Distribute:            true,
-		SslVerifyNone:         true,
-		ServiceDomainMatchAll: true,
-		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{}}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t",
+		"%s?serviceName=%s&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t&addHeader=%s&setHeader=%s",
 		s.BaseUrl,
 		expected.ServiceName,
 		expected.AclName,
@@ -647,6 +649,8 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.Distribute,
 		expected.SslVerifyNone,
 		expected.ServiceDomainMatchAll,
+		strings.Join(expected.AddHeader, ","),
+		strings.Join(expected.SetHeader, ","),
 	)
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := Serve{}
@@ -794,6 +798,7 @@ func (s *ServerTestSuite) Test_UsersMerge_AllCases() {
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	service := proxy.Service{
 		AclName:               "my-AclName",
+		AddHeader:             []string{"add-header-1", "add-header-2"},
 		ConsulTemplateBePath:  "my-ConsulTemplateBePath",
 		ConsulTemplateFePath:  "my-ConsulTemplateFePath",
 		Distribute:            true,
@@ -809,6 +814,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		ServiceDomain:         []string{"my-domain-1.com", "my-domain-2.com"},
 		ServiceDomainMatchAll: true,
 		ServiceName:           "my-ServiceName",
+		SetHeader:             []string{"set-header-1", "set-header-2"},
 		SkipCheck:             true,
 		SslVerifyNone:         true,
 		TemplateBePath:        "my-TemplateBePath",
@@ -821,6 +827,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		},
 	}
 	os.Setenv("DFP_SERVICE_ACL_NAME", service.AclName)
+	os.Setenv("DFP_SERVICE_ADD_HEADER", strings.Join(service.AddHeader, ","))
 	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH", service.ConsulTemplateFePath)
 	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH", service.ConsulTemplateBePath)
 	os.Setenv("DFP_SERVICE_DISTRIBUTE", strconv.FormatBool(service.Distribute))
@@ -845,10 +852,12 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_X_FORWARDED_PROTO", strconv.FormatBool(service.XForwardedProto))
 	os.Setenv("DFP_SERVICE_PORT", service.ServiceDest[0].Port)
 	os.Setenv("DFP_SERVICE_SERVICE_PATH", strings.Join(service.ServiceDest[0].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SET_HEADER", strings.Join(service.SetHeader, ","))
 	os.Setenv("DFP_SERVICE_SRC_PORT", strconv.Itoa(service.ServiceDest[0].SrcPort))
 
 	defer func() {
 		os.Unsetenv("DFP_SERVICE_ACL_NAME")
+		os.Unsetenv("DFP_SERVICE_ADD_HEADER")
 		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH")
 		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH")
 		os.Unsetenv("DFP_SERVICE_DISTRIBUTE")
@@ -866,6 +875,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_SERVICE_DOMAIN_MATCH_ALL")
 		os.Unsetenv("DFP_SERVICE_SERVICE_NAME")
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH")
+		os.Unsetenv("DFP_SERVICE_SET_HEADER")
 		os.Unsetenv("DFP_SERVICE_SKIP_CHECK")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT")
 		os.Unsetenv("DFP_SERVICE_SSL_VERIFY_NONE")

@@ -657,6 +657,70 @@ backend %s-be%s
 	s.Equal(expectedData, actualData)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_AddsHeader_WhenAddHeaderIsSet() {
+	s.reconfigure.Mode = "swarm"
+	s.reconfigure.AddHeader = []string{"header-1", "header-2"}
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
+	expectedData := fmt.Sprintf(
+		`
+backend %s-be%s
+    mode http
+    http-request add-header header-1
+    http-request add-header header-2
+    server %s %s:%s`,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+		s.ServiceName,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+	)
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_AddsHeader_WhenSetHeaderIsSet() {
+	s.reconfigure.Mode = "swarm"
+	s.reconfigure.SetHeader = []string{"header-1", "header-2"}
+	var actualFilename, actualData string
+	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
+	expectedData := fmt.Sprintf(
+		`
+backend %s-be%s
+    mode http
+    http-request set-header header-1
+    http-request set-header header-2
+    server %s %s:%s`,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+		s.ServiceName,
+		s.ServiceName,
+		s.reconfigure.ServiceDest[0].Port,
+	)
+	writeBeTemplateOrig := writeBeTemplate
+	defer func() { writeBeTemplate = writeBeTemplateOrig }()
+	writeBeTemplate = func(filename string, data []byte, perm os.FileMode) error {
+		actualFilename = filename
+		actualData = string(data)
+		return nil
+	}
+
+	s.reconfigure.Execute([]string{})
+
+	s.Equal(expectedFilename, actualFilename)
+	s.Equal(expectedData, actualData)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfigs_WhenModeIsService() {
 	mockObj := getRegistrarableMock("")
 	registryInstanceOrig := registryInstance

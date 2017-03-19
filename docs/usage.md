@@ -15,6 +15,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |Query          |Description                                                                               |Required|Default|Example      |
 |---------------|------------------------------------------------------------------------------------------|--------|-------|-------------|
 |aclName        |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No  |       |05-go-demo-acl|
+|addHeader      |Additional headers that will be added to the request before forwarding it to the service. Multiple headers should be separated with comma (`,`). Please consult [Add a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#add-a-header-to-the-request) for more info.|No| |X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }|
 |httpsPort      |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.|No| |443|
 |port           |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode| |8080|
 |reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.|No|http|tcp|
@@ -23,6 +24,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
 |serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.|No|false|true|
 |serviceName    |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes|     |go-demo      |
+|setHeader      |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info.|No| |X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }|
 |srcPort        |The source (entry) port of a service. Useful only when specifying multiple destinations of a single service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|No| |80|
 |timeoutServer  |The server timeout in seconds.                                                            |No      |20     |60           |
 |timeoutTunnel  |The tunnel timeout in seconds.                                                            |No      |3600   |1800         |
@@ -95,6 +97,7 @@ The map between the HTTP query parameters and environment variables is as follow
 |Query                |Environment variable    |
 |---------------------|------------------------|
 |aclName              |ACL_NAME                |
+|addHeader            |ADD_HEADER              |
 |consulTemplateBePath |CONSUL_TEMPLATE_BE_PATH |
 |consulTemplateFePath |CONSUL_TEMPLATE_FE_PATH |
 |distribute           |DISTRIBUTE              |
@@ -112,6 +115,7 @@ The map between the HTTP query parameters and environment variables is as follow
 |serviceDomainMatchAll|SERVICE_DOMAIN_MATCH_ALL|
 |serviceName          |SERVICE_NAME            |
 |servicePath          |SERVICE_PATH            |
+|setHeader            |SET_HEADER              |
 |skipCheck            |SKIP_CHECK              |
 |srcPort              |SRC_PORT                |
 |sslVerifyNone        |SSL_VERIFY_NONE         |

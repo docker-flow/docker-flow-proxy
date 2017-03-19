@@ -339,11 +339,7 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		tmpl += `
     log global`
 	}
-	if sr.XForwardedProto {
-		tmpl += `
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
-	}
-	// TODO: Deprecated (dec. 2016).
+	tmpl += m.getHeaders(sr)
 	if len(sr.TimeoutServer) > 0 {
 		tmpl += `
     timeout server {{$.TimeoutServer}}s`
@@ -352,6 +348,7 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		tmpl += `
     timeout tunnel {{$.TimeoutTunnel}}s`
 	}
+	// TODO: Deprecated (dec. 2016).
 	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
 		tmpl += `
     reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
@@ -386,6 +383,27 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     http-request del-header Authorization`
 	}
 	tmpl += "{{end}}"
+	return tmpl
+}
+
+func (m *Reconfigure) getHeaders(sr *proxy.Service) string {
+	tmpl := ""
+	if sr.XForwardedProto {
+		tmpl += `
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
+	}
+	for _, header := range sr.AddHeader {
+		tmpl += fmt.Sprintf(`
+    http-request add-header %s`,
+			header,
+		)
+	}
+	for _, header := range sr.SetHeader {
+		tmpl += fmt.Sprintf(`
+    http-request set-header %s`,
+			header,
+		)
+	}
 	return tmpl
 }
 

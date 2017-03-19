@@ -20,6 +20,8 @@ type ServiceDest struct {
 }
 
 type Service struct {
+	// Additional headers that will be added to the request before forwarding it to the service. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#add-a-header-to-the-request for more info.
+	AddHeader []string `split_words:"true"`
 	// ACLs are ordered alphabetically by their names.
 	// If not specified, serviceName is used instead.
 	AclName string `split_words:"true"`
@@ -69,6 +71,8 @@ type Service struct {
 	// The name of the service.
 	// It must match the name of the Swarm service or the one stored in Consul.
 	ServiceName string `split_words:"true"`
+	// Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one.
+	SetHeader []string `split_words:"true"`
 	// Whether to skip adding proxy checks.
 	// This option is used only in the default mode.
 	SkipCheck bool `split_words:"true"`

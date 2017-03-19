@@ -1,6 +1,6 @@
 # Feedback and Contribution
 
-The *Docker Flow: Proxy* project welcomes, and depends, on contributions from developers and users in the open source community. Contributions can be made in a number of ways, a few examples are:
+The *Docker Flow Proxy* project welcomes, and depends, on contributions from developers and users in the open source community. Contributions can be made in a number of ways, a few examples are:
 
 * Code patches or new features via pull requests
 * Documentation improvements
@@ -20,7 +20,7 @@ Please join the [DevOps20](http://slack.devops20toolkit.com/) Slack channel if y
 
 ## Contributing To The Project
 
-I encourage you to contribute to the *Docker Flow: Proxy* project.
+I encourage you to contribute to the *Docker Flow Proxy* project.
 
 The project is developed using *Test Driven Development* and *Continuous Deployment* process. Test are divided into unit and integration tests. Every code file has an equivalent with tests (e.g. `reconfigure.go` and `reconfigure_test.go`). Ideally, I expect you to write a test that defines that should be developed, run all the unit tests and confirm that the test fails, write just enough code to make the test pass, repeat. If you are new to testing, feel free to create a pull request indicating that tests are missing and I'll help you out.
 

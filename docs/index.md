@@ -10,14 +10,9 @@ Since the Docker 1.12 release, *Docker Flow Proxy* supports two modes. The defau
 
 The recommendation is to run *Docker Flow Proxy* inside a Swarm cluster with Automatic Reconfiguration.
 
-*Docker Flow Proxy* examples can be found in the sections that follow.
+*Docker Flow Proxy* examples can be found in the *Tutorials* section located in the left-hand menu.
 
-* [Swarm Mode With Automatic Reconfiguration (recommended)](swarm-mode-auto.md)
-* [Swarm Mode With Docker Stack](swarm-mode-stack.md)
-* [Swarm Mode With Manual Reconfiguration](swarm-mode-manual.md)
-* [Standard Mode](standard-mode.md)
-
-Please visit the [config](config.md) and [usage](usage.md) sections for more details.
+Please visit the [Configuring Docker Flow Proxy](config.md) and [Usage](usage.md) sections for more details.
 
 [Feedback and contributions](feedback-and-contribution.md) are appreciated.
 
