@@ -277,9 +277,8 @@ func (s *ConsulTestSuite) Test_CreateConfigs_ReturnsError_WhenConsulTemplateBeCo
 		if counter == 0 {
 			counter = counter + 1
 			return nil
-		} else {
-			return fmt.Errorf("This is an error")
 		}
+		return fmt.Errorf("This is an error")
 	}
 
 	err := Consul{}.CreateConfigs(&s.createConfigsArgs)

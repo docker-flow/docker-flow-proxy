@@ -937,7 +937,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
 	bindPortsOrig := os.Getenv("BIND_PORTS")
 	defer func() { os.Setenv("BIND_PORTS", bindPortsOrig) }()
 	os.Setenv("BIND_PORTS", "1234,4321")
-	var actualFilename string
 	var actualData string
 	expectedData := fmt.Sprintf(
 		`%s
@@ -947,7 +946,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
-		actualFilename = filename
 		actualData = string(data)
 		return nil
 	}
@@ -1111,7 +1109,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 	for _, t := range tests {
 		timeoutOrig := os.Getenv(t.envKey)
 		os.Setenv(t.envKey, t.value)
-		var actualFilename string
 		var actualData string
 		expectedData := fmt.Sprintf(
 			"%s%s",
@@ -1119,7 +1116,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 			s.ServicesContent,
 		)
 		writeFile = func(filename string, data []byte, perm os.FileMode) error {
-			actualFilename = filename
 			actualData = string(data)
 			return nil
 		}
@@ -1152,7 +1148,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecre
 	}
 	for _, t := range tests {
 		timeoutOrig := os.Getenv(t.secretFile)
-		var actualFilename string
 		var actualData string
 		expectedData := fmt.Sprintf(
 			"%s%s",
@@ -1172,7 +1167,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecre
 		}
 
 		writeFile = func(filename string, data []byte, perm os.FileMode) error {
-			actualFilename = filename
 			actualData = string(data)
 			return nil
 		}

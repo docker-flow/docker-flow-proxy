@@ -248,7 +248,7 @@ func (s IntegrationSwarmTestSuite) Test_Reload() {
 	} else {
 		f.Write([]byte("This config is corrupt"))
 	}
-	out, _ = exec.Command("/bin/sh", "-c", cmd).Output()
+	exec.Command("/bin/sh", "-c", cmd).Output()
 
 	// Reload with reconfigure
 	s.reloadService("?recreate=true")

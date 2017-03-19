@@ -241,10 +241,13 @@ func (s IntegrationTestSuite) Test_PutToConsul() {
 		"http://consul:8500/v1/kv/proxy-test-instance/%s/path?raw",
 		s.serviceName,
 	)
-	resp, _ := http.Get(url)
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	s.Equal("/v1/test", string(body))
+	if resp, err := http.Get(url); err != nil {
+		s.Fail(err.Error())
+	} else {
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		s.Equal("/v1/test", string(body))
+	}
 }
 
 func (s IntegrationTestSuite) Test_Reconfigure_ConsulTemplatePath() {
