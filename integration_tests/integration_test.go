@@ -306,12 +306,15 @@ func (s IntegrationTestSuite) Test_Certs() {
 	req, _ = http.NewRequest("GET", url, nil)
 	client = &http.Client{}
 
-	resp, _ = client.Do(req)
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	if resp, err = client.Do(req); err != nil {
+		s.Fail(err.Error())
+	} else {
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
 
-	s.Equal(200, resp.StatusCode)
-	s.Contains(strings.Replace(string(body), "\\n", "\n", -1), string(certContent))
+		s.Equal(200, resp.StatusCode)
+		s.Contains(strings.Replace(string(body), "\\n", "\n", -1), string(certContent))
+	}
 }
 
 // Util
@@ -358,10 +361,13 @@ func (s IntegrationTestSuite) reconfigure(pathType, consulTemplateFePath, consul
 
 func (s IntegrationTestSuite) getConf() string {
 	configAddr := "http://staging-dep:8080/v1/docker-flow-proxy/config"
-	resp, _ := http.Get(configAddr)
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body)
+	if resp, err := http.Get(configAddr); err != nil {
+		return ""
+	} else {
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		return string(body)
+	}
 }
 
 // Suite

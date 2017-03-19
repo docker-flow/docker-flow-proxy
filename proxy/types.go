@@ -128,7 +128,6 @@ func (slice Services) Less(i, j int) bool {
 	} else {
 		return slice[i].AclName < slice[j].AclName
 	}
-	return true
 }
 
 func hasRoot(service Service) bool {
