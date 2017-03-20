@@ -88,6 +88,8 @@ config2 fe content
 config1 be content
 
 config2 be content`
+	os.Setenv("STATS_USER_ENV", "STATS_USER")
+	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	suite.Run(t, s)
 }
 
@@ -1107,7 +1109,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 		{"STATS_PASS", "stats auth admin:admin", "stats auth admin:my-pass", "my-pass"},
 	}
 	for _, t := range tests {
-		timeoutOrig := os.Getenv(t.envKey)
+		envOrig := os.Getenv(t.envKey)
 		os.Setenv(t.envKey, t.value)
 		var actualData string
 		expectedData := fmt.Sprintf(
@@ -1124,7 +1126,43 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 
 		s.Equal(expectedData, actualData)
 
-		os.Setenv(t.envKey, timeoutOrig)
+		os.Setenv(t.envKey, envOrig)
+	}
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsersStatsUserEnvAndStatsPassEnv() {
+	tests := []struct {
+		envKey string
+		before string
+		after  string
+		value  string
+		envKeyName string
+	}{
+		{"MY_USER", "stats auth admin:admin", "stats auth my-user:admin", "my-user", "STATS_USER_ENV"},
+		{"MY_PASS", "stats auth admin:admin", "stats auth admin:my-pass", "my-pass", "STATS_PASS_ENV"},
+	}
+	for _, t := range tests {
+		os.Setenv(t.envKeyName, t.envKey)
+		envOrig := os.Getenv(t.envKey)
+		envKeyOrig := os.Getenv(t.envKeyName)
+		os.Setenv(t.envKey, t.value)
+		var actualData string
+		expectedData := fmt.Sprintf(
+			"%s%s",
+			strings.Replace(s.TemplateContent, t.before, t.after, -1),
+			s.ServicesContent,
+		)
+		writeFile = func(filename string, data []byte, perm os.FileMode) error {
+			actualData = string(data)
+			return nil
+		}
+
+		NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+		s.Equal(expectedData, actualData)
+
+		os.Setenv(t.envKey, envOrig)
+		os.Setenv(t.envKeyName, envKeyOrig)
 	}
 }
 

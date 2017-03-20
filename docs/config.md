@@ -27,7 +27,9 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.|No|proxy|my-proxy|
 |SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.|No|false|true|
 |STATS_USER         |Username for the statistics page                          |No      |admin  |my-user|
+|STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page|No|STATS_USER|MY_USER|
 |STATS_PASS         |Password for the statistics page                          |No      |admin  |my-pass|
+|STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page|No|STATS_PASS|MY_PASS|
 |TIMEOUT_CLIENT     |The client timeout in seconds                             |No      |20     |5      |
 |TIMEOUT_CONNECT    |The connect timeout in seconds                            |No      |5      |3      |
 |TIMEOUT_QUEUE      |The queue timeout in seconds                              |No      |30     |10     |
