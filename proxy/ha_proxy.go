@@ -269,15 +269,20 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 		services = append(services, s)
 	}
+	m.getSni(&services, &d)
+	return d
+}
+
+func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 	sort.Sort(services)
 	snimap := make(map[int]string)
 	tcpFEs := make(map[int]Services)
-	for _, s := range services {
+	for _, s := range *services {
 		if len(s.ReqMode) == 0 {
 			s.ReqMode = "http"
 		}
 		if strings.EqualFold(s.ReqMode, "http") {
-			d.ContentFrontend += m.getFrontTemplate(s)
+			config.ContentFrontend += m.getFrontTemplate(s)
 		} else if strings.EqualFold(s.ReqMode, "sni") {
 			for _, sd := range s.ServiceDest {
 				_, header_exists := snimap[sd.SrcPort]
@@ -290,7 +295,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	for port, tcpServices := range tcpFEs {
-		d.ContentFrontendTcp += m.getFrontTemplateTcp(port, tcpServices)
+		config.ContentFrontendTcp += m.getFrontTemplateTcp(port, tcpServices)
 	}
 
 	// Merge the SNI entries into one single string. Sorted by port.
@@ -300,9 +305,8 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	sort.Ints(sniports)
 	for _, k := range sniports {
-		d.ContentFrontendSNI += snimap[k]
+		config.ContentFrontendSNI += snimap[k]
 	}
-	return d
 }
 
 func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
