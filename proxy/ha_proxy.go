@@ -30,8 +30,7 @@ type ConfigData struct {
 	TimeoutTunnel        string
 	TimeoutHttpRequest   string
 	TimeoutHttpKeepAlive string
-	StatsUser            string
-	StatsPass            string
+	Stats                string
 	UserList             string
 	ExtraGlobal          string
 	ExtraDefaults        string
@@ -198,8 +197,19 @@ func (m HaProxy) getConfigData() ConfigData {
 	d.TimeoutTunnel = GetSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
 	d.TimeoutHttpRequest = GetSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
 	d.TimeoutHttpKeepAlive = GetSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
-	d.StatsUser = GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "admin")
-	d.StatsPass = GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "admin")
+	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "admin")
+	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "admin")
+	if len(statsUser) > 0 && len(statsPass) > 0 {
+		d.Stats = fmt.Sprintf(`
+    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats auth %s:%s
+    stats uri /admin?stats`,
+			statsUser,
+			statsPass,
+		)
+	}
 	usersString := GetSecretOrEnvVar("USERS", "")
 	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
 	if len(usersString) > 0 {
