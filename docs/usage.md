@@ -12,23 +12,23 @@ The proxy can be reconfigured to use request mode *http* or *tcp*. The default v
 
 The following query parameters can be used to send a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. They apply to any `reqMode`.
 
-|Query          |Description                                                                               |Required|Default|Example      |
-|---------------|------------------------------------------------------------------------------------------|--------|-------|-------------|
-|aclName        |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead.|No  |       |05-go-demo-acl|
-|addHeader      |Additional headers that will be added to the request before forwarding it to the service. Multiple headers should be separated with comma (`,`). Please consult [Add a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#add-a-header-to-the-request) for more info.|No| |X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }|
-|httpsPort      |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.|No| |443|
-|port           |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode| |8080|
-|reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.|No|http|tcp|
-|reqPathReplace |A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.|No| |/demo/|
-|reqPathSearch  |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.|No| |/something/|
-|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).|No| |ecme.com|
-|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.|No|false|true|
-|serviceName    |The name of the service. It must match the name of the Swarm service or the one stored in Consul.|Yes|     |go-demo      |
-|setHeader      |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info.|No| |X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }|
-|srcPort        |The source (entry) port of a service. Useful only when specifying multiple destinations of a single service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on).|No| |80|
-|timeoutServer  |The server timeout in seconds.                                                            |No      |20     |60           |
-|timeoutTunnel  |The tunnel timeout in seconds.                                                            |No      |3600   |1800         |
-|xForwardedProto|Whether to add "X-Forwarded-Proto https" header.                                          |No      |false  |true         |
+|Query          |Description                                                                               |Required|Default|
+|---------------|------------------------------------------------------------------------------------------|--------|-------|
+|aclName        |ACLs are ordered alphabetically by their names. If not specified, serviceName is used instead. Example: `05-go-demo-acl`|No  | |
+|addHeader      |Additional headers that will be added to the request before forwarding it to the service. Multiple headers should be separated with comma (`,`). Please consult [Add a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#add-a-header-to-the-request) for more info. Example: `X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }`|No| |
+|httpsPort      |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead. Example: `443`|No| |
+|port           |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).|Only in `swarm` mode. Example: `8080`| |
+|reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing. Example: `tcp`|No|http|
+|reqPathReplace |A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well. Example: `/demo/`|No| |
+|reqPathSearch  |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well. Example: `/something/`|No| |
+|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`). Example: ecme.com|No| |
+|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`. Example: `true`|No|false|
+|serviceName    |The name of the service. It must match the name of the Swarm service or the one stored in Consul. Example: `go-demo`|Yes| |
+|setHeader      |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info. Example: `X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }`|No| |
+|srcPort        |The source (entry) port of a service. Useful only when specifying multiple destinations of a single service. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `srcPort.1`, `srcPort.2`, and so on). Example: `80`|No| |
+|timeoutServer  |The server timeout in seconds. Example: `60`                                              |No      |20     |
+|timeoutTunnel  |The tunnel timeout in seconds. Example: `3600`                                            |No      |3600   |
+|xForwardedProto|Whether to add "X-Forwarded-Proto https" header. Example: `true`                          |No      |false  |
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `serviceDomain`, `srcPort`, and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
@@ -36,24 +36,24 @@ Multiple destinations for a single service can be specified by adding index as a
 
 The following query parameters can be used only when `reqMode` is set to `http` or is empty.
 
-|Query        |Description                                                                     |Required|Default|Example      |
-|-------------|--------------------------------------------------------------------------------|--------|-------|-------------|
-|consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If set, proxy template will be loaded from the specified file.| | |/tmpl/be.tmpl|
-|consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If set, proxy template will be loaded from the specified file.| | |/tmpl/fe.tmpl|
-|distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode.|No|false|true|
-|httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS.        |No      |false  |true         |
-|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.|No| |ecme.com|
-|pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.|No| |path_beg|
-|redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port|No|false| |
-|serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| | |
-|servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).|Yes| |/api/v1/books|
-|skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.|No      |false  |true         |
-|sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services.|No|false|true|
-|templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. If specified, `templateFePath` must be set as well. See the [Templates](#templates) section for more info.| | |/tmpl/be.tmpl|
-|templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well. See the [Templates](#templates) section for more info.| | |/tmpl/fe.tmpl|
-|users        |A comma-separated list of credentials (<user>:<pass>) for HTTP basic authentication. It applies only to the service that will be reconfigured. If used with `usersSecret`, or when `USERS` environment variable is set, password may be omitted. In that case, it will be taken from `usersSecret` file or the global configuration if `usersSecret` is not present. |No| |usr1:pwd1, usr2:pwd2|
-|usersSecret  |Suffix of Docker secret from which credentials will be taken for this service. Files must be a comma-separated list of credentials (<user>:<pass>). This suffix will be prepended with `dfp_users_`. For example, if the value is `mysecrets` the expected name of the Docker secret is `dfp_users_mysecrets`.|No| |monitoring|
-|usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`|No|false|true|
+|Query        |Description                                                                     |Required|Default|
+|-------------|--------------------------------------------------------------------------------|--------|-------|
+|consulTemplateBePath|The path to the Consul Template representing a snippet of the backend configuration. If set, proxy template will be loaded from the specified file. Example: `/tmpl/be.tmpl`| | |
+|consulTemplateFePath|The path to the Consul Template representing a snippet of the frontend configuration. If set, proxy template will be loaded from the specified file. Example: `/tmpl/fe.tmpl`| | |
+|distribute   |Whether to distribute a request to all the instances of the proxy. Used only in the *swarm* mode. Example: `true`|No|false|
+|httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS. Example: `true`|No      |false  |
+|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain. Example: `ecme.com`|No| |
+|pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info. Example: `path_beg`|No| |
+|redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port. Example: `true`|No|false|
+|serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| |
+|servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on). Example: `/api/v1/books`|Yes| |
+|skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode. Example: `true`|No      |false  |
+|sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services. Example: `true`|No|false|
+|templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. If specified, `templateFePath` must be set as well. See the [Templates](#templates) section for more info. Example: `/tmpl/be.tmpl`| | |
+|templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well. See the [Templates](#templates) section for more info. Example: `/tmpl/fe.tmpl`| | |
+|users        |A comma-separated list of credentials (<user>:<pass>) for HTTP basic authentication. It applies only to the service that will be reconfigured. If used with `usersSecret`, or when `USERS` environment variable is set, password may be omitted. In that case, it will be taken from `usersSecret` file or the global configuration if `usersSecret` is not present. Example: `usr1:pwd1, usr2:pwd2`|No| |
+|usersSecret  |Suffix of Docker secret from which credentials will be taken for this service. Files must be a comma-separated list of credentials (<user>:<pass>). This suffix will be prepended with `dfp_users_`. For example, if the value is `mysecrets` the expected name of the Docker secret is `dfp_users_mysecrets`. Example: `mysecrets`|No| |
+|usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1` Example: `true`|No|false|
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `serviceDomain`, `srcPort`, and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
