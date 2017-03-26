@@ -1132,10 +1132,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithEnvVa
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsersStatsUserEnvAndStatsPassEnv() {
 	tests := []struct {
-		envKey string
-		before string
-		after  string
-		value  string
+		envKey     string
+		before     string
+		after      string
+		value      string
 		envKeyName string
 	}{
 		{"MY_USER", "stats auth admin:admin", "stats auth my-user:admin", "my-user", "STATS_USER_ENV"},

@@ -210,24 +210,7 @@ func (m HaProxy) getConfigData() ConfigData {
 			statsPass,
 		)
 	}
-	usersString := GetSecretOrEnvVar("USERS", "")
-	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
-	if len(usersString) > 0 {
-		d.UserList = "\nuserlist defaultUsers\n"
-		encrypted := strings.EqualFold(encryptedString, "true")
-		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
-		// TODO: Test
-		if len(users) == 0 {
-			users = append(users, RandomUser())
-		}
-		for _, user := range users {
-			passwordType := "insecure-password"
-			if user.PassEncrypted {
-				passwordType = "password"
-			}
-			d.UserList = fmt.Sprintf("%s    user %s %s %s\n", d.UserList, user.Username, passwordType, user.Password)
-		}
-	}
+	m.getUserList(&d)
 	d.ExtraFrontend = GetSecretOrEnvVar("EXTRA_FRONTEND", "")
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `
@@ -271,6 +254,27 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	m.getSni(&services, &d)
 	return d
+}
+
+func (m *HaProxy) getUserList(data *ConfigData) {
+	usersString := GetSecretOrEnvVar("USERS", "")
+	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
+	if len(usersString) > 0 {
+		data.UserList = "\nuserlist defaultUsers\n"
+		encrypted := strings.EqualFold(encryptedString, "true")
+		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
+		// TODO: Test
+		if len(users) == 0 {
+			users = append(users, RandomUser())
+		}
+		for _, user := range users {
+			passwordType := "insecure-password"
+			if user.PassEncrypted {
+				passwordType = "password"
+			}
+			data.UserList = fmt.Sprintf("%s    user %s %s %s\n", data.UserList, user.Username, passwordType, user.Password)
+		}
+	}
 }
 
 func (m *HaProxy) getSni(services *Services, config *ConfigData) {
