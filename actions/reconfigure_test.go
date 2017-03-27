@@ -76,46 +76,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 	s := new(ReconfigureTestSuite)
 	s.ServiceName = "myService"
 	s.PutPathResponse = "PUT_PATH_OK"
-	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		actualPath := r.URL.Path
-		header := http.StatusOK
-		if r.Method == "GET" {
-			switch actualPath {
-			case "/v1/catalog/services":
-				w.Header().Set("Content-Type", "application/json")
-				data := map[string][]string{"service1": {}, "service2": {}, s.ServiceName: {}}
-				js, _ := json.Marshal(data)
-				w.Write(js)
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte(strings.Join(s.ServiceDest[0].ServicePath, ",")))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte("orange"))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte(s.OutboundHostname))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte(s.PathType))
-				}
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
-				if r.URL.RawQuery == "raw" {
-					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
-				}
-			default:
-				header = http.StatusNotFound
-			}
-		}
-		w.WriteHeader(header)
-	}))
+	s.Server = s.getTestServer()
 	defer s.Server.Close()
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()
@@ -1258,6 +1219,49 @@ func getProxyMock(skipMethod string) *ProxyMock {
 }
 
 // Util
+
+func (s ReconfigureTestSuite) getTestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actualPath := r.URL.Path
+		header := http.StatusOK
+		if r.Method == "GET" {
+			switch actualPath {
+			case "/v1/catalog/services":
+				w.Header().Set("Content-Type", "application/json")
+				data := map[string][]string{"service1": {}, "service2": {}, s.ServiceName: {}}
+				js, _ := json.Marshal(data)
+				w.Write(js)
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte(strings.Join(s.ServiceDest[0].ServicePath, ",")))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte("orange"))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte(s.OutboundHostname))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte(s.PathType))
+				}
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
+				if r.URL.RawQuery == "raw" {
+					w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
+				}
+			default:
+				header = http.StatusNotFound
+			}
+		}
+		w.WriteHeader(header)
+	}))
+}
 
 func (s ReconfigureTestSuite) verifyDoesNotPutDataToConsul(mode string) {
 	s.reconfigure.Mode = mode
