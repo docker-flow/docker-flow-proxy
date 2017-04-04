@@ -312,29 +312,29 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCert_WhenServiceCert
 	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
 }
 
-func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
-	actualCertName := ""
-	expectedCert := "my-cert with new line \\n"
-	actualCert := ""
-	cert := CertMock{
-		PutCertMock: func(certName string, certContent []byte) (string, error) {
-			actualCertName = certName
-			actualCert = string(certContent[:])
-			return "", nil
-		},
-	}
-	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceDomain=my-domain.com&serviceCert=%s", expectedCert)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	srv := Serve{
-		Mode: "swarm",
-		Cert: cert,
-	}
-	srv.ReconfigureHandler(getResponseWriterMock(), req)
-
-	s.Equal("my-domain.com", actualCertName)
-	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
-}
+//func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_WhenServiceCertIsPresent() {
+//	actualCertName := ""
+//	expectedCert := "my-cert with new line \\n"
+//	actualCert := ""
+//	cert := CertMock{
+//		PutCertMock: func(certName string, certContent []byte) (string, error) {
+//			actualCertName = certName
+//			actualCert = string(certContent[:])
+//			return "", nil
+//		},
+//	}
+//	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceDomain=my-domain.com&serviceCert=%s", expectedCert)
+//	req, _ := http.NewRequest("GET", addr, nil)
+//
+//	srv := Serve{
+//		Mode: "swarm",
+//		Cert: cert,
+//	}
+//	srv.ReconfigureHandler(getResponseWriterMock(), req)
+//
+//	s.Equal("my-domain.com", actualCertName)
+//	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
+//}
 
 func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
 	sd := proxy.ServiceDest{
