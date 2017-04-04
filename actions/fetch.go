@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 type Fetchable interface {
@@ -60,7 +61,18 @@ func (m *Fetch) ReloadConfig(baseData BaseReconfigure, mode string, listenerAddr
 			for _, s := range services {
 				proxyService := proxy.GetServiceFromMap(&s)
 				reconfigure := NewReconfigure(baseData, *proxyService, mode)
-				reconfigure.Execute(false)
+				interval := time.Second * 5
+				i := 0
+				for range time.Tick(interval) {
+					if err := reconfigure.Execute(false); err == nil {
+						break
+					} else if i >= 20 {
+						logPrintf("Could not reach the service %s. Giving up...", proxyService.ServiceName)
+						break
+					} else {
+						logPrintf("%s Will retry in %d seconds.", err.Error(), interval/time.Second)
+					}
+				}
 				needsReload = true
 			}
 			if needsReload {

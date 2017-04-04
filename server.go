@@ -91,10 +91,14 @@ func (m *Serve) reconfigure(server server.Server) error {
 	}
 	if len(lAddr)>0 {
 		go func() {
-			interval := time.Second * 10
+			interval := time.Second * 5
 			for range time.Tick(interval) {
 				if err := fetch.ReloadConfig(m.BaseReconfigure, m.Mode, lAddr); err != nil {
-					logPrintf("Error: Fetching config from swarm listener failed: %s. Will retry in %d seconds", err.Error(), interval/time.Second)
+					logPrintf(
+						"Error: Fetching config from swarm listener failed: %s. Will retry in %d seconds.",
+						err.Error(),
+						interval/time.Second,
+					)
 				} else {
 					break
 				}

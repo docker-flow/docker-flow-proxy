@@ -77,6 +77,7 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 	if reloadAfter {
 		reload := Reload{}
 		if err := reload.Execute(true); err != nil {
+			logPrintf(err.Error())
 			return err
 		}
 		//MW: this happens only when reloadAfter is requested
@@ -86,11 +87,11 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 		//see Fetch.reloadFromRegistry
 		if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
 			if err := m.putToConsul(m.ConsulAddresses, m.Service, m.InstanceName); err != nil {
+				logPrintf(err.Error())
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 
