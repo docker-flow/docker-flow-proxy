@@ -23,24 +23,22 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |EXTRA_GLOBAL       |Value will be added to the default `global` configuration.|No      | |
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.<br>Example: swarm-listener|Only in the *swarm* mode| |
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. **This mode is deprecated and will be removed soon**. The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).<br>Example: swarm|No      |default|
-
-
-|PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster|No|docker-flow|docker-flow|
-|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.|No|proxy|my-proxy|
-|SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.|No|true|false|
-|STATS_USER         |Username for the statistics page. If not set, stats will not be available.|No      |admin  |my-user|
-|STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page|No|STATS_USER|MY_USER|
-|STATS_PASS         |Password for the statistics page. If not set, stats will not be available.|No      |admin  |my-pass|
-|STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page|No|STATS_PASS|MY_PASS|
-|TIMEOUT_CLIENT     |The client timeout in seconds                             |No      |20     |5      |
-|TIMEOUT_CONNECT    |The connect timeout in seconds                            |No      |5      |3      |
-|TIMEOUT_QUEUE      |The queue timeout in seconds                              |No      |30     |10     |
-|TIMEOUT_SERVER     |The server timeout in seconds                             |No      |20     |5      |
-|TIMEOUT_TUNNEL     |The tunnel timeout in seconds                             |No      |3600   |1800   |
-|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds                      |No      |5      |3      |
-|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds                |No      |15     |10     |
-|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it. |No| |user1:pass1, user2:pass2|
-|USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command |No| false |true|
+PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.|No|docker-flow|
+|SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.<br>Example: my-proxy|No|proxy|
+|SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.<br>Example: false|No|true|
+|STATS_USER         |Username for the statistics page. If not set, stats will not be available.<br>Example: my-user|No      |admin  |
+|STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page<br>Example: MY_USER|No|STATS_USER|
+|STATS_PASS         |Password for the statistics page. If not set, stats will not be available.<br>Example: my-pass|No      |admin  |
+|STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page.<br>Example: MY_PASS|No|STATS_PASS|
+|TIMEOUT_CLIENT     |The client timeout in seconds.<br>Example: 5              |No      |20     |5      |
+|TIMEOUT_CONNECT    |The connect timeout in seconds.<br>Example: 3             |No      |5      |3      |
+|TIMEOUT_QUEUE      |The queue timeout in seconds.<br>Example: 10              |No      |30     |10     |
+|TIMEOUT_SERVER     |The server timeout in seconds.<br>Example: 15             |No      |20     |5      |
+|TIMEOUT_TUNNEL     |The tunnel timeout in seconds.<br>Example: 1800           |No      |3600   |1800   |
+|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds.<br>Example: 3       |No      |5      |3      |
+|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds.<br>Example: 10|No      |15     |10     |
+|USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it.<br>Example: user1:pass1, user2:pass2|No| |
+|USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command.<br>Example: true|No| false |
 
 ## Debug Format
 
