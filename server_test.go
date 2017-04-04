@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
 	"./actions"
 	"./proxy"
 	"./server"
@@ -70,7 +69,6 @@ func (s *ServerTestSuite) SetupTest() {
 	s.ResponseWriter = getResponseWriterMock()
 	s.RequestReconfigure, _ = http.NewRequest("GET", s.ReconfigureUrl, nil)
 	s.RequestRemove, _ = http.NewRequest("GET", s.RemoveUrl, nil)
-	usersBasePath = "./test_configs/%s.txt"
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
@@ -154,20 +152,14 @@ func (s *ServerTestSuite) Test_Execute_InvokesCertInit() {
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 	actualAddresses := []string{}
 	actualInstanceName := ""
-	newReconfigureOrig := actions.NewReconfigure
-	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock{
-			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
-				actualAddresses = addresses
-				actualInstanceName = instanceName
-				return nil
-			},
-			ExecuteMock: func(args []string) error {
-				return nil
-			},
-		}
-	}
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			actualAddresses = addresses
+			actualInstanceName = instanceName
+			return nil
+		},
+	})()
+
 	consulAddressesOrig := []string{s.ConsulAddress}
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
@@ -183,50 +175,42 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServices() {
 
 func (s *ServerTestSuite) Test_Execute_InvokesReconfigureExecuteForEachServiceDefinedInEnvVars() {
 	called := 0
-	newServerOrig := server.NewServer
-	newReconfigureOrig := actions.NewReconfigure
-	defer func() {
-		actions.NewReconfigure = newReconfigureOrig
-		server.NewServer = newServerOrig
-	}()
-	server.NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert server.Certer) server.Server {
-		return ServerMock{
-			GetServicesFromEnvVarsMock: func() *[]proxy.Service {
-				return &[]proxy.Service{{}, {}}
-			},
-		}
-	}
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock{
-			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
-				return nil
-			},
-			ExecuteMock: func(args []string) error {
-				called++
-				return nil
-			},
-		}
-	}
+	defer MockServer(ServerMock{
+		GetServicesFromEnvVarsMock: func() *[]proxy.Service { return &[]proxy.Service{{}, {}} },
+	})()
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error { return nil },
+	})()
+	defer MockReconfigure(ReconfigureMock{
+		ExecuteMock: func(reloadAfter bool) error {
+			called++
+			return nil
+		},
+	})()
 
 	serverImpl.Execute([]string{})
-
 	s.Equal(2, called)
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
 	expectedListenerAddress := "swarm-listener"
-	actualListenerAddress := ""
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock{
-			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
-				actualListenerAddress = listenerAddress
-				return nil
-			},
-			ExecuteMock: func(args []string) error {
-				return nil
-			},
-		}
-	}
+	reloadFromRegistryCalled := false
+	actualListenerAddressChan := make(chan string)
+	defer MockReconfigure(ReconfigureMock{
+		ExecuteMock: func(reloadAfter bool) error {
+			return nil
+		},
+	})()
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			reloadFromRegistryCalled = true
+			return nil
+		},
+		ReloadConfigMock: func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
+			actualListenerAddressChan <- listenerAddr
+			return nil
+		},
+	})()
 	consulAddressesOrig := []string{s.ConsulAddress}
 	defer func() {
 		os.Unsetenv("CONSUL_ADDRESS")
@@ -238,20 +222,59 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 
 	serverImpl.Execute([]string{})
 
+	actualListenerAddress, _ := <-actualListenerAddressChan
+	close(actualListenerAddressChan)
 	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress), actualListenerAddress)
 }
 
+func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress() {
+	expectedListenerAddress := "swarm-listener"
+	actualListenerAddressChan := make(chan string)
+	callNum := 0
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			return nil
+		},
+		ReloadConfigMock: func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
+			callNum = callNum + 1
+			actualListenerAddressChan <- fmt.Sprintf("%s-%d", listenerAddr, callNum)
+			if callNum == 2 {
+				close(actualListenerAddressChan)
+				return nil
+			} else {
+				return fmt.Errorf("On iteration %d", callNum)
+			}
+		},
+	})()
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		os.Unsetenv("LISTENER_ADDRESS")
+		serverImpl.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
+	serverImpl.ListenerAddress = expectedListenerAddress
+
+	serverImpl.Execute([]string{})
+
+	actualListenerAddress1, chok1 := <-actualListenerAddressChan
+	s.True(chok1)
+	actualListenerAddress2, _ := <-actualListenerAddressChan
+	_, chok2 := <-actualListenerAddressChan
+
+	s.False(chok2)
+
+	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress), actualListenerAddress1)
+	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress), actualListenerAddress2)
+}
+
 func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails() {
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		return ReconfigureMock{
-			ReloadServicesFromListenerMock: func(addresses []string, instanceName, mode, listenerAddress string) error {
-				return fmt.Errorf("This is an error")
-			},
-		}
-	}
-
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			return fmt.Errorf("This is an error")
+		},
+	})()
 	actual := serverImpl.Execute([]string{})
-
 	s.Error(actual)
 }
 
@@ -494,6 +517,14 @@ type ServerMock struct {
 	GetServicesFromEnvVarsMock func() *[]proxy.Service
 }
 
+func MockServer(mock ServerMock) func() {
+	newServerOrig := server.NewServer
+	server.NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert server.Certer) server.Server {
+		return mock
+	}
+	return func() { server.NewServer = newServerOrig }
+}
+
 func (m ServerMock) GetServiceFromUrl(req *http.Request) *proxy.Service {
 	return m.GetServiceFromUrlMock(req)
 }
@@ -536,29 +567,70 @@ func getRunMock(skipMethod string) *RunMock {
 }
 
 type ReconfigureMock struct {
-	ExecuteMock                    func(args []string) error
-	GetDataMock                    func() (actions.BaseReconfigure, proxy.Service)
-	ReloadServicesFromListenerMock func(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplatesMock               func(sr *proxy.Service) (front, back string, err error)
-	GetServicesFromEnvVarsMock     func() []proxy.Service
+	ExecuteMock      func(reloadAfter bool) error
+	GetDataMock      func() (actions.BaseReconfigure, proxy.Service)
+	GetTemplatesMock func() (front, back string, err error)
 }
 
-func (m ReconfigureMock) Execute(args []string) error {
-	return m.ExecuteMock(args)
+func MockReconfigure(mock ReconfigureMock) func() {
+	newReconfigureOrig := actions.NewReconfigure
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+		return mock
+	}
+	return func() { actions.NewReconfigure = newReconfigureOrig }
+}
+
+func (m ReconfigureMock) Execute(reloadAfter bool) error {
+	return m.ExecuteMock(reloadAfter)
 }
 
 func (m ReconfigureMock) GetData() (actions.BaseReconfigure, proxy.Service) {
 	return m.GetDataMock()
 }
 
-func (m ReconfigureMock) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
-	return m.ReloadServicesFromListenerMock(addresses, instanceName, mode, listenerAddress)
+func (m ReconfigureMock) GetTemplates() (front, back string, err error) {
+	return m.GetTemplatesMock()
 }
 
-func (m ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
-	return m.GetTemplatesMock(sr)
+type ReloadMock struct {
+	ExecuteMock func(recreate bool) error
 }
 
-func (m ReconfigureMock) GetServicesFromEnvVars() []proxy.Service {
-	return m.GetServicesFromEnvVarsMock()
+func MockReload(mock ReloadMock) func() {
+	newFetchOrig := actions.NewReload
+	actions.NewReload = func() actions.Reloader {
+		return mock
+	}
+	return func() {
+		actions.NewReload = newFetchOrig
+	}
+}
+
+func (m ReloadMock) Execute(recreate bool) error {
+	return m.ExecuteMock(recreate)
+}
+
+type FetchMock struct {
+	ReloadServicesFromRegistryMock func(addresses []string, instanceName, mode string) error
+	ReloadClusterConfigMock        func(listenerAddr string) error
+	ReloadConfigMock               func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error
+}
+
+func (m *FetchMock) ReloadServicesFromRegistry(addresses []string, instanceName, mode string) error {
+	return m.ReloadServicesFromRegistryMock(addresses, instanceName, mode)
+}
+func (m FetchMock) ReloadClusterConfig(listenerAddr string) error {
+	return m.ReloadClusterConfigMock(listenerAddr)
+}
+func (m FetchMock) ReloadConfig(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
+	return m.ReloadConfigMock(baseData, mode, listenerAddr)
+}
+func MockFetch(mock FetchMock) func() {
+	newFetchOrig := actions.NewFetch
+	actions.NewFetch = func(baseData actions.BaseReconfigure, mode string) actions.Fetchable {
+		return &mock
+	}
+	return func() {
+		actions.NewFetch = newFetchOrig
+	}
 }

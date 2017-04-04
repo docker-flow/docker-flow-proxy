@@ -76,7 +76,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 	s := new(ReconfigureTestSuite)
 	s.ServiceName = "myService"
 	s.PutPathResponse = "PUT_PATH_OK"
-	s.Server = s.getTestServer()
+	s.Server = GetTestServer(s.Service, s.InstanceName)
 	defer s.Server.Close()
 	registryInstanceOrig := registryInstance
 	defer func() { registryInstance = registryInstanceOrig }()
@@ -101,7 +101,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 // GetTemplate
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
-	front, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	front, back, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", front)
 	s.Equal(s.ConsulTemplateBe, back)
@@ -121,7 +121,7 @@ backend myService-be
     http-request auth realm defaultRealm if !defaultUsersAcl
     http-request del-header Authorization`
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, back, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, back)
 }
@@ -145,7 +145,7 @@ backend myService-be
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization`
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, back, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, back)
 }
@@ -169,7 +169,7 @@ backend myService-be
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization`
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, back, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, back)
 }
@@ -184,7 +184,7 @@ backend myService-be1234
     mode http
     server myService myService:1234`
 
-		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+		_, actual, _ := s.reconfigure.GetTemplates()
 
 		s.Equal(expected, actual)
 	}
@@ -202,7 +202,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsLoggin_WhenDebug() {
 		-1,
 	)
 
-	_, back, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, back, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, back)
 }
@@ -218,7 +218,7 @@ backend myService-be1234
     mode http
     server myService myService:1234 ssl verify none`
 
-		_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+		_, actual, _ := s.reconfigure.GetTemplates()
 
 		s.Equal(expected, actual)
 	}
@@ -233,7 +233,7 @@ backend myService-be1234
     mode tcp
     server myService myService:1234`
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, actual)
 }
@@ -252,7 +252,7 @@ backend myService-be1234
     http-request auth realm defaultRealm if !defaultUsersAcl
     http-request del-header Authorization`
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, actual)
 }
@@ -276,7 +276,7 @@ backend myService-be1234
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization`
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, actual)
 }
@@ -293,7 +293,7 @@ backend https-myService-be1234
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
@@ -308,7 +308,7 @@ backend myService-be1234
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutServer = "9999"
 	s.reconfigure.Mode = "service"
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
@@ -323,7 +323,7 @@ backend myService-be1234
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutTunnel = "9999"
 	s.reconfigure.Mode = "service"
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
@@ -347,7 +347,7 @@ backend myService-be5555
     server myService myService:5555`
 	s.reconfigure.ServiceDest = sd
 	s.reconfigure.Mode = "service"
-	actualFront, actualBack, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
@@ -369,7 +369,7 @@ backend myService-be
 		s.reconfigure.ServiceName,
 	)
 
-	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, backend, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, backend)
 }
@@ -389,7 +389,7 @@ backend myService-be
 		s.reconfigure.ServiceName,
 	)
 
-	_, backend, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, backend, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, backend)
 }
@@ -398,7 +398,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Contains(actual, expected)
 }
@@ -406,7 +406,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 func (s ReconfigureTestSuite) Test_GetTemplates_DoesNotSetCheckWhenSkipCheckIsTrue() {
 	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
 	s.reconfigure.SkipCheck = true
-	_, actual, _ := s.reconfigure.GetTemplates(&s.reconfigure.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(s.ConsulTemplateBe, actual)
 }
@@ -418,10 +418,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFileContent_WhenConsulTem
 	readTemplateFile = func(dirname string) ([]byte, error) {
 		return []byte(expected), nil
 	}
-	s.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
-	s.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
+	s.reconfigure.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.reconfigure.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, actual, _ := s.reconfigure.GetTemplates(&s.Service)
+	_, actual, _ := s.reconfigure.GetTemplates()//tu było s.Service
 
 	s.Equal(expected, actual)
 }
@@ -441,10 +441,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ProcessesTemplateFromTemplatePat
 		}
 		return []byte(""), fmt.Errorf("This is an error")
 	}
-	s.Service.TemplateFePath = expectedFeFile
-	s.Service.TemplateBePath = expectedBeFile
+	s.reconfigure.Service.TemplateFePath = expectedFeFile
+	s.reconfigure.Service.TemplateBePath = expectedBeFile
 
-	actualFe, actualBe, _ := s.reconfigure.GetTemplates(&s.Service)
+	actualFe, actualBe, _ := s.reconfigure.GetTemplates()//tu było s.Service
 
 	s.Equal(expectedFe, actualFe)
 	s.Equal(expectedBe, actualBe)
@@ -460,10 +460,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateFePathI
 		}
 		return []byte(""), nil
 	}
-	s.Service.TemplateFePath = testFilename
-	s.Service.TemplateBePath = "not/under/test"
+	s.reconfigure.Service.TemplateFePath = testFilename
+	s.reconfigure.Service.TemplateBePath = "not/under/test"
 
-	_, _, err := s.reconfigure.GetTemplates(&s.Service)
+	_, _, err := s.reconfigure.GetTemplates()//tu było s.Service
 
 	s.Error(err)
 }
@@ -479,10 +479,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenTemplateBePathI
 		return []byte(""), nil
 	}
 
-	s.Service.TemplateFePath = "not/under/test"
-	s.Service.TemplateBePath = testFilename
+	s.reconfigure.Service.TemplateFePath = "not/under/test"
+	s.reconfigure.Service.TemplateBePath = testFilename
 
-	_, _, err := s.reconfigure.GetTemplates(&s.Service)
+	_, _, err := s.reconfigure.GetTemplates()//tu było s.Service
 
 	s.Error(err)
 }
@@ -493,10 +493,10 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsError_WhenConsulTemplateF
 	readTemplateFile = func(filename string) ([]byte, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
-	s.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
-	s.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
+	s.reconfigure.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
+	s.reconfigure.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	_, _, actual := s.reconfigure.GetTemplates(&s.Service)
+	_, _, actual := s.reconfigure.GetTemplates()//tu było s.Service
 
 	s.Error(actual)
 }
@@ -518,7 +518,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesRegistrarableCreateConfigs() {
 		ServiceName:   s.ServiceName,
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertCalled(s.T(), "CreateConfigs", &expectedArgs)
 }
@@ -547,7 +547,7 @@ backend %s-be%s
 		return nil
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -576,7 +576,7 @@ backend %s-be%s
 		return nil
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -607,7 +607,7 @@ backend %s-be%s
 		return nil
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -639,7 +639,7 @@ backend %s-be%s
 		return nil
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -671,7 +671,7 @@ backend %s-be%s
 		return nil
 	}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(expectedFilename, actualFilename)
 	s.Equal(expectedData, actualData)
@@ -684,7 +684,7 @@ func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfi
 	registryInstance = mockObj
 	s.reconfigure.Mode = "seRviCe"
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertNotCalled(s.T(), "CreateConfigs", mock.Anything)
 }
@@ -696,7 +696,7 @@ func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeRegistrarableCreateConfi
 	registryInstance = mockObj
 	s.reconfigure.Mode = "sWaRm"
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertNotCalled(s.T(), "CreateConfigs", mock.Anything)
 }
@@ -717,7 +717,7 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenRegistrarableCreateC
 	defer func() { registryInstance = registryInstanceOrig }()
 	registryInstance = mockObj
 
-	actual := s.reconfigure.Execute([]string{})
+	actual := s.reconfigure.Execute(true)
 
 	s.Error(actual)
 }
@@ -728,7 +728,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesProxyCreateConfigFromTemplates
 	defer func() { proxy.Instance = proxyOrig }()
 	proxy.Instance = mockObj
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
 }
@@ -740,7 +740,7 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	defer func() { proxy.Instance = proxyOrig }()
 	proxy.Instance = mockObj
 
-	err := s.reconfigure.Execute([]string{})
+	err := s.reconfigure.Execute(true)
 
 	s.Error(err)
 }
@@ -770,7 +770,7 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 		"",
 	)
 
-	r.Execute([]string{})
+	r.Execute(true)
 
 	mockObj.AssertCalled(s.T(), "AddService", mock.Anything)
 }
@@ -795,7 +795,7 @@ func (s ReconfigureTestSuite) Test_Execute_DoesNotInvokeAddService_WhenTemplates
 		"",
 	)
 
-	r.Execute([]string{})
+	r.Execute(true)
 
 	mockObj.AssertNotCalled(s.T(), "AddService", mock.Anything)
 }
@@ -806,7 +806,7 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 	mock := getProxyMock("")
 	proxy.Instance = mock
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mock.AssertCalled(s.T(), "Reload")
 }
@@ -837,7 +837,7 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 	defer func() { proxy.Instance = proxyOrig }()
 	proxy.Instance = proxyMockObj
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertCalled(s.T(), "PutService", []string{s.ConsulAddress}, s.InstanceName, r)
 }
@@ -857,7 +857,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() 
 	mockObj.On("PutService", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
 	registryInstance = mockObj
 
-	actual := s.reconfigure.Execute([]string{})
+	actual := s.reconfigure.Execute(true)
 
 	s.Error(actual)
 }
@@ -865,13 +865,13 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenPutToConsulFails() 
 func (s *ReconfigureTestSuite) Test_Execute_AddsHttpIfNotPresentInPutToConsul() {
 	s.reconfigure.ConsulAddresses = []string{strings.Replace(s.ConsulAddress, "http://", "", -1)}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(s.ServiceColor, s.ConsulRequestBody.ServiceColor)
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_SendsServicePathToConsul() {
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	s.Equal(s.reconfigure.ServiceColor, s.ConsulRequestBody.ServiceColor)
 }
@@ -885,7 +885,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileI
 	s.reconfigure.Service.ConsulTemplateFePath = "/path/to/my/consul/fe/template"
 	s.reconfigure.Service.ConsulTemplateBePath = "/path/to/my/consul/be/template"
 
-	err := s.reconfigure.Execute([]string{})
+	err := s.reconfigure.Execute(true)
 
 	s.Error(err)
 }
@@ -897,7 +897,7 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessi
 	defer func() { s.reconfigure.skipAddressValidation = skipAddressValidationOrig }()
 	s.reconfigure.skipAddressValidation = false
 
-	err := s.reconfigure.Execute([]string{})
+	err := s.reconfigure.Execute(true)
 
 	s.Error(err)
 	//	s.NoError(err)
@@ -930,106 +930,9 @@ func (s *ReconfigureTestSuite) Test_NewReconfigure_CreatesNewStruct() {
 	s.NotEqual(actualSr1, actualSr2)
 }
 
-// ReloadAllServices
 
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenFail() {
-	err := s.reconfigure.ReloadServicesFromListener([]string{"this/address/does/not/exist"}, s.InstanceName, "", "")
 
-	s.Error(err)
-}
 
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyCreateConfigFromTemplates() {
-	mockObj := getProxyMock("")
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxy.Instance = mockObj
-
-	s.reconfigure.ReloadServicesFromListener([]string{s.ConsulAddress}, s.InstanceName, "", "")
-
-	mockObj.AssertCalled(s.T(), "CreateConfigFromTemplates")
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyCreateConfigFromTemplatesFails() {
-	mockObj := getProxyMock("CreateConfigFromTemplates")
-	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxy.Instance = mockObj
-
-	actual := s.reconfigure.ReloadServicesFromListener([]string{s.ConsulAddress}, s.InstanceName, "", "")
-
-	s.Error(actual)
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_InvokesProxyReload() {
-	mockObj := getProxyMock("")
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxy.Instance = mockObj
-
-	s.reconfigure.ReloadServicesFromListener([]string{s.ConsulAddress}, s.InstanceName, "", "")
-
-	mockObj.AssertCalled(s.T(), "Reload")
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenProxyReloadFails() {
-	mockObj := getProxyMock("Reload")
-	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxy.Instance = mockObj
-
-	actual := s.reconfigure.ReloadServicesFromListener([]string{s.ConsulAddress}, s.InstanceName, "", "")
-
-	s.Error(actual)
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_AddsHttpIfNotPresent() {
-	proxyOrig := proxy.Instance
-	defer func() { proxy.Instance = proxyOrig }()
-	proxy.Instance = getProxyMock("")
-	address := strings.Replace(s.ConsulAddress, "http://", "", -1)
-	err := s.reconfigure.ReloadServicesFromListener([]string{address}, s.InstanceName, "", "")
-
-	s.NoError(err)
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_SendsARequestToSwarmListener_WhenListenerAddressIsDefined() {
-	actual := ""
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		actual = r.URL.Path
-	}))
-	defer func() { srv.Close() }()
-
-	s.reconfigure.ReloadServicesFromListener([]string{}, s.InstanceName, "", srv.URL)
-
-	s.Equal("/v1/docker-flow-swarm-listener/notify-services", actual)
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmListenerStatusIsNot200() {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer func() { srv.Close() }()
-
-	err := s.reconfigure.ReloadServicesFromListener([]string{}, s.InstanceName, "", srv.URL)
-
-	s.Error(err)
-}
-
-func (s *ReconfigureTestSuite) Test_ReloadAllServices_ReturnsError_WhenSwarmListenerFails() {
-	httpGetOrig := httpGet
-	defer func() { httpGet = httpGetOrig }()
-	httpGet = func(url string) (*http.Response, error) {
-		resp := http.Response{
-			StatusCode: http.StatusOK,
-		}
-		return &resp, fmt.Errorf("This is an error")
-	}
-	err := s.reconfigure.ReloadServicesFromListener([]string{}, s.InstanceName, "", "http://google.com")
-
-	s.Error(err)
-}
 
 // Mock
 
@@ -1037,8 +940,8 @@ type ReconfigureMock struct {
 	mock.Mock
 }
 
-func (m *ReconfigureMock) Execute(args []string) error {
-	params := m.Called(args)
+func (m *ReconfigureMock) Execute(reloadAfter bool) error {
+	params := m.Called(reloadAfter)
 	return params.Error(0)
 }
 
@@ -1047,20 +950,12 @@ func (m *ReconfigureMock) GetData() (BaseReconfigure, proxy.Service) {
 	return BaseReconfigure{}, proxy.Service{}
 }
 
-func (m *ReconfigureMock) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
-	params := m.Called(addresses, instanceName, mode, listenerAddress)
-	return params.Error(0)
-}
 
-func (m *ReconfigureMock) GetTemplates(sr *proxy.Service) (front, back string, err error) {
-	params := m.Called(sr)
+func (m *ReconfigureMock) GetTemplates() (front, back string, err error) {
+	params := m.Called()
 	return params.String(0), params.String(1), params.Error(2)
 }
 
-func (m *ReconfigureMock) GetServicesFromEnvVars() []proxy.Service {
-	params := m.Called()
-	return params.Get(0).([]proxy.Service)
-}
 
 func getReconfigureMock(skipMethod string) *ReconfigureMock {
 	mockObj := new(ReconfigureMock)
@@ -1068,16 +963,10 @@ func getReconfigureMock(skipMethod string) *ReconfigureMock {
 		mockObj.On("Execute", mock.Anything).Return(nil)
 	}
 	if skipMethod != "GetData" {
-		mockObj.On("GetData", mock.Anything, mock.Anything).Return(nil)
-	}
-	if skipMethod != "ReloadServicesFromListener" {
-		mockObj.On("ReloadServicesFromListener", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockObj.On("GetData").Return(nil)
 	}
 	if skipMethod != "GetTemplates" {
-		mockObj.On("GetTemplates", mock.Anything).Return("", "", nil)
-	}
-	if skipMethod != "GetServicesFromEnvVars" {
-		mockObj.On("GetServicesFromEnvVars").Return([]proxy.Service{})
+		mockObj.On("GetTemplates").Return("", "", nil)
 	}
 	return mockObj
 }
@@ -1220,7 +1109,7 @@ func getProxyMock(skipMethod string) *ProxyMock {
 
 // Util
 
-func (s ReconfigureTestSuite) getTestServer() *httptest.Server {
+func GetTestServer(s proxy.Service, InstanceName string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actualPath := r.URL.Path
 		header := http.StatusOK
@@ -1231,17 +1120,17 @@ func (s ReconfigureTestSuite) getTestServer() *httptest.Server {
 			w.Write(js)
 		} else if r.Method == "GET" && r.URL.RawQuery == "raw" {
 			switch actualPath {
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.PATH_KEY):
 				w.Write([]byte(strings.Join(s.ServiceDest[0].ServicePath, ",")))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.COLOR_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.COLOR_KEY):
 				w.Write([]byte("orange"))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.DOMAIN_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.DOMAIN_KEY):
 				w.Write([]byte(strings.Join(s.ServiceDomain, ",")))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.HOSTNAME_KEY):
 				w.Write([]byte(s.OutboundHostname))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
 				w.Write([]byte(s.PathType))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", s.InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
+			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
 				w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
 			default:
 				header = http.StatusNotFound
@@ -1261,7 +1150,7 @@ func (s ReconfigureTestSuite) verifyDoesNotPutDataToConsul(mode string) {
 	defer func() { s.reconfigure.ConsulAddresses = []string{consulAddress} }()
 	s.reconfigure.ConsulAddresses = []string{}
 
-	s.reconfigure.Execute([]string{})
+	s.reconfigure.Execute(true)
 
 	mockObj.AssertNotCalled(s.T(), "PutService", mock.Anything, mock.Anything, mock.Anything)
 }

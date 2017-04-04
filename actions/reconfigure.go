@@ -4,13 +4,9 @@ import (
 	"../proxy"
 	"../registry"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
-	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -22,10 +18,9 @@ var mu = &sync.Mutex{}
 
 // Methods that should be created for reconfigure actions
 type Reconfigurable interface {
-	Executable
+	Execute(reloadAfter bool) error
 	GetData() (BaseReconfigure, proxy.Service)
-	ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error
-	GetTemplates(sr *proxy.Service) (front, back string, err error)
+	GetTemplates() (front, back string, err error)
 }
 
 // Data structure that holds reconfigure data
@@ -44,6 +39,7 @@ type BaseReconfigure struct {
 	skipAddressValidation bool   `env:"SKIP_ADDRESS_VALIDATION" description:"Whether to skip validating service address before reconfiguring the proxy."`
 }
 
+// TODO: Change proxy.Service to *proxy.Service
 // Singleton instance
 var ReconfigureInstance Reconfigure
 
@@ -59,8 +55,7 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, m
 	}
 }
 
-// TODO: Remove args
-func (m *Reconfigure) Execute(args []string) error {
+func (m *Reconfigure) Execute(reloadAfter bool) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if isSwarm(m.Mode) && !m.skipAddressValidation {
@@ -73,24 +68,29 @@ func (m *Reconfigure) Execute(args []string) error {
 			return err
 		}
 	}
-	if err := m.createConfigs(m.TemplatesPath, &m.Service); err != nil {
+	if err := m.createConfigs(); err != nil {
 		return err
 	}
 	if !m.hasTemplate() {
 		proxy.Instance.AddService(m.Service)
 	}
-	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
-		return err
-	}
-	reload := Reload{}
-	if err := reload.Execute(false, ""); err != nil {
-		return err
-	}
-	if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
-		if err := m.putToConsul(m.ConsulAddresses, m.Service, m.InstanceName); err != nil {
+	if reloadAfter {
+		reload := Reload{}
+		if err := reload.Execute(true); err != nil {
 			return err
 		}
+		//MW: this happens only when reloadAfter is requested
+		//its little ugly because it should not happen when
+		//reconfiguration is made from consul config
+		//but in that case we never call it with reloadAfter
+		//see Fetch.reloadFromRegistry
+		if len(m.ConsulAddresses) > 0 || !isSwarm(m.Mode) {
+			if err := m.putToConsul(m.ConsulAddresses, m.Service, m.InstanceName); err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -98,109 +98,11 @@ func (m *Reconfigure) GetData() (BaseReconfigure, proxy.Service) {
 	return m.BaseReconfigure, m.Service
 }
 
-func (m *Reconfigure) ReloadServicesFromListener(addresses []string, instanceName, mode, listenerAddress string) error {
-	if len(listenerAddress) > 0 {
-		fullAddress := fmt.Sprintf("%s/v1/docker-flow-swarm-listener/notify-services", listenerAddress)
-		resp, err := httpGet(fullAddress)
-		if err != nil {
-			return err
-		} else if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Swarm Listener responded with the status code %d", resp.StatusCode)
-		}
-		logPrintf("A request was sent to the Swarm listener running on %s. The proxy will be reconfigured soon.", listenerAddress)
-	} else if len(addresses) > 0 {
-		return m.reloadFromRegistry(addresses, instanceName, mode)
-	}
-	return nil
-}
-
-func (m *Reconfigure) reloadFromRegistry(addresses []string, instanceName, mode string) error {
-	var resp *http.Response
-	var err error
-	logPrintf("Configuring existing services")
-	found := false
-	for _, address := range addresses {
-		address = strings.ToLower(address)
-		if !strings.HasPrefix(address, "http") {
-			address = fmt.Sprintf("http://%s", address)
-		}
-		servicesUrl := fmt.Sprintf("%s/v1/catalog/services", address)
-		resp, err = http.Get(servicesUrl)
-		if err == nil {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return fmt.Errorf("Could not retrieve the list of services from Consul")
-	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	c := make(chan proxy.Service)
-	count := 0
-	var data map[string]interface{}
-	json.Unmarshal(body, &data)
-	count = len(data)
-	for key := range data {
-		go m.getService(addresses, key, instanceName, c)
-	}
-	logPrintf("\tFound %d services", count)
-	for i := 0; i < count; i++ {
-		s := <-c
-		if len(s.ServiceDest) > 0 && len(s.ServiceDest[0].ServicePath) > 0 {
-			logPrintf("\tConfiguring %s", s.ServiceName)
-			m.createConfigs(m.TemplatesPath, &s)
-		}
-	}
-	if err := proxy.Instance.CreateConfigFromTemplates(); err != nil {
-		return err
-	}
-	reload := Reload{}
-	return reload.Execute(false, "")
-}
-
-func (m *Reconfigure) getService(addresses []string, serviceName, instanceName string, c chan proxy.Service) {
-	sr := proxy.Service{ServiceName: serviceName}
-
-	path, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.PATH_KEY, instanceName)
-	domain, err := registryInstance.GetServiceAttribute(addresses, serviceName, registry.DOMAIN_KEY, instanceName)
-	port, _ := m.getServiceAttribute(addresses, serviceName, registry.PORT, instanceName)
-	sd := proxy.ServiceDest{
-		ServicePath: strings.Split(path, ","),
-		Port:        port,
-	}
-	if err == nil {
-		sr.ServiceDest = []proxy.ServiceDest{sd}
-		sr.ServiceColor, _ = m.getServiceAttribute(addresses, serviceName, registry.COLOR_KEY, instanceName)
-		sr.ServiceDomain = strings.Split(domain, ",")
-		sr.ServiceCert, _ = m.getServiceAttribute(addresses, serviceName, registry.CERT_KEY, instanceName)
-		sr.OutboundHostname, _ = m.getServiceAttribute(addresses, serviceName, registry.HOSTNAME_KEY, instanceName)
-		sr.PathType, _ = m.getServiceAttribute(addresses, serviceName, registry.PATH_TYPE_KEY, instanceName)
-		skipCheck, _ := m.getServiceAttribute(addresses, serviceName, registry.SKIP_CHECK_KEY, instanceName)
-		sr.SkipCheck, _ = strconv.ParseBool(skipCheck)
-		sr.ConsulTemplateFePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_FE_PATH_KEY, instanceName)
-		sr.ConsulTemplateBePath, _ = m.getServiceAttribute(addresses, serviceName, registry.CONSUL_TEMPLATE_BE_PATH_KEY, instanceName)
-	}
-	c <- sr
-}
-
-// TODO: Remove in favour of registry.GetServiceAttribute
-func (m *Reconfigure) getServiceAttribute(addresses []string, serviceName, key, instanceName string) (string, bool) {
-	for _, address := range addresses {
-		url := fmt.Sprintf("%s/v1/kv/%s/%s/%s?raw", address, instanceName, serviceName, key)
-		resp, err := http.Get(url)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			body, _ := ioutil.ReadAll(resp.Body)
-			return string(body), true
-		}
-	}
-	return "", false
-}
-
-func (m *Reconfigure) createConfigs(templatesPath string, sr *proxy.Service) error {
+func (m *Reconfigure) createConfigs() error {
+	templatesPath := m.TemplatesPath
+	sr := &m.Service
 	logPrintf("Creating configuration for the service %s", sr.ServiceName)
-	feTemplate, beTemplate, err := m.GetTemplates(sr)
+	feTemplate, beTemplate, err := m.GetTemplates()
 	if err != nil {
 		return err
 	}
@@ -255,7 +157,8 @@ func (m *Reconfigure) putToConsul(addresses []string, sr proxy.Service, instance
 	return nil
 }
 
-func (m *Reconfigure) GetTemplates(sr *proxy.Service) (front, back string, err error) {
+func (m *Reconfigure) GetTemplates() (front, back string, err error) {
+	sr := &m.Service
 	if len(sr.TemplateFePath) > 0 && len(sr.TemplateBePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
