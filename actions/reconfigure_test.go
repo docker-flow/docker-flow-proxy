@@ -66,7 +66,7 @@ backend myService-be
 			SkipCheck:   false,
 		},
 	}
-	s.reconfigure.skipAddressValidation = true
+	os.Setenv("SKIP_ADDRESS_VALIDATION", "true")
 }
 
 // Suite
@@ -893,9 +893,8 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenConsulTemplateFileI
 func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessible() {
 	s.reconfigure.Mode = "swarm"
 	s.reconfigure.ServiceName = "this-service-does-not-exist"
-	skipAddressValidationOrig := s.reconfigure.skipAddressValidation
-	defer func() { s.reconfigure.skipAddressValidation = skipAddressValidationOrig }()
-	s.reconfigure.skipAddressValidation = false
+	defer func() { os.Setenv("SKIP_ADDRESS_VALIDATION", "true") }()
+	os.Setenv("SKIP_ADDRESS_VALIDATION", "false")
 
 	err := s.reconfigure.Execute(true)
 

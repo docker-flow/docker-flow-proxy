@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"io/ioutil"
 	"strconv"
-	"time"
 )
 
 type Fetchable interface {
