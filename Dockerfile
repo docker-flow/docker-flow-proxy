@@ -23,7 +23,8 @@ ENV CONNECTION_MODE="http-server-close" \
     USERS="" \
     EXTRA_FRONTEND="" \
     DEFAULT_PORTS="80,443:ssl" \
-    CERTS=""
+    CERTS="" \
+    SKIP_ADDRESS_VALIDATION="true"
 
 EXPOSE 80
 EXPOSE 443

@@ -36,7 +36,6 @@ type BaseReconfigure struct {
 	ConfigsPath           string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
 	InstanceName          string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
 	TemplatesPath         string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
-	skipAddressValidation bool   `env:"SKIP_ADDRESS_VALIDATION" description:"Whether to skip validating service address before reconfiguring the proxy."`
 }
 
 // TODO: Change proxy.Service to *proxy.Service
@@ -58,7 +57,7 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, m
 func (m *Reconfigure) Execute(reloadAfter bool) error {
 	mu.Lock()
 	defer mu.Unlock()
-	if isSwarm(m.Mode) && !m.skipAddressValidation {
+	if isSwarm(m.Mode) && strings.EqualFold(os.Getenv("SKIP_ADDRESS_VALIDATION"), "false") {
 		host := m.ServiceName
 		if len(m.OutboundHostname) > 0 {
 			host = m.OutboundHostname
