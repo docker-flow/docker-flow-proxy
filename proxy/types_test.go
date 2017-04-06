@@ -182,7 +182,7 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
 		ServiceColor:          "serviceColor",
-		ServiceDest:           []ServiceDest{{ServicePath: []string{}}},
+		ServiceDest:           []ServiceDest{{ServicePath: []string{"/"}, Port: "1234"}},
 		ServiceDomain:         []string{"domain1", "domain2"},
 		ServiceDomainMatchAll: true,
 		ServiceName:           "serviceName",
@@ -198,8 +198,6 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 			      {Username: "user2", Password: "pass2", PassEncrypted: true, }},
 	}
 	serviceMap := map[string]string{
-
-
 		"serviceName":           expected.ServiceName,
 		"users":                 "user1:pass1,user2:pass2",
 		"usersPassEncrypted":    "true",
@@ -228,6 +226,8 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		"serviceDomainMatchAll": strconv.FormatBool(expected.ServiceDomainMatchAll),
 		"addHeader":             strings.Join(expected.AddHeader, ","),
 		"setHeader":             strings.Join(expected.SetHeader, ","),
+		"port":                  expected.ServiceDest[0].Port,
+		"servicePath":           strings.Join(expected.ServiceDest[0].ServicePath, ","),
 	}
 	actual := GetServiceFromMap(&serviceMap)
 	s.Equal(expected, *actual)

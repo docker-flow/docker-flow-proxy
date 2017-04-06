@@ -319,6 +319,13 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 			break
 		}
 	}
+	if len(sr.ServiceDomain) > 0 {
+		for i, _ := range sd {
+			if len(sd[i].ServicePath) == 0 {
+				sd[i].ServicePath = []string{"/"}
+			}
+		}
+	}
 	sr.ServiceDest = sd
 	return sr
 }
