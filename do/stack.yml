@@ -47,8 +47,8 @@ services:
       - CERTBOT_EMAIL=viktor@farcic.com
       - PROXY_ADDRESS=proxy
       - CERTBOT_CRON_RENEW=('0 3 * * *' '0 15 * * *')
-      - DOMAIN_1=('dockerflow.com' 'www.dockerflow.com' 'proxy.dockerflow.com' 'registry.dockerflow.com')
-      - DOMAIN_COUNT=1
+      - DOMAIN_1=('dockerflow.com' 'www.dockerflow.com' 'proxy.dockerflow.com' 'swarmlistener.dockerflow.com')
+      - DOMAIN_COUNT=4
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
     networks:
