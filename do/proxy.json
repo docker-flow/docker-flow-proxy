@@ -1,7 +1,7 @@
 {
   "builders": [{
     "type": "digitalocean",
-    "region": "sfo2",
+    "region": "sfo1",
     "image": "ubuntu-16-04-x64",
     "size": "1gb",
     "private_networking": true,

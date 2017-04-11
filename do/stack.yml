@@ -28,39 +28,6 @@ services:
         - com.df.servicePath=/
       replicas: 2
 
-  swarm-listener:
-    image: vfarcic/docker-flow-swarm-listener
-    networks:
-      - proxy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
-      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
-    deploy:
-      placement:
-        constraints: [node.role == manager]
-
-  lets-encrypt:
-    image: hamburml/docker-flow-letsencrypt:latest
-    environment:
-      - CERTBOT_EMAIL=viktor@farcic.com
-      - PROXY_ADDRESS=proxy
-      - CERTBOT_CRON_RENEW=('0 3 * * *' '0 15 * * *')
-      - DOMAIN_1=('dockerflow.com' 'www.dockerflow.com' 'proxy.dockerflow.com' 'swarmlistener.dockerflow.com')
-      - DOMAIN_COUNT=4
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-    networks:
-      - proxy
-    deploy:
-      labels:
-        - com.df.distribute=true
-        - com.df.notify=true
-        - com.df.port=80
-        - com.df.servicePath=/.well-known/acme-challenge
-        - com.df.aclName=01-le
-
 networks:
   proxy:
     external: true

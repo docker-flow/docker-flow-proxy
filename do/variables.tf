@@ -17,7 +17,7 @@ variable "swarm_workers" {
   default = 0
 }
 variable "swarm_region" {
-  default = "sfo2"
+  default = "sfo1"
 }
 variable "swarm_instance_size" {
   default = "1gb"

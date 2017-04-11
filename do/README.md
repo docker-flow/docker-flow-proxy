@@ -7,7 +7,7 @@ export DIGITALOCEAN_API_TOKEN=[...]
 
 export DIGITALOCEAN_TOKEN=[...]
 
-export DIGITALOCEAN_REGION=sfo2
+export DIGITALOCEAN_REGION=sfo1
 
 ssh-keygen -t rsa # proxy-key
 ```
@@ -73,9 +73,15 @@ ssh -i proxy-key \
 ```bash
 docker network create --driver overlay proxy
 
-curl -o stack.yml \
+curl -o proxy.yml \
     https://raw.githubusercontent.com/vfarcic/\
 docker-flow-proxy/master/do/stack.yml
 
-docker stack deploy -c stack.yml proxy
+docker stack deploy -c proxy.yml proxy
+
+curl -o swarm-listener.yml \
+    https://raw.githubusercontent.com/vfarcic/\
+docker-flow-swarm-listener/master/stack.yml
+
+docker stack deploy -c swarm-listener.yml swarm-listener
 ```
