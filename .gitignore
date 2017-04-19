@@ -10,3 +10,4 @@
 secrets*
 do/proxy-key*
 /site
+/*.pem
