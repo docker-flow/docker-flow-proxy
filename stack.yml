@@ -3,7 +3,7 @@ version: "3"
 services:
 
   proxy:
-    image: vfarcic/docker-flow-proxy
+    image: vfarcic/docker-flow-proxy:${TAG:-latest}
     ports:
       - 80:80
       - 443:443
@@ -15,12 +15,15 @@ services:
       - CONNECTION_MODE=http-keep-alive
     deploy:
       replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
       resources:
         reservations:
           memory: 50M
 
   docs:
-    image: vfarcic/docker-flow-proxy-docs
+    image: vfarcic/docker-flow-proxy-docs:${TAG:-latest}
     networks:
       - proxy
     deploy:
