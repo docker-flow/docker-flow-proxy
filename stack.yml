@@ -12,6 +12,7 @@ services:
     environment:
       - LISTENER_ADDRESS=swarm-listener
       - MODE=swarm
+      - CONNECTION_MODE=http-keep-alive
     deploy:
       replicas: 2
       resources:
