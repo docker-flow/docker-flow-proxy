@@ -6,9 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
-	"strconv"
 )
 
 type HaProxy struct {

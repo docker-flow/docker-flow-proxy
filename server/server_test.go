@@ -452,7 +452,6 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam(
 		ExecuteMock: func(recreate bool) error {
 			return nil
 		},
-
 	})()
 	defer MockFetch(FetchMock{
 		ReloadClusterConfigMock: func(listenerAddr string) error {
@@ -603,7 +602,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	expected := proxy.Service{
 		AclName:               "aclName",
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
-  		AddResHeader:          []string{"add-header-1", "add-header-2"},
+		AddResHeader:          []string{"add-header-1", "add-header-2"},
 		ConsulTemplateFePath:  "consulTemplateFePath",
 		ConsulTemplateBePath:  "consulTemplateBePath",
 		Distribute:            true,
@@ -630,8 +629,8 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		TimeoutServer:         "timeoutServer",
 		TimeoutTunnel:         "timeoutTunnel",
 		XForwardedProto:       true,
-		Users: []proxy.User{{Username: "user1", Password: "pass1", PassEncrypted: true, },
-				    {Username: "user2", Password: "pass2", PassEncrypted: true, }},
+		Users: []proxy.User{{Username: "user1", Password: "pass1", PassEncrypted: true},
+			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
 		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&servicePath=/&port=1234",
@@ -689,7 +688,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 		ServiceDomain: []string{"domain1", "domain2"},
 		ServiceName:   "serviceName",
 		ReqMode:       "http",
-		ServiceDest:   []proxy.ServiceDest{
+		ServiceDest: []proxy.ServiceDest{
 			proxy.ServiceDest{ServicePath: []string{"/"}, Port: "1234"},
 		},
 	}

@@ -1,17 +1,17 @@
 package proxy
 
 import (
-	"math/rand"
+	"fmt"
+	"github.com/mitchellh/mapstructure"
+	"reflect"
 	"strconv"
 	"strings"
-	"github.com/mitchellh/mapstructure"
-	"fmt"
-	"reflect"
 )
 
 var extractUsersFromString = ExtractUsersFromString
 var usersBasePath string = "/run/secrets/dfp_users_%s"
 
+// Data used to generate proxy configuration. It is extracted as a separate struct since a single service can have multiple combinations.
 type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
@@ -25,6 +25,7 @@ type ServiceDest struct {
 	SrcPortAclName string
 }
 
+// Description of a service that should be added to the proxy configuration.
 type Service struct {
 	// Additional headers that will be added to the request before forwarding it to the service. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#add-a-header-to-the-request for more info.
 	AddReqHeader []string `split_words:"true"`
@@ -116,6 +117,7 @@ type Service struct {
 	ServiceDest         []ServiceDest
 }
 
+// The list of services used inside the proxy
 type Services []Service
 
 func (slice Services) Len() int {
@@ -164,23 +166,6 @@ func hasWellKnown(service Service) bool {
 
 func (slice Services) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
-}
-
-type User struct {
-	Username      string
-	Password      string
-	PassEncrypted bool
-}
-
-func (user *User) HasPassword() bool {
-	return len(user.Password) > 0
-}
-
-func RandomUser() *User {
-	return &User{
-		Username:      "dummyUser",
-		PassEncrypted: true,
-		Password:      strconv.FormatInt(rand.Int63(), 3)}
 }
 
 func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) []*User {
@@ -268,6 +253,7 @@ func GetServiceFromMap(req *map[string]string) *Service {
 	provider := MapParameterProvider{theMap: req}
 	return GetServiceFromProvider(&provider)
 }
+
 // TODO: deprecated "addHeader" & "setHeader". Kept for maintaining compatibility
 func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	sr := new(Service)

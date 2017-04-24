@@ -1,9 +1,9 @@
 package main
 
 import (
+	"./actions"
 	"./proxy"
 	"./server"
-	"./actions"
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -36,7 +36,6 @@ type Serve struct {
 
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
-
 
 func (m *Serve) Execute(args []string) error {
 	if proxy.Instance == nil {
@@ -89,7 +88,7 @@ func (m *Serve) reconfigure(server server.Server) error {
 	); err != nil {
 		return err
 	}
-	if len(lAddr)>0 {
+	if len(lAddr) > 0 {
 		go func() {
 			interval := time.Second * 5
 			for range time.Tick(interval) {
