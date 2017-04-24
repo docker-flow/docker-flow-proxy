@@ -293,6 +293,12 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 		globalUsersString,
 		globalUsersEncrypted,
 	)
+
+	sr.ServiceDest = getServiceDest(sr, provider)
+	return sr
+}
+
+func getServiceDest(sr *Service, provider ServiceParameterProvider) []ServiceDest {
 	path := []string{}
 	if len(provider.GetString("servicePath")) > 0 {
 		path = strings.Split(provider.GetString("servicePath"), ",")
@@ -320,14 +326,13 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 		}
 	}
 	if len(sr.ServiceDomain) > 0 {
-		for i, _ := range sd {
+		for i := range sd {
 			if len(sd[i].ServicePath) == 0 {
 				sd[i].ServicePath = []string{"/"}
 			}
 		}
 	}
-	sr.ServiceDest = sd
-	return sr
+	return sd
 }
 
 func getBoolParam(req ServiceParameterProvider, param string) bool {

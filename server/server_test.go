@@ -616,7 +616,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
 		ServiceColor:          "serviceColor",
-		ServiceDest:           []proxy.ServiceDest{proxy.ServiceDest{ServicePath: []string{"/"}, Port: "1234"}},
+		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{"/"}, Port: "1234"}},
 		ServiceDomain:         []string{"domain1", "domain2"},
 		ServiceDomainMatchAll: true,
 		ServiceName:           "serviceName",
@@ -689,7 +689,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 		ServiceName:   "serviceName",
 		ReqMode:       "http",
 		ServiceDest: []proxy.ServiceDest{
-			proxy.ServiceDest{ServicePath: []string{"/"}, Port: "1234"},
+			{ServicePath: []string{"/"}, Port: "1234"},
 		},
 	}
 	addr := fmt.Sprintf(
