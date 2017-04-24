@@ -26,9 +26,9 @@ The following environment variables can be used to configure the *Docker Flow Pr
 PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.|No|docker-flow|
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.<br>Example: my-proxy|No|proxy|
 |SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.<br>Example: false|No|true|
-|STATS_USER         |Username for the statistics page. If not set, stats will not be available.<br>Example: my-user|No      |admin  |
-|STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page<br>Example: MY_USER|No|STATS_USER|
-|STATS_PASS         |Password for the statistics page. If not set, stats will not be available.<br>Example: my-pass|No      |admin  |
+|STATS_USER         |Username for the statistics page. If not set, stats will not be available. If both `STATS_USER` and `STATS_PASS` are set to `none`, statistics will be available without authentication.<br>Example: my-user|No      |admin  |
+|STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page.<br>Example: MY_USER|No|STATS_USER|
+|STATS_PASS         |Password for the statistics page. If not set, stats will not be available. If both `STATS_USER` and `STATS_PASS` are set to `none`, statistics will be available without authentication.<br>Example: my-pass|No|admin|
 |STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page.<br>Example: MY_PASS|No|STATS_PASS|
 |STATS_URI          |URI for the statistics page.<br>Example: proxyStats       |No      |/admin?proxy|
 |STATS_URI_ENV      |The name of the environment variable that holds the URI for the statistics page.<br>Example: MY_URI|No|STATS_URI|

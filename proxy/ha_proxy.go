@@ -177,7 +177,6 @@ backend dummy-be
 	return content.String(), nil
 }
 
-// TODO: Too big... Refactor it.
 func (m HaProxy) getConfigData() ConfigData {
 	certPaths := m.GetCertPaths()
 	certsString := []string{}
@@ -206,12 +205,16 @@ func (m HaProxy) getConfigData() ConfigData {
     stats enable
     stats refresh 30s
     stats realm Strictly\ Private
-    stats auth %s:%s
     stats uri %s`,
-			statsUser,
-			statsPass,
 			statsUri,
 		)
+		if !strings.EqualFold(statsUser, "none") && !strings.EqualFold(statsPass, "none") {
+			d.Stats += fmt.Sprintf(`
+    stats auth %s:%s`,
+			statsUser,
+				statsPass,
+			)
+		}
 	}
 	m.getUserList(&d)
 	d.ExtraFrontend = GetSecretOrEnvVar("EXTRA_FRONTEND", "")

@@ -71,8 +71,8 @@ defaults
     stats enable
     stats refresh 30s
     stats realm Strictly\ Private
-    stats auth admin:admin
     stats uri /admin?stats
+    stats auth admin:admin
 
 frontend services
     bind *:80
@@ -300,6 +300,33 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	expectedData := fmt.Sprintf(
 		"%s%s",
 		s.getTemplateWithLogs(),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_RemovesStatsAuth_WhenUserIsNone() {
+	var actualData string
+	statUserOrig := os.Getenv("STATS_USER")
+	statPassOrig := os.Getenv("STATS_PASS")
+	defer func() {
+		os.Setenv("STATS_USER", statUserOrig)
+		os.Setenv("STATS_PASS", statPassOrig)
+	}()
+	os.Setenv("STATS_USER", "none")
+	os.Setenv("STATS_PASS", "none")
+	statsAuth := `
+    stats auth admin:admin`
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, statsAuth, "", -1),
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {

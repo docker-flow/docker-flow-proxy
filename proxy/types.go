@@ -67,8 +67,7 @@ type Service struct {
 	PathType string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
-	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http* and *tcp*. Please open an GitHub issue if the mode you're using does not work as expected. The default value is *http*.
-	// Adding support for *sni*. Setting this to "sni" implies TCP with an SNI-based routing.
+	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http*, *tcp*, and *sni*.
 	ReqMode string `default:"http" split_words:"true"`
 	// Deprecated in favor of ReqPathReplace
 	ReqRepReplace string `split_words:"true"`

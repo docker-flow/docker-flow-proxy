@@ -50,6 +50,8 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -p 6379:6379 \
     --network proxy \
     -e MODE=swarm \
+    -e STATS_USER=none \
+    -e STATS_PASS=none \
     %s/docker-flow-proxy:beta`,
 		s.dockerHubUser)
 	s.createService(cmd)
@@ -73,6 +75,15 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	s.reconfigureGoDemo("")
 
 	resp, err := s.sendHelloRequest()
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
+}
+
+func (s IntegrationSwarmTestSuite) Test_Stats() {
+	url := fmt.Sprintf("http://%s/admin?stats", s.hostIP)
+
+	resp, err := http.Get(url)
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
