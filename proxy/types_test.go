@@ -172,6 +172,8 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
 		ConsulTemplateFePath:  "consulTemplateFePath",
 		ConsulTemplateBePath:  "consulTemplateBePath",
+		DelReqHeader:          []string{"del-header-1", "del-header-2"},
+		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
 		HttpsOnly:             true,
 		HttpsPort:             1234,
@@ -230,6 +232,8 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		"addResHeader":          strings.Join(expected.AddResHeader, ","),
 		"setReqHeader":          strings.Join(expected.SetReqHeader, ","),
 		"setResHeader":          strings.Join(expected.SetResHeader, ","),
+		"delReqHeader":          strings.Join(expected.DelReqHeader, ","),
+		"delResHeader":          strings.Join(expected.DelResHeader, ","),
 		"port":                  expected.ServiceDest[0].Port,
 		"servicePath":           strings.Join(expected.ServiceDest[0].ServicePath, ","),
 	}
