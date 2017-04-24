@@ -299,6 +299,21 @@ backend https-myService-be1234
 	s.Equal(expectedBack, actualBack)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsConnectionMode_WhenPresent() {
+	expectedBack := `
+backend myService-be1234
+    mode http
+    option my-connection-mode
+    server myService myService:1234`
+	s.reconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.Mode = "service"
+	s.reconfigure.ConnectionMode = "my-connection-mode"
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
+
+	s.Equal("", actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutServer_WhenPresent() {
 	expectedBack := `
 backend myService-be1234

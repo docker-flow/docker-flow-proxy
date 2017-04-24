@@ -230,6 +230,9 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress() {
 	expectedListenerAddress := "swarm-listener"
 	actualListenerAddressChan := make(chan string)
+	retryIntervalOrig := retryInterval
+	defer func() { retryInterval = retryIntervalOrig }()
+	retryInterval = 1
 	callNum := 0
 	defer MockFetch(FetchMock{
 		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {

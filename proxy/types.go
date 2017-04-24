@@ -34,6 +34,16 @@ type Service struct {
 	// ACLs are ordered alphabetically by their names.
 	// If not specified, serviceName is used instead.
 	AclName string `split_words:"true"`
+	// One of the five connection modes supported by the HAProxy.
+	// `http-keep-alive`: all requests and responses are processed.
+	// `http-tunnel`: only the first request and response are processed, everything else is forwarded with no analysis.
+	// `httpclose`: tunnel with "Connection: close" added in both directions.
+	// `http-server-close`: the server-facing connection is closed after the response.
+	// `forceclose`: the connection is actively closed after end of response.
+	// In general, it is preferred to use http-server-close with application servers, and some static servers might benefit from http-keep-alive.
+	// Connection mode is restricted to HTTP mode only.
+	// If specified, connection mode will be applied to the backend section.
+	ConnectionMode string `split_words:"true"`
 	// The path to the Consul Template representing a snippet of the backend configuration.
 	// If set, proxy template will be loaded from the specified file.
 	ConsulTemplateBePath string `split_words:"true"`
@@ -254,7 +264,6 @@ func GetServiceFromMap(req *map[string]string) *Service {
 	return GetServiceFromProvider(&provider)
 }
 
-// TODO: deprecated "addHeader" & "setHeader". Kept for maintaining compatibility
 func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	sr := new(Service)
 	provider.Fill(sr)
@@ -269,12 +278,12 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	}
 	if len(provider.GetString("addReqHeader")) > 0 {
 		sr.AddReqHeader = strings.Split(provider.GetString("addReqHeader"), ",")
-	} else if len(provider.GetString("addHeader")) > 0 {
+	} else if len(provider.GetString("addHeader")) > 0 { // TODO: Deprecated since Apr. 2017.
 		sr.AddReqHeader = strings.Split(provider.GetString("addHeader"), ",")
 	}
 	if len(provider.GetString("setReqHeader")) > 0 {
 		sr.SetReqHeader = strings.Split(provider.GetString("setReqHeader"), ",")
-	} else if len(provider.GetString("setHeader")) > 0 {
+	} else if len(provider.GetString("setHeader")) > 0 { // TODO: Deprecated since Apr. 2017.
 		sr.SetReqHeader = strings.Split(provider.GetString("setHeader"), ",")
 	}
 	if len(provider.GetString("addResHeader")) > 0 {

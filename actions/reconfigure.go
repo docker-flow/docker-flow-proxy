@@ -245,6 +245,10 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     mode %s`,
 		prefix, rmode,
 	)
+	if len(sr.ConnectionMode) > 0 {
+		tmpl += `
+    option {{$.ConnectionMode}}`
+	}
 	if strings.EqualFold(os.Getenv("DEBUG"), "true") {
 		tmpl += `
     log global`
