@@ -295,12 +295,14 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 	snimap := make(map[int]string)
 	tcpFEs := make(map[int]Services)
 	for _, s := range *services {
-		if len(s.ReqMode) == 0 {
-			s.ReqMode = "http"
+		reqMode := "http"
+		if len(s.ServiceDest) > 0 && len(s.ServiceDest[0].ReqMode) > 0 {
+			reqMode = s.ServiceDest[0].ReqMode
 		}
-		if strings.EqualFold(s.ReqMode, "http") {
+
+		if strings.EqualFold(reqMode, "http") {
 			config.ContentFrontend += m.getFrontTemplate(s)
-		} else if strings.EqualFold(s.ReqMode, "sni") {
+		} else if strings.EqualFold(reqMode, "sni") {
 			for _, sd := range s.ServiceDest {
 				_, header_exists := snimap[sd.SrcPort]
 				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, !header_exists)

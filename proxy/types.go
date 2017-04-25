@@ -16,6 +16,10 @@ type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
 	Port string
+	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http*, *tcp*, and *sni*.
+	ReqMode string
+	// Internal use only. Do not modify.
+	ReqModeFormatted string
 	// The URL path of the service.
 	ServicePath []string
 	// The source (entry) port of a service.
@@ -71,8 +75,6 @@ type Service struct {
 	PathType string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
-	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http*, *tcp*, and *sni*.
-	ReqMode string `default:"http" split_words:"true"`
 	// Deprecated in favor of ReqPathReplace
 	ReqRepReplace string `split_words:"true"`
 	// Deprecated in favor of ReqPathSearch
@@ -270,9 +272,6 @@ func GetServiceFromMap(req *map[string]string) *Service {
 func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	sr := new(Service)
 	provider.Fill(sr)
-	if len(sr.ReqMode) == 0 {
-		sr.ReqMode = "http"
-	}
 	if len(provider.GetString("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(provider.GetString("httpsPort"))
 	}
@@ -321,27 +320,37 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider) []ServiceDes
 	if len(provider.GetString("servicePath")) > 0 {
 		path = strings.Split(provider.GetString("servicePath"), ",")
 	}
+	reqMode := "http"
+	if len(provider.GetString("reqMode")) > 0 {
+		reqMode = provider.GetString("reqMode")
+	}
+
 	port := provider.GetString("port")
 	srcPort, _ := strconv.Atoi(provider.GetString("srcPort"))
 	sd := []ServiceDest{}
 	if len(path) > 0 || len(port) > 0 || (len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0) {
 		sd = append(
 			sd,
-			ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+			ServiceDest{Port: port, ReqMode: reqMode, SrcPort: srcPort, ServicePath: path},
 		)
 	}
 	for i := 1; i <= 10; i++ {
 		port := provider.GetString(fmt.Sprintf("port.%d", i))
 		path := provider.GetString(fmt.Sprintf("servicePath.%d", i))
+		reqMode := provider.GetString(fmt.Sprintf("reqMode.%d", i))
+
 		srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort.%d", i)))
 		if len(path) > 0 && len(port) > 0 {
 			sd = append(
 				sd,
-				ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+				ServiceDest{Port: port, ReqMode: reqMode, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
 			)
 		} else {
 			break
 		}
+	}
+	if len(sd) == 0 {
+		sd = append(sd, ServiceDest{ReqMode: reqMode})
 	}
 	if len(sr.ServiceDomain) > 0 {
 		for i := range sd {

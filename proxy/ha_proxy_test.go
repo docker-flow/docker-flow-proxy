@@ -641,10 +641,9 @@ frontend tcpFE_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
 		},
 	}
 
@@ -675,18 +674,16 @@ frontend tcpFE_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
 		},
 		ServiceDomain: []string{"my-domain.com"},
 	}
 	data.Services["my-service-2"] = Service{
-		ReqMode:     "tcp",
 		ServiceName: "my-service-2",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
 		},
 		ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
 	}
@@ -719,10 +716,9 @@ frontend tcpFE_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
 		},
 	}
 
@@ -760,10 +756,9 @@ frontend tcpFE_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "tcp",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
 		},
 	}
 
@@ -794,10 +789,9 @@ frontend service_1234
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "sni",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "sni"},
 		},
 	}
 
@@ -835,10 +829,9 @@ frontend service_443
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service-1"] = Service{
-		ReqMode:     "sni",
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 443, Port: "4321"},
+			{SrcPort: 443, Port: "4321", ReqMode: "sni"},
 		},
 	}
 

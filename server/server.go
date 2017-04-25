@@ -254,20 +254,28 @@ func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	}
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
+	reqMode := os.Getenv(prefix + "_REQ_MODE")
+	if len(reqMode) == 0 {
+		reqMode = "http"
+	}
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
 			sd,
-			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path},
+			proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: path, ReqMode: reqMode},
 		)
 	}
 	for i := 1; i <= 10; i++ {
 		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
 		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
+		reqMode := os.Getenv(fmt.Sprintf("%s_REQ_MODE_%d", prefix, i))
+		if len(reqMode) == 0 {
+			reqMode = "http"
+		}
 		srcPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_PORT_%d", prefix, i)))
 		if len(path) > 0 && len(port) > 0 {
 			sd = append(
 				sd,
-				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ",")},
+				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ","), ReqMode: reqMode},
 			)
 		} else {
 			break
@@ -304,19 +312,16 @@ func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 }
 
 func (m *Serve) isValidReconf(service *proxy.Service) (statusCode int, msg string) {
+	reqMode := "http"
 	if len(service.ServiceName) == 0 {
 		return http.StatusBadRequest, "serviceName parameter is mandatory."
-	} else if len(service.ServiceDest) == 0 {
-		if strings.EqualFold(service.ReqMode, "http") {
-			return http.StatusConflict, "There must be at least one destination."
-		} else {
-			return http.StatusBadRequest, "There must be at least one destination."
-		}
+	} else if len(service.ServiceDest[0].ReqMode) > 0 {
+		reqMode = service.ServiceDest[0].ReqMode
 	}
 	hasPath := len(service.ServiceDest[0].ServicePath) > 0
 	hasSrcPort := service.ServiceDest[0].SrcPort > 0
 	hasPort := len(service.ServiceDest[0].Port) > 0
-	if strings.EqualFold(service.ReqMode, "http") {
+	if strings.EqualFold(reqMode, "http") {
 		if !hasPath && len(service.ConsulTemplateFePath) == 0 {
 			return http.StatusBadRequest, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
 		}

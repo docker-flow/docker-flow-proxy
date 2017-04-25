@@ -159,6 +159,12 @@ func (m *Reconfigure) putToConsul(addresses []string, sr proxy.Service, instance
 
 func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	sr := &m.Service
+	// TODO: Test
+	for i, _ := range sr.ServiceDest {
+		if len(sr.ServiceDest[i].ReqMode) == 0 {
+			sr.ServiceDest[i].ReqMode = "http"
+		}
+	}
 	if len(sr.TemplateFePath) > 0 && len(sr.TemplateBePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
@@ -179,9 +185,6 @@ func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 			return "", "", err
 		}
 	} else {
-		if len(sr.ReqMode) == 0 {
-			sr.ReqMode = "http"
-		}
 		m.formatData(sr)
 		front, back = m.parseTemplate(
 			"",
@@ -236,14 +239,18 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service
 	if strings.EqualFold(protocol, "https") {
 		prefix = "https-"
 	}
-	rmode := sr.ReqMode
-	if strings.EqualFold(sr.ReqMode, "sni") {
-		rmode = "tcp"
+	for i, _ := range sr.ServiceDest {
+		if strings.EqualFold(sr.ServiceDest[i].ReqMode, "sni") {
+			sr.ServiceDest[i].ReqModeFormatted = "tcp"
+		} else {
+			sr.ServiceDest[i].ReqModeFormatted = sr.ServiceDest[i].ReqMode
+		}
 	}
+
 	tmpl := fmt.Sprintf(`{{range .ServiceDest}}
 backend %s{{$.ServiceName}}-be{{.Port}}
-    mode %s`,
-		prefix, rmode,
+    mode {{.ReqModeFormatted}}`,
+		prefix,
 	)
 	if len(sr.ConnectionMode) > 0 {
 		tmpl += `

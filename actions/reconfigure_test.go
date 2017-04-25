@@ -190,6 +190,22 @@ backend myService-be1234
 	}
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsMultipleBackends_WhenXXX() {
+	modes := []string{"service", "sWARm"}
+	for _, mode := range modes {
+		s.reconfigure.Mode = mode
+		s.reconfigure.Service.ServiceDest[0].Port = "1234"
+		expected := `
+backend myService-be1234
+    mode http
+    server myService myService:1234`
+
+		_, actual, _ := s.reconfigure.GetTemplates()
+
+		s.Equal(expected, actual)
+	}
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsLoggin_WhenDebug() {
 	debugOrig := os.Getenv("DEBUG")
 	defer func() { os.Setenv("DEBUG", debugOrig) }()
@@ -226,7 +242,7 @@ backend myService-be1234
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqModeIsTcp() {
 	s.reconfigure.Mode = "swarm"
-	s.reconfigure.ReqMode = "tcp"
+	s.reconfigure.Service.ServiceDest[0].ReqMode = "tcp"
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	expected := `
 backend myService-be1234
