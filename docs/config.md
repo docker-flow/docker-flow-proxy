@@ -26,19 +26,21 @@ The following environment variables can be used to configure the *Docker Flow Pr
 PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.|No|docker-flow|
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.<br>Example: my-proxy|No|proxy|
 |SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.<br>Example: false|No|true|
+|SSL_BIND_CIPHERS   |Sets the default string describing the list of cipher algorithms ("cipher suite") that are negotiated during the SSL/TLS handshake for all "bind" lines which do not explicitly define theirs. The format of the string is defined in "man 1 ciphers" from OpenSSL man pages, and can be for instance a string such as `AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH`.|No|ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS|
+|SSL_BIND_OPTIONS   |Sets default ssl-options to force on all "bind" lines.   |No      |no-sslv3|
 |STATS_USER         |Username for the statistics page. If not set, stats will not be available. If both `STATS_USER` and `STATS_PASS` are set to `none`, statistics will be available without authentication.<br>Example: my-user|No      |admin  |
 |STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page.<br>Example: MY_USER|No|STATS_USER|
 |STATS_PASS         |Password for the statistics page. If not set, stats will not be available. If both `STATS_USER` and `STATS_PASS` are set to `none`, statistics will be available without authentication.<br>Example: my-pass|No|admin|
 |STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page.<br>Example: MY_PASS|No|STATS_PASS|
 |STATS_URI          |URI for the statistics page.<br>Example: proxyStats       |No      |/admin?proxy|
 |STATS_URI_ENV      |The name of the environment variable that holds the URI for the statistics page.<br>Example: MY_URI|No|STATS_URI|
-|TIMEOUT_CLIENT     |The client timeout in seconds.<br>Example: 5              |No      |20     |5      |
-|TIMEOUT_CONNECT    |The connect timeout in seconds.<br>Example: 3             |No      |5      |3      |
-|TIMEOUT_QUEUE      |The queue timeout in seconds.<br>Example: 10              |No      |30     |10     |
-|TIMEOUT_SERVER     |The server timeout in seconds.<br>Example: 15             |No      |20     |5      |
-|TIMEOUT_TUNNEL     |The tunnel timeout in seconds.<br>Example: 1800           |No      |3600   |1800   |
-|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds.<br>Example: 3       |No      |5      |3      |
-|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds.<br>Example: 10|No      |15     |10     |
+|TIMEOUT_CLIENT     |The client timeout in seconds.<br>Example: 5              |No      |20     |
+|TIMEOUT_CONNECT    |The connect timeout in seconds.<br>Example: 3             |No      |5      |
+|TIMEOUT_QUEUE      |The queue timeout in seconds.<br>Example: 10              |No      |30     |
+|TIMEOUT_SERVER     |The server timeout in seconds.<br>Example: 15             |No      |20     |
+|TIMEOUT_TUNNEL     |The tunnel timeout in seconds.<br>Example: 1800           |No      |3600   |
+|TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds.<br>Example: 3       |No      |5      |
+|TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds.<br>Example: 10|No      |15     |
 |USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it.<br>Example: user1:pass1, user2:pass2|No| |
 |USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command.<br>Example: true|No| false |
 

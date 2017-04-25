@@ -32,7 +32,7 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
     pidfile /var/run/haproxy.pid
     tune.ssl.default-dh-param 2048
 
-    #disable sslv3, prefer modern ciphers
+    # disable sslv3, prefer modern ciphers
     ssl-default-bind-options no-sslv3
     ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
 
@@ -414,12 +414,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 	extraFrontendOrig := os.Getenv("EXTRA_FRONTEND")
 	defer func() { os.Setenv("EXTRA_FRONTEND", extraFrontendOrig) }()
-	os.Setenv("EXTRA_FRONTEND", "this is an extra content")
+	os.Setenv("EXTRA_FRONTEND", "this is an extra content\nAnd a new line.")
 	var actualData string
-	tmpl := s.TemplateContent + "this is an extra content"
 	expectedData := fmt.Sprintf(
-		"%s%s",
-		tmpl,
+		`%sthis is an extra content
+And a new line.%s`,
+		s.TemplateContent,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
