@@ -19,8 +19,8 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |DEBUG_HTTP_FORMAT  |Logging format that will be used with HTTP requests. Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.7/configuration.html#8.2.4) for more info about the available options.|No| |
 |DEBUG_TCP_FORMAT   |Logging format that will be used with TCP requests. Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.7/configuration.html#8.2.4) for more info about the available options.|No| |
 |DEFAULT_PORTS      |The default ports used by the proxy. Multiple values can be separated with comma (`,`). If a port should be for SSL connections, append it with `:ssl.|No|80,443:ssl|
-|EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration.|No    | |
-|EXTRA_GLOBAL       |Value will be added to the default `global` configuration.|No      | |
+|EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration. Multiple lines should be separated with comma (*,*).|No| |
+|EXTRA_GLOBAL       |Value will be added to the default `global` configuration. Multiple lines should be separated with comma (*,*).|No| |
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.<br>Example: swarm-listener|Only in the *swarm* mode| |
 |MODE               |Two modes are supported. The *default* mode should be used for general purpose. **This mode is deprecated and will be removed soon**. The *swarm* mode is designed to work with new features introduced in Docker 1.12 and assumes that containers are deployed as Docker services (new Swarm).<br>Example: swarm|No      |default|
 PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.|No|docker-flow|
