@@ -221,7 +221,10 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	m.getUserList(&d)
-	d.ExtraFrontend = GetSecretOrEnvVar("EXTRA_FRONTEND", "")
+	d.ExtraFrontend = GetSecretOrEnvVarSplit("EXTRA_FRONTEND", "")
+	if len(d.ExtraFrontend) > 0 {
+		d.ExtraFrontend = fmt.Sprintf("    %s", d.ExtraFrontend)
+	}
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `
     log 127.0.0.1:1514 local0`
@@ -251,7 +254,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
 		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
-	extraGlobal := GetSecretOrEnvVar("EXTRA_GLOBAL", "")
+	extraGlobal := GetSecretOrEnvVarSplit("EXTRA_GLOBAL", "")
 	if len(extraGlobal) > 0 {
 		d.ExtraGlobal += fmt.Sprintf("\n    %s", extraGlobal)
 	}

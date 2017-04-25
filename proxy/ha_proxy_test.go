@@ -393,9 +393,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDoNotLogNormal_When
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 	globalOrig := os.Getenv("EXTRA_GLOBAL")
 	defer func() { os.Setenv("EXTRA_GLOBAL", globalOrig) }()
-	os.Setenv("EXTRA_GLOBAL", "this is extra content")
+	os.Setenv("EXTRA_GLOBAL", "this is extra content,this is a new line")
 	var actualData string
-	tmpl := strings.Replace(s.TemplateContent, "tune.ssl.default-dh-param 2048", "tune.ssl.default-dh-param 2048\n    this is extra content", -1)
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"tune.ssl.default-dh-param 2048",
+		"tune.ssl.default-dh-param 2048\n    this is extra content\n    this is a new line",
+		-1,
+	)
 	expectedData := fmt.Sprintf(
 		"%s%s",
 		tmpl,
@@ -414,11 +419,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraFrontEnd() {
 	extraFrontendOrig := os.Getenv("EXTRA_FRONTEND")
 	defer func() { os.Setenv("EXTRA_FRONTEND", extraFrontendOrig) }()
-	os.Setenv("EXTRA_FRONTEND", "this is an extra content\nAnd a new line.")
+	os.Setenv("EXTRA_FRONTEND", "this is an extra content,and a new line,and another")
 	var actualData string
 	expectedData := fmt.Sprintf(
-		`%sthis is an extra content
-And a new line.%s`,
+		`%s    this is an extra content
+    and a new line
+    and another%s`,
 		s.TemplateContent,
 		s.ServicesContent,
 	)

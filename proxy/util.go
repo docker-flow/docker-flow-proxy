@@ -22,6 +22,13 @@ var readFile = ioutil.ReadFile
 var logPrintf = log.Printf
 var readPidFile = ioutil.ReadFile
 var readConfigsDir = ioutil.ReadDir
+var GetSecretOrEnvVarSplit = func(key, defaultValue string) string {
+	value := GetSecretOrEnvVar(key, defaultValue)
+	if len(value) > 0 {
+		value = strings.Replace(value, ",", "\n    ", -1)
+	}
+	return value
+}
 var GetSecretOrEnvVar = func(key, defaultValue string) string {
 	path := fmt.Sprintf("/run/secrets/dfp_%s", strings.ToLower(key))
 	if content, err := readSecretsFile(path); err == nil {
