@@ -321,9 +321,10 @@ func (m *Serve) isValidReconf(service *proxy.Service) (statusCode int, msg strin
 	hasPath := len(service.ServiceDest[0].ServicePath) > 0
 	hasSrcPort := service.ServiceDest[0].SrcPort > 0
 	hasPort := len(service.ServiceDest[0].Port) > 0
+	hasDomain := len(service.ServiceDomain) > 0
 	if strings.EqualFold(reqMode, "http") {
-		if !hasPath && len(service.ConsulTemplateFePath) == 0 {
-			return http.StatusBadRequest, "When using reqMode http, servicePath or (consulTemplateFePath and consulTemplateBePath) are mandatory"
+		if !hasPath && !hasDomain && len(service.ConsulTemplateFePath) == 0 {
+			return http.StatusConflict, "When using reqMode http, servicePath or serviceDomain or (consulTemplateFePath and consulTemplateBePath) are mandatory"
 		}
 	} else if !hasSrcPort || !hasPort {
 		return http.StatusBadRequest, "When NOT using reqMode http (e.g. tcp), srcPort and port parameters are mandatory."
