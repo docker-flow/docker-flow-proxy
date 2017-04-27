@@ -68,11 +68,6 @@ defaults
     timeout http-request 5s
     timeout http-keep-alive 15s
 
-    stats enable
-    stats refresh 30s
-    stats realm Strictly\ Private
-    stats uri /admin?stats
-    stats auth admin:admin
 
 frontend services
     bind *:80
@@ -312,21 +307,32 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	s.Equal(expectedData, actualData)
 }
 
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_RemovesStatsAuth_WhenUserIsNone() {
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsStats_WhenStatsUserAndPassArePresent() {
 	var actualData string
 	statUserOrig := os.Getenv("STATS_USER")
 	statPassOrig := os.Getenv("STATS_PASS")
+	statUserEnvOrig := os.Getenv("STATS_USER_ENV")
+	statPassEnvOrig := os.Getenv("STATS_PASS_ENV")
 	defer func() {
 		os.Setenv("STATS_USER", statUserOrig)
 		os.Setenv("STATS_PASS", statPassOrig)
+		os.Setenv("STATS_USER_ENV", statUserEnvOrig)
+		os.Setenv("STATS_PASS_ENV", statPassEnvOrig)
 	}()
-	os.Setenv("STATS_USER", "none")
-	os.Setenv("STATS_PASS", "none")
-	statsAuth := `
-    stats auth admin:admin`
+	os.Setenv("STATS_USER", "my-user")
+	os.Setenv("STATS_PASS", "my-pass")
+	os.Setenv("STATS_USER_ENV", "STATS_USER")
+	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
+	statsAuth := `    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats uri /admin?stats
+    stats auth my-user:my-pass
+
+frontend services`
 	expectedData := fmt.Sprintf(
 		"%s%s",
-		strings.Replace(s.TemplateContent, statsAuth, "", -1),
+		strings.Replace(s.TemplateContent, "\nfrontend services", statsAuth, -1),
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -334,6 +340,45 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_RemovesStatsAuth_WhenUs
 		return nil
 	}
 
+	println("000")
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_RemovesStatsAuth_WhenUserIsNone() {
+	var actualData string
+	statUserOrig := os.Getenv("STATS_USER")
+	statPassOrig := os.Getenv("STATS_PASS")
+	statUserEnvOrig := os.Getenv("STATS_USER_ENV")
+	statPassEnvOrig := os.Getenv("STATS_PASS_ENV")
+	defer func() {
+		os.Setenv("STATS_USER", statUserOrig)
+		os.Setenv("STATS_PASS", statPassOrig)
+		os.Setenv("STATS_USER_ENV", statUserEnvOrig)
+		os.Setenv("STATS_PASS_ENV", statPassEnvOrig)
+	}()
+	os.Setenv("STATS_USER", "none")
+	os.Setenv("STATS_PASS", "none")
+	os.Setenv("STATS_USER_ENV", "STATS_USER")
+	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
+	statsAuth := `    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats uri /admin?stats
+
+frontend services`
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, "\nfrontend services", statsAuth, -1),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	println("000")
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)

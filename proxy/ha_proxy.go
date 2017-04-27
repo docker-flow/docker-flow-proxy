@@ -201,8 +201,8 @@ func (m HaProxy) getConfigData() ConfigData {
 	d.TimeoutTunnel = GetSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
 	d.TimeoutHttpRequest = GetSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
 	d.TimeoutHttpKeepAlive = GetSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
-	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "admin")
-	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "admin")
+	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
+	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
 	statsUri := GetSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
 	if len(statsUser) > 0 && len(statsPass) > 0 {
 		d.Stats = fmt.Sprintf(`
