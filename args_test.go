@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"testing"
-	"github.com/stretchr/testify/suite"
 )
 
 type ArgsTestSuite struct {
