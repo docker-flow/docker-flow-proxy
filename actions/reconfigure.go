@@ -281,10 +281,10 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			tmpl += `
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}} init-addr none{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		} else {
 			tmpl += `
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}} init-addr none{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		}
 	} else { // It's Consul
 		tmpl += `
