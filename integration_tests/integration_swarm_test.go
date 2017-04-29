@@ -292,18 +292,6 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 	}
 }
 
-//func (s IntegrationSwarmTestSuite) Test_HttpsOnly() {
-//	s.reconfigureGoDemo("&httpsOnly=true")
-//
-//	resp, err := s.sendHelloRequest()
-//
-//	if err != nil {
-//		s.Fail("Failed to block HTTPS requests", "ERROR: %s\n\nConfig: %s", err.Error(), s.getProxyConf())
-//	} else {
-//		s.Equal(200, resp.StatusCode, s.getProxyConf())
-//	}
-//}
-
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
