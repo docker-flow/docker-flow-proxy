@@ -2,7 +2,7 @@ package main
 
 import haproxy "./proxy"
 
-type Runnable interface {
+type runner interface {
 	Execute(args []string) error
 }
 
@@ -10,7 +10,7 @@ type Run struct{}
 
 var run Run
 
-var NewRun = func() Executable {
+var NewRun = func() runner {
 	return &Run{}
 }
 

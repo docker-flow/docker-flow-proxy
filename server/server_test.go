@@ -340,7 +340,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_W
 func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
 	sd := proxy.ServiceDest{
 		ServicePath: []string{},
-		ReqMode: "http",
+		ReqMode:     "http",
 	}
 	pathFe := "/path/to/consul/fe/template"
 	pathBe := "/path/to/consul/be/template"
@@ -618,7 +618,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
 		ServiceColor:          "serviceColor",
-		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{"/"}, Port: "1234", ReqMode: "reqMode",}},
+		ServiceDest:           []proxy.ServiceDest{{ServicePath: []string{"/"}, Port: "1234", ReqMode: "reqMode"}},
 		ServiceDomain:         []string{"domain1", "domain2"},
 		ServiceDomainMatchAll: true,
 		ServiceName:           "serviceName",
@@ -681,7 +681,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 }
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
-	req, _ := http.NewRequest("GET", s.BaseUrl + "?servicePath=/my-path", nil)
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path", nil)
 	srv := Serve{}
 
 	actual := srv.GetServiceFromUrl(req)
@@ -694,7 +694,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 		ServiceDomain: []string{"domain1", "domain2"},
 		ServiceName:   "serviceName",
 		ServiceDest: []proxy.ServiceDest{
-			{ServicePath: []string{"/"}, Port: "1234", ReqMode: "http",},
+			{ServicePath: []string{"/"}, Port: "1234", ReqMode: "http"},
 		},
 	}
 	addr := fmt.Sprintf(
@@ -747,7 +747,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		TimeoutTunnel:         "my-TimeoutTunnel",
 		XForwardedProto:       true,
 		ServiceDest: []proxy.ServiceDest{
-			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, ReqMode: "my-ReqMode",},
+			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, ReqMode: "my-ReqMode"},
 		},
 	}
 	os.Setenv("DFP_SERVICE_ACL_NAME", service.AclName)
@@ -873,7 +873,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() 
 	service := proxy.Service{
 		ServiceName: "my-ServiceName",
 		ServiceDest: []proxy.ServiceDest{
-			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, ReqMode: "http",},
+			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, ReqMode: "http"},
 		},
 	}
 	os.Setenv("DFP_SERVICE_1_SERVICE_NAME", service.ServiceName)

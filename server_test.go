@@ -41,7 +41,7 @@ type ServerTestSuite struct {
 func (s *ServerTestSuite) SetupTest() {
 	s.sd = proxy.ServiceDest{
 		ServicePath: []string{"/path/to/my/service/api", "/path/to/my/other/service/api"},
-		ReqMode: "http",
+		ReqMode:     "http",
 	}
 	s.Service.ServiceDest = []proxy.ServiceDest{s.sd}
 	s.InstanceName = "proxy-test-instance"
@@ -123,7 +123,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
 		NewRun = orig
 	}()
 	mockObj := getRunMock("")
-	NewRun = func() Executable {
+	NewRun = func() runner {
 		return mockObj
 	}
 

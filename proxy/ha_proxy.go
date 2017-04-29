@@ -215,7 +215,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		if !strings.EqualFold(statsUser, "none") && !strings.EqualFold(statsPass, "none") {
 			d.Stats += fmt.Sprintf(`
     stats auth %s:%s`,
-			statsUser,
+				statsUser,
 				statsPass,
 			)
 		}
@@ -271,7 +271,7 @@ func (m HaProxy) getConfigData() ConfigData {
 			s.AclName = s.ServiceName
 		}
 		services = append(services, s)
-		for i, _ := range s.ServiceDest {
+		for i := range s.ServiceDest {
 			if len(s.ServiceDest[i].ReqMode) == 0 {
 				s.ServiceDest[i].ReqMode = "http"
 			}
@@ -308,7 +308,7 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 	tcpFEs := make(map[int]Services)
 	for _, s := range *services {
 		if len(s.ServiceDest) == 0 {
-			s.ServiceDest = []ServiceDest{ServiceDest{ReqMode: "http"}}
+			s.ServiceDest = []ServiceDest{{ReqMode: "http"}}
 		}
 		httpDone := false
 		for _, sd := range s.ServiceDest {
@@ -320,7 +320,7 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 			} else if strings.EqualFold(sd.ReqMode, "sni") {
 				_, headerExists := snimap[sd.SrcPort]
 				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, !headerExists)
-			} else  {
+			} else {
 				tcpService := s
 				tcpService.ServiceDest = []ServiceDest{sd}
 				tcpFEs[sd.SrcPort] = append(tcpFEs[sd.SrcPort], tcpService)

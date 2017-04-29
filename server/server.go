@@ -310,4 +310,3 @@ func (m *Serve) isSwarm(mode string) bool {
 func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
 }
-

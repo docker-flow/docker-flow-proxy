@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"unicode"
-	"net/http"
 )
 
 var cmdRunHa = func(cmd *exec.Cmd) error {
@@ -46,6 +46,7 @@ var LowerFirst = func(s string) string {
 	}
 	return string(append([]rune{unicode.ToLower([]rune(s)[0])}, []rune(s)[1:]...))
 }
+
 func IsValidReconf(service *Service) (statusCode int, msg string) {
 	reqMode := "http"
 	if len(service.ServiceName) == 0 {
@@ -66,4 +67,3 @@ func IsValidReconf(service *Service) (statusCode int, msg string) {
 	}
 	return http.StatusOK, ""
 }
-

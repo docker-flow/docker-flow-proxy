@@ -15,9 +15,5 @@ var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 }
 var logPrintf = log.Printf
 
-type Executable interface {
-	Execute(args []string) error
-}
-
 var lookupHost = net.LookupHost
 var registryInstance registry.Registrarable = registry.Consul{}

@@ -160,7 +160,7 @@ func (m *Reconfigure) putToConsul(addresses []string, sr proxy.Service, instance
 func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	sr := &m.Service
 	// TODO: Test
-	for i, _ := range sr.ServiceDest {
+	for i := range sr.ServiceDest {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
 			sr.ServiceDest[i].ReqMode = "http"
 		}
@@ -239,7 +239,7 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service
 	if strings.EqualFold(protocol, "https") {
 		prefix = "https-"
 	}
-	for i, _ := range sr.ServiceDest {
+	for i := range sr.ServiceDest {
 		if strings.EqualFold(sr.ServiceDest[i].ReqMode, "sni") {
 			sr.ServiceDest[i].ReqModeFormatted = "tcp"
 		} else {
