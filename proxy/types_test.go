@@ -177,6 +177,7 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		Distribute:            true,
 		HttpsOnly:             true,
 		HttpsPort:             1234,
+		IsDefaultBackend:      true,
 		OutboundHostname:      "outboundHostname",
 		PathType:              "pathType",
 		RedirectWhenHttpProto: true,
@@ -235,6 +236,7 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 		"delResHeader":          strings.Join(expected.DelResHeader, ","),
 		"port":                  expected.ServiceDest[0].Port,
 		"servicePath":           strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"isDefaultBackend": strconv.FormatBool(expected.IsDefaultBackend),
 	}
 	actual := GetServiceFromMap(&serviceMap)
 	s.Equal(expected, *actual)
