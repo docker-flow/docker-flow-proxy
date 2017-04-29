@@ -182,7 +182,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 		expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234`
+    server myService myService:1234 init-addr none`
 
 		_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -216,7 +216,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddSllVerifyNone_WhenSslVerifyNo
 		expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234 ssl verify none`
+    server myService myService:1234 init-addr none ssl verify none`
 
 		_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -231,7 +231,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqM
 	expected := `
 backend myService-be1234
     mode tcp
-    server myService myService:1234`
+    server myService myService:1234 init-addr none`
 
 	_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -247,7 +247,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234
+    server myService myService:1234 init-addr none
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl
     http-request del-header Authorization`
@@ -271,7 +271,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 
 backend myService-be1234
     mode http
-    server myService myService:1234
+    server myService myService:1234 init-addr none
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization`
@@ -285,11 +285,11 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedBack := `
 backend myService-be1234
     mode http
-    server myService myService:1234
+    server myService myService:1234 init-addr none
 
 backend https-myService-be1234
     mode http
-    server myService myService:4321`
+    server myService myService:4321 init-addr none`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
@@ -304,7 +304,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsConnectionMode_WhenPresent()
 backend myService-be1234
     mode http
     option my-connection-mode
-    server myService myService:1234`
+    server myService myService:1234 init-addr none`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.ConnectionMode = "my-connection-mode"
@@ -319,7 +319,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutServer_WhenPresent() 
 backend myService-be1234
     mode http
     timeout server 9999s
-    server myService myService:1234`
+    server myService myService:1234 init-addr none`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutServer = "9999"
 	s.reconfigure.Mode = "service"
@@ -334,7 +334,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutTunnel_WhenPresent() 
 backend myService-be1234
     mode http
     timeout tunnel 9999s
-    server myService myService:1234`
+    server myService myService:1234 init-addr none`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutTunnel = "9999"
 	s.reconfigure.Mode = "service"
@@ -353,13 +353,13 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	expectedBack := `
 backend myService-be1111
     mode http
-    server myService myService:1111
+    server myService myService:1111 init-addr none
 backend myService-be3333
     mode tcp
-    server myService myService:3333
+    server myService myService:3333 init-addr none
 backend myService-be5555
     mode http
-    server myService myService:5555`
+    server myService myService:5555 init-addr none`
 	s.reconfigure.ServiceDest = sd
 	s.reconfigure.Mode = "service"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
@@ -547,7 +547,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 		`
 backend %s-be%s
     mode http
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -576,7 +576,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 		`
 backend %s-be%s
     mode http
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -607,7 +607,7 @@ func (s ReconfigureTestSuite) Test_Execute_AddsXForwardedProto_WhenTrue() {
 backend %s-be%s
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -639,7 +639,7 @@ backend %s-be%s
     mode http
     http-request add-header header-1
     http-request add-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -671,7 +671,7 @@ backend %s-be%s
     mode http
     http-response add-header header-1
     http-response add-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -703,7 +703,7 @@ backend %s-be%s
     mode http
     http-request set-header header-1
     http-request set-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -735,7 +735,7 @@ backend %s-be%s
     mode http
     http-response set-header header-1
     http-response set-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -767,7 +767,7 @@ backend %s-be%s
     mode http
     http-request del-header header-1
     http-request del-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -799,7 +799,7 @@ backend %s-be%s
     mode http
     http-response del-header header-1
     http-response del-header header-2
-    server %s %s:%s`,
+    server %s %s:%s init-addr none`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
