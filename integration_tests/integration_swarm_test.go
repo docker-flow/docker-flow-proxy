@@ -293,7 +293,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_ReconfigureWithDefaultBackend() {
-	params := "serviceName=go-demo&servicePath=/xxx&port=8080"
+	params := "serviceName=go-demo&servicePath=/xxx&port=8080&isDefaultBackend=true"
 	s.reconfigureService(params)
 
 	resp, err := s.sendHelloRequest()
