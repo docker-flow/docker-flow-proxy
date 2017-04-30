@@ -1530,8 +1530,8 @@ func (s *HaProxyTestSuite) Test_Reload_ReadsPidFile() {
 }
 
 func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenHaCommandFails() {
-	cmdRunHa = func(cmd *exec.Cmd) error {
-		return fmt.Errorf("This is an error")
+	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
+		return []byte(""), fmt.Errorf("This is an error")
 	}
 
 	err := HaProxy{}.Reload()
@@ -1565,6 +1565,28 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	HaProxy{}.Reload()
 
 	s.Equal(expected, *actual)
+}
+
+// RunCmd
+
+func (s *HaProxyTestSuite) Test_RunCmd_ReturnsError_WhenCommandFails() {
+	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
+		return []byte(""), fmt.Errorf("This is an error")
+	}
+
+	err := HaProxy{}.RunCmd([]string{})
+
+	s.Error(err)
+}
+
+func (s *HaProxyTestSuite) Test_RunCmd_ReturnsError_WhenOutputContainsCouldNotResolveAddress() {
+	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
+		return []byte("Bla bla bla could not resolve address and bla"), nil
+	}
+
+	err := HaProxy{}.RunCmd([]string{})
+
+	s.Error(err)
 }
 
 // AddService
@@ -1684,9 +1706,9 @@ func (m FileInfoMock) Sys() interface{} {
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string
-	cmdRunHa = func(cmd *exec.Cmd) error {
+	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
 		actualCommand = cmd.Args
-		return nil
+		return []byte(""), nil
 	}
 	return &actualCommand
 }

@@ -11,8 +11,8 @@ import (
 	"unicode"
 )
 
-var cmdRunHa = func(cmd *exec.Cmd) error {
-	return cmd.Run()
+var cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
+	return cmd.CombinedOutput()
 }
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile
