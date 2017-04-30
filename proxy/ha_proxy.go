@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 )
 
 type HaProxy struct {
@@ -19,6 +20,7 @@ type HaProxy struct {
 
 // TODO: Change to pointer
 var Instance Proxy
+var reloadPauseMilliseconds time.Duration = 1000
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type ConfigData struct {
@@ -122,14 +124,22 @@ func (m HaProxy) ReadConfig() (string, error) {
 }
 
 func (m HaProxy) Reload() error {
-	logPrintf("Reloading the proxy")
-	pidPath := "/var/run/haproxy.pid"
-	pid, err := readPidFile(pidPath)
-	if err != nil {
-		return fmt.Errorf("Could not read the %s file\n%s", pidPath, err.Error())
+	var reloadErr error
+	for i:=0; i<10; i++ {
+		logPrintf("Reloading the proxy")
+		pidPath := "/var/run/haproxy.pid"
+		pid, err := readPidFile(pidPath)
+		if err != nil {
+			return fmt.Errorf("Could not read the %s file\n%s", pidPath, err.Error())
+		}
+		cmdArgs := []string{"-sf", string(pid)}
+		reloadErr = HaProxy{}.RunCmd(cmdArgs)
+		if reloadErr == nil {
+			break
+		}
+		time.Sleep(time.Millisecond * reloadPauseMilliseconds)
 	}
-	cmdArgs := []string{"-sf", string(pid)}
-	return HaProxy{}.RunCmd(cmdArgs)
+	return reloadErr
 }
 
 func (m HaProxy) AddService(service Service) {
