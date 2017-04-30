@@ -42,7 +42,7 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
 defaults
     mode    http
     balance roundrobin
-    default-server init-addr none
+    default-server init-addr last,libc,none
 
     option  dontlognull
     option  dontlog-normal
