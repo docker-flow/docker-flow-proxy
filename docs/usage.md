@@ -203,6 +203,19 @@ curl -i \
     "[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reload?recreate=false&fromListener=true"
 ```
 
+## Ping
+
+> Ping the service
+
+The `ping` endpoint might be useful if implementing `HEALTHCHECK`.
+
+An example Dockerfile is as follows.
+
+```
+FROM vfarcic/docker-flow-proxy
+HEALTHCHECK --interval=5s --timeout=5s CMD wget -qO- "http://localhost:8080/v1/docker-flow-proxy/ping"
+```
+
 ## Config
 
 > Outputs HAProxy configuration

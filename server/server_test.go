@@ -92,6 +92,18 @@ func (s *ServerTestSuite) Test_TestHandler_ReturnsStatus200() {
 	}
 }
 
+// PingHandler
+
+func (s *ServerTestSuite) Test_PingHandler_ReturnsStatus200() {
+	rw := getResponseWriterMock()
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/ping", nil)
+
+	srv := serve{}
+	srv.PingHandler(rw, req)
+
+	rw.AssertCalled(s.T(), "WriteHeader", 200)
+}
+
 // ReconfigureHandler
 
 func (s *ServerTestSuite) Test_ReconfigureHandler_SetsContentTypeToJSON() {

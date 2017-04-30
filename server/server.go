@@ -14,12 +14,13 @@ import (
 
 // Handles server requests
 type Server interface {
+	GetServicesFromEnvVars() *[]proxy.Service
 	GetServiceFromUrl(req *http.Request) *proxy.Service
-	TestHandler(w http.ResponseWriter, req *http.Request)
+	PingHandler(w http.ResponseWriter, req *http.Request)
 	ReconfigureHandler(w http.ResponseWriter, req *http.Request)
 	ReloadHandler(w http.ResponseWriter, req *http.Request)
 	RemoveHandler(w http.ResponseWriter, req *http.Request)
-	GetServicesFromEnvVars() *[]proxy.Service
+	TestHandler(w http.ResponseWriter, req *http.Request)
 }
 
 const (
@@ -82,6 +83,13 @@ func (m *serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
 }
 
 func (m *serve) TestHandler(w http.ResponseWriter, req *http.Request) {
+	js, _ := json.Marshal(Response{Status: "OK"})
+	httpWriterSetContentType(w, "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(js)
+}
+
+func (m *serve) PingHandler(w http.ResponseWriter, req *http.Request) {
 	js, _ := json.Marshal(Response{Status: "OK"})
 	httpWriterSetContentType(w, "application/json")
 	w.WriteHeader(http.StatusOK)

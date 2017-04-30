@@ -56,20 +56,18 @@ docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 export HOST_IP=[...] # Change to the IP of your host
 ```
 
-#### Unit Tests & Build
+#### Unit Tests
 
 ```bash
 docker-compose -f docker-compose-test.yml run --rm unit
-
-export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
-
-docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 ```
 
 #### Staging (Integration) Tests
 
 ```bash
-docker image tag $DOCKER_HUB_USER/docker-flow-proxy $DOCKER_HUB_USER/docker-flow-proxy:beta
+export DOCKER_HUB_USER=[...] # Change to your user in hub.docker.com
+
+docker image build -t $DOCKER_HUB_USER/docker-flow-proxy:beta .
 
 docker image push $DOCKER_HUB_USER/docker-flow-proxy:beta
 

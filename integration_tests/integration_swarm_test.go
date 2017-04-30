@@ -151,7 +151,11 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	resp, err := s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(401, resp.StatusCode, s.getProxyConf())
+	statusCode := 0
+	if err == nil {
+		statusCode = resp.StatusCode
+	}
+	s.Equal(401, statusCode, s.getProxyConf())
 
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
@@ -160,7 +164,10 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	resp, err = client.Do(req)
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	if err == nil {
+		statusCode = resp.StatusCode
+	}
+	s.Equal(200, statusCode, s.getProxyConf())
 }
 
 func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {

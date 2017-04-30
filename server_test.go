@@ -512,12 +512,13 @@ func (m CertMock) Init() error {
 }
 
 type ServerMock struct {
+	GetServicesFromEnvVarsMock func() *[]proxy.Service
 	GetServiceFromUrlMock      func(req *http.Request) *proxy.Service
-	TestHandlerMock            func(w http.ResponseWriter, req *http.Request)
+	PingHandlerMock            func(w http.ResponseWriter, req *http.Request)
 	ReconfigureHandlerMock     func(w http.ResponseWriter, req *http.Request)
 	ReloadHandlerMock          func(w http.ResponseWriter, req *http.Request)
 	RemoveHandlerMock          func(w http.ResponseWriter, req *http.Request)
-	GetServicesFromEnvVarsMock func() *[]proxy.Service
+	TestHandlerMock            func(w http.ResponseWriter, req *http.Request)
 }
 
 func MockServer(mock ServerMock) func() {
@@ -538,6 +539,10 @@ func (m ServerMock) TestHandler(w http.ResponseWriter, req *http.Request) {
 
 func (m ServerMock) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 	m.ReconfigureHandlerMock(w, req)
+}
+
+func (m ServerMock) PingHandler(w http.ResponseWriter, req *http.Request) {
+	m.PingHandlerMock(w, req)
 }
 
 func (m ServerMock) ReloadHandler(w http.ResponseWriter, req *http.Request) {

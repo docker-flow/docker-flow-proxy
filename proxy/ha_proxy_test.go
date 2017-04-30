@@ -489,12 +489,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl url_my-acl1111 path_beg /path-1 path_beg /path-2 port1111Acl
-    acl url_my-acl2222 path_beg /path-3 port2222Acl
-    use_backend my-service-1-be1111 if url_my-acl1111 my-src-port
-    use_backend my-service-1-be2222 if url_my-acl2222
-    acl url_my-acl3333 path_beg /path-4 port3333Acl
-    use_backend my-service-2-be3333 if url_my-acl3333%s`,
+    acl url_my-service-11111 path_beg /path-1 path_beg /path-2 port1111Acl
+    acl url_my-service-12222 path_beg /path-3 port2222Acl
+    use_backend my-service-1-be1111 if url_my-service-11111 my-src-port
+    use_backend my-service-1-be2222 if url_my-service-12222
+    acl url_my-service-23333 path_beg /path-4 port3333Acl
+    use_backend my-service-2-be3333 if url_my-service-23333%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -506,7 +506,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	data.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		PathType:    "path_beg",
-		AclName:     "my-acl",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: " port1111Acl", SrcPortAclName: " my-src-port"},
 			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: " port2222Acl"},
@@ -515,7 +514,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	data.Services["my-service-2"] = Service{
 		ServiceName: "my-service-2",
 		PathType:    "path_beg",
-		AclName:     "my-acl",
 		ServiceDest: []ServiceDest{
 			{Port: "3333", ServicePath: []string{"/path-4"}, SrcPortAcl: " port3333Acl"},
 		},
