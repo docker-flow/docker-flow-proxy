@@ -287,10 +287,10 @@ func (m *Reconfigure) getServerTemplate(protocol string) string {
 	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			return `
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SkipCheck false}} check{{if eq $.SslVerifyNone true}} ssl verify none{{end}}{{end}}`
 		} else {
 			return `
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SkipCheck false}} check{{if eq $.SslVerifyNone true}} ssl verify none{{end}}{{end}}`
 		}
 	} else { // It's Consul
 		return `
