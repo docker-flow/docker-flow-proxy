@@ -11,8 +11,13 @@ import (
 	"unicode"
 )
 
-var cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
-	return cmd.CombinedOutput()
+var cmdRunHa = func(args []string) error {
+	out, err := exec.Command("haproxy", args...).CombinedOutput()
+	outString := string(out)
+	if strings.Contains(outString, "could not resolve address") {
+		err = fmt.Errorf(outString)
+	}
+	return err
 }
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -95,14 +94,9 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 		"/var/run/haproxy.pid",
 	}
 	args = append(args, extraArgs...)
-	cmd := exec.Command("haproxy", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if out, err := cmdRunHa(cmd); err != nil {
+	if err := cmdRunHa(args); err != nil {
 		configData, _ := readConfigsFile("/cfg/haproxy.cfg")
-		return fmt.Errorf("Command %s\n%s\n%s", strings.Join(cmd.Args, " "), err.Error(), string(configData))
-	} else if strings.Contains(string(out), "could not resolve address") {
-		return fmt.Errorf(string(out))
+		return fmt.Errorf("Command %s\n%s\n%s", strings.Join(args, " "), err.Error(), string(configData))
 	}
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -1530,8 +1529,8 @@ func (s *HaProxyTestSuite) Test_Reload_ReadsPidFile() {
 }
 
 func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenHaCommandFails() {
-	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
-		return []byte(""), fmt.Errorf("This is an error")
+	cmdRunHa = func(args []string) error {
+		return fmt.Errorf("This is an error")
 	}
 
 	err := HaProxy{}.Reload()
@@ -1552,7 +1551,6 @@ func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
 func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	actual := HaProxyTestSuite{}.mockHaExecCmd()
 	expected := []string{
-		"haproxy",
 		"-f",
 		"/cfg/haproxy.cfg",
 		"-D",
@@ -1565,28 +1563,6 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	HaProxy{}.Reload()
 
 	s.Equal(expected, *actual)
-}
-
-// RunCmd
-
-func (s *HaProxyTestSuite) Test_RunCmd_ReturnsError_WhenCommandFails() {
-	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
-		return []byte(""), fmt.Errorf("This is an error")
-	}
-
-	err := HaProxy{}.RunCmd([]string{})
-
-	s.Error(err)
-}
-
-func (s *HaProxyTestSuite) Test_RunCmd_ReturnsError_WhenOutputContainsCouldNotResolveAddress() {
-	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
-		return []byte("Bla bla bla could not resolve address and bla"), nil
-	}
-
-	err := HaProxy{}.RunCmd([]string{})
-
-	s.Error(err)
 }
 
 // AddService
@@ -1706,9 +1682,9 @@ func (m FileInfoMock) Sys() interface{} {
 
 func (s HaProxyTestSuite) mockHaExecCmd() *[]string {
 	var actualCommand []string
-	cmdRunHa = func(cmd *exec.Cmd) ([]byte, error) {
-		actualCommand = cmd.Args
-		return []byte(""), nil
+	cmdRunHa = func(args []string) error {
+		actualCommand = args
+		return nil
 	}
 	return &actualCommand
 }
