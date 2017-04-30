@@ -12,9 +12,9 @@ import (
 )
 
 type HaProxy struct {
-	TemplatesPath string
-	ConfigsPath   string
-	ConfigData    ConfigData
+	templatesPath string
+	configsPath   string
+	configData    ConfigData
 }
 
 // TODO: Change to pointer
@@ -48,8 +48,8 @@ type ConfigData struct {
 func NewHaProxy(templatesPath, configsPath string) Proxy {
 	data.Services = map[string]Service{}
 	return HaProxy{
-		TemplatesPath: templatesPath,
-		ConfigsPath:   configsPath,
+		templatesPath: templatesPath,
+		configsPath:   configsPath,
 	}
 }
 
@@ -106,12 +106,12 @@ func (m HaProxy) CreateConfigFromTemplates() error {
 	if err != nil {
 		return err
 	}
-	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
+	configPath := fmt.Sprintf("%s/haproxy.cfg", m.configsPath)
 	return writeFile(configPath, []byte(configsContent), 0664)
 }
 
 func (m HaProxy) ReadConfig() (string, error) {
-	configPath := fmt.Sprintf("%s/haproxy.cfg", m.ConfigsPath)
+	configPath := fmt.Sprintf("%s/haproxy.cfg", m.configsPath)
 	out, err := ReadFile(configPath)
 	if err != nil {
 		return "", err
@@ -122,7 +122,7 @@ func (m HaProxy) ReadConfig() (string, error) {
 func (m HaProxy) Reload() error {
 	logPrintf("Reloading the proxy")
 	var reloadErr error
-	for i:=0; i<10; i++ {
+	for i := 0; i < 10; i++ {
 		pidPath := "/var/run/haproxy.pid"
 		pid, err := readPidFile(pidPath)
 		if err != nil {
@@ -150,9 +150,9 @@ func (m HaProxy) RemoveService(service string) {
 func (m HaProxy) getConfigs() (string, error) {
 	contentArr := []string{}
 	configsFiles := []string{"haproxy.tmpl"}
-	configs, err := readConfigsDir(m.TemplatesPath)
+	configs, err := readConfigsDir(m.templatesPath)
 	if err != nil {
-		return "", fmt.Errorf("Could not read the directory %s\n%s", m.TemplatesPath, err.Error())
+		return "", fmt.Errorf("Could not read the directory %s\n%s", m.templatesPath, err.Error())
 	}
 	for _, fi := range configs {
 		if strings.HasSuffix(fi.Name(), "-fe.cfg") {
@@ -165,7 +165,7 @@ func (m HaProxy) getConfigs() (string, error) {
 		}
 	}
 	for _, file := range configsFiles {
-		templateBytes, err := readConfigsFile(fmt.Sprintf("%s/%s", m.TemplatesPath, file))
+		templateBytes, err := readConfigsFile(fmt.Sprintf("%s/%s", m.templatesPath, file))
 		if err != nil {
 			return "", fmt.Errorf("Could not read the file %s\n%s", file, err.Error())
 		}
@@ -208,25 +208,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	d.TimeoutTunnel = GetSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
 	d.TimeoutHttpRequest = GetSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
 	d.TimeoutHttpKeepAlive = GetSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
-	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
-	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
-	statsUri := GetSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
-	if len(statsUser) > 0 && len(statsPass) > 0 {
-		d.Stats = fmt.Sprintf(`
-    stats enable
-    stats refresh 30s
-    stats realm Strictly\ Private
-    stats uri %s`,
-			statsUri,
-		)
-		if !strings.EqualFold(statsUser, "none") && !strings.EqualFold(statsPass, "none") {
-			d.Stats += fmt.Sprintf(`
-    stats auth %s:%s`,
-				statsUser,
-				statsPass,
-			)
-		}
-	}
+	m.putStats(&d)
 	m.getUserList(&d)
 	d.ExtraFrontend = GetSecretOrEnvVarSplit("EXTRA_FRONTEND", "")
 	if len(d.ExtraFrontend) > 0 {
@@ -286,6 +268,28 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	m.getSni(&services, &d)
 	return d
+}
+
+func (m *HaProxy) putStats(data *ConfigData) {
+	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
+	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
+	statsUri := GetSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
+	if len(statsUser) > 0 && len(statsPass) > 0 {
+		data.Stats = fmt.Sprintf(`
+    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats uri %s`,
+			statsUri,
+		)
+		if !strings.EqualFold(statsUser, "none") && !strings.EqualFold(statsPass, "none") {
+			data.Stats += fmt.Sprintf(`
+    stats auth %s:%s`,
+				statsUser,
+				statsPass,
+			)
+		}
+	}
 }
 
 func (m *HaProxy) getUserList(data *ConfigData) {

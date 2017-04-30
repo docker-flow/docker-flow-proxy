@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+// Handles server requests
 type Server interface {
 	GetServiceFromUrl(req *http.Request) *proxy.Service
 	TestHandler(w http.ResponseWriter, req *http.Request)
@@ -22,30 +23,30 @@ type Server interface {
 }
 
 const (
-	DISTRIBUTED = "Distributed to all instances"
+	distributed = "Distributed to all instances"
 )
 
-type Serve struct {
-	ListenerAddress string
-	Mode            string
-	Port            string
-	ServiceName     string
-	ConfigsPath     string
-	TemplatesPath   string
-	ConsulAddresses []string
-	Cert            Certer
+type serve struct {
+	listenerAddress string
+	mode            string
+	port            string
+	serviceName     string
+	configsPath     string
+	templatesPath   string
+	consulAddresses []string
+	cert            Certer
 }
 
 var NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) Server {
-	return &Serve{
-		ListenerAddress: listenerAddr,
-		Mode:            mode,
-		Port:            port,
-		ServiceName:     serviceName,
-		ConfigsPath:     configsPath,
-		TemplatesPath:   templatesPath,
-		ConsulAddresses: consulAddresses,
-		Cert:            cert,
+	return &serve{
+		listenerAddress: listenerAddr,
+		mode:            mode,
+		port:            port,
+		serviceName:     serviceName,
+		configsPath:     configsPath,
+		templatesPath:   templatesPath,
+		consulAddresses: consulAddresses,
+		cert:            cert,
 	}
 }
 
@@ -75,35 +76,35 @@ func (p *HttpRequestParameterProvider) GetString(name string) string {
 	return p.URL.Query().Get(name)
 }
 
-func (m *Serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
+func (m *serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
 	provider := HttpRequestParameterProvider{Request: req}
 	return proxy.GetServiceFromProvider(&provider)
 }
 
-func (m *Serve) TestHandler(w http.ResponseWriter, req *http.Request) {
+func (m *serve) TestHandler(w http.ResponseWriter, req *http.Request) {
 	js, _ := json.Marshal(Response{Status: "OK"})
 	httpWriterSetContentType(w, "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(js)
 }
 
-func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
+func (m *serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 	sr := m.GetServiceFromUrl(req)
 	response := Response{
-		Mode:        m.Mode,
+		Mode:        m.mode,
 		Status:      "OK",
 		ServiceName: sr.ServiceName,
 		Service:     *sr,
 	}
 	statusCode, msg := proxy.IsValidReconf(sr)
 	if statusCode == http.StatusOK {
-		if m.isSwarm(m.Mode) && !m.hasPort(sr.ServiceDest) {
+		if m.isSwarm(m.mode) && !m.hasPort(sr.ServiceDest) {
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
-			if status, err := SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+			if status, err := SendDistributeRequests(req, m.port, m.serviceName); err != nil || status >= 300 {
 				m.writeInternalServerError(w, &response, err.Error())
 			} else {
-				response.Message = DISTRIBUTED
+				response.Message = distributed
 				w.WriteHeader(http.StatusOK)
 			}
 		} else {
@@ -111,12 +112,12 @@ func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 				// Replace \n with proper carriage return as new lines are not supported in labels
 				sr.ServiceCert = strings.Replace(sr.ServiceCert, "\\n", "\n", -1)
 				if len(sr.ServiceDomain) > 0 {
-					m.Cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
+					m.cert.PutCert(sr.ServiceDomain[0], []byte(sr.ServiceCert))
 				} else {
-					m.Cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
+					m.cert.PutCert(sr.ServiceName, []byte(sr.ServiceCert))
 				}
 			}
-			action := actions.NewReconfigure(m.getBaseReconfigure(), *sr, m.Mode)
+			action := actions.NewReconfigure(m.getBaseReconfigure(), *sr, m.mode)
 			if err := action.Execute(true); err != nil {
 				m.writeInternalServerError(w, &response, err.Error())
 			} else {
@@ -133,17 +134,17 @@ func (m *Serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m *Serve) getBaseReconfigure() actions.BaseReconfigure {
+func (m *serve) getBaseReconfigure() actions.BaseReconfigure {
 	//MW: What about skipAddressValidation???
 	return actions.BaseReconfigure{
-		ConsulAddresses: m.ConsulAddresses,
-		ConfigsPath:     m.ConfigsPath,
+		ConsulAddresses: m.consulAddresses,
+		ConfigsPath:     m.configsPath,
 		InstanceName:    os.Getenv("PROXY_INSTANCE_NAME"),
-		TemplatesPath:   m.TemplatesPath,
+		TemplatesPath:   m.templatesPath,
 	}
 }
 
-func (m *Serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
+func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	params := new(ReloadParams)
 	decoder.Decode(params, req.Form)
@@ -152,14 +153,14 @@ func (m *Serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 		Status: "OK",
 	}
 	if params.FromListener {
-		listenerAddr = m.ListenerAddress
+		listenerAddr = m.listenerAddress
 	}
 	//MW: I've reconstructed original behavior. BUT.
 	//shouldn't reload call ReloadServicesFromRegistry not just
 	//reload in else, if so ReloadClusterConfig & ReloadServicesFromRegistry
 	//could be enclosed in one method
 	if len(listenerAddr) > 0 {
-		fetch := actions.NewFetch(m.getBaseReconfigure(), m.Mode)
+		fetch := actions.NewFetch(m.getBaseReconfigure(), m.mode)
 		if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
 			logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
 			m.writeInternalServerError(w, &Response{}, err.Error())
@@ -181,7 +182,7 @@ func (m *Serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
+func (m *serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	params := new(RemoveParams)
 	decoder.Decode(params, req.Form)
@@ -192,14 +193,14 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	if params.Distribute {
 		response.Distribute = params.Distribute
-		response.Message = DISTRIBUTED
+		response.Message = distributed
 	}
 	if len(params.ServiceName) == 0 {
 		response.Status = "NOK"
 		response.Message = "The serviceName query is mandatory"
 		header = http.StatusBadRequest
 	} else if params.Distribute {
-		if status, err := SendDistributeRequests(req, m.Port, m.ServiceName); err != nil || status >= 300 {
+		if status, err := SendDistributeRequests(req, m.port, m.serviceName); err != nil || status >= 300 {
 			response.Status = "NOK"
 			response.Message = err.Error()
 			header = http.StatusInternalServerError
@@ -209,11 +210,11 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 		action := actions.NewRemove(
 			params.ServiceName,
 			params.AclName,
-			m.ConfigsPath,
-			m.TemplatesPath,
-			m.ConsulAddresses,
-			m.ServiceName,
-			m.Mode,
+			m.configsPath,
+			m.templatesPath,
+			m.consulAddresses,
+			m.serviceName,
+			m.mode,
 		)
 		action.Execute([]string{})
 	}
@@ -223,7 +224,7 @@ func (m *Serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
-func (m *Serve) GetServicesFromEnvVars() *[]proxy.Service {
+func (m *serve) GetServicesFromEnvVars() *[]proxy.Service {
 	services := []proxy.Service{}
 	s, err := m.getServiceFromEnvVars("DFP_SERVICE")
 	if err == nil {
@@ -241,7 +242,7 @@ func (m *Serve) GetServicesFromEnvVars() *[]proxy.Service {
 	return &services
 }
 
-func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
+func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	var s proxy.Service
 	envconfig.Process(prefix, &s)
 	if len(s.ServiceName) == 0 {
@@ -285,28 +286,28 @@ func (m *Serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	return s, nil
 }
 
-func (m *Serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
+func (m *serve) writeBadRequest(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (m *Serve) writeConflictRequest(w http.ResponseWriter, resp *Response, msg string) {
+func (m *serve) writeConflictRequest(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusConflict)
 }
 
-func (m *Serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
+func (m *serve) writeInternalServerError(w http.ResponseWriter, resp *Response, msg string) {
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func (m *Serve) isSwarm(mode string) bool {
-	return strings.EqualFold("service", m.Mode) || strings.EqualFold("swarm", m.Mode)
+func (m *serve) isSwarm(mode string) bool {
+	return strings.EqualFold("service", m.mode) || strings.EqualFold("swarm", m.mode)
 }
 
-func (m *Serve) hasPort(sd []proxy.ServiceDest) bool {
+func (m *serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
 }

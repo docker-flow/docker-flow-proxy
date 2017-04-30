@@ -85,7 +85,7 @@ func (s *ServerTestSuite) Test_TestHandler_ReturnsStatus200() {
 		rw := getResponseWriterMock()
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v%d/test", ver), nil)
 
-		srv := Serve{}
+		srv := serve{}
 		srv.TestHandler(rw, req)
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
@@ -101,15 +101,15 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_SetsContentTypeToJSON() {
 	}
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reconfigure?serviceName=my-service", nil)
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.Equal("application/json", actual)
 }
 
 func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
-	serve := Serve{}
-	serve.Port = "1234"
+	serve := serve{}
+	serve.port = "1234"
 	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
@@ -125,8 +125,8 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfig
 }
 
 func (s *ServerTestSuite) Test_ReconfigureHandler_WritesStatusOK_WhenReconfigureDistributeIsTrue() {
-	serve := Serve{}
-	serve.Port = "1234"
+	serve := serve{}
+	serve.port = "1234"
 	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
@@ -146,7 +146,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenServiceNa
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -157,7 +157,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus409_WhenModeIsHtt
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 409)
@@ -177,7 +177,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus200_WhenReqModeIs
 		}
 	}
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 200)
@@ -188,7 +188,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenReqModeIs
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -199,7 +199,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenReqModeIs
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -210,7 +210,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsSer
 	req, _ := http.NewRequest("GET", url, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{Mode: "service"}
+	srv := serve{mode: "service"}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -221,7 +221,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsSwa
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 
-	srv := Serve{Mode: "swARM"}
+	srv := serve{mode: "swARM"}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -242,7 +242,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
 		}
 	}
 
-	srv := Serve{Mode: "swarm"}
+	srv := serve{mode: "swarm"}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.True(invoked)
@@ -263,7 +263,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecut
 		}
 	}
 
-	srv := Serve{Mode: "swarm"}
+	srv := serve{mode: "swarm"}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.False(invoked)
@@ -283,7 +283,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus500_WhenReconfigu
 	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234"
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 500)
@@ -303,9 +303,9 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCert_WhenServiceCert
 	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceCert=%s", expectedCert)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	srv := Serve{
-		Mode: "swarm",
-		Cert: cert,
+	srv := serve{
+		mode: "swarm",
+		cert: cert,
 	}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
@@ -327,9 +327,9 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_W
 	addr := fmt.Sprintf("/v1/docker-flow-proxy/reconfigure?serviceName=my-service&servicePath=/demo&port=1234&serviceDomain=my-domain.com&serviceCert=%s", expectedCert)
 	req, _ := http.NewRequest("GET", addr, nil)
 
-	srv := Serve{
-		Mode: "swarm",
-		Cert: cert,
+	srv := serve{
+		mode: "swarm",
+		cert: cert,
 	}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
@@ -368,8 +368,8 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_When
 			},
 		}
 	}
-	serverImpl := Serve{
-		ConsulAddresses: []string{"http://my-consul.com"},
+	serverImpl := serve{
+		consulAddresses: []string{"http://my-consul.com"},
 	}
 	addr := fmt.Sprintf(
 		"/v1/docker-flow-proxy/reconfigure?serviceName=my-service&consulTemplateFePath=%s&consulTemplateBePath=%s",
@@ -397,7 +397,7 @@ func (s *ServerTestSuite) Test_ReloadHandler_ReturnsStatus200() {
 		rw := getResponseWriterMock()
 		req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
 
-		srv := Serve{}
+		srv := serve{}
 		srv.ReloadHandler(rw, req)
 
 		rw.AssertCalled(s.T(), "WriteHeader", 200)
@@ -414,7 +414,7 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReload() {
 	})()
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload", nil)
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
 	s.True(invoked)
@@ -438,8 +438,8 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithRecreateParam() {
 
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?recreate=true", nil)
 
-	srv := Serve{}
-	srv.ListenerAddress = "my-listener"
+	srv := serve{}
+	srv.listenerAddress = "my-listener"
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
 	s.True(actualRecreate)
@@ -461,11 +461,11 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam(
 	})()
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?fromListener=true", nil)
 
-	srv := Serve{}
-	srv.ListenerAddress = "my-listener"
+	srv := serve{}
+	srv.listenerAddress = "my-listener"
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
-	s.Equal(srv.ListenerAddress, actualListenerAddr)
+	s.Equal(srv.listenerAddress, actualListenerAddr)
 }
 
 func (s *ServerTestSuite) Test_ReloadHandler_SetsContentTypeToJSON() {
@@ -480,7 +480,7 @@ func (s *ServerTestSuite) Test_ReloadHandler_SetsContentTypeToJSON() {
 		},
 	})()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
 	s.Equal("application/json", actual)
@@ -498,7 +498,7 @@ func (s *ServerTestSuite) Test_ReloadHandler_ReturnsJSON() {
 	})()
 	respWriterMock := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.ReloadHandler(respWriterMock, req)
 
 	respWriterMock.AssertCalled(s.T(), "Write", []byte(expected))
@@ -513,7 +513,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_SetsContentTypeToJSON() {
 	}
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/remove", nil)
 
-	srv := Serve{}
+	srv := serve{}
 	srv.RemoveHandler(getResponseWriterMock(), req)
 
 	s.Equal("application/json", actual)
@@ -528,7 +528,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_ReturnsJSON() {
 	req, _ := http.NewRequest("GET", addr, nil)
 	respWriterMock := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.RemoveHandler(respWriterMock, req)
 
 	respWriterMock.AssertCalled(s.T(), "Write", []byte(expected))
@@ -538,7 +538,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_ReturnsStatus400_WhenServiceNameIsN
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/remove", nil)
 	respWriterMock := getResponseWriterMock()
 
-	srv := Serve{}
+	srv := serve{}
 	srv.RemoveHandler(respWriterMock, req)
 
 	respWriterMock.AssertCalled(s.T(), "WriteHeader", 400)
@@ -575,9 +575,9 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 	url := fmt.Sprintf("/v1/docker-flow-proxy/remove?serviceName=%s&aclName=%s", s.ServiceName, aclName)
 	req, _ := http.NewRequest("GET", url, nil)
 
-	srv := Serve{
-		ConsulAddresses: expected.ConsulAddresses,
-		ServiceName:     expected.InstanceName,
+	srv := serve{
+		consulAddresses: expected.ConsulAddresses,
+		serviceName:     expected.InstanceName,
 	}
 	srv.RemoveHandler(getResponseWriterMock(), req)
 
@@ -590,7 +590,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_WritesErrorHeader_WhenRemoveDistrib
 	req, _ := http.NewRequest("GET", addr, nil)
 	respWriterMock := getResponseWriterMock()
 
-	serve := Serve{}
+	serve := serve{}
 	serve.RemoveHandler(respWriterMock, req)
 
 	respWriterMock.AssertCalled(s.T(), "WriteHeader", 500)
@@ -673,7 +673,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ConnectionMode,
 	)
 	req, _ := http.NewRequest("GET", addr, nil)
-	srv := Serve{}
+	srv := serve{}
 
 	actual := srv.GetServiceFromUrl(req)
 
@@ -682,7 +682,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path", nil)
-	srv := Serve{}
+	srv := serve{}
 
 	actual := srv.GetServiceFromUrl(req)
 
@@ -705,7 +705,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 		expected.ServiceDest[0].Port,
 	)
 	req, _ := http.NewRequest("GET", addr, nil)
-	srv := Serve{}
+	srv := serve{}
 
 	actual := srv.GetServiceFromUrl(req)
 
@@ -821,7 +821,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_TIMEOUT_TUNNEL")
 		os.Unsetenv("DFP_SERVICE_X_FORWARDED_PROTO")
 	}()
-	srv := Serve{}
+	srv := serve{}
 	actual := srv.GetServicesFromEnvVars()
 
 	s.Len(*actual, 1)
@@ -853,7 +853,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_2")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT_2")
 	}()
-	srv := Serve{}
+	srv := serve{}
 	actual := srv.GetServicesFromEnvVars()
 
 	service.ServiceDest[0].ReqMode = "http"
@@ -863,7 +863,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameIsNotSet() {
-	srv := Serve{}
+	srv := serve{}
 	actual := srv.GetServicesFromEnvVars()
 
 	s.Len(*actual, 0)
@@ -887,7 +887,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() 
 		os.Unsetenv("DFP_SERVICE_1_SRC_PORT")
 	}()
 
-	srv := Serve{}
+	srv := serve{}
 	actual := srv.GetServicesFromEnvVars()
 
 	s.Len(*actual, 1)

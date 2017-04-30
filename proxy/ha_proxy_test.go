@@ -87,7 +87,7 @@ config2 be content`
 	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	os.Setenv("STATS_URI_ENV", "STATS_URI")
 	reloadPauseMillisecondsOrig := reloadPauseMilliseconds
-	defer func(){ reloadPauseMilliseconds = reloadPauseMillisecondsOrig}()
+	defer func() { reloadPauseMilliseconds = reloadPauseMillisecondsOrig }()
 	reloadPauseMilliseconds = 1
 	suite.Run(t, s)
 }

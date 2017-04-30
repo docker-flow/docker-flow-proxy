@@ -246,7 +246,6 @@ func (m *Reconfigure) getBackTemplateProtocol(protocol string, sr *proxy.Service
 			sr.ServiceDest[i].ReqModeFormatted = sr.ServiceDest[i].ReqMode
 		}
 	}
-
 	tmpl := fmt.Sprintf(`{{range .ServiceDest}}
 backend %s{{$.ServiceName}}-be{{.Port}}
     mode {{.ReqModeFormatted}}`,
@@ -278,33 +277,42 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 		tmpl += `
     http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]`
 	}
+	tmpl += m.getServerTemplate(protocol)
+	tmpl += m.getUsersTemplate(sr.Users)
+	tmpl += "{{end}}"
+	return tmpl
+}
+
+func (m *Reconfigure) getServerTemplate(protocol string) string {
 	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
-			tmpl += `
+			return `
     server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		} else {
-			tmpl += `
+			return `
     server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		}
 	} else { // It's Consul
-		tmpl += `
+		return `
     {{"{{"}}range $i, $e := service "{{$.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}{{if eq $.SkipCheck false}} check{{if eq $.SslVerifyNone true}} ssl verify none{{end}}{{end}}
     {{"{{end}}"}}`
 	}
-	if len(sr.Users) > 0 {
-		tmpl += `
+}
+
+func (m *Reconfigure) getUsersTemplate(users []proxy.User) string {
+	if len(users) > 0 {
+		return `
     acl {{$.ServiceName}}UsersAcl http_auth({{$.ServiceName}}Users)
     http-request auth realm {{$.ServiceName}}Realm if !{{$.ServiceName}}UsersAcl
     http-request del-header Authorization`
 	} else if len(proxy.GetSecretOrEnvVar("USERS", "")) > 0 {
-		tmpl += `
+		return `
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl
     http-request del-header Authorization`
 	}
-	tmpl += "{{end}}"
-	return tmpl
+	return ""
 }
 
 func (m *Reconfigure) getHeaders(sr *proxy.Service) string {
