@@ -23,10 +23,10 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |httpsPort      |The internal HTTPS port of a service that should be reconfigured. The port is used only in the `swarm` mode. If not specified, the `port` parameter will be used instead.<br>Example: `443`|No| |
 |isDefaultBackend  | If true, the service will be set to the default_backend rule, meaning it will catch all requests not matching any other rules.<br>Example: `true`|No| |
 |port           |The internal port of a service that should be reconfigured. The port is used only in the `swarm` mode. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `port.1`, `port.2`, and so on).<br>Example: `8080`|Only in `swarm` mode.| |
-|reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing.<br>Example: `tcp`|No|http|
+|reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing. The parameter can be prefixed with an index thus allowing definition of multiple modes for a single service (e.g. `http`, `tcp`, and so on).<br>Example: `tcp`|No|http|
 |reqPathReplace |A regular expression to apply the modification. If specified, `reqPathSearch` needs to be set as well.<br>Example: `/demo/`|No| |
 |reqPathSearch  |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.<br>Example: `/something/`|No| |
-|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains should be separated with comma (`,`).**This parameter cannot be used with TCP.**<br>Example: ecme.com|If `servicePath` is not specified.| |
+|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. **This parameter cannot be used with TCP.**<br>Example: ecme.com|If `servicePath` is not specified.| |
 |serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.<br>Example: `true`|No|false|
 |serviceName    |The name of the service. It must match the name of the Swarm service.<br>Example: `go-demo`|Yes| |
 |setReqHeader   |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info.<br>Example: `X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }`|No| |
@@ -36,7 +36,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutTunnel  |The tunnel timeout in seconds.<br>Example: `3600`                                            |No      |3600   |
 |xForwardedProto|Whether to add "X-Forwarded-Proto https" header.<br>Example: `true`                          |No      |false  |
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `serviceDomain`, `srcPort`, and `port` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, and `ReqMode` parameters. In that case, `srcPort` is required. Defining multiple destinations is useful in cases when a service exposes multiple ports with different paths and functions.
 
 ### HTTP Mode HTTP Query Parameters
 
