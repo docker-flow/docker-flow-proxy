@@ -284,19 +284,7 @@ Since Docker's networking (`routing mesh`) is performing load balancing, each of
 
 It is useful to see the statistics from the proxy. Among other things, they can reveal information that we could use to make decisions whether to scale our services.
 
-!!! info
-	If you are a Windows user, the `open` command might not be available. In that case, please execute `docker-machine ip node-1` to find out the IP of one of the VMs and open the admin page manually in your favorite browser.
-
-```bash
-open "http://$(docker-machine ip node-1)/admin?stats"
-```
-
-You will be asked for a username and password. Please use the default values *admin/admin*. You will be presented with a screen with quite a few stats. Since we are running only one service (`go-demo`), those stats might not be of great interest. However, when many services are exposed through the proxy, HAProxy statistics provide indispensable information we should leverage when operating the cluster.
-
-!!! info
-	If you are running multiple replicas of the proxy, the statistics page will show information from one of the replicas only (randomly chosen by the ingress network). It is recommended to store stats from all the replicas in one of the monitoring systems like [Prometheus](https://prometheus.io/).
-
-Using the default username and password is not very secure. We should change them to some more unique values.
+As a security precaution, stats are disabled by default. We need to provide authentication as a way to enable statistics.
 
 There are two ways to secure the proxy statistics. One is through environment variables `STATS_USER` and `STATS_PASS`. Typically, you would set those environment variables when creating the services. Since, in this case, the proxy is already running, we'll update it.
 
@@ -307,11 +295,17 @@ docker service update \
     proxy
 ```
 
-Now we can open the `admin` page again. This time, the username and password will be `my-user/my-pass`.
+!!! info
+	If you are a Windows user, the `open` command might not be available. In that case, please execute `docker-machine ip node-1` to find out the IP of one of the VMs and open the admin page manually in your favorite browser.
 
 ```bash
 open "http://$(docker-machine ip node-1)/admin?stats"
 ```
+
+You will be asked for a username and password. Please use the default values *my-user/my-pass*. You will be presented with a screen with quite a few stats. Since we are running only one service (`go-demo`), those stats might not be of great interest. However, when many services are exposed through the proxy, HAProxy statistics provide indispensable information we should leverage when operating the cluster.
+
+!!! info
+	If you are running multiple replicas of the proxy, the statistics page will show information from one of the replicas only (randomly chosen by the ingress network). It is recommended to store stats from all the replicas in one of the monitoring systems like [Prometheus](https://prometheus.io/).
 
 Even now, anyone could retrieve our username and password with a simple `service inspect` command. Fortunately, *Docker Flow Proxy* supports Docker secrets introduced in version 1.13.
 

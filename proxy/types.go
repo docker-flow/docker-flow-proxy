@@ -15,18 +15,20 @@ var usersBasePath string = "/run/secrets/dfp_users_%s"
 type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
-	Port string
+	Port             string
 	// The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are *http*, *tcp*, and *sni*.
-	ReqMode string
+	ReqMode          string
 	// Internal use only. Do not modify.
 	ReqModeFormatted string
 	// The URL path of the service.
-	ServicePath []string
+	ServicePath      []string
 	// The source (entry) port of a service.
 	// Useful only when specifying multiple destinations of a single service.
-	SrcPort        int
-	SrcPortAcl     string
-	SrcPortAclName string
+	SrcPort          int
+	// Internal use only. Do not modify.
+	SrcPortAcl       string
+	// Internal use only. Do not modify.
+	SrcPortAclName   string
 }
 
 // Description of a service that should be added to the proxy configuration.
