@@ -213,6 +213,7 @@ An example Dockerfile is as follows.
 
 ```
 FROM vfarcic/docker-flow-proxy
+
 HEALTHCHECK --interval=5s --timeout=5s CMD wget -qO- "http://localhost:8080/v1/docker-flow-proxy/ping"
 ```
 
