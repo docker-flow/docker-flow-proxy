@@ -29,7 +29,6 @@ type ReconfigureTestSuite struct {
 	PutPathResponse   string
 	ConsulRequestBody proxy.Service
 	InstanceName      string
-	SkipCheck         bool
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
@@ -40,7 +39,6 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.ServiceDest = []proxy.ServiceDest{sd}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
-	s.SkipCheck = false
 	s.PathType = "path_beg"
 	s.ConsulTemplateFe = `
     acl url_myService path_beg path/to/my/service/api path_beg path/to/my/other/service/api
@@ -49,7 +47,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}`
 	s.ConsulAddress = s.Server.URL
 	s.reconfigure = Reconfigure{
@@ -63,7 +61,6 @@ backend myService-be
 			ServiceName: s.ServiceName,
 			ServiceDest: []proxy.ServiceDest{sd},
 			PathType:    s.PathType,
-			SkipCheck:   false,
 		},
 	}
 	os.Setenv("SKIP_ADDRESS_VALIDATION", "true")
@@ -115,7 +112,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersEnvIsPrese
 backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl
@@ -139,7 +136,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent(
 backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
@@ -163,7 +160,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresentA
 backend myService-be
     mode http
     {{range $i, $e := service "myService" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
@@ -182,7 +179,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenMode
 		expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234 check`
+    server myService myService:1234`
 
 		_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -216,7 +213,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddSllVerifyNone_WhenSslVerifyNo
 		expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234 check ssl verify none`
+    server myService myService:1234 ssl verify none`
 
 		_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -231,7 +228,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqM
 	expected := `
 backend myService-be1234
     mode tcp
-    server myService myService:1234 check`
+    server myService myService:1234`
 
 	_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -247,7 +244,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 	expected := `
 backend myService-be1234
     mode http
-    server myService myService:1234 check
+    server myService myService:1234
     acl defaultUsersAcl http_auth(defaultUsers)
     http-request auth realm defaultRealm if !defaultUsersAcl
     http-request del-header Authorization`
@@ -271,7 +268,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndU
 
 backend myService-be1234
     mode http
-    server myService myService:1234 check
+    server myService myService:1234
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization`
@@ -285,11 +282,11 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedBack := `
 backend myService-be1234
     mode http
-    server myService myService:1234 check
+    server myService myService:1234
 
 backend https-myService-be1234
     mode http
-    server myService myService:4321 check`
+    server myService myService:4321`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.HttpsPort = 4321
@@ -304,7 +301,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsConnectionMode_WhenPresent()
 backend myService-be1234
     mode http
     option my-connection-mode
-    server myService myService:1234 check`
+    server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.Mode = "service"
 	s.reconfigure.ConnectionMode = "my-connection-mode"
@@ -319,7 +316,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutServer_WhenPresent() 
 backend myService-be1234
     mode http
     timeout server 9999s
-    server myService myService:1234 check`
+    server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutServer = "9999"
 	s.reconfigure.Mode = "service"
@@ -334,7 +331,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsTimeoutTunnel_WhenPresent() 
 backend myService-be1234
     mode http
     timeout tunnel 9999s
-    server myService myService:1234 check`
+    server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.TimeoutTunnel = "9999"
 	s.reconfigure.Mode = "service"
@@ -353,13 +350,13 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsMultipleDestinations() {
 	expectedBack := `
 backend myService-be1111
     mode http
-    server myService myService:1111 check
+    server myService myService:1111
 backend myService-be3333
     mode tcp
-    server myService myService:3333 check
+    server myService myService:3333
 backend myService-be5555
     mode http
-    server myService myService:5555 check`
+    server myService myService:5555`
 	s.reconfigure.ServiceDest = sd
 	s.reconfigure.Mode = "service"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
@@ -377,7 +374,7 @@ backend myService-be
     mode http
     reqrep %s     %s
     {{range $i, $e := service "%s" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}`,
 		s.reconfigure.ReqRepSearch,
 		s.reconfigure.ReqRepReplace,
@@ -397,7 +394,7 @@ backend myService-be
     mode http
     http-request set-path %%[path,regsub(%s,%s)]
     {{range $i, $e := service "%s" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}} check
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
     {{end}}`,
 		s.reconfigure.ReqPathSearch,
 		s.reconfigure.ReqPathReplace,
@@ -416,14 +413,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Contains(actual, expected)
-}
-
-func (s ReconfigureTestSuite) Test_GetTemplates_DoesNotSetCheckWhenSkipCheckIsTrue() {
-	s.ConsulTemplateBe = strings.Replace(s.ConsulTemplateBe, " check", "", -1)
-	s.reconfigure.SkipCheck = true
-	_, actual, _ := s.reconfigure.GetTemplates()
-
-	s.Equal(s.ConsulTemplateBe, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFileContent_WhenConsulTemplatePathIsSet() {
@@ -547,7 +536,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsService() 
 		`
 backend %s-be%s
     mode http
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -576,7 +565,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplate_WhenModeIsSwarm() {
 		`
 backend %s-be%s
     mode http
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -607,7 +596,7 @@ func (s ReconfigureTestSuite) Test_Execute_AddsXForwardedProto_WhenTrue() {
 backend %s-be%s
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -639,7 +628,7 @@ backend %s-be%s
     mode http
     http-request add-header header-1
     http-request add-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -671,7 +660,7 @@ backend %s-be%s
     mode http
     http-response add-header header-1
     http-response add-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -703,7 +692,7 @@ backend %s-be%s
     mode http
     http-request set-header header-1
     http-request set-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -735,7 +724,7 @@ backend %s-be%s
     mode http
     http-response set-header header-1
     http-response set-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -767,7 +756,7 @@ backend %s-be%s
     mode http
     http-request del-header header-1
     http-request del-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -799,7 +788,7 @@ backend %s-be%s
     mode http
     http-response del-header header-1
     http-response del-header header-2
-    server %s %s:%s check`,
+    server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
 		s.ServiceName,
@@ -900,7 +889,6 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 		ServiceName: "s.ServiceName",
 		ServiceDest: []proxy.ServiceDest{sd},
 		PathType:    s.PathType,
-		SkipCheck:   false,
 	}
 	r := NewReconfigure(
 		BaseReconfigure{
@@ -955,8 +943,6 @@ func (s ReconfigureTestSuite) Test_Execute_InvokesHaProxyReload() {
 }
 
 func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
-	s.SkipCheck = true
-	s.reconfigure.SkipCheck = true
 	s.reconfigure.ServiceDomain = s.ServiceDomain
 	s.reconfigure.ConsulTemplateFePath = s.ConsulTemplateFePath
 	s.reconfigure.ConsulTemplateBePath = s.ConsulTemplateBePath
@@ -971,7 +957,6 @@ func (s *ReconfigureTestSuite) Test_Execute_PutsDataToConsul() {
 		ServiceDomain:        s.ServiceDomain,
 		OutboundHostname:     s.OutboundHostname,
 		PathType:             s.PathType,
-		SkipCheck:            s.SkipCheck,
 		ConsulTemplateFePath: s.ConsulTemplateFePath,
 		ConsulTemplateBePath: s.ConsulTemplateBePath,
 	}
@@ -1266,8 +1251,6 @@ func GetTestServer(s proxy.Service, InstanceName string) *httptest.Server {
 				w.Write([]byte(s.OutboundHostname))
 			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.PATH_TYPE_KEY):
 				w.Write([]byte(s.PathType))
-			case fmt.Sprintf("/v1/kv/%s/%s/%s", InstanceName, s.ServiceName, registry.SKIP_CHECK_KEY):
-				w.Write([]byte(fmt.Sprintf("%t", s.SkipCheck)))
 			default:
 				header = http.StatusNotFound
 			}

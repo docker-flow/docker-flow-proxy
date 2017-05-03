@@ -103,9 +103,6 @@ type Service struct {
 	SetReqHeader []string `split_words:"true"`
 	// Additional headers that will be set to the response before forwarding it to the client. If a specified header exists, it will be replaced with the new one.
 	SetResHeader []string `split_words:"true"`
-	// Whether to skip adding proxy checks.
-	// This option is used only in the default mode.
-	SkipCheck bool `split_words:"true"`
 	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
 	SslVerifyNone bool `split_words:"true"`
 	// The path to the template representing a snippet of the backend configuration.

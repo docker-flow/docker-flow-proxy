@@ -636,7 +636,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ServiceName:           "serviceName",
 		SetReqHeader:          []string{"set-header-1", "set-header-2"},
 		SetResHeader:          []string{"set-header-1", "set-header-2"},
-		SkipCheck:             true,
 		SslVerifyNone:         true,
 		TemplateBePath:        "templateBePath",
 		TemplateFePath:        "templateFePath",
@@ -647,7 +646,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&skipCheck=%t&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainMatchAll=%t&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
@@ -672,7 +671,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.RedirectWhenHttpProto,
 		expected.HttpsPort,
 		strings.Join(expected.ServiceDomain, ","),
-		expected.SkipCheck,
 		expected.Distribute,
 		expected.SslVerifyNone,
 		expected.ServiceDomainMatchAll,
@@ -751,7 +749,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		ServiceName:           "my-ServiceName",
 		SetReqHeader:          []string{"set-header-1", "set-header-2"},
 		SetResHeader:          []string{"set-header-1", "set-header-2"},
-		SkipCheck:             true,
 		SslVerifyNone:         true,
 		TemplateBePath:        "my-TemplateBePath",
 		TemplateFePath:        "my-TemplateFePath",
@@ -784,7 +781,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN", strings.Join(service.ServiceDomain, ","))
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN_MATCH_ALL", strconv.FormatBool(service.ServiceDomainMatchAll))
 	os.Setenv("DFP_SERVICE_SERVICE_NAME", service.ServiceName)
-	os.Setenv("DFP_SERVICE_SKIP_CHECK", strconv.FormatBool(service.SkipCheck))
 	os.Setenv("DFP_SERVICE_SSL_VERIFY_NONE", strconv.FormatBool(service.SslVerifyNone))
 	os.Setenv("DFP_SERVICE_TEMPLATE_BE_PATH", service.TemplateBePath)
 	os.Setenv("DFP_SERVICE_TEMPLATE_FE_PATH", service.TemplateFePath)
@@ -824,7 +820,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH")
 		os.Unsetenv("DFP_SERVICE_SET_REQ_HEADER")
 		os.Unsetenv("DFP_SERVICE_SET_RES_HEADER")
-		os.Unsetenv("DFP_SERVICE_SKIP_CHECK")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT")
 		os.Unsetenv("DFP_SERVICE_SSL_VERIFY_NONE")
 		os.Unsetenv("DFP_SERVICE_TEMPLATE_BE_PATH")

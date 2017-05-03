@@ -51,7 +51,6 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port.<br>Example: `true`|No|false|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|No| |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on).<br>Example: `/api/v1/books`|If `serviceDomain` is not specified.| |
-|skipCheck    |Whether to skip adding proxy checks. This option is used only in the *default* mode.<br>Example: `true`|No      |false  |
 |sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services.<br>Example: `true`|No|false|
 |templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. If specified, `templateFePath` must be set as well. See the [Templates](#templates) section for more info.<br>Example: `/tmpl/be.tmpl`| | |
 |templateFePath|The path to the template representing a snippet of the frontend configuration. If specified, the frontend template will be loaded from the specified file. If specified, `templateBePath` must be set as well. See the [Templates](#templates) section for more info.<br>Example: `/tmpl/fe.tmpl`| | |
@@ -121,7 +120,6 @@ The map between the HTTP query parameters and environment variables is as follow
 |servicePath          |SERVICE_PATH            |
 |setReqHeader         |SET_REQ_HEADER          |
 |setResHeader         |SET_RES_HEADER          |
-|skipCheck            |SKIP_CHECK              |
 |srcPort              |SRC_PORT                |
 |sslVerifyNone        |SSL_VERIFY_NONE         |
 |templateBePath       |TEMPLATE_BE_PATH        |
