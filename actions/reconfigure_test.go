@@ -95,7 +95,7 @@ func TestReconfigureUnitTestSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-// GetTemplate
+// GetTemplates
 
 func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent() {
 	front, back, _ := s.reconfigure.GetTemplates()
@@ -185,6 +185,23 @@ backend myService-be1234
 
 		s.Equal(expected, actual)
 	}
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsCheckResolversDocker_WhenCheckResolversIsTrue() {
+	checkResolversOrig := os.Getenv("CHECK_RESOLVERS")
+	defer func(){ os.Setenv("CHECK_RESOLVERS", checkResolversOrig) }()
+	os.Setenv("CHECK_RESOLVERS", "true")
+
+	s.reconfigure.Mode = "service"
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
+	expected := `
+backend myService-be1234
+    mode http
+    server myService myService:1234 check resolvers docker`
+
+	_, actual, _ := s.reconfigure.GetTemplates()
+
+	s.Equal(expected, actual)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsLoggin_WhenDebug() {

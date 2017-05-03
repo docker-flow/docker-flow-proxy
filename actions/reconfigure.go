@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"strconv"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -158,6 +159,9 @@ func (m *Reconfigure) putToConsul(addresses []string, sr proxy.Service, instance
 
 func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	sr := &m.Service
+	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil {
+		sr.CheckResolvers = value
+	}
 	// TODO: Test
 	for i := range sr.ServiceDest {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
@@ -286,10 +290,10 @@ func (m *Reconfigure) getServerTemplate(protocol string) string {
 	if strings.EqualFold(m.Mode, "service") || strings.EqualFold(m.Mode, "swarm") {
 		if strings.EqualFold(protocol, "https") {
 			return `
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		} else {
 			return `
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		}
 	} else { // It's Consul
 		return `

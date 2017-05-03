@@ -40,6 +40,8 @@ type Service struct {
 	// ACLs are ordered alphabetically by their names.
 	// If not specified, serviceName is used instead.
 	AclName string `split_words:"true"`
+	// Whether to use `docker` as a check resolver. Set through the environment variable CHECK_RESOLVERS
+	CheckResolvers bool `split_words:"true"`
 	// One of the five connection modes supported by the HAProxy.
 	// `http-keep-alive`: all requests and responses are processed.
 	// `http-tunnel`: only the first request and response are processed, everything else is forwarded with no analysis.
