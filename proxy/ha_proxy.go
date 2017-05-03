@@ -25,6 +25,9 @@ var reloadPauseMilliseconds time.Duration = 1000
 type ConfigData struct {
 	CertsString          string
 	ConnectionMode       string
+	ExtraDefaults        string
+	ExtraFrontend        string
+	ExtraGlobal          string
 	TimeoutConnect       string
 	TimeoutClient        string
 	TimeoutServer        string
@@ -36,10 +39,7 @@ type ConfigData struct {
 	SslBindCiphers       string
 	Stats                string
 	UserList             string
-	ExtraGlobal          string
-	ExtraDefaults        string
 	DefaultBinds         string
-	ExtraFrontend        string
 	ContentFrontend      string
 	ContentFrontendTcp   string
 	ContentFrontendSNI   string
@@ -213,6 +213,10 @@ func (m HaProxy) getConfigData() ConfigData {
 	d.ExtraFrontend = GetSecretOrEnvVarSplit("EXTRA_FRONTEND", "")
 	if len(d.ExtraFrontend) > 0 {
 		d.ExtraFrontend = fmt.Sprintf("    %s", d.ExtraFrontend)
+	}
+	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil && value {
+		d.ExtraDefaults += `
+    default-server init-addr last,libc,none`
 	}
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `

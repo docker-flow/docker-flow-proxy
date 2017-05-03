@@ -41,7 +41,6 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
 defaults
     mode    http
     balance roundrobin
-    default-server init-addr last,libc,none
 
     option  dontlognull
     option  dontlog-normal
@@ -298,6 +297,32 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	expectedData := fmt.Sprintf(
 		"%s%s",
 		s.getTemplateWithLogs(),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultServer_WhenCheckResolversIsSetToTrue() {
+	checkResolversOrig := os.Getenv("CHECK_RESOLVERS")
+	defer func() { os.Setenv("CHECK_RESOLVERS", checkResolversOrig) }()
+	os.Setenv("CHECK_RESOLVERS", "true")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"balance roundrobin\n",
+		"balance roundrobin\n\n    default-server init-addr last,libc,none",
+		-1,
+	)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {

@@ -162,7 +162,6 @@ func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil {
 		sr.CheckResolvers = value
 	}
-	// TODO: Test
 	for i := range sr.ServiceDest {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
 			sr.ServiceDest[i].ReqMode = "http"
