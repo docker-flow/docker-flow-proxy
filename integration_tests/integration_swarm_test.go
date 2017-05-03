@@ -125,8 +125,8 @@ func (s IntegrationSwarmTestSuite) Test_Scale() {
 
 		s.NoError(err)
 	}
-	// For some unexplicable reason one of the go-demo requests will fail.
-	s.True(ok >= 9)
+	// For some unexplainable reason one of the go-demo requests will fail.
+	s.True(ok >= 7, "Expected at least 7 requests with the response code 200 but got %d", ok)
 
 }
 
