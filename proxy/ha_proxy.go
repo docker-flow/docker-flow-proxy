@@ -218,6 +218,18 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.ExtraDefaults += `
     default-server init-addr last,libc,none`
 	}
+	if len(os.Getenv("COMPRESSION_ALGO")) > 0 {
+		d.ExtraDefaults += fmt.Sprintf(`
+    compression algo %s`,
+			os.Getenv("COMPRESSION_ALGO"),
+		)
+		if len(os.Getenv("COMPRESSION_TYPE")) > 0 {
+			d.ExtraDefaults += fmt.Sprintf(`
+    compression type %s`,
+				os.Getenv("COMPRESSION_TYPE"),
+			)
+		}
+	}
 	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
 		d.ExtraGlobal += `
     log 127.0.0.1:1514 local0`

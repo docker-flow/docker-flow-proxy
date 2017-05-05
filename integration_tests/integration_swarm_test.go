@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"log"
 )
 
 // Setup
@@ -54,7 +55,10 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -e STATS_PASS=none \
     %s/docker-flow-proxy:beta`,
 		s.dockerHubUser)
-	s.createService(cmd)
+	_, err := s.createService(cmd)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	s.createService(`docker service create --name go-demo-db \
     --network go-demo \
@@ -79,6 +83,33 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	s.NoError(err)
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_Compression() {
+	defer func() {
+		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" proxy`).Output()
+		s.waitForContainers(1, "proxy")
+	}()
+	_, err := exec.Command(
+		"/bin/sh",
+		"-c",
+		`docker service update --env-add "COMPRESSION_ALGO=gzip" --env-add "COMPRESSION_TYPE=text/css text/html text/javascript application/javascript text/plain text/xml application/json" proxy`,
+	).Output()
+	s.NoError(err)
+	s.waitForContainers(1, "proxy")
+	s.reconfigureGoDemo("")
+
+	client := new(http.Client)
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("Accept-Encoding", "gzip")
+	resp, err := client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
 	}
 }
 
@@ -324,8 +355,8 @@ func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name stri
 	return len(lines) == (expected + 1) //+1 because there is new line at the end of ps output
 }
 
-func (s *IntegrationSwarmTestSuite) createService(command string) {
-	exec.Command("/bin/sh", "-c", command).Output()
+func (s *IntegrationSwarmTestSuite) createService(command string) ([]byte, error) {
+	return exec.Command("/bin/sh", "-c", command).Output()
 }
 
 func (s *IntegrationSwarmTestSuite) removeServices(service ...string) {

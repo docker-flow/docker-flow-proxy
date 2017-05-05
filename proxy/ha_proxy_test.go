@@ -335,6 +335,66 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultServer_WhenC
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCompressionAlgo_WhenSet() {
+	compressionAlgoOrig := os.Getenv("COMPRESSION_ALGO")
+	defer func() { os.Setenv("COMPRESSION_ALGO", compressionAlgoOrig) }()
+	os.Setenv("COMPRESSION_ALGO", "gzip")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"balance roundrobin\n",
+		"balance roundrobin\n\n    compression algo gzip",
+		-1,
+	)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCompressionType_WhenCompressionAlgoAndTypeAreSet() {
+	compressionAlgoOrig := os.Getenv("COMPRESSION_ALGO")
+	compressionTypeOrig := os.Getenv("COMPRESSION_TYPE")
+	defer func() {
+		os.Setenv("COMPRESSION_ALGO", compressionAlgoOrig)
+		os.Setenv("COMPRESSION_TYPE", compressionTypeOrig)
+	}()
+	os.Setenv("COMPRESSION_ALGO", "gzip")
+	os.Setenv("COMPRESSION_TYPE", "text/css text/html text/javascript application/javascript text/plain text/xml application/json")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"balance roundrobin\n",
+		`balance roundrobin
+
+    compression algo gzip
+    compression type text/css text/html text/javascript application/javascript text/plain text/xml application/json`,
+		-1,
+	)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsStats_WhenStatsUserAndPassArePresent() {
 	var actualData string
 	statUserOrig := os.Getenv("STATS_USER")
