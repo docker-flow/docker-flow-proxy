@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Handles server requests
+// Server handles requests
 type Server interface {
 	GetServicesFromEnvVars() *[]proxy.Service
 	GetServiceFromUrl(req *http.Request) *proxy.Service
@@ -38,6 +38,7 @@ type serve struct {
 	cert            Certer
 }
 
+// NewServer returns instance of the Server with populated data
 var NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templatesPath string, consulAddresses []string, cert Certer) Server {
 	return &serve{
 		listenerAddress: listenerAddr,
@@ -51,6 +52,7 @@ var NewServer = func(listenerAddr, mode, port, serviceName, configsPath, templat
 	}
 }
 
+//Response message returns to HTTP clients
 type Response struct {
 	Mode        string
 	Status      string

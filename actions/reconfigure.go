@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
-	"strconv"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"

@@ -218,40 +218,8 @@ func (m HaProxy) getConfigData() ConfigData {
 		d.ExtraDefaults += `
     default-server init-addr last,libc,none`
 	}
-	if len(os.Getenv("COMPRESSION_ALGO")) > 0 {
-		d.ExtraDefaults += fmt.Sprintf(`
-    compression algo %s`,
-			os.Getenv("COMPRESSION_ALGO"),
-		)
-		if len(os.Getenv("COMPRESSION_TYPE")) > 0 {
-			d.ExtraDefaults += fmt.Sprintf(`
-    compression type %s`,
-				os.Getenv("COMPRESSION_TYPE"),
-			)
-		}
-	}
-	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
-		d.ExtraGlobal += `
-    log 127.0.0.1:1514 local0`
-		d.ExtraFrontend += `
-    option httplog
-    log global`
-		format := GetSecretOrEnvVar("DEBUG_HTTP_FORMAT", "")
-		if len(format) > 0 {
-			d.ExtraFrontend += fmt.Sprintf(`
-    log-format %s`,
-				format,
-			)
-		}
-		if strings.EqualFold(GetSecretOrEnvVar("DEBUG_ERRORS_ONLY", ""), "true") {
-			d.ExtraDefaults += `
-    option  dontlog-normal`
-		}
-	} else {
-		d.ExtraDefaults += `
-    option  dontlognull
-    option  dontlog-normal`
-	}
+	m.addCompression(&d)
+	m.addDebug(&d)
 
 	defaultPortsString := GetSecretOrEnvVar("DEFAULT_PORTS", "")
 	defaultPorts := strings.Split(defaultPortsString, ",")
@@ -284,6 +252,46 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	m.getSni(&services, &d)
 	return d
+}
+
+func (m *HaProxy) addCompression(data *ConfigData) {
+	if len(os.Getenv("COMPRESSION_ALGO")) > 0 {
+		data.ExtraDefaults += fmt.Sprintf(`
+    compression algo %s`,
+			os.Getenv("COMPRESSION_ALGO"),
+		)
+		if len(os.Getenv("COMPRESSION_TYPE")) > 0 {
+			data.ExtraDefaults += fmt.Sprintf(`
+    compression type %s`,
+				os.Getenv("COMPRESSION_TYPE"),
+			)
+		}
+	}
+}
+
+func (m *HaProxy) addDebug(data *ConfigData) {
+	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
+		data.ExtraGlobal += `
+    log 127.0.0.1:1514 local0`
+		data.ExtraFrontend += `
+    option httplog
+    log global`
+		format := GetSecretOrEnvVar("DEBUG_HTTP_FORMAT", "")
+		if len(format) > 0 {
+			data.ExtraFrontend += fmt.Sprintf(`
+    log-format %s`,
+				format,
+			)
+		}
+		if strings.EqualFold(GetSecretOrEnvVar("DEBUG_ERRORS_ONLY", ""), "true") {
+			data.ExtraDefaults += `
+    option  dontlog-normal`
+		}
+	} else {
+		data.ExtraDefaults += `
+    option  dontlognull
+    option  dontlog-normal`
+	}
 }
 
 func (m *HaProxy) putStats(data *ConfigData) {

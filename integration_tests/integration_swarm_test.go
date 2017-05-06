@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
-	"log"
 )
 
 // Setup

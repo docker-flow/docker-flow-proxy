@@ -189,7 +189,7 @@ backend myService-be1234
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsCheckResolversDocker_WhenCheckResolversIsTrue() {
 	checkResolversOrig := os.Getenv("CHECK_RESOLVERS")
-	defer func(){ os.Setenv("CHECK_RESOLVERS", checkResolversOrig) }()
+	defer func() { os.Setenv("CHECK_RESOLVERS", checkResolversOrig) }()
 	os.Setenv("CHECK_RESOLVERS", "true")
 
 	s.reconfigure.Mode = "service"
