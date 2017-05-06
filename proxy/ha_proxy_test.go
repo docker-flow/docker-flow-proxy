@@ -1499,9 +1499,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesValuesWithSecre
 		readSecretsFile = func(dirname string) ([]byte, error) {
 			if strings.HasSuffix(dirname, t.secretFile) {
 				return []byte(t.value), nil
-			} else {
-				return []byte(""), fmt.Errorf("This is an error")
 			}
+			return []byte(""), fmt.Errorf("This is an error")
 		}
 
 		writeFile = func(filename string, data []byte, perm os.FileMode) error {

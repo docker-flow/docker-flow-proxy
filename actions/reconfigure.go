@@ -290,16 +290,15 @@ func (m *Reconfigure) getServerTemplate(protocol string) string {
 		if strings.EqualFold(protocol, "https") {
 			return `
     server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
-		} else {
-			return `
-    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
 		}
-	} else { // It's Consul
 		return `
+    server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}`
+	}
+	// It's Consul
+	return `
     {{"{{"}}range $i, $e := service "{{$.FullServiceName}}" "any"{{"}}"}}
     server {{"{{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}"}}
     {{"{{end}}"}}`
-	}
 }
 
 func (m *Reconfigure) getUsersTemplate(users []proxy.User) string {

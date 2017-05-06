@@ -377,9 +377,9 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 	}
 }
 
-func (m *HaProxy) getFrontTemplateSNI(s Service, gen_header bool) string {
+func (m *HaProxy) getFrontTemplateSNI(s Service, genHeader bool) string {
 	tmplString := ``
-	if gen_header {
+	if genHeader {
 		tmplString += `{{range .ServiceDest}}
 
 frontend service_{{.SrcPort}}

@@ -93,34 +93,34 @@ func (m *Cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 func (m *Cert) Init() error {
 	dns := fmt.Sprintf("tasks.%s", m.ProxyServiceName)
 	client := &http.Client{}
-	if ips, err := lookupHost(dns); err != nil {
+	ips, err := lookupHost(dns)
+	if err != nil {
 		return err
-	} else {
-		certs := []Cert{}
-		for _, ip := range ips {
-			hostPort := ip
-			if !strings.Contains(ip, ":") {
-				hostPort = net.JoinHostPort(ip, m.ServicePort)
-			}
-			addr := fmt.Sprintf("http://%s/v1/docker-flow-proxy/certs", hostPort)
-			req, _ := http.NewRequest("GET", addr, nil)
-			if resp, err := client.Do(req); err == nil {
-				defer resp.Body.Close()
-				body, _ := ioutil.ReadAll(resp.Body)
-				data := CertResponse{}
-				json.Unmarshal(body, &data)
-				if len(data.Certs) > len(certs) {
-					certs = data.Certs
-				}
+	}
+	certs := []Cert{}
+	for _, ip := range ips {
+		hostPort := ip
+		if !strings.Contains(ip, ":") {
+			hostPort = net.JoinHostPort(ip, m.ServicePort)
+		}
+		addr := fmt.Sprintf("http://%s/v1/docker-flow-proxy/certs", hostPort)
+		req, _ := http.NewRequest("GET", addr, nil)
+		if resp, err := client.Do(req); err == nil {
+			defer resp.Body.Close()
+			body, _ := ioutil.ReadAll(resp.Body)
+			data := CertResponse{}
+			json.Unmarshal(body, &data)
+			if len(data.Certs) > len(certs) {
+				certs = data.Certs
 			}
 		}
-		if len(certs) > 0 {
-			for _, cert := range certs {
-				m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
-			}
-			proxy.Instance.CreateConfigFromTemplates()
-			proxy.Instance.Reload()
+	}
+	if len(certs) > 0 {
+		for _, cert := range certs {
+			m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
 		}
+		proxy.Instance.CreateConfigFromTemplates()
+		proxy.Instance.Reload()
 	}
 	return nil
 }
@@ -160,11 +160,11 @@ func (m *Cert) sendDistributeRequests(w http.ResponseWriter, req *http.Request) 
 func (m *Cert) writeFile(certName string, certContent []byte) (path string, err error) {
 	mu.Lock()
 	defer mu.Unlock()
-	if f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, certName)); err != nil {
+	f, err := os.Create(fmt.Sprintf("%s/%s", m.CertsDir, certName))
+	if err != nil {
 		return "", err
-	} else {
-		f.Write(certContent)
 	}
+	f.Write(certContent)
 	path, _ = filepath.Abs(fmt.Sprintf("%s/%s", m.CertsDir, certName))
 	return path, nil
 }

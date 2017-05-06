@@ -427,10 +427,8 @@ func mergeUsers(
 func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*User, error) {
 	if len(fileName) > 0 {
 		usersFile := fmt.Sprintf(usersBasePath, fileName)
-		if content, err := readFile(usersFile); err == nil {
-			userContents := strings.TrimRight(string(content[:]), "\n")
-			return ExtractUsersFromString(serviceName, userContents, passEncrypted, true), nil
-		} else { // TODO: Test
+		content, err := readFile(usersFile)
+		if err != nil {
 			logPrintf(
 				"For service %s it was impossible to load userFile %s due to error %s",
 				serviceName,
@@ -439,6 +437,8 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*User
 			)
 			return []*User{}, err
 		}
+		userContents := strings.TrimRight(string(content[:]), "\n")
+		return ExtractUsersFromString(serviceName, userContents, passEncrypted, true), nil
 	}
 	return []*User{}, nil
 }
