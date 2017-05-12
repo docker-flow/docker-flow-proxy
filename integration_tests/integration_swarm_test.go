@@ -53,6 +53,8 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -e MODE=swarm \
     -e STATS_USER=none \
     -e STATS_PASS=none \
+    -e TIMEOUT_CONNECT=10 \
+    -e TIMEOUT_HTTP_REQUEST=10 \
     %s/docker-flow-proxy:beta`,
 		s.dockerHubUser)
 	_, err := s.createService(cmd)
@@ -110,6 +112,68 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf())
 		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_UserAgent() {
+	defer func() { s.reconfigureGoDemo("") }()
+	s.reconfigureGoDemo("&userAgent=amiga,amstrad")
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	client := new(http.Client)
+
+	// With the amstrad agent
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("User-Agent", "amstrad")
+	resp, err := client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	}
+
+	// Without the matching agent
+
+	req, _ = http.NewRequest("GET", url, nil)
+	resp, err = client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.NotEqual(200, resp.StatusCode, s.getProxyConf())
+	}
+
+	// With the amiga agent
+
+	req, _ = http.NewRequest("GET", url, nil)
+	req.Header.Add("User-Agent", "amiga")
+	resp, err = client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedRequests() {
+	defer func() { s.reconfigureGoDemo("") }()
+	service1 := "&servicePath.1=/demo&port.1=1111&userAgent.1=amiga"
+	service2 := "&servicePath.2=/demo&port.2=2222&userAgent.2=amstrad"
+	service3 := "&servicePath.3=/demo&port.3=8080"
+	params := "serviceName=go-demo" + service1 + service2 + service3
+	s.reconfigureService(params)
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	client := new(http.Client)
+
+	// Not testing ports 1111 and 2222 since go-demo is not listening on those ports
+
+	// Without the matching agent
+
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
 	}
 }
 
@@ -259,7 +323,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 }
 
-func (s IntegrationSwarmTestSuite) Test_Tcp() {
+func (s IntegrationSwarmTestSuite) Test_XTcp() {
 	defer func() {
 		s.removeServices("redis")
 		s.waitForContainers(0, "redis")

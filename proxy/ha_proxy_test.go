@@ -1049,6 +1049,50 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndUserAgent() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111 path_beg /path
+    acl user_agent_my-service_my-acl-name-1-2 hdr_sub(User-Agent) -i agent-1 agent-2
+    acl url_my-service2222 path_beg /path
+    acl user_agent_my-service_my-acl-name-3 hdr_sub(User-Agent) -i agent-3
+    acl url_my-service3333 path_beg /path
+    use_backend my-service-be1111 if url_my-service1111 user_agent_my-service_my-acl-name-1-2
+    use_backend my-service-be2222 if url_my-service2222 user_agent_my-service_my-acl-name-3
+    use_backend my-service-be3333 if url_my-service3333%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	data.Services["my-service"] = Service{
+		AclName:       "my-service",
+		PathType:      "path_beg",
+		ServiceDest: []ServiceDest{{
+			Port: "1111",
+			ServicePath: []string{"/path"},
+			UserAgent: UserAgent{Value: []string{"agent-1", "agent-2"}, AclName: "my-acl-name-1-2"},
+		}, {
+			Port: "2222",
+			ServicePath: []string{"/path"},
+			UserAgent: UserAgent{Value: []string{"agent-3"}, AclName: "my-acl-name-3"},
+		}, {
+			Port: "3333",
+			ServicePath: []string{"/path"},
+		}},
+		ServiceName:   "my-service",
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithDefaultBackend_WhenIsDefaultBackendIsTrue() {
 	var actualData string
 	tmpl := s.TemplateContent
