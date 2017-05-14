@@ -186,21 +186,20 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 	}
 }
 
-// TODO: Uncomment when Travis updates Docker Engine version
-//func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
-//	defer func() { s.reconfigureGoDemo("") }()
-//	s.reconfigureGoDemo("&verifyClientSsl=true")
-//	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
-//
-//	// Returns 403 Forbidden
-//
-//	resp, err := http.Get(url)
-//
-//	s.NoError(err)
-//	if resp != nil {
-//		s.Equal(403, resp.StatusCode, s.getProxyConf())
-//	}
-//}
+func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
+	defer func() { s.reconfigureGoDemo("") }()
+	s.reconfigureGoDemo("&verifyClientSsl=true")
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+
+	// Returns 403 Forbidden
+
+	resp, err := http.Get(url)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(403, resp.StatusCode, s.getProxyConf())
+	}
+}
 
 func (s IntegrationSwarmTestSuite) Test_Stats() {
 	url := fmt.Sprintf("http://%s/admin?stats", s.hostIP)
