@@ -43,11 +43,6 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	exec.Command("/bin/sh", "-c", "docker network create --driver overlay go-demo").Output()
 
-//	out, err := exec.Command("/bin/sh", "-c", "docker secret create cert-xip.io.pem /usr/src/myapp/integration_tests/xip.io.pem").CombinedOutput()
-//	if err != nil {
-//		log.Fatal(err, "\n", string(out))
-//	}
-
 	cmd = fmt.Sprintf(
 		`docker service create --name proxy \
     -p 80:80 \
@@ -79,11 +74,6 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	suite.Run(t, s)
 
 	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env")
-
-	_, err = exec.Command("/bin/sh", "-c", "docker secret rm cert-xip.io.pem").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 // Tests
