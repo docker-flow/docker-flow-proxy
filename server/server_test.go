@@ -642,10 +642,10 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
 		ServiceColor:          "serviceColor",
-		ServiceDest:           []proxy.ServiceDest{{
+		ServiceDest: []proxy.ServiceDest{{
 			ServicePath: []string{"/"},
-			Port: "1234",
-			ReqMode: "reqMode",
+			Port:        "1234",
+			ReqMode:     "reqMode",
 		}},
 		ServiceDomain:         []string{"domain1", "domain2"},
 		ServiceDomainMatchAll: true,

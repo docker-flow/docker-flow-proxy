@@ -38,7 +38,7 @@ type ServiceDest struct {
 
 // Data used to generate proxy configuration. It is extracted as a separate struct since each user agent needs an ACL identifier. If specified, only requests with the same agent will be forwarded to the backend.
 type UserAgent struct {
-	Value 	[]string
+	Value   []string
 	AclName string
 }
 
@@ -379,12 +379,12 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort%s", suffix)))
 	verifyClientSsl := getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix))
 	return ServiceDest{
-		Port: port,
-		ReqMode: reqMode,
-		SrcPort: srcPort,
-		ServicePath: path,
+		Port:            port,
+		ReqMode:         reqMode,
+		SrcPort:         srcPort,
+		ServicePath:     path,
 		VerifyClientSsl: verifyClientSsl,
-		UserAgent: userAgent,
+		UserAgent:       userAgent,
 	}
 
 }

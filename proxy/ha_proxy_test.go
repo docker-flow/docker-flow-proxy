@@ -1071,21 +1071,21 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndUser
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	data.Services["my-service"] = Service{
-		AclName:       "my-service",
-		PathType:      "path_beg",
+		AclName:  "my-service",
+		PathType: "path_beg",
 		ServiceDest: []ServiceDest{{
-			Port: "1111",
+			Port:        "1111",
 			ServicePath: []string{"/path"},
-			UserAgent: UserAgent{Value: []string{"agent-1", "agent-2"}, AclName: "my-acl-name-1-2"},
+			UserAgent:   UserAgent{Value: []string{"agent-1", "agent-2"}, AclName: "my-acl-name-1-2"},
 		}, {
-			Port: "2222",
+			Port:        "2222",
 			ServicePath: []string{"/path"},
-			UserAgent: UserAgent{Value: []string{"agent-3"}, AclName: "my-acl-name-3"},
+			UserAgent:   UserAgent{Value: []string{"agent-3"}, AclName: "my-acl-name-3"},
 		}, {
-			Port: "3333",
+			Port:        "3333",
 			ServicePath: []string{"/path"},
 		}},
-		ServiceName:   "my-service",
+		ServiceName: "my-service",
 	}
 
 	p.CreateConfigFromTemplates()
@@ -1354,7 +1354,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 	tmpl := strings.Replace(
 		s.TemplateContent,
 		"\n    bind *:80\n    bind *:443",
-		"\n    bind *:80\n    bind *:443 " + expected,
+		"\n    bind *:80\n    bind *:443 "+expected,
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s%s`,
@@ -1400,7 +1400,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIs
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent, "bind *:443",
-		"bind *:443 ssl crt /certs/" + certName + " ca-file " + caFile + " verify optional",
+		"bind *:443 ssl crt /certs/"+certName+" ca-file "+caFile+" verify optional",
 		-1)
 	expectedData := tmpl + s.ServicesContent
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"unicode"
-	"regexp"
 )
 
 var cmdRunHa = func(args []string) error {
