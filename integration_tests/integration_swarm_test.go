@@ -197,7 +197,7 @@ func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(403111, resp.StatusCode, s.getProxyConf())
+		s.Equal(403, resp.StatusCode, s.getProxyConf())
 	}
 }
 
