@@ -43,10 +43,10 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	exec.Command("/bin/sh", "-c", "docker network create --driver overlay go-demo").Output()
 
-	out, err := exec.Command("/bin/sh", "-c", "docker secret create cert-xip.io.pem /usr/src/myapp/integration_tests/xip.io.pem").CombinedOutput()
-	if err != nil {
-		log.Fatal(err, "\n", string(out))
-	}
+//	out, err := exec.Command("/bin/sh", "-c", "docker secret create cert-xip.io.pem /usr/src/myapp/integration_tests/xip.io.pem").CombinedOutput()
+//	if err != nil {
+//		log.Fatal(err, "\n", string(out))
+//	}
 
 	cmd = fmt.Sprintf(
 		`docker service create --name proxy \
@@ -61,10 +61,9 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -e STATS_PASS=none \
     -e TIMEOUT_CONNECT=10 \
     -e TIMEOUT_HTTP_REQUEST=10 \
-    --secret cert-xip.io.pem \
     %s/docker-flow-proxy:beta`,
 		s.dockerHubUser)
-	_, err = s.createService(cmd)
+	_, err := s.createService(cmd)
 	if err != nil {
 		log.Fatal(err)
 	}
