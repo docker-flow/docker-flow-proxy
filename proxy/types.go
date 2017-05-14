@@ -30,6 +30,8 @@ type ServiceDest struct {
 	SrcPortAcl string
 	// Internal use only. Do not modify.
 	SrcPortAclName string
+	// Whether to verify client SSL and deny request when it is invalid
+	VerifyClientSsl bool
 	// If specified, only requests with the same agent will be forwarded to the backend.
 	UserAgent UserAgent
 }
@@ -375,7 +377,15 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	}
 	port := provider.GetString(fmt.Sprintf("port%s", suffix))
 	srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort%s", suffix)))
-	return ServiceDest{Port: port, ReqMode: reqMode, SrcPort: srcPort, ServicePath: path, UserAgent: userAgent}
+	verifyClientSsl := getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix))
+	return ServiceDest{
+		Port: port,
+		ReqMode: reqMode,
+		SrcPort: srcPort,
+		ServicePath: path,
+		VerifyClientSsl: verifyClientSsl,
+		UserAgent: userAgent,
+	}
 
 }
 
