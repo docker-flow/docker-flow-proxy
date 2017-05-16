@@ -2,8 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/mitchellh/mapstructure"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -238,44 +236,14 @@ func extractUsersFromString(context, usersString string, encrypted, skipEmptyPas
 	return collectedUsers
 }
 
+// ServiceParameterProvider defines common interface for translating parameters into structs.
 type ServiceParameterProvider interface {
 	Fill(service *Service)
 	GetString(name string) string
 }
 
-type MapParameterProvider struct {
-	theMap *map[string]string
-}
-
-func (p *MapParameterProvider) Fill(service *Service) {
-	mapstructure.Decode(p.theMap, service)
-	//above library does not handle bools as strings
-	v := reflect.ValueOf(service).Elem()
-	for i := 0; i < v.NumField(); i++ {
-		if v.Field(i).CanSet() && v.Field(i).Kind() == reflect.Bool {
-			fieldName := v.Type().Field(i).Name
-			value := ""
-			if len(p.GetString(fieldName)) > 0 {
-				value = p.GetString(fieldName)
-			} else if len(p.GetString(LowerFirst(fieldName))) > 0 {
-				value = p.GetString(LowerFirst(fieldName))
-			}
-			value = strings.ToLower(value)
-			if strings.EqualFold(value, "true") {
-				v.Field(i).SetBool(true)
-			} else if strings.EqualFold(value, "false") {
-				v.Field(i).SetBool(false)
-			}
-		}
-	}
-}
-
-func (p *MapParameterProvider) GetString(name string) string {
-	return (*p.theMap)[name]
-}
-
 func GetServiceFromMap(req *map[string]string) *Service {
-	provider := MapParameterProvider{theMap: req}
+	provider := mapParameterProvider{theMap: req}
 	return GetServiceFromProvider(&provider)
 }
 

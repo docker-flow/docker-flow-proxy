@@ -177,7 +177,7 @@ func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
 func (s *TypesTestSuite) Test_GetServiceFromProvider_ReturnsProxyServiceWithIndexedData() {
 	expected := s.getExpectedService()
 	serviceMap := s.getServiceMap(expected, ".1")
-	provider := MapParameterProvider{&serviceMap}
+	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
 	s.Equal(expected, *actual)
 }
