@@ -85,6 +85,7 @@ config2 be content`
 	os.Setenv("STATS_USER_ENV", "STATS_USER")
 	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	os.Setenv("STATS_URI_ENV", "STATS_URI")
+	os.Setenv("CFG_TEMPLATE_PATH", "/cfg/haproxy.cfg")
 	reloadPauseMillisecondsOrig := reloadPauseMilliseconds
 	defer func() { reloadPauseMilliseconds = reloadPauseMillisecondsOrig }()
 	reloadPauseMilliseconds = 1
@@ -1729,6 +1730,42 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	}
 
 	HaProxy{}.Reload()
+
+	s.Equal(expected, *actual)
+}
+
+// RunCmd
+
+func (s *HaProxyTestSuite) Test_RunCmd_AddsExtraArguments() {
+	actual := HaProxyTestSuite{}.mockHaExecCmd()
+	expected := []string{
+		"-f",
+		"/cfg/haproxy.cfg",
+		"-D",
+		"-p",
+		"/var/run/haproxy.pid",
+		"arg1", "arg2", "arg3",
+	}
+
+	HaProxy{}.RunCmd([]string{"arg1", "arg2", "arg3"})
+
+	s.Equal(expected, *actual)
+}
+
+func (s *HaProxyTestSuite) Test_RunCmd_UsesCfgFromEnvVar() {
+	cfgTemplatePathOrig := os.Getenv("CFG_TEMPLATE_PATH")
+	defer func() { os.Setenv("CFG_TEMPLATE_PATH", cfgTemplatePathOrig) }()
+	os.Setenv("CFG_TEMPLATE_PATH", "/path/to/my/template")
+	actual := HaProxyTestSuite{}.mockHaExecCmd()
+	expected := []string{
+		"-f",
+		os.Getenv("CFG_TEMPLATE_PATH"),
+		"-D",
+		"-p",
+		"/var/run/haproxy.pid",
+	}
+
+	HaProxy{}.RunCmd([]string{})
 
 	s.Equal(expected, *actual)
 }

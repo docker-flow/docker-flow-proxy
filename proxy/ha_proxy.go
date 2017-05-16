@@ -88,7 +88,7 @@ func (m HaProxy) GetCerts() map[string]string {
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{
 		"-f",
-		"/cfg/haproxy.cfg",
+		os.Getenv("CFG_TEMPLATE_PATH"),
 		"-D",
 		"-p",
 		"/var/run/haproxy.pid",
@@ -96,7 +96,12 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	args = append(args, extraArgs...)
 	if err := cmdRunHa(args); err != nil {
 		configData, _ := readConfigsFile("/cfg/haproxy.cfg")
-		return fmt.Errorf("Command %s\n%s\n%s", strings.Join(args, " "), err.Error(), string(configData))
+		return fmt.Errorf(
+			"Command %s\n%s\n%s",
+			strings.Join(args, " "),
+			err.Error(),
+			string(configData),
+		)
 	}
 	return nil
 }
@@ -325,7 +330,7 @@ func (m *HaProxy) getUserList(data *ConfigData) {
 	if len(usersString) > 0 {
 		data.UserList = "\nuserlist defaultUsers\n"
 		encrypted := strings.EqualFold(encryptedString, "true")
-		users := ExtractUsersFromString("globalUsers", usersString, encrypted, true)
+		users := extractUsersFromString("globalUsers", usersString, encrypted, true)
 		// TODO: Test
 		if len(users) == 0 {
 			users = append(users, RandomUser())

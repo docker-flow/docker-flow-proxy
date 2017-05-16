@@ -420,43 +420,8 @@ func (s *ServerTestSuite) Test_ConfigHandler_ReturnsStatus500_WhenReadFileFails(
 
 // Suite
 
-// TODO: Review whether everything is needed
 func TestServerUnitTestSuite(t *testing.T) {
 	s := new(ServerTestSuite)
-	logPrintf = func(format string, v ...interface{}) {}
-	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		actualPath := r.URL.Path
-		if r.Method == "GET" {
-			switch actualPath {
-			case "/v1/docker-flow-proxy/reconfigure":
-				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
-					w.WriteHeader(http.StatusInternalServerError)
-				} else {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-				}
-			case "/v1/docker-flow-proxy/remove":
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-			default:
-				w.WriteHeader(http.StatusNotFound)
-			}
-		}
-	}))
-	defer func() { s.Server.Close() }()
-	addr := strings.Replace(s.Server.URL, "http://", "", -1)
-	s.DnsIps = []string{strings.Split(addr, ":")[0]}
-
-	lookupHostOrig := lookupHost
-	defer func() { lookupHost = lookupHostOrig }()
-	lookupHost = func(host string) (addrs []string, err error) {
-		return s.DnsIps, nil
-	}
-	sd := proxy.ServiceDest{
-		Port: strings.Split(addr, ":")[1],
-	}
-	s.ServiceDest = []proxy.ServiceDest{sd}
-
 	suite.Run(t, s)
 }
 

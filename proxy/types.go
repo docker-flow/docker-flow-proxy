@@ -8,10 +8,9 @@ import (
 	"strings"
 )
 
-var extractUsersFromString = ExtractUsersFromString
 var usersBasePath string = "/run/secrets/dfp_users_%s"
 
-// Data used to generate proxy configuration. It is extracted as a separate struct since a single service can have multiple combinations.
+// ServiceDest holds data used to generate proxy configuration. It is extracted as a separate struct since a single service can have multiple combinations.
 type ServiceDest struct {
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
@@ -36,13 +35,13 @@ type ServiceDest struct {
 	UserAgent UserAgent
 }
 
-// Data used to generate proxy configuration. It is extracted as a separate struct since each user agent needs an ACL identifier. If specified, only requests with the same agent will be forwarded to the backend.
+// UserAgent holds data used to generate proxy configuration. It is extracted as a separate struct since each user agent needs an ACL identifier. If specified, only requests with the same agent will be forwarded to the backend.
 type UserAgent struct {
 	Value   []string
 	AclName string
 }
 
-// Description of a service that should be added to the proxy configuration.
+// Service contains description of a service that should be added to the proxy configuration.
 type Service struct {
 	// ACLs are ordered alphabetically by their names.
 	// If not specified, serviceName is used instead.
@@ -147,7 +146,7 @@ type Service struct {
 	ServiceDest         []ServiceDest
 }
 
-// The list of services used inside the proxy
+// Services contains the list of services used inside the proxy
 type Services []Service
 
 func (slice Services) Len() int {
@@ -198,7 +197,7 @@ func (slice Services) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
-func ExtractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) []*User {
+func extractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) []*User {
 	collectedUsers := []*User{}
 	// TODO: Test
 	if len(usersString) == 0 {
@@ -419,7 +418,7 @@ func mergeUsers(
 	if len(paramUsers) > 0 {
 		if !allUsersHavePasswords(paramUsers) {
 			if len(usersSecret) == 0 {
-				fileUsers = ExtractUsersFromString(serviceName, globalUsersString, globalUsersEncrypted, true)
+				fileUsers = extractUsersFromString(serviceName, globalUsersString, globalUsersEncrypted, true)
 			}
 			for _, u := range paramUsers {
 				if !u.HasPassword() {
@@ -470,7 +469,7 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*User
 			return []*User{}, err
 		}
 		userContents := strings.TrimRight(string(content[:]), "\n")
-		return ExtractUsersFromString(serviceName, userContents, passEncrypted, true), nil
+		return extractUsersFromString(serviceName, userContents, passEncrypted, true), nil
 	}
 	return []*User{}, nil
 }

@@ -95,59 +95,59 @@ func (s *TypesTestSuite) Test_UsersMerge_AllCases() {
 
 func (s TypesTestSuite) Test_ExtractUsersFromString() {
 
-	users := ExtractUsersFromString("sn", "u:p", false, false)
+	users := extractUsersFromString("sn", "u:p", false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "p", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u:p", true, false)
+	users = extractUsersFromString("sn", "u:p", true, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: true, Password: "p", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u:p:2", true, false)
+	users = extractUsersFromString("sn", "u:p:2", true, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: true, Password: "p:2", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u", false, false)
+	users = extractUsersFromString("sn", "u", false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u:p,ww", false, true)
+	users = extractUsersFromString("sn", "u:p,ww", false, true)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "p", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u:p,ww:,:asd", false, false)
+	users = extractUsersFromString("sn", "u:p,ww:,:asd", false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "p", Username: "u"},
 	})
 
-	users = ExtractUsersFromString("sn", "u   ,    uu     ", false, false)
+	users = extractUsersFromString("sn", "u   ,    uu     ", false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "", Username: "u"},
 		{PassEncrypted: false, Password: "", Username: "uu"},
 	})
 
-	users = ExtractUsersFromString("sn", "", false, false)
+	users = extractUsersFromString("sn", "", false, false)
 	s.Equal(users, []*User{})
 
-	users = ExtractUsersFromString("sn", `u   ,
+	users = extractUsersFromString("sn", `u   ,
 	 uu     `, false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "", Username: "u"},
 		{PassEncrypted: false, Password: "", Username: "uu"},
 	})
-	users = ExtractUsersFromString("sn", `u
+	users = extractUsersFromString("sn", `u
 uu`, false, false)
 	s.Equal(users, []*User{
 		{PassEncrypted: false, Password: "", Username: "u"},
 		{PassEncrypted: false, Password: "", Username: "uu"},
 	})
 
-	users = ExtractUsersFromString("sn",
+	users = extractUsersFromString("sn",
 		`u:p
 uu:pp,
 uuu:ppp
