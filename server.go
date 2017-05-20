@@ -36,7 +36,6 @@ type Serve struct {
 
 var serverImpl = Serve{}
 var cert server.Certer = server.NewCert("/certs")
-var retryInterval time.Duration = 5000
 
 func (m *Serve) Execute(args []string) error {
 	if proxy.Instance == nil {
@@ -92,7 +91,9 @@ func (m *Serve) reconfigure(server server.Server) error {
 	}
 	if len(lAddr) > 0 {
 		go func() {
-			interval := time.Millisecond * retryInterval
+			retryInterval := os.Getenv("RELOAD_INTERVAL")
+			interval, _ := time.ParseDuration(retryInterval + "ms")
+			repeatReload := strings.EqualFold(os.Getenv("REPEAT_RELOAD"), "true")
 			for range time.Tick(interval) {
 				if err := fetch.ReloadConfig(m.BaseReconfigure, m.Mode, lAddr); err != nil {
 					logPrintf(
@@ -100,7 +101,7 @@ func (m *Serve) reconfigure(server server.Server) error {
 						err.Error(),
 						interval/time.Second,
 					)
-				} else {
+				} else if !repeatReload {
 					break
 				}
 			}

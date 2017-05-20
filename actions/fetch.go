@@ -41,39 +41,36 @@ func (m *Fetch) ReloadServicesFromRegistry(addresses []string, instanceName, mod
 }
 
 func (m *Fetch) ReloadConfig(baseData BaseReconfigure, mode string, listenerAddr string) error {
-	if len(listenerAddr) > 0 {
-		fullAddress := fmt.Sprintf("%s/v1/docker-flow-swarm-listener/get-services", listenerAddr)
-		resp, err := httpGet(fullAddress)
-		if err != nil {
-			return err
-		} else if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Swarm Listener responded with the status code %d", resp.StatusCode)
-		} else {
-			logPrintf("Got configuration from %s.", listenerAddr)
-			defer resp.Body.Close()
-			services := []map[string]string{}
-			err := json.NewDecoder(resp.Body).Decode(&services)
-			if err != nil {
-				return err
-			}
-			needsReload := false
-			for _, s := range services {
-				proxyService := proxy.GetServiceFromMap(&s)
-				if statusCode, _ := proxy.IsValidReconf(proxyService); statusCode == http.StatusOK {
-					reconfigure := NewReconfigure(baseData, *proxyService, mode)
-					reconfigure.Execute(false)
-					needsReload = true
-				}
-			}
-			if needsReload {
-				reload := m.getReload()
-				reload.Execute(true)
-			}
-			return nil
-		}
-
+	if len(listenerAddr) == 0 {
+		return fmt.Errorf("Swarm Listener address is missing %s", listenerAddr)
 	}
-	return fmt.Errorf("Swarm Listener address is missing %s", listenerAddr)
+	fullAddress := fmt.Sprintf("%s/v1/docker-flow-swarm-listener/get-services", listenerAddr)
+	resp, err := httpGet(fullAddress)
+	if err != nil {
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Swarm Listener responded with the status code %d", resp.StatusCode)
+	}
+	logPrintf("Got configuration from %s.", listenerAddr)
+	defer resp.Body.Close()
+	services := []map[string]string{}
+	if err = json.NewDecoder(resp.Body).Decode(&services); err != nil {
+		return err
+	}
+	needsReload := false
+	for _, s := range services {
+		proxyService := proxy.GetServiceFromMap(&s)
+		if statusCode, _ := proxy.IsValidReconf(proxyService); statusCode == http.StatusOK {
+			reconfigure := NewReconfigure(baseData, *proxyService, mode)
+			reconfigure.Execute(false)
+			needsReload = true
+		}
+	}
+	if needsReload {
+		reload := m.getReload()
+		reload.Execute(true)
+	}
+	return nil
 }
 
 func (m *Fetch) ReloadClusterConfig(listenerAddr string) error {

@@ -192,48 +192,51 @@ func (s *ServerTestSuite) Test_Execute_InvokesReconfigureExecuteForEachServiceDe
 	s.Equal(2, called)
 }
 
-// TODO: Too slow. Refactor it.
-//func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
-//	expectedListenerAddress := "swarm-listener"
-//	reloadFromRegistryCalled := false
-//	actualListenerAddressChan := make(chan string)
-//	defer MockReconfigure(ReconfigureMock{
-//		ExecuteMock: func(reloadAfter bool) error {
-//			return nil
-//		},
-//	})()
-//	defer MockFetch(FetchMock{
-//		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
-//			reloadFromRegistryCalled = true
-//			return nil
-//		},
-//		ReloadConfigMock: func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
-//			actualListenerAddressChan <- listenerAddr
-//			return nil
-//		},
-//	})()
-//	consulAddressesOrig := []string{s.ConsulAddress}
-//	defer func() {
-//		os.Unsetenv("CONSUL_ADDRESS")
-//		os.Unsetenv("LISTENER_ADDRESS")
-//		serverImpl.ConsulAddresses = consulAddressesOrig
-//	}()
-//	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
-//	serverImpl.ListenerAddress = expectedListenerAddress
-//
-//	serverImpl.Execute([]string{})
-//
-//	actualListenerAddress, _ := <-actualListenerAddressChan
-//	close(actualListenerAddressChan)
-//	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress), actualListenerAddress)
-//}
+// TODO: Extract common code from Test_Execute_InvokesReloadAllServicesWithListenerAddress, Test_Execute_RetriesContactingSwarmListenerAddress_WhenError, and Test_Execute_RepeatsContactingSwarmListenerAddress
+func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
+	expectedListenerAddress := "swarm-listener"
+	reloadFromRegistryCalled := false
+	actualListenerAddressChan := make(chan string)
+	retryIntervalOrig := os.Getenv("RELOAD_INTERVAL")
+	defer func() { os.Setenv("RELOAD_INTERVAL", retryIntervalOrig) }()
+	os.Setenv("RELOAD_INTERVAL", "1")
+	defer MockReconfigure(ReconfigureMock{
+		ExecuteMock: func(reloadAfter bool) error {
+			return nil
+		},
+	})()
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			reloadFromRegistryCalled = true
+			return nil
+		},
+		ReloadConfigMock: func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
+			actualListenerAddressChan <- listenerAddr
+			return nil
+		},
+	})()
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		os.Unsetenv("LISTENER_ADDRESS")
+		serverImpl.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
+	serverImpl.ListenerAddress = expectedListenerAddress
 
-func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress() {
+	serverImpl.Execute([]string{})
+
+	actualListenerAddress, _ := <-actualListenerAddressChan
+	close(actualListenerAddressChan)
+	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress), actualListenerAddress)
+}
+
+func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress_WhenError() {
 	expectedListenerAddress := "swarm-listener"
 	actualListenerAddressChan := make(chan string)
-	retryIntervalOrig := retryInterval
-	defer func() { retryInterval = retryIntervalOrig }()
-	retryInterval = 1
+	retryIntervalOrig := os.Getenv("RELOAD_INTERVAL")
+	defer func() { os.Setenv("RELOAD_INTERVAL", retryIntervalOrig) }()
+	os.Setenv("RELOAD_INTERVAL", "1")
 	callNum := 0
 	defer MockFetch(FetchMock{
 		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
@@ -247,6 +250,52 @@ func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress() {
 				return nil
 			}
 			return fmt.Errorf("On iteration %d", callNum)
+		},
+	})()
+	consulAddressesOrig := []string{s.ConsulAddress}
+	defer func() {
+		os.Unsetenv("CONSUL_ADDRESS")
+		os.Unsetenv("LISTENER_ADDRESS")
+		serverImpl.ConsulAddresses = consulAddressesOrig
+	}()
+	os.Setenv("CONSUL_ADDRESS", s.ConsulAddress)
+	serverImpl.ListenerAddress = expectedListenerAddress
+
+	serverImpl.Execute([]string{})
+
+	actualListenerAddress1, chok1 := <-actualListenerAddressChan
+	s.True(chok1)
+	actualListenerAddress2, _ := <-actualListenerAddressChan
+	_, chok2 := <-actualListenerAddressChan
+
+	s.False(chok2)
+
+	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress), actualListenerAddress1)
+	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress), actualListenerAddress2)
+}
+
+func (s *ServerTestSuite) Test_Execute_RepeatsContactingSwarmListenerAddress() {
+	defer os.Unsetenv("REPEAT_RELOAD")
+	os.Setenv("REPEAT_RELOAD", "true")
+	expectedListenerAddress := "swarm-listener"
+	actualListenerAddressChan := make(chan string)
+	retryIntervalOrig := os.Getenv("RELOAD_INTERVAL")
+	defer func() { os.Setenv("RELOAD_INTERVAL", retryIntervalOrig) }()
+	os.Setenv("RELOAD_INTERVAL", "1")
+	callNum := 0
+	defer MockFetch(FetchMock{
+		ReloadServicesFromRegistryMock: func(addresses []string, instanceName, mode string) error {
+			return nil
+		},
+		ReloadConfigMock: func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
+			callNum = callNum + 1
+			if callNum <= 2 {
+				actualListenerAddressChan <- fmt.Sprintf("%s-%d", listenerAddr, callNum)
+				if callNum == 2 {
+					close(actualListenerAddressChan)
+				}
+			}
+			return nil
 		},
 	})()
 	consulAddressesOrig := []string{s.ConsulAddress}
