@@ -49,6 +49,8 @@ type Service struct {
 	AddReqHeader []string `split_words:"true"`
 	// Additional headers that will be added to the response before forwarding it to the client.
 	AddResHeader []string `split_words:"true"`
+	// Additional configuration that will be added to the bottom of the service backend
+	BackendExtra string `split_words:"true"`
 	// Whether to use `docker` as a check resolver. Set through the environment variable CHECK_RESOLVERS
 	CheckResolvers bool `split_words:"true"`
 	// One of the five connection modes supported by the HAProxy.

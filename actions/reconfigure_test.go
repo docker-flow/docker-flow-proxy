@@ -439,6 +439,24 @@ backend myService-be
 	s.Equal(expected, backend)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsBackendExtra() {
+	s.reconfigure.BackendExtra = "Additional backend"
+	expected := fmt.Sprintf(`
+backend myService-be
+    mode http
+    {{range $i, $e := service "%s" "any"}}
+    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
+    {{end}}
+    %s`,
+		s.reconfigure.ServiceName,
+		s.reconfigure.BackendExtra,
+	)
+
+	_, backend, _ := s.reconfigure.GetTemplates()
+
+	s.Equal(expected, backend)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsColor() {
 	s.reconfigure.ServiceColor = "black"
 	expected := fmt.Sprintf(`service "%s-%s"`, s.ServiceName, s.reconfigure.ServiceColor)
