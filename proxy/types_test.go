@@ -236,7 +236,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		AclName:               "aclName",
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
-		BackendExtra:          "additonal backend config",
+		BackendExtra:          "additional backend config",
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,

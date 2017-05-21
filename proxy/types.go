@@ -244,11 +244,13 @@ type ServiceParameterProvider interface {
 	GetString(name string) string
 }
 
+// GetServiceFromMap returns Service struct by extracting request parameters
 func GetServiceFromMap(req *map[string]string) *Service {
 	provider := mapParameterProvider{theMap: req}
 	return GetServiceFromProvider(&provider)
 }
 
+// GetServiceFromProvider returns Service by extracting parameters from ServiceParameterProvider
 func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	sr := new(Service)
 	provider.Fill(sr)

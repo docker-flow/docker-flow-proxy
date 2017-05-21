@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"strings"
 	"os"
+	"strings"
 )
 
 // TODO: Change to private when actions.GetTemplates is moved to the proxy package
@@ -148,4 +148,3 @@ func getUsersTemplate(users []User) string {
 	}
 	return ""
 }
-
