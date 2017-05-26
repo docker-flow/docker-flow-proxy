@@ -251,14 +251,52 @@ func (s IntegrationSwarmTestSuite) Test_Scale() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
+
+	// With reqPathReplace
+
 	url := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something/&reqPathReplace=/demo/",
 		s.hostIP,
 	)
-	http.Get(url)
+	resp, err := http.Get(url)
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
 
 	url = fmt.Sprintf("http://%s/something/hello", s.hostIP)
-	resp, err := http.Get(url)
+	resp, err = http.Get(url)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
+
+	// With empty reqPathReplace
+
+	url = fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something&reqPathReplace=",
+		s.hostIP,
+	)
+	resp, err = http.Get(url)
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
+
+	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
+	resp, err = http.Get(url)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
+
+	// Without reqPathReplace
+
+	url = fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something",
+		s.hostIP,
+	)
+	_, err = http.Get(url)
+	s.NoError(err)
+
+	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
+	resp, err = http.Get(url)
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf())
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())

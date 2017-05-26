@@ -50,7 +50,7 @@ backend %s{{$.ServiceName}}-be{{.Port}}
     {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
     {{- end}}
-	{{- if (and (ne $.ReqPathSearch ""))}}
+	{{- if ne $.ReqPathSearch ""}}
     http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
     {{- end}}`
 	// TODO: Deprecated (dec. 2016).
