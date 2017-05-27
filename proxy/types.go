@@ -92,10 +92,6 @@ type Service struct {
 	PathType string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
-	// Deprecated in favor of ReqPathReplace
-	ReqRepReplace string `split_words:"true"`
-	// Deprecated in favor of ReqPathSearch
-	ReqRepSearch string `split_words:"true"`
 	// A regular expression to apply the modification.
 	// If specified, `reqPathSearch` needs to be set as well.
 	ReqPathReplace string `split_words:"true"`

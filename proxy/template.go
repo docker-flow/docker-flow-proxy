@@ -53,11 +53,6 @@ backend %s{{$.ServiceName}}-be{{.Port}}
 	{{- if ne $.ReqPathSearch ""}}
     http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
     {{- end}}`
-	// TODO: Deprecated (dec. 2016).
-	if len(sr.ReqRepSearch) > 0 && len(sr.ReqRepReplace) > 0 {
-		tmpl += `
-    reqrep {{$.ReqRepSearch}}     {{$.ReqRepReplace}}`
-	}
 	tmpl += getServerTemplate(protocol, mode)
 	tmpl += getUsersTemplate(sr.Users)
 	tmpl += `

@@ -398,27 +398,6 @@ backend myService-be5555
 	s.Equal(expectedBack, actualBack)
 }
 
-// TODO: Deprecated (dec. 2016).
-func (s ReconfigureTestSuite) Test_GetTemplates_AddsReqRep_WhenReqRepSearchAndReqRepReplaceArePresent() {
-	s.reconfigure.ReqRepSearch = "this"
-	s.reconfigure.ReqRepReplace = "that"
-	expected := fmt.Sprintf(`
-backend myService-be
-    mode http
-    reqrep %s     %s
-    {{range $i, $e := service "%s" "any"}}
-    server {{$e.Node}}_{{$i}}_{{$e.Port}} {{$e.Address}}:{{$e.Port}}
-    {{end}}`,
-		s.reconfigure.ReqRepSearch,
-		s.reconfigure.ReqRepReplace,
-		s.reconfigure.ServiceName,
-	)
-
-	_, backend, _ := s.reconfigure.GetTemplates()
-
-	s.Equal(expected, backend)
-}
-
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchAndReqPathReplaceArePresent() {
 	s.reconfigure.ReqPathSearch = "this"
 	s.reconfigure.ReqPathReplace = "that"
