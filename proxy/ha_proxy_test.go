@@ -291,9 +291,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_WritesCfgContentsIntoFi
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesCustomTemplate() {
 	cfgTamplatePathOrig := os.Getenv("CFG_TEMPLATE_PATH")
-	defer func(){ os.Setenv("CFG_TEMPLATE_PATH", cfgTamplatePathOrig) }()
+	defer func() { os.Setenv("CFG_TEMPLATE_PATH", cfgTamplatePathOrig) }()
 	wd, _ := os.Getwd()
-	os.Setenv("CFG_TEMPLATE_PATH", wd + "/test_configs/tmpl/custom.tmpl")
+	os.Setenv("CFG_TEMPLATE_PATH", wd+"/test_configs/tmpl/custom.tmpl")
 	var actualData string
 	expectedData := fmt.Sprintf(
 		"%s%s",

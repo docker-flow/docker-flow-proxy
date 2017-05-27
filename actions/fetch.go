@@ -26,6 +26,7 @@ type fetch struct {
 	Mode string `short:"m" long:"mode" env:"MODE" description:"If set to 'swarm', proxy will operate assuming that Docker service from v1.12+ is used."`
 }
 
+// NewFetch returns instance of the Fetchable object
 var NewFetch = func(baseData BaseReconfigure, mode string) Fetchable {
 	return &fetch{
 		BaseReconfigure: baseData,
