@@ -287,7 +287,6 @@ backend myService-be1234
 	s.Equal(expected, actual)
 }
 
-// xxx
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
 	s.reconfigure.Users = []proxy.User{
 		{Username: "user-1", Password: "pass-1"},
