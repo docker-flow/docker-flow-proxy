@@ -69,6 +69,8 @@ type Service struct {
 	// The path to the Consul Template representing a snippet of the frontend configuration.
 	// If specified, proxy template will be loaded from the specified file.
 	ConsulTemplateFePath string `split_words:"true"`
+	// Internal use only
+	Debug bool
 	// Additional headers that will be deleted in the request before forwarding it to the service. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#delete-a-header-in-the-request for more info.
 	DelReqHeader []string `split_words:"true"`
 	// Additional headers that will be deleted in the response before forwarding it to the client. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#delete-a-header-in-the-response for more info.
@@ -90,6 +92,8 @@ type Service struct {
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType string `split_words:"true"`
+	// TODO: Remove it. It is a temporary workaround until Consul mode is removed.
+	ProxyMode string
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
 	// A regular expression to apply the modification.
@@ -128,6 +132,8 @@ type Service struct {
 	TimeoutServer string `split_words:"true"`
 	// The tunnel timeout in seconds
 	TimeoutTunnel string `split_words:"true"`
+	// Internal use only.
+	UseGlobalUsers bool
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users []User `split_words:"true"`
 	// Whether to add "X-Forwarded-Proto https" header.
