@@ -10,6 +10,8 @@ var usersBasePath string = "/run/secrets/dfp_users_%s"
 
 // ServiceDest holds data used to generate proxy configuration. It is extracted as a separate struct since a single service can have multiple combinations.
 type ServiceDest struct {
+	// Whether to ignore authorization for this service destination.
+	IgnoreAuthorization bool
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
 	Port string
@@ -348,16 +350,15 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	if len(provider.GetString(fmt.Sprintf("reqMode%s", suffix))) > 0 {
 		reqMode = provider.GetString(fmt.Sprintf("reqMode%s", suffix))
 	}
-	port := provider.GetString(fmt.Sprintf("port%s", suffix))
 	srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort%s", suffix)))
-	verifyClientSsl := getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix))
 	return ServiceDest{
-		Port:            port,
-		ReqMode:         reqMode,
-		SrcPort:         srcPort,
-		ServicePath:     path,
-		VerifyClientSsl: verifyClientSsl,
-		UserAgent:       userAgent,
+		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
+		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
+		ReqMode:             reqMode,
+		SrcPort:             srcPort,
+		ServicePath:         path,
+		VerifyClientSsl:     getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
+		UserAgent:           userAgent,
 	}
 
 }

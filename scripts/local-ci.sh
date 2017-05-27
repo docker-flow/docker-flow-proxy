@@ -1,5 +1,7 @@
 #!/bin/bash
+
 set -e
+
 if [[ ( -z ${DOCKER_HUB_USER} ) || ( -z ${HOST_IP} ) ]]; then
     echo "set DOCKER_HUB_USER variable to your docker hub account, HOST_IP to your host Ip before running"
     exit 1

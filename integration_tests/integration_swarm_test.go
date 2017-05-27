@@ -366,7 +366,11 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 		s.reconfigureGoDemo("")
 	}()
 
+	// Add authorization
+
 	s.reconfigureGoDemo("&users=admin:password")
+
+	// Proxy returns 401 when user/pass is NOT provided
 
 	resp, err := s.sendHelloRequest()
 
@@ -376,6 +380,8 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 		s.Equal(401, resp.StatusCode, s.getProxyConf())
 	}
 
+	// Proxy returns 200 when user/pass is provided
+
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth("admin", "password")
@@ -384,6 +390,21 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
+
+	// Add ignoreAuthorization
+
+	params := fmt.Sprintf("serviceName=go-demo&servicePath.1=/demo&port.1=8080&users=admin:password&ignoreAuthorization.1=true")
+	s.reconfigureService(params)
+
+	// Proxy returns 200 when user/pass is NOT provided
+
+	resp, err = s.sendHelloRequest()
+
+	if err != nil {
+		s.Fail(err.Error())
+	} else {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	}
 }
 
 func (s IntegrationSwarmTestSuite) Test_XTcp() {

@@ -287,24 +287,42 @@ backend myService-be1234
 	s.Equal(expected, actual)
 }
 
+// xxx
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenModeIsSwarmAndUsersIsPresent() {
 	s.reconfigure.Users = []proxy.User{
 		{Username: "user-1", Password: "pass-1"},
 		{Username: "user-2", Password: "pass-2"},
 	}
 	s.reconfigure.Mode = "swarm"
-	s.reconfigure.Service.ServiceDest[0].Port = "1234"
+	s.reconfigure.HttpsPort = 3333
+	sd := []proxy.ServiceDest{
+		{Port: "1111"},
+		{Port: "2222", IgnoreAuthorization: true},
+	}
+	s.reconfigure.Service.ServiceDest = sd
 	expected := `userlist myServiceUsers
     user user-1 insecure-password pass-1
     user user-2 insecure-password pass-2
 
 
-backend myService-be1234
+backend myService-be1111
     mode http
-    server myService myService:1234
+    server myService myService:1111
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
-    http-request del-header Authorization`
+    http-request del-header Authorization
+backend myService-be2222
+    mode http
+    server myService myService:2222
+backend https-myService-be1111
+    mode http
+    server myService myService:3333
+    acl myServiceUsersAcl http_auth(myServiceUsers)
+    http-request auth realm myServiceRealm if !myServiceUsersAcl
+    http-request del-header Authorization
+backend https-myService-be2222
+    mode http
+    server myService myService:3333`
 
 	_, actual, _ := s.reconfigure.GetTemplates()
 
@@ -316,7 +334,6 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 backend myService-be1234
     mode http
     server myService myService:1234
-
 backend https-myService-be1234
     mode http
     server myService myService:4321`
