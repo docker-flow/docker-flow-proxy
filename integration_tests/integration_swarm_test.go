@@ -255,7 +255,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	// With reqPathReplace
 
 	url := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something/&reqPathReplace=/demo/",
+		`http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=xxx|/something/&reqPathReplace=/demo/`,
 		s.hostIP,
 	)
 	resp, err := http.Get(url)
