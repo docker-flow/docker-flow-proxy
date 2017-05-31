@@ -1459,7 +1459,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIs
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent, "bind *:443",
-		"bind *:443 ca-file " + caFile + " verify optional",
+		"bind *:443 ssl ca-file " + caFile + " verify optional",
 		-1)
 	expectedData := tmpl + s.ServicesContent
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {

@@ -211,7 +211,7 @@ func (m HaProxy) getConfigData() ConfigData {
 	if len(os.Getenv("CA_FILE")) > 0 {
 		cf := "ca-file " + os.Getenv("CA_FILE") + " verify optional"
 		if len(certsString) == 0 {
-			cf = " " + cf
+			cf = " ssl " + cf
 		}
 		certsString = append(certsString, cf)
 	}
