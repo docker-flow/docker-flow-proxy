@@ -1452,27 +1452,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIs
 		os.Setenv("CA_FILE", caFileOrig)
 	}()
 	os.Setenv("CA_FILE", caFile)
-	certName := "my-cert"
-	file := FileInfoMock{
-		NameMock: func() string {
-			return certName
-		},
-		IsDirMock: func() bool {
-			return false
-		},
-	}
-	mockedFiles := []os.FileInfo{file}
 
 	ReadDir = func(dir string) ([]os.FileInfo, error) {
-		if dir == "/certs" {
-			return mockedFiles, nil
-		}
 		return []os.FileInfo{}, nil
 	}
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent, "bind *:443",
-		"bind *:443 ssl crt /certs/"+certName+" ca-file "+caFile+" verify optional",
+		"bind *:443 ca-file " + caFile + " verify optional",
 		-1)
 	expectedData := tmpl + s.ServicesContent
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {

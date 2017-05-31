@@ -209,7 +209,11 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	if len(os.Getenv("CA_FILE")) > 0 {
-		certsString = append(certsString, "ca-file "+os.Getenv("CA_FILE")+" verify optional")
+		cf := "ca-file " + os.Getenv("CA_FILE") + " verify optional"
+		if len(certsString) == 0 {
+			cf = " " + cf
+		}
+		certsString = append(certsString, cf)
 	}
 	d := ConfigData{
 		CertsString: strings.Join(certsString, " "),
