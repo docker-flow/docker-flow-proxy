@@ -126,12 +126,12 @@ func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenHTTPListenAndServeFails(
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesRunExecute() {
-	orig := NewRun
+	orig := newRun
 	defer func() {
-		NewRun = orig
+		newRun = orig
 	}()
 	mockObj := getRunMock("")
-	NewRun = func() runner {
+	newRun = func() runner {
 		return mockObj
 	}
 

@@ -200,23 +200,8 @@ backend dummy-be
 }
 
 func (m HaProxy) getConfigData() ConfigData {
-	certPaths := m.GetCertPaths()
-	certsString := []string{}
-	if len(certPaths) > 0 {
-		certsString = append(certsString, " ssl")
-		for _, certPath := range certPaths {
-			certsString = append(certsString, fmt.Sprintf("crt %s", certPath))
-		}
-	}
-	if len(os.Getenv("CA_FILE")) > 0 {
-		if len(certsString) == 0 {
-			certsString = append(certsString, " ssl")
-		}
-		cf := "ca-file " + os.Getenv("CA_FILE") + " verify optional"
-		certsString = append(certsString, cf)
-	}
 	d := ConfigData{
-		CertsString: strings.Join(certsString, " "),
+		CertsString: strings.Join(m.getCerts(), " "),
 	}
 	d.ConnectionMode = GetSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
 	d.SslBindCiphers = GetSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
@@ -272,6 +257,25 @@ func (m HaProxy) getConfigData() ConfigData {
 	}
 	m.getSni(&services, &d)
 	return d
+}
+
+func (m *HaProxy) getCerts() []string {
+	certPaths := m.GetCertPaths()
+	certs := []string{}
+	if len(certPaths) > 0 {
+		certs = append(certs, " ssl")
+		for _, certPath := range certPaths {
+			certs = append(certs, fmt.Sprintf("crt %s", certPath))
+		}
+	}
+	if len(os.Getenv("CA_FILE")) > 0 {
+		if len(certs) == 0 {
+			certs = append(certs, " ssl")
+		}
+		cf := "ca-file " + os.Getenv("CA_FILE") + " verify optional"
+		certs = append(certs, cf)
+	}
+	return certs
 }
 
 func (m *HaProxy) addCompression(data *ConfigData) {

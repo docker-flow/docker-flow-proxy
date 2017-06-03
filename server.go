@@ -43,7 +43,7 @@ func (m *Serve) Execute(args []string) error {
 	}
 	logPrintf("Starting HAProxy")
 	m.setConsulAddresses()
-	NewRun().Execute([]string{})
+	newRun().Execute([]string{})
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
 	cert.Init()
 	var server2 = server.NewServer(
