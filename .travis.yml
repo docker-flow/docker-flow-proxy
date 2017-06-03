@@ -14,7 +14,7 @@ before_install:
 
 script:
   - set -e
-  - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.6 bash -c "go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
+  - docker run --rm -v $PWD:/usr/src/myapp -w /usr/src/myapp -v go:/go golang:1.7 bash -c "go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
   - docker build -t vfarcic/docker-flow-proxy .
   - docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD; fi'

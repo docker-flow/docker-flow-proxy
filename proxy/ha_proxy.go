@@ -397,6 +397,7 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 	}
 }
 
+// TODO: Refactor into template
 func (m *HaProxy) getFrontTemplateSNI(s Service, si int, gen_header bool) string {
 	tmplString := ``
 	if gen_header {
@@ -446,8 +447,7 @@ frontend tcpFE_%d
 		var backend string
 		if len(s.ServiceDomain) > 0 {
 			backend = fmt.Sprintf(`
-    use_backend %s-be%d if domain_%s`,
-				s.ServiceName,
+    use_backend {{.ServiceName}}-be%d if domain_%s`,
 				backendPort,
 				s.ServiceName,
 			)
@@ -460,7 +460,7 @@ frontend tcpFE_%d
 			)
 		}
 		aclDomain := m.templateToString(m.getAclDomain(&s), s)
-		tmpl += fmt.Sprintf(`%s%s`, aclDomain, backend)
+		tmpl += fmt.Sprintf(`%s%s`, aclDomain, m.templateToString(backend, s))
 	}
 	return tmpl
 }
@@ -470,8 +470,8 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 	if len(s.PathType) == 0 {
 		s.PathType = "path_beg"
 	}
-	tmplString := fmt.Sprintf(
-		`
+	m.putDomainFunction(&s)
+	tmplString := `
 {{- range .ServiceDest}}
     {{- if eq .ReqMode "http"}}
         {{- if ne .Port ""}}
@@ -481,10 +481,10 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
         {{- end}}
     {{- end}}
-{{- end}}%s`,
-		m.getAclDomain(&s),
-	)
-	tmplString += `
+{{- end}}
+{{- if .ServiceDomain}}
+    acl domain_{{.AclName}} {{.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
+{{- end}}
 {{- if gt $.HttpsPort 0 }}
     acl http_{{.ServiceName}} src_port 80
     acl https_{{.ServiceName}} src_port 443
@@ -494,7 +494,7 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
         {{- if eq .ReqMode "http"}}
             {{- if ne .Port ""}}
     acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}
+    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
             {{- end}}
         {{- end}}
     {{- end}}
@@ -503,16 +503,16 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
     {{- range .ServiceDest}}
         {{- if eq .ReqMode "http"}}
             {{- if ne .Port ""}}
-    redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}
+    redirect scheme https if !{ ssl_fc } url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
             {{- end}}
         {{- end}}
     {{- end}}
 {{- end}}{{- end}}
 {{- range .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}}{{.SrcPortAclName}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
 	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
-    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{$.AclCondition}} https_{{$.ServiceName}}
+    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}} https_{{$.ServiceName}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}{{end}}
         {{- if $.IsDefaultBackend}}
@@ -523,23 +523,28 @@ func (m *HaProxy) getFrontTemplate(s Service) string {
 	return m.templateToString(tmplString, s)
 }
 
-func (m *HaProxy) getAclDomain(s *Service) string {
-	if len(s.ServiceDomain) > 0 {
-		domFunc := "hdr"
-		if s.ServiceDomainMatchAll {
-			domFunc = "hdr_dom"
-		} else {
-			for i, domain := range s.ServiceDomain {
-				if strings.HasPrefix(domain, "*") {
-					s.ServiceDomain[i] = strings.Trim(domain, "*")
-					domFunc = "hdr_end"
-				}
+func (m *HaProxy) putDomainFunction(s *Service) {
+	s.DomainFunction = "hdr"
+	if s.ServiceDomainMatchAll {
+		s.DomainFunction = "hdr_dom"
+	} else {
+		for i, domain := range s.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				s.ServiceDomain[i] = strings.Trim(domain, "*")
+				s.DomainFunction = "hdr_end"
 			}
 		}
+	}
+}
+
+// TODO: Refactor into template
+func (m *HaProxy) getAclDomain(s *Service) string {
+	if len(s.ServiceDomain) > 0 {
+		m.putDomainFunction(s)
 		acl := fmt.Sprintf(
 			`
     acl domain_{{.AclName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
-			domFunc,
+			s.DomainFunction,
 		)
 		s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 		return acl

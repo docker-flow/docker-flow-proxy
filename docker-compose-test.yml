@@ -4,7 +4,7 @@ version: '2'
 services:
 
   unit:
-    image: golang:1.6
+    image: golang:1.7
     volumes:
       - .:/usr/src/myapp
       - /tmp/go:/go

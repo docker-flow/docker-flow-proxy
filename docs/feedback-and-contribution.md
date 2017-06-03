@@ -88,13 +88,17 @@ docker-compose \
 All above can be executed in same manner as CI is running it before a build using the command that follows.
 
 ```bash
+# Change to your user in hub.docker.com
+export DOCKER_HUB_USER=[...]
+
+# Change to the IP of your host
+export HOST_IP=[...]
+
 ./scripts/local-ci.sh
 ```
 
 The script requires:
 
-* DOCKER_HUB_USER environment variable to be set
-* HOST_IP to be set
 * docker logged in to docker hub with $DOCKER_HUB_USER user
 
 ### Pull Request

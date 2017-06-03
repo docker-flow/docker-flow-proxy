@@ -143,6 +143,7 @@ type Service struct {
 	ServiceColor        string
 	ServicePort         string
 	AclCondition        string
+	DomainFunction      string
 	FullServiceName     string
 	Host                string
 	LookupRetry         int
