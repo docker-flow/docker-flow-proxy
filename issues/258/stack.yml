@@ -1,0 +1,33 @@
+version: '3'
+services:
+  app:
+    image: joelchen/starter-app:latest
+    ports:
+      - 8080:2015
+    networks:
+      - proxy
+    deploy:
+      mode: global
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/
+        - com.df.port=2015
+  another-app:
+    image: joelchen/starter-app:latest
+    ports:
+      - 8081:2015
+    networks:
+      - proxy
+    deploy:
+      mode: global
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/another
+        - com.df.reqPathSearch=/another
+        - com.df.reqPathReplace=/
+        - com.df.port=2015
+networks:
+  proxy:
+    external: true
