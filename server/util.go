@@ -52,7 +52,7 @@ var sendDistributeRequests = func(req *http.Request, port, proxyServiceName stri
 		}
 	} else {
 		err := fmt.Errorf(
-			"Could not perform DNS %s lookup. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy>.",
+			"Could not perform DNS lookup for %s. If the proxy is not called 'proxy', you must set SERVICE_NAME=<name-of-the-proxy> on the proxy service.",
 			dns,
 		)
 		return http.StatusBadRequest, err
