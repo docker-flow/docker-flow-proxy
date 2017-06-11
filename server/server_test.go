@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
@@ -17,10 +16,7 @@ import (
 
 type ServerTestSuite struct {
 	BaseUrl        string
-	ReconfigureUrl string // TODO: Remove
-	ServiceName    string
-	Server         *httptest.Server
-	DnsIps         []string
+	serviceName    string
 	suite.Suite
 }
 
@@ -29,50 +25,12 @@ func (s *ServerTestSuite) SetupTest() {
 
 func TestServerUnitTestSuite(t *testing.T) {
 	s := new(ServerTestSuite)
-	s.ServiceName = "my-fancy-service"
-	s.BaseUrl = "/v1/docker-flow-proxy/reconfigure"
-	s.ReconfigureUrl = fmt.Sprintf(
-		"%s?serviceName=%s&serviceColor=pink&servicePath=/path/to/my/service/api&serviceDomain=my-domain.com",
-		s.BaseUrl,
-		s.ServiceName,
-	)
-	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		actualPath := r.URL.Path
-		if r.Method == "GET" {
-			switch actualPath {
-			case "/v1/docker-flow-proxy/reconfigure":
-				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
-					w.WriteHeader(http.StatusInternalServerError)
-				} else {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-				}
-			case "/v1/docker-flow-proxy/remove":
-				if strings.EqualFold(r.URL.Query().Get("returnError"), "true") {
-					w.WriteHeader(http.StatusInternalServerError)
-				} else {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-				}
-			default:
-				w.WriteHeader(http.StatusNotFound)
-			}
-		}
-	}))
-	defer func() { s.Server.Close() }()
-
-	lookupHostOrig := lookupHost
-	defer func() { lookupHost = lookupHostOrig }()
-	lookupHost = func(host string) (addrs []string, err error) {
-		return s.DnsIps, nil
-	}
+	s.serviceName = "my-fancy-service"
 
 	logPrintfOrig := logPrintf
 	defer func() { logPrintf = logPrintfOrig }()
 	logPrintf = func(format string, v ...interface{}) {}
 
-	addr := strings.Replace(s.Server.URL, "http://", "", -1)
-	s.DnsIps = []string{strings.Split(addr, ":")[0]}
 	os.Setenv("SKIP_ADDRESS_VALIDATION", "false")
 
 	suite.Run(t, s)
@@ -573,7 +531,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 	aclName := "my-acl"
 	var actual actions.Remove
 	expected := actions.Remove{
-		ServiceName:     s.ServiceName,
+		ServiceName:     s.serviceName,
 		TemplatesPath:   "",
 		ConfigsPath:     "",
 		ConsulAddresses: []string{"http://1.2.3.4:1234"},
@@ -596,7 +554,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 		}
 		return mockObj
 	}
-	url := fmt.Sprintf("/v1/docker-flow-proxy/remove?serviceName=%s&aclName=%s", s.ServiceName, aclName)
+	url := fmt.Sprintf("/v1/docker-flow-proxy/remove?serviceName=%s&aclName=%s", s.serviceName, aclName)
 	req, _ := http.NewRequest("GET", url, nil)
 
 	srv := serve{
