@@ -1442,7 +1442,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 		actualData = string(data)
 		return nil
 	}
-	println("111")
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
 

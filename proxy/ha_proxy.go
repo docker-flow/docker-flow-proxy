@@ -448,23 +448,23 @@ frontend tcpFE_%d
 		if len(s.ServiceDest) > 0 {
 			backendPort, _ = strconv.Atoi(s.ServiceDest[0].Port)
 		}
-		var backend string
+		var tmplString string
 		if len(s.ServiceDomain) > 0 {
-			backend = fmt.Sprintf(`
-    use_backend {{.ServiceName}}-be%d if domain_%s`,
-				backendPort,
-				s.ServiceName,
+			m.putDomainFunction(&s)
+			tmplString += fmt.Sprintf(`
+    acl domain_{{.AclName}} {{.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
+    use_backend {{.ServiceName}}-be%d if domain_{{.ServiceName}}`,
+			backendPort,
 			)
+			s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 		} else {
-			backend = fmt.Sprintf(
-				`
-    default_backend %s-be%d`,
-				s.ServiceName,
-				backendPort,
+			tmplString += fmt.Sprintf(
+			`
+    default_backend {{.ServiceName}}-be%d`,
+			backendPort,
 			)
 		}
-		aclDomain := m.templateToString(m.getAclDomain(&s), s)
-		tmpl += fmt.Sprintf(`%s%s`, aclDomain, m.templateToString(backend, s))
+		tmpl += m.templateToString(tmplString, s)
 	}
 	return tmpl
 }
@@ -530,21 +530,6 @@ func (m *HaProxy) putDomainFunction(s *Service) {
 			}
 		}
 	}
-}
-
-// TODO: Refactor into template
-func (m *HaProxy) getAclDomain(s *Service) string {
-	if len(s.ServiceDomain) > 0 {
-		m.putDomainFunction(s)
-		acl := fmt.Sprintf(
-			`
-    acl domain_{{.AclName}} %s(host) -i{{range .ServiceDomain}} {{.}}{{end}}`,
-			s.DomainFunction,
-		)
-		s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
-		return acl
-	}
-	return ""
 }
 
 func (m *HaProxy) templateToString(templateString string, service Service) string {
