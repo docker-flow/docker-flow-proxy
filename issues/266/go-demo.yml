@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+
+  main:
+    image: vfarcic/go-demo:${TAG:-latest}
+    environment:
+      - DB=db
+    networks:
+      - proxy
+      - default
+    deploy:
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/
+        - com.df.port=8080
+        - com.df.reqPathSearch=.
+        - com.df.reqPathReplace=,g
+
+  db:
+    image: mongo
+    networks:
+      - default
+
+networks:
+  default:
+    external: false
+  proxy:
+    external: true
