@@ -55,14 +55,14 @@ func NewHaProxy(templatesPath, configsPath string) Proxy {
 
 func (m HaProxy) GetCertPaths() []string {
 	paths := []string{}
-	files, _ := ReadDir("/certs")
+	files, _ := readDir("/certs")
 	for _, file := range files {
 		if !file.IsDir() {
 			path := fmt.Sprintf("/certs/%s", file.Name())
 			paths = append(paths, path)
 		}
 	}
-	files, _ = ReadDir("/run/secrets")
+	files, _ = readDir("/run/secrets")
 	for _, file := range files {
 		if !file.IsDir() {
 			lName := strings.ToLower(file.Name())
@@ -203,19 +203,19 @@ func (m HaProxy) getConfigData() ConfigData {
 	d := ConfigData{
 		CertsString: strings.Join(m.getCerts(), " "),
 	}
-	d.ConnectionMode = GetSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
-	d.SslBindCiphers = GetSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
-	d.SslBindOptions = GetSecretOrEnvVar("SSL_BIND_OPTIONS", "no-sslv3")
-	d.TimeoutConnect = GetSecretOrEnvVar("TIMEOUT_CONNECT", "5")
-	d.TimeoutClient = GetSecretOrEnvVar("TIMEOUT_CLIENT", "20")
-	d.TimeoutServer = GetSecretOrEnvVar("TIMEOUT_SERVER", "20")
-	d.TimeoutQueue = GetSecretOrEnvVar("TIMEOUT_QUEUE", "30")
-	d.TimeoutTunnel = GetSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
-	d.TimeoutHttpRequest = GetSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
-	d.TimeoutHttpKeepAlive = GetSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
+	d.ConnectionMode = getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
+	d.SslBindCiphers = getSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
+	d.SslBindOptions = getSecretOrEnvVar("SSL_BIND_OPTIONS", "no-sslv3")
+	d.TimeoutConnect = getSecretOrEnvVar("TIMEOUT_CONNECT", "5")
+	d.TimeoutClient = getSecretOrEnvVar("TIMEOUT_CLIENT", "20")
+	d.TimeoutServer = getSecretOrEnvVar("TIMEOUT_SERVER", "20")
+	d.TimeoutQueue = getSecretOrEnvVar("TIMEOUT_QUEUE", "30")
+	d.TimeoutTunnel = getSecretOrEnvVar("TIMEOUT_TUNNEL", "3600")
+	d.TimeoutHttpRequest = getSecretOrEnvVar("TIMEOUT_HTTP_REQUEST", "5")
+	d.TimeoutHttpKeepAlive = getSecretOrEnvVar("TIMEOUT_HTTP_KEEP_ALIVE", "15")
 	m.putStats(&d)
 	m.getUserList(&d)
-	d.ExtraFrontend = GetSecretOrEnvVarSplit("EXTRA_FRONTEND", "")
+	d.ExtraFrontend = getSecretOrEnvVarSplit("EXTRA_FRONTEND", "")
 	if len(d.ExtraFrontend) > 0 {
 		d.ExtraFrontend = fmt.Sprintf("    %s", d.ExtraFrontend)
 	}
@@ -226,17 +226,17 @@ func (m HaProxy) getConfigData() ConfigData {
 	m.addCompression(&d)
 	m.addDebug(&d)
 
-	defaultPortsString := GetSecretOrEnvVar("DEFAULT_PORTS", "")
+	defaultPortsString := getSecretOrEnvVar("DEFAULT_PORTS", "")
 	defaultPorts := strings.Split(defaultPortsString, ",")
 	for _, bindPort := range defaultPorts {
 		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
 		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
 	}
-	extraGlobal := GetSecretOrEnvVarSplit("EXTRA_GLOBAL", "")
+	extraGlobal := getSecretOrEnvVarSplit("EXTRA_GLOBAL", "")
 	if len(extraGlobal) > 0 {
 		d.ExtraGlobal += fmt.Sprintf("\n    %s", extraGlobal)
 	}
-	bindPortsString := GetSecretOrEnvVar("BIND_PORTS", "")
+	bindPortsString := getSecretOrEnvVar("BIND_PORTS", "")
 	if len(bindPortsString) > 0 {
 		bindPorts := strings.Split(bindPortsString, ",")
 		for _, bindPort := range bindPorts {
@@ -294,20 +294,20 @@ func (m *HaProxy) addCompression(data *ConfigData) {
 }
 
 func (m *HaProxy) addDebug(data *ConfigData) {
-	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
+	if strings.EqualFold(getSecretOrEnvVar("DEBUG", ""), "true") {
 		data.ExtraGlobal += `
     log 127.0.0.1:1514 local0`
 		data.ExtraFrontend += `
     option httplog
     log global`
-		format := GetSecretOrEnvVar("DEBUG_HTTP_FORMAT", "")
+		format := getSecretOrEnvVar("DEBUG_HTTP_FORMAT", "")
 		if len(format) > 0 {
 			data.ExtraFrontend += fmt.Sprintf(`
     log-format %s`,
 				format,
 			)
 		}
-		if strings.EqualFold(GetSecretOrEnvVar("DEBUG_ERRORS_ONLY", ""), "true") {
+		if strings.EqualFold(getSecretOrEnvVar("DEBUG_ERRORS_ONLY", ""), "true") {
 			data.ExtraDefaults += `
     option  dontlog-normal`
 		}
@@ -319,9 +319,9 @@ func (m *HaProxy) addDebug(data *ConfigData) {
 }
 
 func (m *HaProxy) putStats(data *ConfigData) {
-	statsUser := GetSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
-	statsPass := GetSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
-	statsUri := GetSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
+	statsUser := getSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
+	statsPass := getSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
+	statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
 	if len(statsUser) > 0 && len(statsPass) > 0 {
 		data.Stats = fmt.Sprintf(`
     stats enable
@@ -341,8 +341,8 @@ func (m *HaProxy) putStats(data *ConfigData) {
 }
 
 func (m *HaProxy) getUserList(data *ConfigData) {
-	usersString := GetSecretOrEnvVar("USERS", "")
-	encryptedString := GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
+	usersString := getSecretOrEnvVar("USERS", "")
+	encryptedString := getSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
 	if len(usersString) > 0 {
 		data.UserList = "\nuserlist defaultUsers\n"
 		encrypted := strings.EqualFold(encryptedString, "true")
@@ -431,11 +431,11 @@ frontend tcpFE_%d
 		port,
 		port,
 	)
-	if strings.EqualFold(GetSecretOrEnvVar("DEBUG", ""), "true") {
+	if strings.EqualFold(getSecretOrEnvVar("DEBUG", ""), "true") {
 		tmpl += `
     option tcplog
     log global`
-		format := GetSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
+		format := getSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
 		if len(format) > 0 {
 			tmpl += fmt.Sprintf(`
     log-format %s`,

@@ -15,8 +15,6 @@ services:
         - com.df.distribute=true
         - com.df.servicePath=/
         - com.df.port=8080
-        - com.df.reqPathSearch=.
-        - com.df.reqPathReplace=,g
 
   db:
     image: mongo

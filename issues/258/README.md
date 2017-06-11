@@ -26,5 +26,20 @@ curl "http://localhost/demo/hello"
 
 curl "http://localhost:8080/v1/docker-flow-proxy/config"
 
-docker service logs proxy_proxy
+docker service logs -f proxy_proxy
+
+PROXY_ID=$(docker container ls -q \
+    -f "label=com.docker.swarm.service.name=proxy_proxy")
+
+docker container exec -it $PROXY_ID sh
+
+apk add --update vim
+
+vim /cfg/haproxy.cfg
+
+exit
+
+curl "http://localhost:8080/v1/docker-flow-proxy/reload"
+
+curl "http://localhost/demo/hello"
 ```

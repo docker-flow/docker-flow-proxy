@@ -19,7 +19,7 @@ func GetBackTemplate(sr *Service, mode string) string {
 			sr.ServiceDest[i].ReqModeFormatted = sr.ServiceDest[i].ReqMode
 		}
 	}
-	if len(GetSecretOrEnvVar("USERS", "")) > 0 {
+	if len(getSecretOrEnvVar("USERS", "")) > 0 {
 		sr.UseGlobalUsers = true
 	}
 	if strings.EqualFold(os.Getenv("DEBUG"), "true") {

@@ -107,9 +107,9 @@ func (s *HaProxyTestSuite) SetupTest() {
 // GetCertPaths
 
 func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 	}()
 	p := HaProxy{}
 	expected := []string{}
@@ -128,7 +128,7 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
 		}
 		mockedFiles = append(mockedFiles, file)
 	}
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		if dir == "/certs" {
 			return mockedFiles, nil
 		}
@@ -147,9 +147,9 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
 }
 
 func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 	}()
 	p := HaProxy{}
 	expected := []string{}
@@ -181,7 +181,7 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
 		},
 	})
 
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		if dir == "/run/secrets" {
 			return mockedFiles, nil
 		}
@@ -196,10 +196,10 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
 // GetCerts
 
 func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	readFileOrig := ReadFile
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 		ReadFile = readFileOrig
 	}()
 	p := HaProxy{}
@@ -219,7 +219,7 @@ func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
 		}
 		mockedFiles = append(mockedFiles, file)
 	}
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		if dir == "/certs" {
 			return mockedFiles, nil
 		}
@@ -242,12 +242,12 @@ func (s HaProxyTestSuite) Test_GetCerts_ReturnsAllCerts() {
 }
 
 func (s HaProxyTestSuite) Test_GetCerts_ReturnsEmptyMap_WhenReadDirFails() {
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 	}()
 	p := HaProxy{}
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		return nil, fmt.Errorf("This is an error")
 	}
 
@@ -1395,9 +1395,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 	}()
 	expected := "ssl"
 	expectedCertList := []string{}
@@ -1418,7 +1418,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 		mockedFiles = append(mockedFiles, file)
 		expectedCertList = append(expectedCertList, path)
 	}
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		if dir == "/certs" {
 			return mockedFiles, nil
 		}
@@ -1453,14 +1453,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIsSet() {
 	caFile := "my-ca-file"
 	caFileOrig := os.Getenv("CA_FILE")
-	readDirOrig := ReadDir
+	readDirOrig := readDir
 	defer func() {
-		ReadDir = readDirOrig
+		readDir = readDirOrig
 		os.Setenv("CA_FILE", caFileOrig)
 	}()
 	os.Setenv("CA_FILE", caFile)
 
-	ReadDir = func(dir string) ([]os.FileInfo, error) {
+	readDir = func(dir string) ([]os.FileInfo, error) {
 		return []os.FileInfo{}, nil
 	}
 	var actualData string

@@ -287,8 +287,8 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	if len(provider.GetString("delResHeader")) > 0 {
 		sr.DelResHeader = strings.Split(provider.GetString("delResHeader"), ",")
 	}
-	globalUsersString := GetSecretOrEnvVar("USERS", "")
-	globalUsersEncrypted := strings.EqualFold(GetSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
+	globalUsersString := getSecretOrEnvVar("USERS", "")
+	globalUsersEncrypted := strings.EqualFold(getSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")
 	sr.Users = mergeUsers(
 		sr.ServiceName,
 		provider.GetString("users"),
