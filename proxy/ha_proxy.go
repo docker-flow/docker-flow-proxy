@@ -370,10 +370,11 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 			s.ServiceDest = []ServiceDest{{ReqMode: "http"}}
 		}
 		httpDone := false
+		putDomainFunction(&s)
 		for i, sd := range s.ServiceDest {
 			if strings.EqualFold(sd.ReqMode, "http") {
 				if !httpDone {
-					config.ContentFrontend += m.getFrontTemplate(s)
+					config.ContentFrontend += getFrontTemplate(s)
 				}
 				httpDone = true
 			} else if strings.EqualFold(sd.ReqMode, "sni") {
@@ -382,13 +383,16 @@ func (m *HaProxy) getSni(services *Services, config *ConfigData) {
 			} else {
 				tcpService := s
 				tcpService.ServiceDest = []ServiceDest{sd}
+				tcpService.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
+				if strings.EqualFold(os.Getenv("DEBUG"), "true") {
+					tcpService.Debug = true
+					tcpService.DebugFormat = getSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
+				}
 				tcpFEs[sd.SrcPort] = append(tcpFEs[sd.SrcPort], tcpService)
 			}
 		}
 	}
-	for port, tcpServices := range tcpFEs {
-		config.ContentFrontendTcp += m.getFrontTemplateTcp(port, tcpServices)
-	}
+	config.ContentFrontendTcp += getFrontTemplateTcp(tcpFEs)
 
 	// Merge the SNI entries into one single string. Sorted by port.
 	var sniports []int
@@ -416,125 +420,5 @@ frontend service_{{$sd1.SrcPort}}
 	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
     acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}{{$sd.SrcPortAcl}}
     use_backend {{$.ServiceName}}-be{{$sd.Port}} if sni_{{$.AclName}}{{$sd.Port}}-%d{{$.AclCondition}}{{$sd.SrcPortAclName}}`, si, si+1, si+1)
-	return m.templateToString(tmplString, s)
-}
-
-// TODO: Move to getFrontTemplate
-func (m *HaProxy) getFrontTemplateTcp(port int, services Services) string {
-	sort.Sort(services)
-	tmpl := fmt.Sprintf(
-		`
-
-frontend tcpFE_%d
-    bind *:%d
-    mode tcp`,
-		port,
-		port,
-	)
-	if strings.EqualFold(getSecretOrEnvVar("DEBUG", ""), "true") {
-		tmpl += `
-    option tcplog
-    log global`
-		format := getSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
-		if len(format) > 0 {
-			tmpl += fmt.Sprintf(`
-    log-format %s`,
-				format,
-			)
-		}
-	}
-	for _, s := range services {
-		backendPort := port
-		if len(s.ServiceDest) > 0 {
-			backendPort, _ = strconv.Atoi(s.ServiceDest[0].Port)
-		}
-		var tmplString string
-		if len(s.ServiceDomain) > 0 {
-			m.putDomainFunction(&s)
-			tmplString += fmt.Sprintf(`
-    acl domain_{{.AclName}} {{.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
-    use_backend {{.ServiceName}}-be%d if domain_{{.ServiceName}}`,
-			backendPort,
-			)
-			s.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
-		} else {
-			tmplString += fmt.Sprintf(
-			`
-    default_backend {{.ServiceName}}-be%d`,
-			backendPort,
-			)
-		}
-		tmpl += m.templateToString(tmplString, s)
-	}
-	return tmpl
-}
-
-// TODO: Move all the conditionals inside the template
-func (m *HaProxy) getFrontTemplate(s Service) string {
-	if len(s.PathType) == 0 {
-		s.PathType = "path_beg"
-	}
-	m.putDomainFunction(&s)
-	tmplString := `
-{{- range .ServiceDest}}
-    {{- if eq .ReqMode "http"}}
-        {{- if ne .Port ""}}
-    acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{$.PathType}} {{.}}{{end}}{{.SrcPortAcl}}
-        {{- end}}
-        {{- $length := len .UserAgent.Value}}{{if gt $length 0}}
-    acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
-        {{- end}}
-    {{- end}}
-{{- end}}
-{{- if .ServiceDomain}}
-    acl domain_{{.AclName}} {{.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
-{{- end}}
-{{- if gt $.HttpsPort 0 }}
-    acl http_{{.ServiceName}} src_port 80
-    acl https_{{.ServiceName}} src_port 443
-{{- end}}
-{{- if $.RedirectWhenHttpProto}}
-    {{- range .ServiceDest}}
-        {{- if eq .ReqMode "http"}}
-            {{- if ne .Port ""}}
-    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
-            {{- end}}
-        {{- end}}
-    {{- end}}
-{{- end}}
-{{- range .ServiceDest}}
-    {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
-	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
-    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}} https_{{$.ServiceName}}
-        {{- end}}
-    {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}{{end}}
-        {{- if $.IsDefaultBackend}}
-    default_backend {{$.ServiceName}}-be{{.Port}}
-        {{- end}}
-    {{- end}}{{- end}}
-{{- end}}`
-	return m.templateToString(tmplString, s)
-}
-
-func (m *HaProxy) putDomainFunction(s *Service) {
-	s.DomainFunction = "hdr"
-	if s.ServiceDomainMatchAll {
-		s.DomainFunction = "hdr_dom"
-	} else {
-		for i, domain := range s.ServiceDomain {
-			if strings.HasPrefix(domain, "*") {
-				s.ServiceDomain[i] = strings.Trim(domain, "*")
-				s.DomainFunction = "hdr_end"
-			}
-		}
-	}
-}
-
-func (m *HaProxy) templateToString(templateString string, service Service) string {
-	tmpl, _ := template.New("template").Parse(templateString)
-	var b bytes.Buffer
-	tmpl.Execute(&b, service)
-	return b.String()
+	return templateToString(tmplString, s)
 }

@@ -4,7 +4,86 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/template"
+	"bytes"
+	"sort"
 )
+
+func getFrontTemplate(s Service) string {
+	tmplString := `
+{{- range .ServiceDest}}
+    {{- if eq .ReqMode "http"}}
+        {{- if ne .Port ""}}
+    acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}{{.SrcPortAcl}}
+        {{- end}}
+        {{- $length := len .UserAgent.Value}}{{if gt $length 0}}
+    acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
+        {{- end}}
+    {{- end}}
+{{- end}}
+{{- if .ServiceDomain}}
+    acl domain_{{.AclName}} {{.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
+{{- end}}
+{{- if gt $.HttpsPort 0 }}
+    acl http_{{.ServiceName}} src_port 80
+    acl https_{{.ServiceName}} src_port 443
+{{- end}}
+{{- if $.RedirectWhenHttpProto}}
+    {{- range .ServiceDest}}
+        {{- if eq .ReqMode "http"}}
+            {{- if ne .Port ""}}
+    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
+    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
+            {{- end}}
+        {{- end}}
+    {{- end}}
+{{- end}}
+{{- range .ServiceDest}}
+    {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}}{{.SrcPortAclName}}
+	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
+    use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if $.ServiceDomain}} domain_{{$.AclName}}{{end}} https_{{$.ServiceName}}
+        {{- end}}
+    {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}{{end}}
+        {{- if $.IsDefaultBackend}}
+    default_backend {{$.ServiceName}}-be{{.Port}}
+        {{- end}}
+    {{- end}}{{- end}}
+{{- end}}`
+	return templateToString(tmplString, s)
+}
+
+func getFrontTemplateTcp(servicesByPort map[int]Services) string {
+	tmpl := ""
+	for _, services := range servicesByPort {
+		sort.Sort(services)
+		tmplString := `
+
+{{$sd := (index . 0).ServiceDest}}{{$srcPort := (index $sd 0).SrcPort}}frontend tcpFE_{{$srcPort}}
+    bind *:{{$srcPort}}
+    mode tcp
+	{{- if (index . 0).Debug}}{{$debugFormat := (index . 0).DebugFormat}}
+    option tcplog
+    log global
+	    {{- if ne $debugFormat ""}}
+    log-format {{$debugFormat}}
+	    {{- end}}
+	{{- end}}
+    {{- range $s := .}}
+        {{- range $sd := .ServiceDest}}
+            {{- if $s.ServiceDomain}}
+    acl domain_{{$s.AclName}} {{$s.DomainFunction}}(host) -i{{range $s.ServiceDomain}} {{.}}{{end}}
+    use_backend {{$s.ServiceName}}-be{{$sd.Port}} if domain_{{$s.ServiceName}}
+            {{- end}}
+            {{- if not $s.ServiceDomain}}
+    default_backend {{$s.ServiceName}}-be{{$sd.Port}}
+            {{- end}}
+        {{- end}}
+    {{- end}}`
+		tmpl += templateToString(tmplString, services)
+	}
+	return tmpl
+}
 
 // TODO: Change to private function when actions.GetTemplates is moved to the proxy package
 // TODO: Create a single string for the template
@@ -173,4 +252,25 @@ func getHeaders(sr *Service) string {
 		)
 	}
 	return tmpl
+}
+
+func templateToString(templateString string, data interface{}) string {
+	tmpl, _ := template.New("template").Parse(templateString)
+	var b bytes.Buffer
+	tmpl.Execute(&b, data)
+	return b.String()
+}
+
+func putDomainFunction(s *Service) {
+	s.DomainFunction = "hdr"
+	if s.ServiceDomainMatchAll {
+		s.DomainFunction = "hdr_dom"
+	} else {
+		for i, domain := range s.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				s.ServiceDomain[i] = strings.Trim(domain, "*")
+				s.DomainFunction = "hdr_end"
+			}
+		}
+	}
 }

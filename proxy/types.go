@@ -73,6 +73,8 @@ type Service struct {
 	ConsulTemplateFePath string `split_words:"true"`
 	// Internal use only
 	Debug bool
+	// Internal use only
+	DebugFormat string
 	// Additional headers that will be deleted in the request before forwarding it to the service. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#delete-a-header-in-the-request for more info.
 	DelReqHeader []string `split_words:"true"`
 	// Additional headers that will be deleted in the response before forwarding it to the client. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#delete-a-header-in-the-response for more info.
