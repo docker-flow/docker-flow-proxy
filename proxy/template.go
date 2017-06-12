@@ -274,4 +274,3 @@ func putDomainFunction(s *Service) {
 		}
 	}
 }
-
