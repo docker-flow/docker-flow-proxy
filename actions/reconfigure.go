@@ -39,8 +39,6 @@ type BaseReconfigure struct {
 	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
-var reconfigureInstance Reconfigure
-
 // NewReconfigure creates new instance of the Reconfigurable interface
 var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service, mode string) Reconfigurable {
 	return &Reconfigure{
@@ -71,7 +69,7 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 		proxy.Instance.AddService(m.Service)
 	}
 	if reloadAfter {
-		reload := Reload{}
+		reload := reload{}
 		if err := reload.Execute(true); err != nil {
 			logPrintf(err.Error())
 			return err

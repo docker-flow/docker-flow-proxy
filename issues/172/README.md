@@ -30,17 +30,14 @@ docker service create --name myapp \
     --network proxy \
     --label com.df.notify=true \
     --label com.df.distribute=true \
-    --label com.df.servicePath=/demo \
-    --label com.df.reqPathSearch=/demo/ \
-    --label com.df.reqPathReplace=/ \
+    --label com.df.servicePath=/ \
+    --label com.df.aclName=xxx \
     --label com.df.port=8081 \
     solarwinds/whd-embedded:latest
 
 docker service ps myapp
 
-curl "http://localhost/demo"
+curl "http://localhost"
 
-curl "http://localhost:1234/demo"
-
-curl "http://myapp:8081/demo"
+open "http://localhost"
 ```

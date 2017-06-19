@@ -1,12 +1,12 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/template"
-	"bytes"
-	"sort"
 )
 
 func getFrontTemplate(s Service) string {

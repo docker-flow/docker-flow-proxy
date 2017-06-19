@@ -15,8 +15,8 @@ import (
 )
 
 type ServerTestSuite struct {
-	BaseUrl        string
-	serviceName    string
+	BaseUrl     string
+	serviceName string
 	suite.Suite
 }
 

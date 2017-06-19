@@ -80,7 +80,7 @@ func (s *ServerTestSuite) SetupTest() {
 	httpListenAndServe = func(addr string, handler http.Handler) error {
 		return nil
 	}
-	serverImpl = Serve{
+	serverImpl = serve{
 		BaseReconfigure: actions.BaseReconfigure{
 			ConsulAddresses: []string{s.ConsulAddress},
 			InstanceName:    s.InstanceName,
@@ -94,7 +94,7 @@ func (s *ServerTestSuite) SetupTest() {
 // Execute
 
 func (s *ServerTestSuite) Test_Execute_InvokesHTTPListenAndServe() {
-	serverImpl := Serve{
+	serverImpl := serve{
 		IP:   "myIp",
 		Port: "1234",
 	}
@@ -322,7 +322,7 @@ func (s *ServerTestSuite) Test_Execute_ReturnsError_WhenReloadAllServicesFails()
 }
 
 func (s *ServerTestSuite) Test_Execute_SetsConsulAddressesToEmptySlice_WhenEnvVarIsNotset() {
-	srv := Serve{}
+	srv := serve{}
 
 	srv.Execute([]string{})
 
@@ -337,7 +337,7 @@ func (s *ServerTestSuite) Test_Execute_SetsConsulAddresses() {
 		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", expected)
-	srv := Serve{}
+	srv := serve{}
 
 	srv.Execute([]string{})
 
@@ -352,7 +352,7 @@ func (s *ServerTestSuite) Test_Execute_SetsMultipleConsulAddresseses() {
 		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", strings.Join(expected, ","))
-	srv := Serve{}
+	srv := serve{}
 
 	srv.Execute([]string{})
 
@@ -367,7 +367,7 @@ func (s *ServerTestSuite) Test_Execute_AddsHttpToConsulAddresses() {
 		serverImpl.ConsulAddresses = consulAddressesOrig
 	}()
 	os.Setenv("CONSUL_ADDRESS", "my-consul-1,my-consul-2")
-	srv := Serve{}
+	srv := serve{}
 
 	srv.Execute([]string{})
 
@@ -388,8 +388,8 @@ func (s *ServerTestSuite) Test_CertPutHandler_InvokesCertPut_WhenUrlIsCert() {
 	}
 	req, _ := http.NewRequest("PUT", s.CertUrl, nil)
 
-	srv := Serve{}
-	srv.CertPutHandler(s.ResponseWriter, req)
+	srv := serve{}
+	srv.certPutHandler(s.ResponseWriter, req)
 
 	s.Assert().True(invoked)
 }
@@ -408,8 +408,8 @@ func (s *ServerTestSuite) Test_CertsHandler_InvokesCertGetAll_WhenUrlIsCerts() {
 	}
 	req, _ := http.NewRequest("GET", s.CertsUrl, nil)
 
-	srv := Serve{}
-	srv.CertsHandler(s.ResponseWriter, req)
+	srv := serve{}
+	srv.certsHandler(s.ResponseWriter, req)
 
 	s.Assert().True(invoked)
 }
@@ -423,8 +423,8 @@ func (s *ServerTestSuite) Test_ConfigHandler_SetsContentTypeToText_WhenUrlIsConf
 	}
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
 
-	srv := Serve{}
-	srv.ConfigHandler(s.ResponseWriter, req)
+	srv := serve{}
+	srv.configHandler(s.ResponseWriter, req)
 
 	s.Equal("text/html", actual)
 }
@@ -438,8 +438,8 @@ func (s *ServerTestSuite) Test_ConfigHandler_ReturnsConfig_WhenUrlIsConfig() {
 	}
 
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-	srv := Serve{}
-	srv.ConfigHandler(s.ResponseWriter, req)
+	srv := serve{}
+	srv.configHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
 }
@@ -452,8 +452,8 @@ func (s *ServerTestSuite) Test_ConfigHandler_ReturnsStatus500_WhenReadFileFails(
 	}
 
 	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-	srv := Serve{}
-	srv.ConfigHandler(s.ResponseWriter, req)
+	srv := serve{}
+	srv.configHandler(s.ResponseWriter, req)
 
 	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
 }
@@ -605,16 +605,6 @@ func (m ReconfigureMock) GetTemplates() (front, back string, err error) {
 
 type ReloadMock struct {
 	ExecuteMock func(recreate bool) error
-}
-
-func MockReload(mock ReloadMock) func() {
-	newFetchOrig := actions.NewReload
-	actions.NewReload = func() actions.Reloader {
-		return mock
-	}
-	return func() {
-		actions.NewReload = newFetchOrig
-	}
 }
 
 func (m ReloadMock) Execute(recreate bool) error {

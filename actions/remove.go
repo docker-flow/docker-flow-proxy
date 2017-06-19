@@ -20,8 +20,6 @@ type Remove struct {
 	AclName         string
 }
 
-var RemoveInstance Remove
-
 var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 	return &Remove{
 		ServiceName:     serviceName,
@@ -42,7 +40,7 @@ func (m *Remove) Execute(args []string) error {
 		return err
 	}
 	proxy.Instance.RemoveService(m.ServiceName)
-	reload := Reload{}
+	reload := reload{}
 	if err := reload.Execute(true); err != nil {
 		logPrintf(err.Error())
 		return err
