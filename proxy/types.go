@@ -20,6 +20,9 @@ type ServiceDest struct {
 	ReqMode string
 	// Internal use only. Do not modify.
 	ReqModeFormatted string
+	// The domain of the service.
+	// If set, the proxy will allow access only to requests coming to that domain.
+	ServiceDomain []string
 	// The URL path of the service.
 	ServicePath []string
 	// The source (entry) port of a service.
@@ -108,9 +111,6 @@ type Service struct {
 	ReqPathSearch string `split_words:"true"`
 	// Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.
 	ServiceCert string `split_words:"true"`
-	// The domain of the service.
-	// If set, the proxy will allow access only to requests coming to that domain.
-	ServiceDomain []string `split_words:"true"`
 	// Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.
 	ServiceDomainMatchAll bool `split_words:"true"`
 	// The name of the service.
@@ -264,9 +264,6 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	if len(provider.GetString("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(provider.GetString("httpsPort"))
 	}
-	if len(provider.GetString("serviceDomain")) > 0 {
-		sr.ServiceDomain = strings.Split(provider.GetString("serviceDomain"), ",")
-	}
 	if len(provider.GetString("addReqHeader")) > 0 {
 		sr.AddReqHeader = strings.Split(provider.GetString("addReqHeader"), ",")
 	} else if len(provider.GetString("addHeader")) > 0 { // TODO: Deprecated since Apr. 2017.
@@ -325,9 +322,12 @@ func getServiceDestList(sr *Service, provider ServiceParameterProvider) []Servic
 		}
 		sdList = append(sdList, ServiceDest{ReqMode: reqMode})
 	}
-	if len(sr.ServiceDomain) > 0 {
-		for i := range sdList {
-			if len(sdList[i].ServicePath) == 0 {
+	for i, sd := range sdList {
+		if len(sd.ServiceDomain) > 0 {
+			if len(sd.ServiceDomain) == 0 {
+				sdList[i].ServiceDomain = sd.ServiceDomain
+			}
+			if len(sd.ServicePath) == 0 {
 				sdList[i].ServicePath = []string{"/"}
 			}
 		}
@@ -340,11 +340,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	if index > 0 {
 		suffix = fmt.Sprintf(".%d", index)
 	}
-	path := []string{}
 	userAgent := UserAgent{}
-	if len(provider.GetString(fmt.Sprintf("servicePath%s", suffix))) > 0 {
-		path = strings.Split(provider.GetString(fmt.Sprintf("servicePath%s", suffix)), ",")
-	}
 	if len(provider.GetString(fmt.Sprintf("userAgent%s", suffix))) > 0 {
 		userAgent.Value = strings.Split(provider.GetString(fmt.Sprintf("userAgent%s", suffix)), ",")
 		userAgent.AclName = replaceNonAlphabetAndNumbers(userAgent.Value)
@@ -358,16 +354,24 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
 		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
 		ReqMode:             reqMode,
+		ServiceDomain:       getSliceFromString(provider, fmt.Sprintf("serviceDomain%s", suffix)),
+		ServicePath:         getSliceFromString(provider, fmt.Sprintf("servicePath%s", suffix)),
 		SrcPort:             srcPort,
-		ServicePath:         path,
 		VerifyClientSsl:     getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
 		UserAgent:           userAgent,
 	}
+}
 
+func getSliceFromString(provider ServiceParameterProvider, key string) []string {
+	value := []string{}
+	if len(provider.GetString(key)) > 0 {
+		value = strings.Split(provider.GetString(key), ",")
+	}
+	return value
 }
 
 func isServiceDestValid(sd *ServiceDest) bool {
-	return len(sd.ServicePath) > 0 || len(sd.Port) > 0
+	return len(sd.ServicePath) > 0 || len(sd.Port) > 0 || len(sd.ServiceDomain) > 0
 }
 
 func isIndexedServiceDestValid(sd *ServiceDest) bool {
