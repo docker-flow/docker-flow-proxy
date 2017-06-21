@@ -36,7 +36,10 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 		"mongo",
 		"vfarcic/go-demo:no-health",
 	} {
-		exec.Command("/bin/sh", "-c", fmt.Sprintf(`docker image pull %s`, image)).Output()
+		if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf(`docker image pull %s`, image)).Output(); err != nil {
+			msg := fmt.Sprintf("Failed to pull %s\n%s", image, err.Error())
+			log.Fatal(msg)
+		}
 	}
 
 	exec.Command("/bin/sh", "-c", `docker rm $(docker ps -qa)`).Output()
@@ -119,6 +122,49 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 		s.Equal(200, resp.StatusCode, s.getProxyConf())
 		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
 	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
+	defer func() {
+		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" proxy`).Output()
+		s.waitForContainers(1, "proxy")
+	}()
+	client := new(http.Client)
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+
+	// Responds with 200 since the header matches
+
+	s.reconfigureGoDemo("&serviceHeader=X-Version:3")
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("X-Version", "3")
+	resp, err := client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
+	}
+
+	// Responds with 200 since both headers match
+
+	s.reconfigureGoDemo("&serviceHeader=X-Version:3,name:Viktor")
+	req, err = http.NewRequest("GET", url, nil)
+	req.Header.Add("X-Version", "3")
+	req.Header.Add("name", "Viktor")
+	resp, err = client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
+	}
+
+	// Does not respond with 200 since headers do not match
+
+	resp, err = client.Get(url)
+
+	s.NoError(err)
+	s.NotEqual(200, resp.StatusCode, s.getProxyConf())
 }
 
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {

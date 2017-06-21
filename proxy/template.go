@@ -12,7 +12,7 @@ import (
 func getFrontTemplate(s Service) string {
 	// TODO: Change domain_{{$.AclName}} to a unique value
 	tmplString := `
-{{- range .ServiceDest}}
+{{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}
         {{- if ne .Port ""}}
     acl url_{{$.AclName}}{{.Port}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}{{.SrcPortAcl}}
@@ -23,6 +23,9 @@ func getFrontTemplate(s Service) string {
     {{- end}}
     {{- if .ServiceDomain}}
     acl domain_{{$.AclName}}{{.Port}} {{$.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
+    {{- end}}
+    {{- if .ServiceHeader}}
+    acl hdr_{{$.AclName}}{{$sd.Port}}{{- range $key, $value := .ServiceHeader}} hdr({{$key}}) {{$value}}{{- end}}
     {{- end}}
 {{- end}}
 {{- if gt $.HttpsPort 0 }}
@@ -41,7 +44,7 @@ func getFrontTemplate(s Service) string {
 {{- end}}
 {{- range .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{.SrcPortAclName}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{if .ServiceHeader}} hdr_{{$.AclName}}{{.Port}}{{end}}{{.SrcPortAclName}}
 	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
     use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}} https_{{$.ServiceName}}
         {{- end}}

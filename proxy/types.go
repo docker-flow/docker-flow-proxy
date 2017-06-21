@@ -23,6 +23,8 @@ type ServiceDest struct {
 	// The domain of the service.
 	// If set, the proxy will allow access only to requests coming to that domain.
 	ServiceDomain []string
+	// Headers used to filter requests
+	ServiceHeader map[string]string
 	// The URL path of the service.
 	ServicePath []string
 	// The source (entry) port of a service.
@@ -350,11 +352,22 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		reqMode = provider.GetString(fmt.Sprintf("reqMode%s", suffix))
 	}
 	srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort%s", suffix)))
+	headerString := provider.GetString(fmt.Sprintf("serviceHeader%s", suffix))
+	header := map[string]string{}
+	if len(headerString) > 0 {
+		for _, value := range strings.Split(headerString, ",") {
+			values := strings.Split(value, ":")
+			if len(values) == 2 {
+				header[strings.Trim(values[0], " ")] = strings.Trim(values[1], " ")
+			}
+		}
+	}
 	return ServiceDest{
 		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
 		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
 		ReqMode:             reqMode,
 		ServiceDomain:       getSliceFromString(provider, fmt.Sprintf("serviceDomain%s", suffix)),
+		ServiceHeader:       header,
 		ServicePath:         getSliceFromString(provider, fmt.Sprintf("servicePath%s", suffix)),
 		SrcPort:             srcPort,
 		VerifyClientSsl:     getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),

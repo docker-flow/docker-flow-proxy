@@ -1404,6 +1404,42 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesServiceHeader() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111 path_beg /path
+    acl hdr_my-service1111 hdr(X-Version) 3 hdr(name) Viktor
+    use_backend my-service-be1111 if url_my-service1111 hdr_my-service1111%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	header := map[string]string{}
+	header["X-Version"] = "3"
+	header["name"] = "Viktor"
+	data.Services["my-service"] = Service{
+		ServiceName:           "my-service",
+		PathType:              "path_beg",
+		ServiceDest: []ServiceDest{
+			{
+				Port: "1111",
+				ServicePath: []string{"/path"},
+				ServiceHeader: header,
+			},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
 	bindPortsOrig := os.Getenv("BIND_PORTS")
 	defer func() { os.Setenv("BIND_PORTS", bindPortsOrig) }()

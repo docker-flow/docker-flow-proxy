@@ -191,6 +191,11 @@ func TestRunUnitTestSuite(t *testing.T) {
 // Util
 
 func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix string) map[string]string {
+	header := ""
+	for key, value := range expected.ServiceDest[0].ServiceHeader {
+		header += key + ":" + value + ","
+	}
+	header = strings.TrimRight(header, ",")
 	return map[string]string{
 		"aclName":               expected.AclName,
 		"addReqHeader":          strings.Join(expected.AddReqHeader, ","),
@@ -226,6 +231,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix string) map
 		"port" + indexSuffix:                expected.ServiceDest[0].Port,
 		"reqMode" + indexSuffix:             expected.ServiceDest[0].ReqMode,
 		"serviceDomain" + indexSuffix:       strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
+		"serviceHeader" + indexSuffix:       header,
 		"servicePath" + indexSuffix:         strings.Join(expected.ServiceDest[0].ServicePath, ","),
 		"userAgent" + indexSuffix:           strings.Join(expected.ServiceDest[0].UserAgent.Value, ","),
 		"verifyClientSsl" + indexSuffix:     strconv.FormatBool(expected.ServiceDest[0].VerifyClientSsl),
@@ -254,6 +260,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		ServiceDest: []ServiceDest{{
 			IgnoreAuthorization: true,
 			ServiceDomain:       []string{"domain1", "domain2"},
+			ServiceHeader:       map[string]string{"X-Version": "3", "name": "Viktor"},
 			ServicePath:         []string{"/"},
 			Port:                "1234",
 			ReqMode:             "reqMode",
