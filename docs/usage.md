@@ -8,7 +8,7 @@
 
 The proxy can be reconfigured to use request mode *http* or *tcp*. The default value of the request mode is *http* and can be changed with the parameter `reqMode`.
 
-### General HTTP Query Parameters
+### General Query Parameters
 
 The following query parameters can be used to send a *reconfigure* request to *Docker Flow Proxy*. They apply to any request mode and should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/reconfigure**. They apply to any `reqMode`.
 
@@ -29,8 +29,6 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing. The parameter can be prefixed with an index thus allowing definition of multiple modes for a single service (e.g. `http`, `tcp`, and so on).<br>**Example:** `tcp`|http|
 |reqPathReplace |A regular expression to apply the modification.<br>**Example:** `/demo/`| |
 |reqPathSearch  |A regular expression to search the content to be replaced. If specified, `reqPathReplace` needs to be set as well.<br>**Example:** `/something/`| |
-|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. **This parameter cannot be used with TCP.** The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `serviceDomain.1`, `serviceDomain.2`, and so on). This parameter is **mandatory** if `servicePath` is not specified.<br>**Example:** ecme.com| |
-|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.<br>**Example:** `true`|false|
 |serviceName    |The name of the service. It must match the name of the Swarm service. This parameter is **mandatory**. If used through *Docker Flow Swarm Listener*, this parameter is added automatically.<br>**Example:** `go-demo`| |
 |setReqHeader   |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info.<br>**Example:** `X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }`| |
 |setResHeader   |Additional headers that will be set to the response before forwarding it to the client. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Please consult [Set a header to the response](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-response) for more info.<br>**Example:** `X-Via %[env(HOSTNAME)],Server haproxy`| |
@@ -41,7 +39,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 
 Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain` or `ReqMode` parameters. In that case, `srcPort` is required.
 
-### HTTP Mode HTTP Query Parameters
+### HTTP Mode Query Parameters
 
 The following query parameters can be used only when `reqMode` is set to `http` or is empty.
 
@@ -52,6 +50,9 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.<br>**Example:** `path_beg`| |
 |redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port.<br>**Example:** `true`|false|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.| |
+|serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `serviceDomain.1`, `serviceDomain.2`, and so on). This parameter is **mandatory** if `servicePath` is not specified.<br>**Example:** `ecme.com`| |
+|serviceDomainMatchAll|Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.<br>**Example:** `true`|false|
+|serviceHeader|Headers used to filter requests. If set, the proxy will allow access only to requests that contain specified headers. A header consists of a key and value separated with colon (e.g. `X-Version:3`). Multiple headers can be separated with comma (e.g. `X-Version:3,name:viktor`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `serviceHeader.1`, `serviceHeader.2`, and so on). <br>**Example:** `X-Version:3,name:viktor`| |
 |servicePath  |The URL path of the service. Multiple values should be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `servicePath.1`, `servicePath.2`, and so on). This parameter **is mandatory** unless `serviceDomain` is specified.<br>**Example:** `/api/v1/books` |
 |sslVerifyNone|If set to true, backend server certificates are not verified. This flag should be set for SSL enabled backend services.<br>**Example:** `true`|false|
 |templateBePath|The path to the template representing a snippet of the backend configuration. If specified, the backend template will be loaded from the specified file. See the [Templates](#templates) section for more info.<br>**Example:** `/tmpl/be.tmpl`| |
