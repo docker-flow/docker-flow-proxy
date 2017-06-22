@@ -1410,8 +1410,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesServiceHeader() {
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111 path_beg /path
-    acl hdr_my-service1111 hdr(X-Version) 3 hdr(name) Viktor
-    use_backend my-service-be1111 if url_my-service1111 hdr_my-service1111%s`,
+    acl hdr_my-service1111_0 hdr(X-Version) 3
+    acl hdr_my-service1111_1 hdr(name) Viktor
+    use_backend my-service-be1111 if url_my-service1111 hdr_my-service1111_0 hdr_my-service1111_1%s`,
 		tmpl,
 		s.ServicesContent,
 	)

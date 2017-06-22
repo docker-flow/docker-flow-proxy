@@ -24,8 +24,10 @@ func getFrontTemplate(s Service) string {
     {{- if .ServiceDomain}}
     acl domain_{{$.AclName}}{{.Port}} {{$.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
     {{- end}}
-    {{- if .ServiceHeader}}
-    acl hdr_{{$.AclName}}{{$sd.Port}}{{- range $key, $value := .ServiceHeader}} hdr({{$key}}) {{$value}}{{- end}}
+    {{- if .ServiceHeader}}{{$skIndex := 0}}
+        {{- range $key, $value := .ServiceHeader}}
+    acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
+        {{- end}}
     {{- end}}
 {{- end}}
 {{- if gt $.HttpsPort 0 }}
@@ -42,9 +44,9 @@ func getFrontTemplate(s Service) string {
         {{- end}}
     {{- end}}
 {{- end}}
-{{- range .ServiceDest}}
+{{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{if .ServiceHeader}} hdr_{{$.AclName}}{{.Port}}{{end}}{{.SrcPortAclName}}
+    use_backend {{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
 	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
     use_backend https-{{$.ServiceName}}-be{{.Port}} if url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}} https_{{$.ServiceName}}
         {{- end}}
@@ -259,7 +261,18 @@ func getHeaders(sr *Service) string {
 }
 
 func templateToString(templateString string, data interface{}) string {
-	tmpl, _ := template.New("template").Parse(templateString)
+	i := -1
+	funcMap := template.FuncMap {
+		"resetIndex": func() string {
+			i = -1
+			return ""
+		},
+		"incIndex": func() int {
+			i += 1
+			return i
+		},
+	}
+	tmpl, _ := template.New("template").Funcs(funcMap).Parse(templateString)
 	var b bytes.Buffer
 	tmpl.Execute(&b, data)
 	return b.String()
