@@ -876,9 +876,9 @@ frontend tcpFE_1234
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{
-				SrcPort: 1234,
-				Port: "4321",
-				ReqMode: "tcp",
+				SrcPort:       1234,
+				Port:          "4321",
+				ReqMode:       "tcp",
 				ServiceDomain: []string{"my-domain.com"},
 			},
 		},
@@ -887,9 +887,9 @@ frontend tcpFE_1234
 		ServiceName: "my-service-2",
 		ServiceDest: []ServiceDest{
 			{
-				SrcPort: 1234,
-				Port: "4321",
-				ReqMode: "tcp",
+				SrcPort:       1234,
+				Port:          "4321",
+				ReqMode:       "tcp",
 				ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
 			},
 		},
@@ -1117,7 +1117,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	for i:=1; i <= 2; i++ {
+	for i := 1; i <= 2; i++ {
 		name := fmt.Sprintf("my-service-%d", i)
 		domain := fmt.Sprintf("domain-%d", i)
 		data.Services[name] = Service{
@@ -1160,13 +1160,13 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
 			{
-				Port: "1111",
-				ServicePath: []string{"/path"},
+				Port:          "1111",
+				ServicePath:   []string{"/path"},
 				ServiceDomain: []string{domain + "-1-1", domain + "-1-2"},
 			}, {
-				SrcPort: 4321,
-				Port: "2222",
-				ServicePath: []string{"/path"},
+				SrcPort:       4321,
+				Port:          "2222",
+				ServicePath:   []string{"/path"},
 				ServiceDomain: []string{domain + "-2-1", domain + "-2-2"},
 			},
 		},
@@ -1425,12 +1425,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesServiceHeader() {
 	header["X-Version"] = "3"
 	header["name"] = "Viktor"
 	data.Services["my-service"] = Service{
-		ServiceName:           "my-service",
-		PathType:              "path_beg",
+		ServiceName: "my-service",
+		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
 			{
-				Port: "1111",
-				ServicePath: []string{"/path"},
+				Port:          "1111",
+				ServicePath:   []string{"/path"},
 				ServiceHeader: header,
 			},
 		},

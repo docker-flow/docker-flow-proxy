@@ -140,7 +140,6 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 		s.Equal(200, resp.StatusCode, s.getProxyConf())
 	}
 
-
 	// Responds with 200 since both headers match
 
 	s.reconfigureGoDemo("&serviceHeader=X-Version:3,name:Viktor")
@@ -621,14 +620,11 @@ func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
 		s.hostIP,
 		params,
 	)
-	println("1:", time.Now().String())
+	// TODO: This step is very slow when executed from the Test_HeaderAcls function. Correct it.
 	resp, err := http.Get(url)
-	println("2:", time.Now().String())
 	if err != nil {
-		println("3:", time.Now().String())
 		s.Fail(err.Error())
 	} else {
-		println("4:", time.Now().String())
 		msg := fmt.Sprintf(
 			`Failed to reconfigure the proxy by sending a request to URL %s
 
@@ -638,7 +634,6 @@ CONFIGURATION:
 			s.getProxyConf())
 		s.Equal(200, resp.StatusCode, msg)
 	}
-	println("5:", time.Now().String())
 	time.Sleep(1 * time.Second)
 }
 

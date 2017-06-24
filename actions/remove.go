@@ -6,10 +6,12 @@ import (
 	"strings"
 )
 
+// Removable defines functions that must be implemented by any struct in charge of removing services from the proxy.
 type Removable interface {
-	Executable
+	executable
 }
 
+// Remove contains the information required for removing services from the proxy
 type Remove struct {
 	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
 	ConsulAddresses []string
@@ -20,6 +22,7 @@ type Remove struct {
 	AclName         string
 }
 
+// NewRemove returns singleton based on the Removable interface
 var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, consulAddresses []string, instanceName, mode string) Removable {
 	return &Remove{
 		ServiceName:     serviceName,
@@ -32,7 +35,7 @@ var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, co
 	}
 }
 
-// TODO: Remove args
+// Execute initiates the removal of a service
 func (m *Remove) Execute(args []string) error {
 	logPrintf("Removing %s configuration", m.ServiceName)
 	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.AclName, m.ConsulAddresses, m.InstanceName, m.Mode); err != nil {
@@ -60,7 +63,7 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string, registr
 	mu.Lock()
 	defer mu.Unlock()
 	for _, path := range paths {
-		OsRemove(path)
+		osRemove(path)
 	}
 	if !strings.EqualFold(mode, "service") && !strings.EqualFold(mode, "swarm") {
 		var err error

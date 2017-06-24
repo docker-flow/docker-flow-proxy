@@ -37,7 +37,7 @@ func (s *RemoveTestSuite) SetupTest() {
 	s.ConfigsPath = "/path/to/configs"
 	s.ConsulAddress = "http://consul.io"
 	s.InstanceName = "my-proxy-instance"
-	OsRemove = func(name string) error {
+	osRemove = func(name string) error {
 		return nil
 	}
 	s.remove = Remove{
@@ -57,7 +57,7 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFile() {
 		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.ServiceName),
 		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName),
 	}
-	OsRemove = func(name string) error {
+	osRemove = func(name string) error {
 		actual = append(actual, name)
 		return nil
 	}
@@ -74,7 +74,7 @@ func (s RemoveTestSuite) Test_Execute_RemovesConfigurationFileUsingAclName_WhenP
 		fmt.Sprintf("%s/%s-fe.cfg", s.TemplatesPath, s.remove.AclName),
 		fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.remove.AclName),
 	}
-	OsRemove = func(name string) error {
+	osRemove = func(name string) error {
 		actual = append(actual, name)
 		return nil
 	}

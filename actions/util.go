@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type Executable interface {
+type executable interface {
 	Execute(args []string) error
 }
 
@@ -25,4 +25,4 @@ var registryInstance registry.Registrarable = registry.Consul{}
 var writeFeTemplate = ioutil.WriteFile
 var writeBeTemplate = ioutil.WriteFile
 var readTemplateFile = ioutil.ReadFile
-var OsRemove = os.Remove
+var osRemove = os.Remove

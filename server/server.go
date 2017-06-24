@@ -285,11 +285,11 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
-				Port: port,
-				ReqMode: reqMode,
+				Port:          port,
+				ReqMode:       reqMode,
 				ServiceDomain: domain,
-				ServicePath: path,
-				SrcPort: srcPort,
+				ServicePath:   path,
+				SrcPort:       srcPort,
 			},
 		)
 	}

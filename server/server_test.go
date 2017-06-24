@@ -678,14 +678,14 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDomainIsPresent() {
 	expected := proxy.Service{
-		ServiceName:   "serviceName",
+		ServiceName: "serviceName",
 		ServiceDest: []proxy.ServiceDest{
 			{
-				Port: "1234",
-				ReqMode: "http",
+				Port:          "1234",
+				ReqMode:       "http",
 				ServiceDomain: []string{"domain1", "domain2"},
 				ServiceHeader: map[string]string{},
-				ServicePath: []string{"/"},
+				ServicePath:   []string{"/"},
 			},
 		},
 	}

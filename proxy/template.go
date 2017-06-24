@@ -262,7 +262,7 @@ func getHeaders(sr *Service) string {
 
 func templateToString(templateString string, data interface{}) string {
 	i := -1
-	funcMap := template.FuncMap {
+	funcMap := template.FuncMap{
 		"resetIndex": func() string {
 			i = -1
 			return ""
