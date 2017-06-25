@@ -1892,6 +1892,24 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	s.Equal(expected, *actual)
 }
 
+func (s *HaProxyTestSuite) Test_Reload_Terminate_RunsRunCmd() {
+	os.Setenv("TERMINATE_ON_RELOAD", "true")
+	actual := HaProxyTestSuite{}.mockHaExecCmd()
+	expected := []string{
+		"-f",
+		"/cfg/haproxy.cfg",
+		"-D",
+		"-p",
+		"/var/run/haproxy.pid",
+		"-st",
+		s.Pid,
+	}
+
+	HaProxy{}.Reload()
+
+	s.Equal(expected, *actual)
+}
+
 // RunCmd
 
 func (s *HaProxyTestSuite) Test_RunCmd_AddsExtraArguments() {
