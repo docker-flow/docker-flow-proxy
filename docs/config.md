@@ -41,7 +41,7 @@ PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies a
 |STATS_PASS_ENV     |The name of the environment variable that holds the password for the statistics page.<br>Example: MY_PASS|STATS_PASS|
 |STATS_URI          |URI for the statistics page.<br>Example: `/proxyStats`<br>Default value: `/admin?proxy`|
 |STATS_URI_ENV      |The name of the environment variable that holds the URI for the statistics page.<br>Example: `MY_URI`<br>Default value: `STATS_URI`|
-|TERMINATE_ON_RELOAD|Sets reload strategy from waiting after requests finished to terminating requests.<br>Example: `true`<br>Default value: `false`|
+|TERMINATE_ON_RELOAD|Whether to terminate the proxy process every time a reload request is received. If set to `false`, a new process will spawn and all the existing requests will terminate through the old process. The downside of this approach is that the system might end up with zombie processes. If set to `true`, zombie processes will be removed but the existing requests to the proxy might be cut.<br>Example: `true`<br>Default value: `false`|
 |TIMEOUT_CLIENT     |The client timeout in seconds.<br>Example: `5`<br>Default value: `20`|
 |TIMEOUT_CONNECT    |The connect timeout in seconds.<br>Example: `3`<br>Default value: `5`|
 |TIMEOUT_QUEUE      |The queue timeout in seconds.<br>Example: `10`<br>Default value: `30`|
