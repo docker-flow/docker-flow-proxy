@@ -25,7 +25,7 @@ pipeline {
     }
     stage("test") {
       environment {
-        HOST_IP = "test.dockerflow.com"
+        HOST_IP = "build.dockerflow.com"
         DOCKER_HUB_USER = "vfarcic"
       }
       steps {
@@ -73,5 +73,4 @@ pipeline {
   }
 }
 
-// TODO: GitHub WebHook
 // TODO: Run `docker system prune -f` periodically
