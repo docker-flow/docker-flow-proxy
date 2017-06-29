@@ -50,56 +50,34 @@ docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 
 ### The Complete Cycle (Unit, Build, Staging)
 
-#### Setup
+Docker 17.05+ is required.
+
+#### Unit Tests & Build
+
+Unit tests are executed as part of the build.
 
 ```bash
-# Change to the IP of your host
-export HOST_IP=[...]
-```
-
-#### Unit Tests
-
-```bash
-docker-compose \
-    -f docker-compose-test.yml \
-    run --rm unit
+docker image build -t vfarcic/docker-flow-proxy .
 ```
 
 #### Staging (Integration) Tests
 
 ```bash
+# Change to the IP of your host
+export HOST_IP=[...]
+
 # Change to your user in hub.docker.com
 export DOCKER_HUB_USER=[...]
 
-docker image build \
-    -t $DOCKER_HUB_USER/docker-flow-proxy:beta \
-    .
+docker tag $DOCKER_HUB_USER/docker-flow-proxy \
+    vfarcic/docker-flow-proxy:beta
 
-docker image push \
-    $DOCKER_HUB_USER/docker-flow-proxy:beta
+docker push $DOCKER_HUB_USER/docker-flow-proxy:beta
 
 docker-compose \
     -f docker-compose-test.yml \
     run --rm staging-swarm
 ```
-
-##### Locally simulating CI
-
-All above can be executed in same manner as CI is running it before a build using the command that follows.
-
-```bash
-# Change to your user in hub.docker.com
-export DOCKER_HUB_USER=[...]
-
-# Change to the IP of your host
-export HOST_IP=[...]
-
-./scripts/local-ci.sh
-```
-
-The script requires:
-
-* docker logged in to docker hub with $DOCKER_HUB_USER user
 
 ### Pull Request
 

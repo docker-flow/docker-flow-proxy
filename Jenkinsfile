@@ -10,7 +10,6 @@ pipeline {
       steps {
         checkout scm
         sh "docker image build -t vfarcic/docker-flow-proxy ."
-        sh "docker image build -t vfarcic/docker-flow-proxy-docs -f Dockerfile.docs ."
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta"
         withCredentials([usernamePassword(
           credentialsId: "docker",
@@ -22,6 +21,7 @@ pipeline {
         sh "docker push vfarcic/docker-flow-proxy:beta"
         sh "docker image build -t vfarcic/docker-flow-proxy-test -f Dockerfile.test ."
         sh "docker push vfarcic/docker-flow-proxy-test"
+        sh "docker image build -t vfarcic/docker-flow-proxy-docs -f Dockerfile.docs ."
       }
     }
     stage("test") {

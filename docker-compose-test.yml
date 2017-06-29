@@ -3,14 +3,6 @@ version: "2"
 
 services:
 
-  unit:
-    image: golang:1.7
-    volumes:
-      - .:/usr/src/myapp
-      - /tmp/go:/go
-    working_dir: /usr/src/myapp
-    command: sh -c "go get -d -v -t && go test --cover ./... --run UnitTest && go build -v -o docker-flow-proxy"
-
   staging-swarm:
     image: vfarcic/docker-flow-proxy-test
     volumes:
@@ -18,9 +10,3 @@ services:
     environment:
       - HOST_IP=${HOST_IP}
       - DOCKER_HUB_USER=${DOCKER_HUB_USER}
-
-  docs:
-    image: cilerler/mkdocs
-    volumes:
-      - .:/docs
-    command: bash -c "pip install pygments && pip install pymdown-extensions && mkdocs build"
