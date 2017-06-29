@@ -1,4 +1,10 @@
+FROM cilerler/mkdocs AS build
+MAINTAINER 	Viktor Farcic <viktor@farcic.com>
+ADD . /docs
+RUN pip install pygments && pip install pymdown-extensions && mkdocs build
+
+
+
 FROM nginx:1.11-alpine
 MAINTAINER 	Viktor Farcic <viktor@farcic.com>
-
-COPY site /usr/share/nginx/html
+COPY --from=build /docs/site /usr/share/nginx/html
