@@ -609,7 +609,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
@@ -617,7 +617,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: " port2222Acl"},
 		},
 	}
-	data.Services["my-service-2"] = Service{
+	dataInstance.Services["my-service-2"] = Service{
 		ServiceName: "my-service-2",
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
@@ -650,7 +650,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontE
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	// Will be listed second because of AclName
-	data.Services["my-first-service"] = Service{
+	dataInstance.Services["my-first-service"] = Service{
 		ServiceName: "my-first-service",
 		AclName:     "acl2",
 		ServiceDest: []ServiceDest{
@@ -658,14 +658,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontE
 		},
 	}
 	// Will be listed last because of ServiceName (there is no AclName)
-	data.Services["the-last-service"] = Service{
+	dataInstance.Services["the-last-service"] = Service{
 		ServiceName: "the-last-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
 	}
 	// Will be listed first because of AclName
-	data.Services["my-second-service"] = Service{
+	dataInstance.Services["my-second-service"] = Service{
 		ServiceName: "my-second-service",
 		AclName:     "acl1",
 		ServiceDest: []ServiceDest{
@@ -700,28 +700,28 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWithRootPat
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	// Will be listed first
-	data.Services["01-first-service"] = Service{
+	dataInstance.Services["01-first-service"] = Service{
 		ServiceName: "01-first-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
 	}
 	// Will be listed last bacause of the root path and service name
-	data.Services["02-root-service"] = Service{
+	dataInstance.Services["02-root-service"] = Service{
 		ServiceName: "02-root-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/"}},
 		},
 	}
 	// Will be listed third because of the root path and service name
-	data.Services["02-another-root-service"] = Service{
+	dataInstance.Services["02-another-root-service"] = Service{
 		ServiceName: "02-another-root-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/"}},
 		},
 	}
 	// Will be listed second
-	data.Services["03-third-service"] = Service{
+	dataInstance.Services["03-third-service"] = Service{
 		ServiceName: "03-third-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
@@ -755,28 +755,28 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWellKnownPa
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	// Will be listed third
-	data.Services["01-first-service"] = Service{
+	dataInstance.Services["01-first-service"] = Service{
 		ServiceName: "01-first-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
 		},
 	}
 	// Will be listed second bacause of the well-known path and service name
-	data.Services["02-well-known-service"] = Service{
+	dataInstance.Services["02-well-known-service"] = Service{
 		ServiceName: "02-well-known-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/.well-known"}},
 		},
 	}
 	// Will be listed first because of the well-known path and service name
-	data.Services["02-another-well-known-service"] = Service{
+	dataInstance.Services["02-another-well-known-service"] = Service{
 		ServiceName: "02-another-well-known-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/.well-known/and/somrthing/else"}},
 		},
 	}
 	// Will be listed last
-	data.Services["03-third-service"] = Service{
+	dataInstance.Services["03-third-service"] = Service{
 		ServiceName: "03-third-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}},
@@ -806,7 +806,7 @@ frontend tcpFE_1234
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
@@ -838,7 +838,7 @@ frontend tcpFE_3333
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1111, Port: "2222", ReqMode: "http", ServicePath: []string{"/path"}},
@@ -872,7 +872,7 @@ frontend tcpFE_1234
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{
@@ -883,7 +883,7 @@ frontend tcpFE_1234
 			},
 		},
 	}
-	data.Services["my-service-2"] = Service{
+	dataInstance.Services["my-service-2"] = Service{
 		ServiceName: "my-service-2",
 		ServiceDest: []ServiceDest{
 			{
@@ -922,7 +922,7 @@ frontend tcpFE_1234
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
@@ -962,7 +962,7 @@ frontend tcpFE_1234
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
@@ -995,7 +995,7 @@ frontend service_1234
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321", ReqMode: "sni"},
@@ -1035,7 +1035,7 @@ frontend service_443
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 443, Port: "4321", ReqMode: "sni"},
@@ -1079,14 +1079,14 @@ frontend service_443
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service-1"] = Service{
+	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 443, Port: "1111", ReqMode: "sni"},
 			{SrcPort: 443, Port: "1112", ReqMode: "sni"},
 		},
 	}
-	data.Services["my-service-2"] = Service{
+	dataInstance.Services["my-service-2"] = Service{
 		ServiceName: "my-service-2",
 		ServiceDest: []ServiceDest{
 			{SrcPort: 443, Port: "4321", ReqMode: "sni"},
@@ -1120,7 +1120,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	for i := 1; i <= 2; i++ {
 		name := fmt.Sprintf("my-service-%d", i)
 		domain := fmt.Sprintf("domain-%d", i)
-		data.Services[name] = Service{
+		dataInstance.Services[name] = Service{
 			ServiceName: name,
 			PathType:    "path_beg",
 			ServiceDest: []ServiceDest{
@@ -1155,7 +1155,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	name := "my-service"
 	domain := "domain"
-	data.Services[name] = Service{
+	dataInstance.Services[name] = Service{
 		ServiceName: name,
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
@@ -1198,7 +1198,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndUser
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		AclName:  "my-service",
 		PathType: "path_beg",
 		ServiceDest: []ServiceDest{{
@@ -1237,7 +1237,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName:      "my-service",
 		IsDefaultBackend: true,
 		AclName:          "my-service",
@@ -1268,7 +1268,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName:           "my-service",
 		ServiceDomainMatchAll: true,
 		AclName:               "my-service",
@@ -1297,7 +1297,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		ServiceDest: []ServiceDest{
 			{ServiceDomain: []string{"*domain-1"}},
@@ -1327,7 +1327,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
 		HttpsPort:   2222,
@@ -1357,7 +1357,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenHtt
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
 		HttpsOnly:   true,
@@ -1389,7 +1389,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttpsWhenRedi
 		return nil
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName:           "my-service",
 		PathType:              "path_beg",
 		RedirectWhenHttpProto: true,
@@ -1424,7 +1424,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesServiceHeader() {
 	header := map[string]string{}
 	header["X-Version"] = "3"
 	header["name"] = "Viktor"
-	data.Services["my-service"] = Service{
+	dataInstance.Services["my-service"] = Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
@@ -1938,8 +1938,8 @@ func (s *HaProxyTestSuite) Test_AddService_AddsService() {
 	p.AddService(s1)
 	p.AddService(s2)
 
-	s.Len(data.Services, 2)
-	s.Equal(data.Services[s1.ServiceName], s1)
+	s.Len(dataInstance.Services, 2)
+	s.Equal(dataInstance.Services[s1.ServiceName], s1)
 }
 
 // RemoveService
@@ -1953,7 +1953,7 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 	p.AddService(s2)
 	p.RemoveService("my-service-1")
 
-	s.Len(data.Services, 1)
+	s.Len(dataInstance.Services, 1)
 }
 
 // Util

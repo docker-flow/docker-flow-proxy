@@ -50,7 +50,7 @@ PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies a
 |TIMEOUT_HTTP_REQUEST|The HTTP request timeout in seconds.<br>Example: `3`<br>Default value: `5`|
 |TIMEOUT_HTTP_KEEP_ALIVE|The HTTP keep alive timeout in seconds.<br>Example: `10`<br>Default value: `15`|
 |USERS              |A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies to all the backend routes. Presence of `dfp_users` Docker secret (`/run/secrets/dfp_users file`) overrides this setting. When present, credentials are read from it.<br>Example: `user1:pass1, user2:pass2`|
-|USERS_PASS_ENCRYPTED| Indicates if passwords provided through USERS or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command.<br>Example: `true`<br>Default value: `false`|
+|USERS_PASS_ENCRYPTED| Indicates if passwords provided through `USERS` or Docker secret `dfp_users` (`/run/secrets/dfp_users` file) are encrypted. Passwords can be encrypted with the `mkpasswd -m sha-512 my-password` command.<br>Example: `true`<br>Default value: `false`|
 
 ## Debug Format
 

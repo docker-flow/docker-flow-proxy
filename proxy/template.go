@@ -91,6 +91,7 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
 	return tmpl
 }
 
+// GetBackTemplate returns template used to create a service backend
 // TODO: Change to private function when actions.GetTemplates is moved to the proxy package
 // TODO: Create a single string for the template
 // TODO: Unify HTTP and HTTPS into a single string

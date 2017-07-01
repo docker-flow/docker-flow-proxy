@@ -164,7 +164,7 @@ func (m *serve) getBaseReconfigure() actions.BaseReconfigure {
 
 func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	params := new(ReloadParams)
+	params := new(reloadParams)
 	decoder.Decode(params, req.Form)
 	listenerAddr := ""
 	response := Response{
@@ -202,7 +202,7 @@ func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 
 func (m *serve) RemoveHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	params := new(RemoveParams)
+	params := new(removeParams)
 	decoder.Decode(params, req.Form)
 	header := http.StatusOK
 	response := Response{

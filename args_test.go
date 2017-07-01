@@ -12,7 +12,7 @@ import (
 
 type ArgsTestSuite struct {
 	suite.Suite
-	args Args
+	args args
 }
 
 func (s *ArgsTestSuite) SetupTest() {
@@ -24,9 +24,9 @@ func (s *ArgsTestSuite) SetupTest() {
 // NewArgs
 
 func (s ArgsTestSuite) Test_NewArgs_ReturnsNewStruct() {
-	a := NewArgs()
+	a := newArgs()
 
-	s.IsType(Args{}, a)
+	s.IsType(args{}, a)
 }
 
 // Parse > Server
@@ -46,7 +46,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 	for _, d := range data {
 		os.Args = append(os.Args, fmt.Sprintf("--%s", d.key), d.expected)
 	}
-	Args{}.Parse()
+	args{}.parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -67,7 +67,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 	for _, d := range data {
 		os.Args = append(os.Args, fmt.Sprintf("-%s", d.key), d.expected)
 	}
-	Args{}.Parse()
+	args{}.parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -85,7 +85,7 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 		{"8080", &serverImpl.Port},
 	}
 
-	Args{}.Parse()
+	args{}.parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
@@ -106,7 +106,7 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	for _, d := range data {
 		os.Setenv(d.key, d.expected)
 	}
-	Args{}.Parse()
+	args{}.parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}

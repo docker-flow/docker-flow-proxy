@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-// TODO: Move to server package
 // Server defines interface used for creating DFP Web server
+// TODO: Move to server package
 type Server interface {
 	Execute(args []string) error
 }

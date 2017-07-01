@@ -18,7 +18,7 @@ type HaProxy struct {
 }
 
 // TODO: Change to pointer
-var Instance Proxy
+var Instance proxy
 var reloadPauseMilliseconds time.Duration = 1000
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
@@ -45,8 +45,8 @@ type ConfigData struct {
 	ContentFrontendSNI   string
 }
 
-func NewHaProxy(templatesPath, configsPath string) Proxy {
-	data.Services = map[string]Service{}
+func NewHaProxy(templatesPath, configsPath string) proxy {
+	dataInstance.Services = map[string]Service{}
 	return HaProxy{
 		templatesPath: templatesPath,
 		configsPath:   configsPath,
@@ -146,11 +146,11 @@ func (m HaProxy) Reload() error {
 }
 
 func (m HaProxy) AddService(service Service) {
-	data.Services[service.ServiceName] = service
+	dataInstance.Services[service.ServiceName] = service
 }
 
 func (m HaProxy) RemoveService(service string) {
-	delete(data.Services, service)
+	delete(dataInstance.Services, service)
 }
 
 func (m HaProxy) getConfigs() (string, error) {
@@ -245,7 +245,7 @@ func (m HaProxy) getConfigData() ConfigData {
 		}
 	}
 	services := Services{}
-	for _, s := range data.Services {
+	for _, s := range dataInstance.Services {
 		if len(s.AclName) == 0 {
 			s.AclName = s.ServiceName
 		}

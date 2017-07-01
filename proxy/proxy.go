@@ -1,14 +1,14 @@
 package proxy
 
-var ProxyInstance Proxy = HaProxy{}
+var proxyInstance proxy = HaProxy{}
 
-type Data struct {
+type data struct {
 	Services map[string]Service
 }
 
-var data = Data{}
+var dataInstance = data{}
 
-type Proxy interface {
+type proxy interface {
 	RunCmd(extraArgs []string) error
 	CreateConfigFromTemplates() error
 	ReadConfig() (string, error)

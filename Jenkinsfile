@@ -71,5 +71,3 @@ pipeline {
     }
   }
 }
-
-// TODO: Run `docker system prune -f` periodically
