@@ -584,6 +584,7 @@ func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name stri
 	println("Executing `docker ps -q -f label=com.docker.swarm.service.name="+name+"`...")
 	println(string(out))
 	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
+
 	return len(lines) == (expected + 1) //+1 because there is new line at the end of ps output
 }
 
