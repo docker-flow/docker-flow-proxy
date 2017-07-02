@@ -40,8 +40,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 			log.Fatal(msg)
 		}
 	}
-
-	exec.Command("/bin/sh", "-c", `docker service rm $(docker service ls -a)`).Output()
+	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
 	exec.Command("/bin/sh", "-c", cmd).Output()
@@ -83,7 +82,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	suite.Run(t, s)
 
-	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env")
+	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
 }
 
 // Tests
