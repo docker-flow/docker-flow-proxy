@@ -311,22 +311,26 @@ func (s IntegrationSwarmTestSuite) Test_Scale() {
 		exec.Command("/bin/sh", "-c", "docker service scale proxy=1").Output()
 		s.waitForContainers(1, "proxy")
 	}()
-	exec.Command("/bin/sh", "-c", "docker service scale proxy=3").Output()
-	s.waitForContainers(3, "proxy")
+	out, err := exec.Command("/bin/sh", "-c", "docker service scale proxy=3").CombinedOutput()
+	if err != nil {
+		s.Fail("%s\n%s", err.Error(), string(out))
+	} else {
+		s.waitForContainers(3, "proxy")
 
-	s.reconfigureGoDemo("&distribute=true")
+		s.reconfigureGoDemo("&distribute=true")
 
-	ok := 0
-	for i := 0; i < 10; i++ {
-		resp, err := s.sendHelloRequest()
-		if resp.StatusCode == 200 {
-			ok++
+		ok := 0
+		for i := 0; i < 10; i++ {
+			resp, err := s.sendHelloRequest()
+			if resp.StatusCode == 200 {
+				ok++
+			}
+
+			s.NoError(err)
 		}
-
-		s.NoError(err)
+		// For some unexplainable reason one of the go-demo requests will fail.
+		s.True(ok >= 7, "Expected at least 7 requests with the response code 200 but got %d", ok)
 	}
-	// For some unexplainable reason one of the go-demo requests will fail.
-	s.True(ok >= 7, "Expected at least 7 requests with the response code 200 but got %d", ok)
 
 }
 
@@ -580,6 +584,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureWithDefaultBackend() {
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
 	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name="+name).Output()
+	println(expected)
 	println("Executing `docker ps -q -f label=com.docker.swarm.service.name="+name+"`...")
 	println(string(out))
 	lines := strings.Split(string(out), "\n")
@@ -605,8 +610,10 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 			break
 		}
 		if i > 20 {
-			fmt.Printf("Waiting for %d tasks of service %s...\n", expected, name)
+			fmt.Printf("Failed to run the service %s\n", name)
+			break
 		}
+		fmt.Printf("Waiting for %d tasks of service %s...\n", expected, name)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
