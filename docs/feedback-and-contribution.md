@@ -50,35 +50,6 @@ docker image build -t $DOCKER_HUB_USER/docker-flow-proxy .
 
 ### The Complete Cycle (Unit, Build, Staging)
 
-Docker 17.05+ is required.
+Make a PR and let Jenkins do the work. You can monitor the status from the Jenkins job [Viktor Farcic / docker-flow-proxy](http://jenkins.dockerflow.com/blue/organizations/jenkins/vfarcic%2Fdocker-flow-proxy/activity).
 
-#### Unit Tests & Build
-
-Unit tests are executed as part of the build.
-
-```bash
-docker image build -t vfarcic/docker-flow-proxy .
-```
-
-#### Staging (Integration) Tests
-
-```bash
-# Change to the IP of your host
-export HOST_IP=[...]
-
-# Change to your user in hub.docker.com
-export DOCKER_HUB_USER=[...]
-
-docker tag $DOCKER_HUB_USER/docker-flow-proxy \
-    vfarcic/docker-flow-proxy:beta
-
-docker push $DOCKER_HUB_USER/docker-flow-proxy:beta
-
-docker-compose \
-    -f docker-compose-test.yml \
-    run --rm staging-swarm
-```
-
-### Pull Request
-
-Once the feature is done, create a pull request.
+Please [create an issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you'd like to add your repository to the builds.

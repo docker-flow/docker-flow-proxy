@@ -581,9 +581,9 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureWithDefaultBackend() {
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
 	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name="+name).Output()
-	println("docker ps -q -f label=com.docker.swarm.service.name="+name)
-	println(out)
-	lines := strings.Split(string(out), "\n")
+	println("Executing `docker ps -q -f label=com.docker.swarm.service.name="+name+"`...")
+	println(string(out))
+	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 	return len(lines) == (expected + 1) //+1 because there is new line at the end of ps output
 }
 
