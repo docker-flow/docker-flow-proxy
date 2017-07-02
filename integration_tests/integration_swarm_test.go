@@ -585,9 +585,9 @@ func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name stri
 	println(string(out))
 	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 	println(len(lines))
-	println(len(expected))
+	println(expected)
 
-	return len(lines) == (expected) //+1 because there is new line at the end of ps output
+	return len(lines) == expected
 }
 
 func (s *IntegrationSwarmTestSuite) createService(command string) ([]byte, error) {
