@@ -1488,6 +1488,31 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPortsWithText() {
+	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
+	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
+	os.Setenv("DEFAULT_PORTS", "1234 accept-proxy,4321 accept-proxy")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:1234 accept-proxy\n    bind *:4321 accept-proxy",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 	readDirOrig := readDir
 	defer func() {
