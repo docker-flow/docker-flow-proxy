@@ -58,6 +58,12 @@ pipeline {
         sh "docker service update --image vfarcic/docker-flow-proxy:2.${env.BUILD_NUMBER} proxy_proxy"
         sh "docker service update --image vfarcic/docker-flow-proxy-docs:2.${env.BUILD_NUMBER} proxy_docs"
       }
+      post {
+        failure {
+          sh "docker service update --revert=true proxy_proxy"
+          sh "docker service update --revert=true proxy_docs"
+        }
+      }
     }
   }
   post {
