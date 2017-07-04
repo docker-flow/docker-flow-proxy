@@ -611,9 +611,10 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		if s.areContainersRunning(expected, name) {
 			break
 		}
-		if i > 20 {
+		if i > 10 {
 			fmt.Printf("Failed to run the service %s\n", name)
 			out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
+			println(string(out))
 			lines := strings.Split(string(out), "\n")
 			println(len(lines))
 			println(expected)
@@ -625,7 +626,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
