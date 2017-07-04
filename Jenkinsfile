@@ -5,6 +5,7 @@ pipeline {
   options {
     buildDiscarder(logRotator(numToKeepStr: '2'))
     disableConcurrentBuilds()
+    timestamps()
   }
   stages {
     stage("build") {
@@ -58,7 +59,19 @@ pipeline {
         sh "docker service update --image vfarcic/docker-flow-proxy:2.${env.BUILD_NUMBER} proxy_proxy"
         sh "docker service update --image vfarcic/docker-flow-proxy-docs:2.${env.BUILD_NUMBER} proxy_docs"
       }
+    }
+    stage("test-production") {
+      environment {
+        HOST_IP = "proxy.dockerflow.com"
+        DOCKER_HUB_USER = "vfarcic"
+      }
+      steps {
+        sh "xxxdocker-compose -f docker-compose-test.yml run --rm staging-swarm"
+      }
       post {
+        agent {
+          label "prod"
+        }
         failure {
           sh "docker service update --revert=true proxy_proxy"
           sh "docker service update --revert=true proxy_docs"
