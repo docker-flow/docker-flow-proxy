@@ -9,6 +9,11 @@ pipeline {
   stages {
     stage("build") {
       steps {
+        script {
+          def dateFormat = new SimpleDateFormat("yy-MM")
+          def date = new Date()
+          currentBuild.displayName = dateFormat.format(date) + "-" + env.BUILD_NUMBER
+        }
         checkout scm
         sh "docker image build -t vfarcic/docker-flow-proxy ."
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta"
@@ -39,11 +44,11 @@ pipeline {
         branch "master"
       }
       steps {
-        sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:2.${env.BUILD_NUMBER}"
-        sh "docker push vfarcic/docker-flow-proxy:2.${env.BUILD_NUMBER}"
+        sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:2.${currentBuild.displayName}"
+        sh "docker push vfarcic/docker-flow-proxy:2.${currentBuild.displayName}"
         sh "docker push vfarcic/docker-flow-proxy"
-        sh "docker tag vfarcic/docker-flow-proxy-docs vfarcic/docker-flow-proxy-docs:2.${env.BUILD_NUMBER}"
-        sh "docker push vfarcic/docker-flow-proxy-docs:2.${env.BUILD_NUMBER}"
+        sh "docker tag vfarcic/docker-flow-proxy-docs vfarcic/docker-flow-proxy-docs:2.${currentBuild.displayName}"
+        sh "docker push vfarcic/docker-flow-proxy-docs:2.${currentBuild.displayName}"
         sh "docker push vfarcic/docker-flow-proxy-docs"
       }
     }
@@ -55,8 +60,8 @@ pipeline {
         label "prod"
       }
       steps {
-        sh "docker service update --image vfarcic/docker-flow-proxy:2.${env.BUILD_NUMBER} proxy_proxy"
-        sh "docker service update --image vfarcic/docker-flow-proxy-docs:2.${env.BUILD_NUMBER} proxy_docs"
+        sh "docker service update --image vfarcic/docker-flow-proxy:2.${currentBuild.displayName} proxy_proxy"
+        sh "docker service update --image vfarcic/docker-flow-proxy-docs:2.${currentBuild.displayName} proxy_docs"
       }
     }
   }
