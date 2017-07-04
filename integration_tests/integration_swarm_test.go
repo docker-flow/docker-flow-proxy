@@ -52,11 +52,11 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	cmd = fmt.Sprintf(
 		`docker service create --name proxy \
     -p 8081:80 \
-    -p 443:443 \
+    -p 8082:443 \
     -p 8080:8080 \
     -p 6379:6379 \
     --network proxy \
-    -e DEFAULT_PORTS=8081,443:ssl \
+    -e DEFAULT_PORTS=8081,8082:ssl \
     -e MODE=swarm \
     -e STATS_USER=none \
     -e STATS_PASS=none \
