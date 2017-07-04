@@ -62,6 +62,7 @@ pipeline {
         label "prod"
       }
       steps {
+        echo "!!!"
         // sh "docker service update --image vfarcic/docker-flow-proxy:2.${currentBuild.displayName} proxy_proxy"
         // sh "docker service update --image vfarcic/docker-flow-proxy-docs:2.${currentBuild.displayName} proxy_docs"
       }
