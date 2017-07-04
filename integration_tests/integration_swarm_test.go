@@ -51,12 +51,12 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	cmd = fmt.Sprintf(
 		`docker service create --name proxy \
-    -p 80:80 \
+    -p 8081:80 \
     -p 443:443 \
     -p 8080:8080 \
     -p 6379:6379 \
     --network proxy \
-    -e DEFAULT_PORTS=80,443:ssl \
+    -e DEFAULT_PORTS=8081,443:ssl \
     -e MODE=swarm \
     -e STATS_USER=none \
     -e STATS_PASS=none \
@@ -113,7 +113,7 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 	s.reconfigureGoDemo("")
 
 	client := new(http.Client)
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept-Encoding", "gzip")
 	resp, err := client.Do(req)
@@ -151,7 +151,7 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 
 func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	client := new(http.Client)
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 
 	// Responds with 200 since the header matches
 
@@ -201,7 +201,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 	s.reconfigureGoDemo("&addResHeader=my-res-header%20my-res-value")
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
+	resp, err := http.Get(fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP))
 
 	s.NoError(err)
 	if resp != nil {
@@ -213,7 +213,7 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 func (s IntegrationSwarmTestSuite) Test_UserAgent() {
 	defer func() { s.reconfigureGoDemo("") }()
 	s.reconfigureGoDemo("&userAgent=amiga,amstrad")
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	client := new(http.Client)
 
 	// With the amstrad agent
@@ -255,7 +255,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 	service3 := "&servicePath.3=/demo&port.3=8080"
 	params := "serviceName=go-demo" + service1 + service2 + service3
 	s.reconfigureService(params)
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 
 	// Not testing ports 1111 and 2222 since go-demo is not listening on those ports
 
@@ -272,7 +272,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
 	defer func() { s.reconfigureGoDemo("") }()
 	s.reconfigureGoDemo("&verifyClientSsl=true")
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 
 	// Returns 403 Forbidden
 
@@ -285,7 +285,7 @@ func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_Stats() {
-	url := fmt.Sprintf("http://%s/admin?stats", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/admin?stats", s.hostIP)
 
 	resp, err := http.Get(url)
 
@@ -348,7 +348,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 
-	url = fmt.Sprintf("http://%s/something/hello", s.hostIP)
+	url = fmt.Sprintf("http://%s:8081/something/hello", s.hostIP)
 	resp, err = http.Get(url)
 
 	s.NoError(err)
@@ -364,7 +364,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 
-	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
+	url = fmt.Sprintf("http://%s:8081/something/demo/hello", s.hostIP)
 	resp, err = http.Get(url)
 
 	s.NoError(err)
@@ -379,7 +379,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	_, err = http.Get(url)
 	s.NoError(err)
 
-	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
+	url = fmt.Sprintf("http://%s:8081/something/demo/hello", s.hostIP)
 	resp, err = http.Get(url)
 	s.NoError(err)
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
@@ -408,7 +408,7 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	}
 	s.Equal(401, statusCode, s.getProxyConf())
 
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth("my-user", "my-pass")
 	client := &http.Client{}
@@ -437,7 +437,7 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {
 	s.NoError(err)
 	s.Equal(401, resp.StatusCode, s.getProxyConf())
 
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth("my-user", "my-pass")
 	client := &http.Client{}
@@ -468,7 +468,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 
 	// Proxy returns 200 when user/pass is provided
 
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth("admin", "password")
 	client := &http.Client{}
@@ -638,7 +638,7 @@ func (s *IntegrationSwarmTestSuite) createGoDemoService() {
 }
 
 func (s *IntegrationSwarmTestSuite) sendHelloRequest() (*http.Response, error) {
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	return http.Get(url)
 }
 
