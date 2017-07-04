@@ -5,7 +5,6 @@ pipeline {
   options {
     buildDiscarder(logRotator(numToKeepStr: '2'))
     disableConcurrentBuilds()
-    timestamps()
   }
   stages {
     stage("build") {
@@ -66,7 +65,7 @@ pipeline {
         DOCKER_HUB_USER = "vfarcic"
       }
       steps {
-        sh "xxxdocker-compose -f docker-compose-test.yml run --rm staging-swarm"
+        sh "docker-compose -f docker-compose-test.yml run --rm production"
       }
       post {
         agent {
