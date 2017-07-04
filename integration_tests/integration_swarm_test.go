@@ -78,7 +78,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	s.createGoDemoService()
 
-	s.waitForContainers(1, "proxy")
+//	s.waitForContainers(1, "proxy")
 
 	suite.Run(t, s)
 
