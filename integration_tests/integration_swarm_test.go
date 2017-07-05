@@ -87,7 +87,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 // Tests
 
-func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
+func (s IntegrationSwarmTestSuite) xxxTest_Reconfigure() {
 	s.reconfigureGoDemo("")
 
 	resp, err := s.sendHelloRequest()
