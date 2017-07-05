@@ -589,7 +589,7 @@ func (s IntegrationSwarmTestSuite) xxxTest_ReconfigureWithDefaultBackend() {
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
 	out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
-	lines := strings.Split(string(out), "\n")
+	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 	return len(lines) == expected
 }
 
