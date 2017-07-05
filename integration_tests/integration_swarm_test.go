@@ -45,9 +45,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
 	exec.Command("/bin/sh", "-c", cmd).Output()
 
-	exec.Command("/bin/sh", "-c", "docker network create --driver overlay proxy").Output()
-
-	exec.Command("/bin/sh", "-c", "docker network create --driver overlay go-demo").Output()
+	exec.Command("/bin/sh", "-c", "docker network create --driver overlay test-proxy").Output()
 
 	cmd = fmt.Sprintf(
 		`docker service create --name proxy \
@@ -55,7 +53,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
     -p 8082:443 \
     -p 8080:8080 \
     -p 6379:6379 \
-    --network proxy \
+    --network test-proxy \
     -e DEFAULT_PORTS=8081,8082:ssl \
     -e MODE=swarm \
     -e STATS_USER=none \
@@ -73,7 +71,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	}
 
 	s.createService(`docker service create --name go-demo-db \
-    --network go-demo \
+    --network test-proxy \
     mongo`)
 
 	s.createGoDemoService()
@@ -500,7 +498,7 @@ func (s IntegrationSwarmTestSuite) xxxTest_ServiceAuthentication() {
 //		s.waitForContainers(0, "redis")
 //	}()
 //	cmdString := `docker service create --name redis \
-//	--network proxy \
+//	--network test-proxy \
 //	redis:3.2`
 //	exec.Command("/bin/sh", "-c", cmdString).Output()
 //	s.waitForContainers(1, "redis")
@@ -553,7 +551,7 @@ func (s IntegrationSwarmTestSuite) xxxTest_ReconfigureFromEnvVars() {
 	cmd := fmt.Sprintf(
 		`docker service create --name proxy-env \
     -p 8090:80 \
-    --network proxy \
+    --network test-proxy \
     -e MODE=swarm \
     -e DFP_SERVICE_1_SERVICE_NAME=go-demo \
     -e DFP_SERVICE_1_SERVICE_PATH=/demo \
@@ -632,8 +630,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
 	cmd := `docker service create --name go-demo \
     -e DB=go-demo-db \
-    --network go-demo \
-    --network proxy \
+    --network test-proxy \
     --label com.df.notify=true \
     --label com.df.distribute=true \
     --label com.df.servicePath=/demo \
