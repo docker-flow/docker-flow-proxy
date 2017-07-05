@@ -87,7 +87,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 // Tests
 
-func (s IntegrationSwarmTestSuite) xxxTest_Reconfigure() {
+func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	s.reconfigureGoDemo("")
 
 	resp, err := s.sendHelloRequest()
@@ -590,7 +590,7 @@ func (s IntegrationSwarmTestSuite) xxxTest_ReconfigureWithDefaultBackend() {
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
 	out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
 	lines := strings.Split(string(out), "\n")
-	return len(lines) == (expected + 1) //+1 because there is new line at the end of ps output
+	return len(lines) == expected
 }
 
 func (s *IntegrationSwarmTestSuite) createService(command string) ([]byte, error) {
@@ -614,8 +614,8 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		if i > 10 {
 			fmt.Printf("Failed to run the service %s\n", name)
 			out, _ := exec.Command("/bin/sh", "-c", "docker service ps -q "+name).Output()
-			println(string(out))
 			lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
+			println(string(out))
 			println(len(lines))
 			println(expected)
 			out, _ = exec.Command("/bin/sh", "-c", "docker service ls").Output()
