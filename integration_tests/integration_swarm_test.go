@@ -588,7 +588,7 @@ func (s IntegrationSwarmTestSuite) xxxTest_ReconfigureWithDefaultBackend() {
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
-	out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
+	out, _ := exec.Command("/bin/sh", "-c", "docker service ps -q "+name).Output()
 	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 	return len(lines) == expected
 }
@@ -613,7 +613,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		}
 		if i > 10 {
 			fmt.Printf("Failed to run the service %s\n", name)
-			out, _ := exec.Command("/bin/sh", "-c", "docker service ps -q "+name).Output()
+			out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
 			lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 			println(string(out))
 			println(len(lines))
