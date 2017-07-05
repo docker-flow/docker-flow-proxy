@@ -98,7 +98,7 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	}
 }
 
-func (s IntegrationSwarmTestSuite) xxxTest_Compression() {
+func (s IntegrationSwarmTestSuite) Test_Compression() {
 	defer func() {
 		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" proxy`).Output()
 		s.waitForContainers(1, "proxy")
