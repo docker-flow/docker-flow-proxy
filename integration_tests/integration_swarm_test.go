@@ -613,9 +613,9 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		}
 		if i > 10 {
 			fmt.Printf("Failed to run the service %s\n", name)
-			out, _ := exec.Command("/bin/sh", "-c", "docker service ps "+name).Output()
+			out, _ := exec.Command("/bin/sh", "-c", "docker service ps -q "+name).Output()
 			println(string(out))
-			lines := strings.Split(strings.TrimRight(string(out), "\n"), "\n")
+			lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 			println(len(lines))
 			println(expected)
 			out, _ = exec.Command("/bin/sh", "-c", "docker service ls").Output()
