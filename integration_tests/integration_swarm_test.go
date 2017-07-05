@@ -148,7 +148,7 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 //	s.Len(strings.Split(string(out), "\n"), 2)
 //}
 
-func (s IntegrationSwarmTestSuite) xxxTest_HeaderAcls() {
+func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	client := new(http.Client)
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 
