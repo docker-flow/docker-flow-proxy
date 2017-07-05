@@ -197,7 +197,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	s.NotEqual(200, resp.StatusCode, s.getProxyConf())
 }
 
-func (s IntegrationSwarmTestSuite) xxxTest_AddHeaders() {
+func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 	s.reconfigureGoDemo("&addResHeader=my-res-header%20my-res-value")
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
