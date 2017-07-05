@@ -13,8 +13,7 @@ pipeline {
       steps {
         script {
           def dateFormat = new SimpleDateFormat("yy-MM")
-          def date = new Date()
-          currentBuild.displayName = dateFormat.format(date) + "-" + env.BUILD_NUMBER
+          currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
         checkout scm
         sh "docker image build -t vfarcic/docker-flow-proxy ."
@@ -29,7 +28,7 @@ pipeline {
         sh "docker push vfarcic/docker-flow-proxy:beta"
         sh "docker image build -t vfarcic/docker-flow-proxy-test -f Dockerfile.test ."
         sh "docker push vfarcic/docker-flow-proxy-test"
-        sh "docker image build -t vfarcic/docker-flow-proxy-docs -f Dockerfile.docs ."
+        sh "docker  image build -t vfarcic/docker-flow-proxy-docs -f Dockerfile.docs ."
       }
     }
     stage("test") {
