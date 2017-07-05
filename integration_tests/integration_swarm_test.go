@@ -549,6 +549,10 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 //}
 
 func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
+	defer func() {
+		s.removeServices("proxy-env")
+		time.Sleep(1 * time.Second)
+	}()
 	cmd := fmt.Sprintf(
 		`docker service create --name proxy-env \
     -p 8081:80 \
