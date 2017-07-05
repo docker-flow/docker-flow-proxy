@@ -551,7 +551,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 	cmd := fmt.Sprintf(
 		`docker service create --name proxy-env \
-    -p 8090:80 \
+    -p 8081:80 \
     --network proxy \
     -e MODE=swarm \
     -e DFP_SERVICE_1_SERVICE_NAME=go-demo \
@@ -563,7 +563,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 	s.NoError(err)
 	s.waitForContainers(1, "proxy-env")
 
-	url := fmt.Sprintf("http://%s:8090/demo/hello", s.hostIP)
+	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	resp, err := http.Get(url)
 
 	s.NoError(err)
