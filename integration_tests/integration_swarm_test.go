@@ -29,17 +29,6 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s.hostIP = os.Getenv("HOST_IP")
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
 
-	for _, image := range []string{
-		"redis:3.2",
-		fmt.Sprintf("%s/docker-flow-proxy:beta", s.dockerHubUser),
-		"mongo",
-		"vfarcic/go-demo:no-health",
-	} {
-		if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf(`docker image pull %s`, image)).Output(); err != nil {
-			msg := fmt.Sprintf("Failed to pull %s\n%s", image, err.Error())
-			log.Fatal(msg)
-		}
-	}
 	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
@@ -679,7 +668,7 @@ CONFIGURATION:
 			s.getProxyConf())
 		s.Equal(200, resp.StatusCode, msg)
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reloadService(params string) {

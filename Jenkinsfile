@@ -46,11 +46,11 @@ pipeline {
       }
       steps {
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:${currentBuild.displayName}"
-        // sh "docker push vfarcic/docker-flow-proxy:${currentBuild.displayName}"
-        // sh "docker push vfarcic/docker-flow-proxy"
+        sh "docker push vfarcic/docker-flow-proxy:${currentBuild.displayName}"
+        sh "docker push vfarcic/docker-flow-proxy"
         sh "docker tag vfarcic/docker-flow-proxy-docs vfarcic/docker-flow-proxy-docs:${currentBuild.displayName}"
-        // sh "docker push vfarcic/docker-flow-proxy-docs:${currentBuild.displayName}"
-        // sh "docker push vfarcic/docker-flow-proxy-docs"
+        sh "docker push vfarcic/docker-flow-proxy-docs:${currentBuild.displayName}"
+        sh "docker push vfarcic/docker-flow-proxy-docs"
       }
     }
     stage("deploy") {
@@ -62,8 +62,8 @@ pipeline {
       }
       steps {
         echo "!!!"
-        // sh "docker service update --image vfarcic/docker-flow-proxy:${currentBuild.displayName} proxy_proxy"
-        // sh "docker service update --image vfarcic/docker-flow-proxy-docs:${currentBuild.displayName} proxy_docs"
+        sh "docker service update --image vfarcic/docker-flow-proxy:${currentBuild.displayName} proxy_proxy"
+        sh "docker service update --image vfarcic/docker-flow-proxy-docs:${currentBuild.displayName} proxy_docs"
       }
     }
   }
