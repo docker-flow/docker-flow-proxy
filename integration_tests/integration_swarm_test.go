@@ -376,110 +376,113 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	s.Equal(200, resp.StatusCode, s.getProxyConf())
 }
 
-func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
-	defer func() {
-		exec.Command("/bin/sh", "-c", `docker service update --env-rm "USERS" proxy`).Output()
-		s.waitForContainers(1, "proxy")
-	}()
-	_, err := exec.Command("/bin/sh", "-c", `docker service update --env-add "USERS=my-user:my-pass" proxy`).Output()
-	s.NoError(err)
-	s.waitForContainers(1, "proxy")
-
-	s.reconfigureGoDemo("")
-
-	resp, err := s.sendHelloRequest()
-
-	s.NoError(err)
-	statusCode := 0
-	if err == nil {
-		statusCode = resp.StatusCode
-	}
-	s.Equal(401, statusCode, s.getProxyConf())
-
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
-	req, err := http.NewRequest("GET", url, nil)
-	req.SetBasicAuth("my-user", "my-pass")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-
-	s.NoError(err)
-	if err == nil {
-		statusCode = resp.StatusCode
-	}
-	s.Equal(200, statusCode, s.getProxyConf())
-}
-
-func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {
-	defer func() {
-		exec.Command("/bin/sh", "-c", `docker service update --env-rm USERS --env-rm USERS_PASS_ENCRYPTED proxy`).Output()
-		s.waitForContainers(1, "proxy")
-	}()
-	_, err := exec.Command("/bin/sh", "-c", `docker service update --env-add "USERS_PASS_ENCRYPTED=true" --env-add "USERS=my-user:\$6\$AcrjVWOkQq1vWp\$t55F7Psm3Ujvp8lpqdAwrc5RxWORYBeDV6ji9KoO029ojooj4Pi.JVGwxdicB0Fuu.NSDyGaZt7skHIo3Nayq/" proxy`).Output()
-	s.NoError(err)
-	s.waitForContainers(1, "proxy")
-
-	s.reconfigureGoDemo("")
-
-	resp, err := s.sendHelloRequest()
-
-	s.NoError(err)
-	s.Equal(401, resp.StatusCode, s.getProxyConf())
-
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
-	req, err := http.NewRequest("GET", url, nil)
-	req.SetBasicAuth("my-user", "my-pass")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-
-	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
-}
-
-func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
-	defer func() {
-		s.reconfigureGoDemo("")
-	}()
-
-	// Add authorization
-
-	s.reconfigureGoDemo("&users=admin:password")
-
-	// Proxy returns 401 when user/pass is NOT provided
-
-	resp, err := s.sendHelloRequest()
-
-	if err != nil {
-		s.Fail(err.Error())
-	} else {
-		s.Equal(401, resp.StatusCode, s.getProxyConf())
-	}
-
-	// Proxy returns 200 when user/pass is provided
-
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
-	req, err := http.NewRequest("GET", url, nil)
-	req.SetBasicAuth("admin", "password")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-
-	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
-
-	// Add ignoreAuthorization
-
-	params := fmt.Sprintf("serviceName=go-demo&servicePath.1=/demo&port.1=8080&users=admin:password&ignoreAuthorization.1=true")
-	s.reconfigureService(params)
-
-	// Proxy returns 200 when user/pass is NOT provided
-
-	resp, err = s.sendHelloRequest()
-
-	if err != nil {
-		s.Fail(err.Error())
-	} else {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
-	}
-}
+// TODO: Refactor
+//func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
+//	defer func() {
+//		exec.Command("/bin/sh", "-c", `docker service update --env-rm "USERS" proxy`).Output()
+//		s.waitForContainers(1, "proxy")
+//	}()
+//	_, err := exec.Command("/bin/sh", "-c", `docker service update --env-add "USERS=my-user:my-pass" proxy`).Output()
+//	s.NoError(err)
+//	s.waitForContainers(1, "proxy")
+//
+//	s.reconfigureGoDemo("")
+//
+//	resp, err := s.sendHelloRequest()
+//
+//	s.NoError(err)
+//	statusCode := 0
+//	if err == nil {
+//		statusCode = resp.StatusCode
+//	}
+//	s.Equal(401, statusCode, s.getProxyConf())
+//
+//	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+//	req, err := http.NewRequest("GET", url, nil)
+//	req.SetBasicAuth("my-user", "my-pass")
+//	client := &http.Client{}
+//	resp, err = client.Do(req)
+//
+//	s.NoError(err)
+//	if err == nil {
+//		statusCode = resp.StatusCode
+//	}
+//	s.Equal(200, statusCode, s.getProxyConf())
+//}
+//
+// TODO: Refactor
+//func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {
+//	defer func() {
+//		exec.Command("/bin/sh", "-c", `docker service update --env-rm USERS --env-rm USERS_PASS_ENCRYPTED proxy`).Output()
+//		s.waitForContainers(1, "proxy")
+//	}()
+//	_, err := exec.Command("/bin/sh", "-c", `docker service update --env-add "USERS_PASS_ENCRYPTED=true" --env-add "USERS=my-user:\$6\$AcrjVWOkQq1vWp\$t55F7Psm3Ujvp8lpqdAwrc5RxWORYBeDV6ji9KoO029ojooj4Pi.JVGwxdicB0Fuu.NSDyGaZt7skHIo3Nayq/" proxy`).Output()
+//	s.NoError(err)
+//	s.waitForContainers(1, "proxy")
+//
+//	s.reconfigureGoDemo("")
+//
+//	resp, err := s.sendHelloRequest()
+//
+//	s.NoError(err)
+//	s.Equal(401, resp.StatusCode, s.getProxyConf())
+//
+//	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+//	req, err := http.NewRequest("GET", url, nil)
+//	req.SetBasicAuth("my-user", "my-pass")
+//	client := &http.Client{}
+//	resp, err = client.Do(req)
+//
+//	s.NoError(err)
+//	s.Equal(200, resp.StatusCode, s.getProxyConf())
+//}
+//
+// TODO: Refactor
+//func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
+//	defer func() {
+//		s.reconfigureGoDemo("")
+//	}()
+//
+//	// Add authorization
+//
+//	s.reconfigureGoDemo("&users=admin:password")
+//
+//	// Proxy returns 401 when user/pass is NOT provided
+//
+//	resp, err := s.sendHelloRequest()
+//
+//	if err != nil {
+//		s.Fail(err.Error())
+//	} else {
+//		s.Equal(401, resp.StatusCode, s.getProxyConf())
+//	}
+//
+//	// Proxy returns 200 when user/pass is provided
+//
+//	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+//	req, err := http.NewRequest("GET", url, nil)
+//	req.SetBasicAuth("admin", "password")
+//	client := &http.Client{}
+//	resp, err = client.Do(req)
+//
+//	s.NoError(err)
+//	s.Equal(200, resp.StatusCode, s.getProxyConf())
+//
+//	// Add ignoreAuthorization
+//
+//	params := fmt.Sprintf("serviceName=go-demo&servicePath.1=/demo&port.1=8080&users=admin:password&ignoreAuthorization.1=true")
+//	s.reconfigureService(params)
+//
+//	// Proxy returns 200 when user/pass is NOT provided
+//
+//	resp, err = s.sendHelloRequest()
+//
+//	if err != nil {
+//		s.Fail(err.Error())
+//	} else {
+//		s.Equal(200, resp.StatusCode, s.getProxyConf())
+//	}
+//}
 
 // TODO: Figure out what is missing inside a container
 //func (s IntegrationSwarmTestSuite) Test_XTcp() {

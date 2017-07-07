@@ -37,7 +37,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Example:** `3600`                                            |3600   |
 |xForwardedProto|Whether to add "X-Forwarded-Proto https" header.<br>**Example:** `true`                          |false  |
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain` or `ReqMode` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain``allowedMethods`, `deniedMethods`, or `ReqMode` parameters. In that case, `srcPort` is required.
 
 ### HTTP Mode Query Parameters
 
@@ -45,8 +45,8 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 
 |Query        |Description                                                                     |
 |-------------|--------------------------------------------------------------------------------|
-|allowedMethods|The list of allowed methods. If specified, a request with a method that is not on the list will be denied. Multiple methods can be separated with comma (`,`).<br>**Example:** `GET,DELETE`|
-|deniedMethods|The list of denied methods. If specified, a request with a method that is on the list will be denied. Multiple methods can be separated with comma (`,`).<br>**Example:** `PUT,POST`|
+|allowedMethods|The list of allowed methods. If specified, a request with a method that is not on the list will be denied. Multiple methods can be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `allowedMethods.1`, `allowedMethods.2`, and so on).<br>**Example:** `GET,DELETE`|
+|deniedMethods|The list of denied methods. If specified, a request with a method that is on the list will be denied. Multiple methods can be separated with comma (`,`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `allowedMethods.1`, `allowedMethods.2`, and so on).<br>**Example:** `PUT,POST`|
 |httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS.<br>**Example:** `true`<br>**Default Value:** `false`|
 |outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.<br>**Example:** `ecme.com`|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.<br>**Example:** `path_beg`|
@@ -65,7 +65,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |verifyClientSsl|Whether to verify client SSL and, if it is not valid, deny request and return 403 Forbidden status code. SSL is validated against the `ca-file` specified through the environment variable `CA_FILE`.<br>**Example:** true<br>**Default Value:** `false`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, or `ReqMode` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, or `ReqMode` parameters. In that case, `srcPort` is required.
 
 ### TCP Mode HTTP Query Parameters
 
