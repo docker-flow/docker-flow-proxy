@@ -229,6 +229,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix string) map
 		// ServiceDest
 		"allowedMethods" + indexSuffix:      strings.Join(expected.ServiceDest[0].AllowedMethods, ","),
 		"deniedMethods" + indexSuffix:       strings.Join(expected.ServiceDest[0].DeniedMethods, ","),
+		"denyHttp" + indexSuffix:            strconv.FormatBool(expected.ServiceDest[0].DenyHttp),
 		"ignoreAuthorization" + indexSuffix: strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
 		"port" + indexSuffix:                expected.ServiceDest[0].Port,
 		"reqMode" + indexSuffix:             expected.ServiceDest[0].ReqMode,
@@ -262,6 +263,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:      []string{"GET", "DELETE"},
 			DeniedMethods:       []string{"PUT", "POST"},
+			DenyHttp:            true,
 			IgnoreAuthorization: true,
 			ServiceDomain:       []string{"domain1", "domain2"},
 			ServiceHeader:       map[string]string{"X-Version": "3", "name": "Viktor"},

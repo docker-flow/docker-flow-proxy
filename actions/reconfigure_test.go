@@ -264,6 +264,25 @@ backend https-myService-be1234
 	s.Equal(expected, actual)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpDeny() {
+	s.reconfigure.Mode = "service"
+	s.reconfigure.Service.HttpsPort = 4321
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
+	s.reconfigure.Service.ServiceDest[0].DenyHttp = true
+	expected := `
+backend myService-be1234
+    mode http
+    http-request deny if !{ ssl_fc }
+    server myService myService:1234
+backend https-myService-be1234
+    mode http
+    server myService myService:4321`
+
+	_, actual, _ := s.reconfigure.GetTemplates()
+
+	s.Equal(expected, actual)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsLoggin_WhenDebug() {
 	debugOrig := os.Getenv("DEBUG")
 	defer func() { os.Setenv("DEBUG", debugOrig) }()

@@ -610,6 +610,15 @@ func (s IntegrationSwarmTestSuite) Test_Methods() {
 	s.Equal(403, resp.StatusCode, s.getProxyConf())
 }
 
+func (s IntegrationSwarmTestSuite) Test_DenyHttp() {
+	s.reconfigureGoDemo("&denyHttp=true")
+
+	resp, err := s.sendHelloRequest()
+
+	s.NoError(err)
+	s.Equal(403, resp.StatusCode, s.getProxyConf())
+}
+
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
@@ -651,7 +660,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {

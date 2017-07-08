@@ -12,5 +12,6 @@ RUN apt-get update && \
 COPY . /src
 WORKDIR /src
 RUN chmod +x /src/run-tests.sh
+RUN go get -d -v -t
 
 CMD ["sh", "-c", "/src/run-tests.sh"]

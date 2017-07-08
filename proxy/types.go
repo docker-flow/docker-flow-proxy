@@ -14,6 +14,8 @@ type ServiceDest struct {
 	AllowedMethods []string
 	// The list of denied methods. If specified, a request with a method that is on the list will be denied.
 	DeniedMethods []string
+	// Whether to deny HTTP requests thus allowing only HTTPS.
+	DenyHttp bool
 	// Whether to ignore authorization for this service destination.
 	IgnoreAuthorization bool
 	// The internal port of a service that should be reconfigured.
@@ -369,6 +371,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	return ServiceDest{
 		AllowedMethods:      getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),
 		DeniedMethods:       getSliceFromString(provider, fmt.Sprintf("deniedMethods%s", suffix)),
+		DenyHttp:            getBoolParam(provider, fmt.Sprintf("denyHttp%s", suffix)),
 		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
 		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
 		ReqMode:             reqMode,

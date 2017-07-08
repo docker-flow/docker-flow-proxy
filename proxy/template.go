@@ -145,6 +145,9 @@ backend {{$.ServiceName}}-be{{.Port}}
     acl valid_denied_method method{{range .DeniedMethods}} {{.}}{{end}}
     http-request deny if valid_denied_method
             {{- end}}
+            {{- if .DenyHttp}}
+    http-request deny if !{ ssl_fc }
+            {{- end}}
             {{- if $.HttpsOnly}}
     redirect scheme https if !{ ssl_fc }
             {{- end}}
