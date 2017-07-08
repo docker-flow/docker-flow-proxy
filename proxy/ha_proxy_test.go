@@ -330,6 +330,28 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLogging_WhenDebug()
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_CaptureRequestHeader() {
+	captureOrig := os.Getenv("CAPTURE_REQUEST_HEADER")
+	defer func() { os.Setenv("CAPTURE_REQUEST_HEADER", captureOrig) }()
+	os.Setenv("CAPTURE_REQUEST_HEADER", "name1:123,name2:321")
+	var actualData string
+	expectedData := fmt.Sprintf(
+		`%s
+    capture request header name1 len 123
+    capture request header name2 len 321%s`,
+		s.TemplateContent,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultServer_WhenCheckResolversIsSetToTrue() {
 	checkResolversOrig := os.Getenv("CHECK_RESOLVERS")
 	defer func() { os.Setenv("CHECK_RESOLVERS", checkResolversOrig) }()

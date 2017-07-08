@@ -247,6 +247,16 @@ func (m HaProxy) getConfigData() configData {
 			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
 		}
 	}
+	if len(os.Getenv("CAPTURE_REQUEST_HEADER")) > 0 {
+		headers := strings.Split(os.Getenv("CAPTURE_REQUEST_HEADER"), ",")
+		for _, header := range headers {
+			values := strings.Split(header, ":")
+			d.ExtraFrontend += fmt.Sprintf(`
+    capture request header %s len %s`,
+			values[0],
+			values[1])
+		}
+	}
 	services := Services{}
 	for _, s := range dataInstance.Services {
 		if len(s.AclName) == 0 {
