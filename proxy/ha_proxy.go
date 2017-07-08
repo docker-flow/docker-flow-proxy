@@ -11,18 +11,20 @@ import (
 	"time"
 )
 
+// HaProxy contains structure used by HAProxy implementation
 type HaProxy struct {
 	templatesPath string
 	configsPath   string
-	configData    ConfigData
+	configData    configData
 }
 
-// TODO: Change to pointer
+// Instance is a singleton containing an instance of the proxy
 var Instance proxy
+
 var reloadPauseMilliseconds time.Duration = 1000
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
-type ConfigData struct {
+type configData struct {
 	CertsString          string
 	ConnectionMode       string
 	ExtraDefaults        string
@@ -45,6 +47,7 @@ type ConfigData struct {
 	ContentFrontendSNI   string
 }
 
+// NewHaProxy returns an instance of the proxy
 func NewHaProxy(templatesPath, configsPath string) proxy {
 	dataInstance.Services = map[string]Service{}
 	return HaProxy{
@@ -200,8 +203,8 @@ backend dummy-be
 	return content.String(), nil
 }
 
-func (m HaProxy) getConfigData() ConfigData {
-	d := ConfigData{
+func (m HaProxy) getConfigData() configData {
+	d := configData{
 		CertsString: strings.Join(m.getCerts(), " "),
 	}
 	d.ConnectionMode = getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
@@ -279,7 +282,7 @@ func (m *HaProxy) getCerts() []string {
 	return certs
 }
 
-func (m *HaProxy) addCompression(data *ConfigData) {
+func (m *HaProxy) addCompression(data *configData) {
 	if len(os.Getenv("COMPRESSION_ALGO")) > 0 {
 		data.ExtraDefaults += fmt.Sprintf(`
     compression algo %s`,
@@ -294,7 +297,7 @@ func (m *HaProxy) addCompression(data *ConfigData) {
 	}
 }
 
-func (m *HaProxy) addDebug(data *ConfigData) {
+func (m *HaProxy) addDebug(data *configData) {
 	if strings.EqualFold(getSecretOrEnvVar("DEBUG", ""), "true") {
 		data.ExtraGlobal += `
     log 127.0.0.1:1514 local0`
@@ -319,7 +322,7 @@ func (m *HaProxy) addDebug(data *ConfigData) {
 	}
 }
 
-func (m *HaProxy) putStats(data *ConfigData) {
+func (m *HaProxy) putStats(data *configData) {
 	statsUser := getSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
 	statsPass := getSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
 	statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
@@ -341,7 +344,7 @@ func (m *HaProxy) putStats(data *ConfigData) {
 	}
 }
 
-func (m *HaProxy) getUserList(data *ConfigData) {
+func (m *HaProxy) getUserList(data *configData) {
 	usersString := getSecretOrEnvVar("USERS", "")
 	encryptedString := getSecretOrEnvVar("USERS_PASS_ENCRYPTED", "")
 	if len(usersString) > 0 {
@@ -350,7 +353,7 @@ func (m *HaProxy) getUserList(data *ConfigData) {
 		users := extractUsersFromString("globalUsers", usersString, encrypted, true)
 		// TODO: Test
 		if len(users) == 0 {
-			users = append(users, RandomUser())
+			users = append(users, randomUser())
 		}
 		for _, user := range users {
 			passwordType := "insecure-password"
@@ -362,7 +365,7 @@ func (m *HaProxy) getUserList(data *ConfigData) {
 	}
 }
 
-func (m *HaProxy) getSni(services *Services, config *ConfigData) {
+func (m *HaProxy) getSni(services *Services, config *configData) {
 	sort.Sort(services)
 	snimap := make(map[int]string)
 	tcpFEs := make(map[int]Services)

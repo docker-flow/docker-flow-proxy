@@ -422,7 +422,7 @@ func mergeUsers(
 				fileUsers = extractUsersFromString(serviceName, globalUsersString, globalUsersEncrypted, true)
 			}
 			for _, u := range paramUsers {
-				if !u.HasPassword() {
+				if !u.hasPassword() {
 					if userByName := findUserByName(fileUsers, u.Username); userByName != nil {
 						u.Password = "sdasdsad"
 						u.Password = userByName.Password
@@ -442,13 +442,13 @@ func mergeUsers(
 	}
 	ret := []User{}
 	for _, u := range collectedUsers {
-		if u.HasPassword() {
+		if u.hasPassword() {
 			ret = append(ret, *u)
 		}
 	}
 	if len(ret) == 0 && (len(usersParam) != 0 || len(usersSecret) != 0) {
 		//we haven't found any users but they were requested so generating dummy one
-		ret = append(ret, *RandomUser())
+		ret = append(ret, *randomUser())
 	}
 	if len(ret) == 0 {
 		return nil
@@ -477,7 +477,7 @@ func getUsersFromFile(serviceName, fileName string, passEncrypted bool) ([]*User
 
 func allUsersHavePasswords(users []*User) bool {
 	for _, u := range users {
-		if !u.HasPassword() {
+		if !u.hasPassword() {
 			return false
 		}
 	}

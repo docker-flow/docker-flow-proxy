@@ -687,11 +687,11 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 			{
 				AllowedMethods: []string{},
 				DeniedMethods:  []string{},
-				Port:          "1234",
-				ReqMode:       "http",
-				ServiceDomain: []string{"domain1", "domain2"},
-				ServiceHeader: map[string]string{},
-				ServicePath:   []string{"/"},
+				Port:           "1234",
+				ReqMode:        "http",
+				ServiceDomain:  []string{"domain1", "domain2"},
+				ServiceHeader:  map[string]string{},
+				ServicePath:    []string{"/"},
 			},
 		},
 	}
