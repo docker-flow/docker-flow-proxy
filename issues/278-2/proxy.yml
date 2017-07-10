@@ -1,0 +1,96 @@
+version: '3.2'
+
+services:
+  flow-proxy:
+    image: vfarcic/docker-flow-proxy
+    ports:
+     - target: 80
+       published: 80
+       mode: host
+     - target: 443
+       published: 443
+       mode: host
+    networks:
+      - frontend
+      - backend
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+      - MODE=swarm
+      - SERVICE_NAME=proxy_flow-proxy
+      - DEBUG=true
+    secrets:
+    - cert-web.com.pem
+    volumes:
+    - ${CORE_PATH}/haproxy.tmpl:/cfg/tmpl/haproxy.tmpl
+    - ${CORE_PATH}/errorfiles:/errorfiles
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels: [prxy]
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy-le:8080/v1/docker-flow-proxy-letsencrypt/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://flow-proxy:8080/v1/docker-flow-proxy/remove
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels: [prxy]
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+  proxy-le:
+    image: nib0r/docker-flow-proxy-letsencrypt
+    networks:
+      - frontend
+      - backend
+    environment:
+      - DF_PROXY_SERVICE_NAME=proxy_flow-proxy
+      - DF_SWARM_LISTENER_SERVICE_NAME=proxy_swarm-listener
+      - LOG=debug
+      - RETRY=10
+      - RETRY_INTERVAL=5
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - ${CORE_PATH}/letsencrypt:/etc/letsencrypt
+      # - ${CORE_PATH}/docker:/root/.docker
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels: [prxy,certs]
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/.well-known/acme-challenge
+        - com.df.port=8080
+secrets:
+  cert-web.com.pem:
+    external: true
+networks:
+  frontend:
+     external:
+      name: frontend
+  backend:
+     external:
+      name: backend

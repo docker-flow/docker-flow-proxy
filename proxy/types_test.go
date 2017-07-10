@@ -182,6 +182,31 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_ReturnsProxyServiceWithInde
 	s.Equal(expected, *actual)
 }
 
+func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexedEntries_WhenPortIsEmpty() {
+	expected := Service{
+		ServiceDest: []ServiceDest{{
+			AllowedMethods: []string{},
+			DeniedMethods:  []string{},
+			ServiceDomain:  []string{"domain1", "domain2"},
+			ServiceHeader:  map[string]string{},
+			ServicePath:    []string{"/"},
+			Port:           "1234",
+			ReqMode:        "reqMode",
+		}},
+		ServiceName: "serviceName",
+	}
+	serviceMap := map[string]string{
+		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
+		"serviceName":   expected.ServiceName,
+		"port.1":        expected.ServiceDest[0].Port,
+		"reqMode.1":     expected.ServiceDest[0].ReqMode,
+		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+	}
+	provider := mapParameterProvider{&serviceMap}
+	actual := GetServiceFromProvider(&provider)
+	s.Equal(expected, *actual)
+}
+
 // Suite
 
 func TestRunUnitTestSuite(t *testing.T) {

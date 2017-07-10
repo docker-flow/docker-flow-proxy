@@ -197,7 +197,7 @@ func (s *FetchTestSuite) Test_ReloadConfig_SendsARequestToSwarmListener_WhenList
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actual = r.URL.Path
 		configs := []map[string]string{
-			{"serviceName": "someService", "serviceDomain": "my-domain"},
+			{"serviceName": "someService", "serviceDomain": "my-domain", "port": "1234"},
 		}
 		marshal, _ := json.Marshal(configs)
 		w.Write(marshal)

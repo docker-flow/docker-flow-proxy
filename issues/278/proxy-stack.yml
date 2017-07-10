@@ -1,0 +1,37 @@
+version:  '3'
+services:
+
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    environment:
+     - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
+     - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+     - proxy
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  proxy:
+    image: vfarcic/docker-flow-proxy:1.415
+    ports:
+     - "80:80"
+     - "443:443"
+     - "8080:8080"
+    environment:
+     - MODE=swarm
+     - LISTENER_ADDRESS=swarm-listener
+     - TIMEOUT_SERVER=65
+    networks:
+     - proxy
+#    deploy:
+#      mode: global
+#      placement:
+#        constraints: [node.role != manager]
+
+
+networks:
+  proxy:
+    external: true

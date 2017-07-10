@@ -12,8 +12,8 @@ pipeline {
     stage("build") {
       steps {
         script {
-          def dateFormat = new SimpleDateFormat("yy-MM")
-          currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
+          def dateFormat = new SimpleDateFormat("yy.MM")
+          currentBuild.displayName = dateFormat.format(new Date()) + "." + env.BUILD_NUMBER
         }
         checkout scm
         sh "docker image build -t vfarcic/docker-flow-proxy ."

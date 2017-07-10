@@ -306,18 +306,24 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	)
 
 	sr.ServiceDest = getServiceDestList(sr, provider)
+//	if len(sr.ServiceDest) > 0 && len(sr.ServiceDest[0].ServiceDomain) > 0 && len(sr.ServiceDest[0].Port) == 0 {
+//		sr.ServiceDest = append(sr.ServiceDest[:0], sr.ServiceDest[1:]...)
+//	}
 	return sr
 }
 
 func getServiceDestList(sr *Service, provider ServiceParameterProvider) []ServiceDest {
 	sdList := []ServiceDest{}
 	sd := getServiceDest(sr, provider, -1)
+	serviceDomain := []string{}
 	if isServiceDestValid(&sd) || (len(sr.ConsulTemplateFePath) > 0 && len(sr.ConsulTemplateBePath) > 0) {
 		sdList = append(sdList, sd)
+	} else {
+		serviceDomain = sd.ServiceDomain
 	}
 	for i := 1; i <= 10; i++ {
 		sd := getServiceDest(sr, provider, i)
-		if isIndexedServiceDestValid(&sd) {
+		if isServiceDestValid(&sd) {
 			sdList = append(sdList, sd)
 		} else {
 			break
@@ -331,13 +337,10 @@ func getServiceDestList(sr *Service, provider ServiceParameterProvider) []Servic
 		sdList = append(sdList, ServiceDest{ReqMode: reqMode})
 	}
 	for i, sd := range sdList {
-		if len(sd.ServiceDomain) > 0 {
-			if len(sd.ServiceDomain) == 0 {
-				sdList[i].ServiceDomain = sd.ServiceDomain
-			}
-			if len(sd.ServicePath) == 0 {
-				sdList[i].ServicePath = []string{"/"}
-			}
+		if len(sd.ServiceDomain) > 0 && len(sd.ServicePath) == 0 {
+			sdList[i].ServicePath = []string{"/"}
+		} else if len(sd.ServiceDomain) == 0 && len(serviceDomain) > 0 {
+			sdList[i].ServiceDomain = serviceDomain
 		}
 	}
 	return sdList
@@ -393,11 +396,7 @@ func getSliceFromString(provider ServiceParameterProvider, key string) []string 
 }
 
 func isServiceDestValid(sd *ServiceDest) bool {
-	return len(sd.ServicePath) > 0 || len(sd.Port) > 0 || len(sd.ServiceDomain) > 0
-}
-
-func isIndexedServiceDestValid(sd *ServiceDest) bool {
-	return len(sd.ServicePath) > 0 && len(sd.Port) > 0
+	return len(sd.ServicePath) > 0 || len(sd.Port) > 0
 }
 
 func getBoolParam(req ServiceParameterProvider, param string) bool {

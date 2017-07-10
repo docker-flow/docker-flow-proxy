@@ -30,6 +30,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
 
 	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
+	exec.Command("/bin/sh", "-c", "docker system prune -f").Output()
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
 	exec.Command("/bin/sh", "-c", cmd).Output()
@@ -660,7 +661,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {

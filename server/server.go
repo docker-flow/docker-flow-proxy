@@ -117,6 +117,7 @@ func (m *serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 	statusCode, msg := proxy.IsValidReconf(sr)
 	if statusCode == http.StatusOK {
 		if m.isSwarm(m.mode) && !m.hasPort(sr.ServiceDest) {
+			logPrintf(`When MODE is set to "service" or "swarm", the port query is mandatory`)
 			m.writeBadRequest(w, &response, `When MODE is set to "service" or "swarm", the port query is mandatory`)
 		} else if sr.Distribute {
 			if status, err := sendDistributeRequests(req, m.port, m.serviceName); err != nil || status >= 300 {
