@@ -661,7 +661,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
