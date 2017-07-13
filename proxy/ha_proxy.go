@@ -384,7 +384,7 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 			s.ServiceDest = []ServiceDest{{ReqMode: "http"}}
 		}
 		httpDone := false
-		putDomainFunction(&s)
+		putDomainAlgo(&s)
 		for i, sd := range s.ServiceDest {
 			if strings.EqualFold(sd.ReqMode, "http") {
 				if !httpDone {

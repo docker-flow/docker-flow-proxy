@@ -22,7 +22,7 @@ func getFrontTemplate(s Service) string {
         {{- end}}
     {{- end}}
     {{- if .ServiceDomain}}
-    acl domain_{{$.AclName}}{{.Port}} {{$.DomainFunction}}(host) -i{{range .ServiceDomain}} {{.}}{{end}}
+    acl domain_{{$.AclName}}{{.Port}} {{$.ServiceDomainAlgo}} -i{{range .ServiceDomain}} {{.}}{{end}}
     {{- end}}
     {{- if .ServiceHeader}}{{$skIndex := 0}}
         {{- range $key, $value := .ServiceHeader}}
@@ -78,7 +78,7 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
     {{- range $s := .}}
         {{- range $sd := .ServiceDest}}
             {{- if $sd.ServiceDomain}}
-    acl domain_{{$s.AclName}}{{.Port}} {{$s.DomainFunction}}(host) -i{{range $sd.ServiceDomain}} {{.}}{{end}}
+    acl domain_{{$s.AclName}}{{.Port}} {{$s.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
     use_backend {{$s.ServiceName}}-be{{$sd.Port}} if domain_{{$s.AclName}}{{.Port}}
             {{- end}}
             {{- if not $sd.ServiceDomain}}
@@ -298,17 +298,16 @@ func templateToString(templateString string, data interface{}) string {
 	return b.String()
 }
 
-func putDomainFunction(s *Service) {
-	s.DomainFunction = "hdr"
+func putDomainAlgo(s *Service) {
+	if len(s.ServiceDomainAlgo) == 0 {
+		s.ServiceDomainAlgo = "hdr(host)"
+	}
 	for _, sd := range s.ServiceDest {
-		if s.ServiceDomainMatchAll {
-			s.DomainFunction = "hdr_dom"
-		} else {
-			for i, domain := range sd.ServiceDomain {
-				if strings.HasPrefix(domain, "*") {
-					sd.ServiceDomain[i] = strings.Trim(domain, "*")
-					s.DomainFunction = "hdr_end"
-				}
+		for i, domain := range sd.ServiceDomain {
+			if strings.HasPrefix(domain, "*") {
+				sd.ServiceDomain[i] = strings.Trim(domain, "*")
+				s.ServiceDomainAlgo = "hdr_end(host)"
+				return
 			}
 		}
 	}

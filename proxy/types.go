@@ -119,8 +119,8 @@ type Service struct {
 	ReqPathSearch string `split_words:"true"`
 	// Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.
 	ServiceCert string `split_words:"true"`
-	// Whether to include subdomains and FDQN domains in the match. If set to false, and, for example, `serviceDomain` is set to `acme.com`, `something.acme.com` would not be considered a match unless this parameter is set to `true`. If this option is used, it is recommended to put any subdomains higher in the list using `aclName`.
-	ServiceDomainMatchAll bool `split_words:"true"`
+	// The algorithm that should be applied to domain acl. The default value is `hdr(host)`.
+	ServiceDomainAlgo string
 	// The name of the service.
 	// It must match the name of the Swarm service or the one stored in Consul.
 	ServiceName string `split_words:"true"`
@@ -153,7 +153,6 @@ type Service struct {
 	ServiceColor        string
 	ServicePort         string
 	AclCondition        string
-	DomainFunction      string
 	FullServiceName     string
 	Host                string
 	LookupRetry         int
@@ -269,6 +268,10 @@ func GetServiceFromMap(req *map[string]string) *Service {
 func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	sr := new(Service)
 	provider.Fill(sr)
+	// TODO: Remove. It's added to maintain backwards compatibility with the deprecated parameter serviceDomainMatchAll (since July 2017)
+	if strings.EqualFold(provider.GetString("serviceDomainMatchAll"), "true") {
+		sr.ServiceDomainAlgo = "hdr_dom"
+	}
 	if len(provider.GetString("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(provider.GetString("httpsPort"))
 	}

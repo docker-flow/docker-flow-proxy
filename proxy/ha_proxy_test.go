@@ -1274,13 +1274,13 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	s.Equal(expectedData, actualData)
 }
 
-func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithHdrDom_WhenServiceDomainMatchAllIsSet() {
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithDomainAlgo() {
 	var actualData string
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111 path_beg /path
-    acl domain_my-service1111 hdr_dom(host) -i domain-1 domain-2
+    acl domain_my-service1111 hdr_dom(xxx) -i domain-1 domain-2
     use_backend my-service-be1111 if url_my-service1111 domain_my-service1111%s`,
 		tmpl,
 		s.ServicesContent,
@@ -1291,10 +1291,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	dataInstance.Services["my-service"] = Service{
-		ServiceName:           "my-service",
-		ServiceDomainMatchAll: true,
-		AclName:               "my-service",
-		PathType:              "path_beg",
+		AclName:           "my-service",
+		PathType:          "path_beg",
+		ServiceDomainAlgo: "hdr_dom(xxx)",
+		ServiceName:       "my-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"domain-1", "domain-2"}},
 		},
