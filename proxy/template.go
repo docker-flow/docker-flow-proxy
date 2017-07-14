@@ -300,7 +300,7 @@ func templateToString(templateString string, data interface{}) string {
 
 func putDomainAlgo(s *Service) {
 	if len(s.ServiceDomainAlgo) == 0 {
-		s.ServiceDomainAlgo = "hdr(host)"
+		s.ServiceDomainAlgo = os.Getenv("SERVICE_DOMAIN_ALGO")
 	}
 	for _, sd := range s.ServiceDest {
 		for i, domain := range sd.ServiceDomain {
