@@ -65,9 +65,6 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 	if err := m.createConfigs(); err != nil {
 		return err
 	}
-	if !m.hasTemplate() {
-		proxy.Instance.AddService(m.Service)
-	}
 	if reloadAfter {
 		reload := reload{}
 		if err := reload.Execute(true); err != nil {
@@ -85,6 +82,9 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 				return err
 			}
 		}
+	}
+	if !m.hasTemplate() {
+		proxy.Instance.AddService(m.Service)
 	}
 	return nil
 }

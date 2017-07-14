@@ -29,7 +29,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s.hostIP = os.Getenv("HOST_IP")
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
 
-	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
+	s.removeServices("go-demo-api", "go-demo-db", "proxy", "proxy-env", "redis")
 	exec.Command("/bin/sh", "-c", "docker system prune -f").Output()
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
@@ -72,7 +72,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	suite.Run(t, s)
 
-	s.removeServices("go-demo", "go-demo-db", "proxy", "proxy-env", "redis")
+	s.removeServices("go-demo-api", "go-demo-db", "proxy", "proxy-env", "redis")
 }
 
 // Tests
@@ -242,11 +242,11 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 	service1 := "&servicePath.1=/demo&port.1=1111&userAgent.1=amiga"
 	service2 := "&servicePath.2=/demo&port.2=2222&userAgent.2=amstrad"
 	service3 := "&servicePath.3=/demo&port.3=8080"
-	params := "serviceName=go-demo" + service1 + service2 + service3
+	params := "serviceName=go-demo-api" + service1 + service2 + service3
 	s.reconfigureService(params)
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 
-	// Not testing ports 1111 and 2222 since go-demo is not listening on those ports
+	// Not testing ports 1111 and 2222 since go-demo-api is not listening on those ports
 
 	// Without the matching agent
 
@@ -286,7 +286,7 @@ func (s IntegrationSwarmTestSuite) Test_Remove() {
 	s.reconfigureGoDemo("")
 
 	url := fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/remove?serviceName=go-demo",
+		"http://%s:8080/v1/docker-flow-proxy/remove?serviceName=go-demo-api",
 		s.hostIP,
 	)
 	http.Get(url)
@@ -319,7 +319,7 @@ func (s IntegrationSwarmTestSuite) Test_Scale() {
 
 			s.NoError(err)
 		}
-		// For some unexplainable reason one of the go-demo requests will fail.
+		// For some unexplainable reason one of the go-demo-api requests will fail.
 		s.True(ok >= 7, "Expected at least 7 requests with the response code 200 but got %d", ok)
 	}
 
@@ -330,7 +330,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	// With reqPathReplace
 
 	url := fmt.Sprintf(
-		`http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=xxx|/something/&reqPathReplace=/demo/`,
+		`http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo-api&servicePath=/something&port=8080&reqPathSearch=xxx|/something/&reqPathReplace=/demo/`,
 		s.hostIP,
 	)
 	resp, err := http.Get(url)
@@ -346,7 +346,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	// With empty reqPathReplace
 
 	url = fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something&reqPathReplace=",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo-api&servicePath=/something&port=8080&reqPathSearch=/something&reqPathReplace=",
 		s.hostIP,
 	)
 	resp, err = http.Get(url)
@@ -362,7 +362,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	// Without reqPathReplace
 
 	url = fmt.Sprintf(
-		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo&servicePath=/something&port=8080&reqPathSearch=/something",
+		"http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo-api&servicePath=/something&port=8080&reqPathSearch=/something",
 		s.hostIP,
 	)
 	_, err = http.Get(url)
@@ -471,7 +471,7 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 //
 //	// Add ignoreAuthorization
 //
-//	params := fmt.Sprintf("serviceName=go-demo&servicePath.1=/demo&port.1=8080&users=admin:password&ignoreAuthorization.1=true")
+//	params := fmt.Sprintf("serviceName=go-demo-api&servicePath.1=/demo&port.1=8080&users=admin:password&ignoreAuthorization.1=true")
 //	s.reconfigureService(params)
 //
 //	// Proxy returns 200 when user/pass is NOT provided
@@ -551,7 +551,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
     -p 8081:80 \
     --network proxy \
     -e MODE=swarm \
-    -e DFP_SERVICE_1_SERVICE_NAME=go-demo \
+    -e DFP_SERVICE_1_SERVICE_NAME=go-demo-api \
     -e DFP_SERVICE_1_SERVICE_PATH=/demo \
     -e DFP_SERVICE_1_PORT=8080 \
     %s/docker-flow-proxy:beta`,
@@ -572,7 +572,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_ReconfigureWithDefaultBackend() {
-	params := "serviceName=go-demo&servicePath=/xxx&port=8080&isDefaultBackend=true"
+	params := "serviceName=go-demo-api&servicePath=/xxx&port=8080&isDefaultBackend=true"
 	s.reconfigureService(params)
 
 	resp, err := s.sendHelloRequest()
@@ -665,7 +665,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
-	cmd := `docker service create --name go-demo \
+	cmd := `docker service create --name go-demo-api \
     -e DB=go-demo-db \
     --network go-demo \
     --network proxy \
@@ -683,7 +683,7 @@ func (s *IntegrationSwarmTestSuite) sendHelloRequest() (*http.Response, error) {
 }
 
 func (s *IntegrationSwarmTestSuite) reconfigureGoDemo(extraParams string) {
-	params := fmt.Sprintf("serviceName=go-demo&servicePath=/demo&port=8080%s", extraParams)
+	params := fmt.Sprintf("serviceName=go-demo-api&servicePath=/demo&port=8080%s", extraParams)
 	s.reconfigureService(params)
 }
 
