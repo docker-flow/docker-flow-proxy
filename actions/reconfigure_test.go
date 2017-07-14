@@ -1017,6 +1017,18 @@ func (s ReconfigureTestSuite) Test_Execute_ReturnsError_WhenProxyFails() {
 	s.Error(err)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_RemovesService_WhenProxyFails() {
+	mockObj := getProxyMock("CreateConfigFromTemplates")
+	mockObj.On("CreateConfigFromTemplates", mock.Anything, mock.Anything).Return(fmt.Errorf("This is an error"))
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+
+	s.reconfigure.Execute(true)
+
+	mockObj.AssertCalled(s.T(), "RemoveService", s.ServiceName)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	mockObj := getProxyMock("")
 	proxyOrig := proxy.Instance

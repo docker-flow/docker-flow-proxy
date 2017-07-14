@@ -65,10 +65,14 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 	if err := m.createConfigs(); err != nil {
 		return err
 	}
+	if !m.hasTemplate() {
+		proxy.Instance.AddService(m.Service)
+	}
 	if reloadAfter {
 		reload := reload{}
 		if err := reload.Execute(true); err != nil {
 			logPrintf(err.Error())
+			proxy.Instance.RemoveService(m.Service.ServiceName)
 			return err
 		}
 		//MW: this happens only when reloadAfter is requested
@@ -82,9 +86,6 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 				return err
 			}
 		}
-	}
-	if !m.hasTemplate() {
-		proxy.Instance.AddService(m.Service)
 	}
 	return nil
 }
