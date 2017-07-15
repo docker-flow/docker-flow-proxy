@@ -264,7 +264,7 @@ func (m *serve) GetServicesFromEnvVars() *[]proxy.Service {
 func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	var s proxy.Service
 	envconfig.Process(prefix, &s)
-	s.ServiceDomainAlgo = os.Getenv(prefix+"_SERVICE_DOMAIN_ALGO")
+	s.ServiceDomainAlgo = os.Getenv(prefix + "_SERVICE_DOMAIN_ALGO")
 	if len(s.ServiceName) == 0 {
 		return proxy.Service{}, fmt.Errorf("%s_SERVICE_NAME is not set", prefix)
 	}
@@ -281,7 +281,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		domain = strings.Split(os.Getenv(prefix+"_SERVICE_DOMAIN"), ",")
 	}
 	// TODO: Remove. It is a temporary workaround to maintain compatibility with the deprecated serviceDomainMatchAll parameter (since July 2017).
-	if len(s.ServiceDomainAlgo) == 0 && strings.EqualFold(os.Getenv(prefix + "_SERVICE_DOMAIN_MATCH_ALL"), "true") {
+	if len(s.ServiceDomainAlgo) == 0 && strings.EqualFold(os.Getenv(prefix+"_SERVICE_DOMAIN_MATCH_ALL"), "true") {
 		s.ServiceDomainAlgo = "hdr_dom"
 	}
 	if len(reqMode) == 0 {
@@ -291,11 +291,11 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
-				Port:              port,
-				ReqMode:           reqMode,
-				ServiceDomain:     domain,
-				ServicePath:       path,
-				SrcPort:           srcPort,
+				Port:          port,
+				ReqMode:       reqMode,
+				ServiceDomain: domain,
+				ServicePath:   path,
+				SrcPort:       srcPort,
 			},
 		)
 	}

@@ -56,6 +56,7 @@ func NewHaProxy(templatesPath, configsPath string) proxy {
 	}
 }
 
+// GetCertPaths returns the paths of all the certificates
 func (m HaProxy) GetCertPaths() []string {
 	paths := []string{}
 	files, _ := readDir("/certs")
@@ -78,6 +79,8 @@ func (m HaProxy) GetCertPaths() []string {
 	return paths
 }
 
+// GetCerts return all the certificates from the system.
+// Map's key contains the path to a certificate while the value is the certificate content.
 func (m HaProxy) GetCerts() map[string]string {
 	certs := map[string]string{}
 	paths := m.GetCertPaths()
@@ -88,6 +91,8 @@ func (m HaProxy) GetCerts() map[string]string {
 	return certs
 }
 
+// RunCmd executed HAProxy.
+// Additional arguments (defined through `extraArgs` argument) will be appended to the end of the command.
 func (m HaProxy) RunCmd(extraArgs []string) error {
 	args := []string{
 		"-f",
@@ -127,6 +132,7 @@ func (m HaProxy) ReadConfig() (string, error) {
 	return string(out[:]), nil
 }
 
+// Reloads HAProxy
 func (m HaProxy) Reload() error {
 	logPrintf("Reloading the proxy")
 	var reloadErr error
@@ -205,7 +211,7 @@ backend dummy-be
 
 func (m HaProxy) getConfigData() configData {
 	d := configData{
-		CertsString: strings.Join(m.getCerts(), " "),
+		CertsString: m.getCertsConfigSnippet(),
 	}
 	d.ConnectionMode = getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
 	d.SslBindCiphers = getSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
@@ -253,8 +259,8 @@ func (m HaProxy) getConfigData() configData {
 			values := strings.Split(header, ":")
 			d.ExtraFrontend += fmt.Sprintf(`
     capture request header %s len %s`,
-			values[0],
-			values[1])
+				values[0],
+				values[1])
 		}
 	}
 	services := Services{}
@@ -273,21 +279,20 @@ func (m HaProxy) getConfigData() configData {
 	return d
 }
 
-func (m *HaProxy) getCerts() []string {
+func (m *HaProxy) getCertsConfigSnippet() string {
 	certPaths := m.GetCertPaths()
-	certs := []string{}
+	certs := ""
 	if len(certPaths) > 0 {
-		certs = append(certs, " ssl crt-list /cfg/crt-list.txt")
+		certs = " ssl crt-list /cfg/crt-list.txt"
 		mu.Lock()
 		defer mu.Unlock()
 		writeFile("/cfg/crt-list.txt", []byte(strings.Join(certPaths, "\n")), 0664)
 	}
 	if len(os.Getenv("CA_FILE")) > 0 {
 		if len(certs) == 0 {
-			certs = append(certs, " ssl")
+			certs = " ssl"
 		}
-		cf := "ca-file " + os.Getenv("CA_FILE") + " verify optional"
-		certs = append(certs, cf)
+		certs = certs + " " + "ca-file " + os.Getenv("CA_FILE") + " verify optional"
 	}
 	return certs
 }

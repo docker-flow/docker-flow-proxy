@@ -309,9 +309,6 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	)
 
 	sr.ServiceDest = getServiceDestList(sr, provider)
-//	if len(sr.ServiceDest) > 0 && len(sr.ServiceDest[0].ServiceDomain) > 0 && len(sr.ServiceDest[0].Port) == 0 {
-//		sr.ServiceDest = append(sr.ServiceDest[:0], sr.ServiceDest[1:]...)
-//	}
 	return sr
 }
 
