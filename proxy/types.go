@@ -185,6 +185,10 @@ func (slice Services) Less(i, j int) bool {
 	}
 }
 
+func (slice Services) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
 func hasRoot(service Service) bool {
 	for _, sd := range service.ServiceDest {
 		for _, path := range sd.ServicePath {
@@ -205,10 +209,6 @@ func hasWellKnown(service Service) bool {
 		}
 	}
 	return false
-}
-
-func (slice Services) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
 }
 
 func extractUsersFromString(context, usersString string, encrypted, skipEmptyPassword bool) []*User {

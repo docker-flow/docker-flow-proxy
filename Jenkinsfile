@@ -37,7 +37,7 @@ pipeline {
         DOCKER_HUB_USER = "vfarcic"
       }
       steps {
-        sh "docker-compose -f docker-compose-test.yml run --rm staging-swarm"
+        sh "PAUSE_TEST=10 docker-compose -f docker-compose-test.yml run --rm staging-swarm"
       }
     }
     stage("release") {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"strconv"
 )
 
 // Setup
@@ -22,6 +23,10 @@ type IntegrationSwarmTestSuite struct {
 }
 
 func (s *IntegrationSwarmTestSuite) SetupTest() {
+	if pause, err := strconv.ParseInt(os.Getenv("PAUSE_TEST"), 10, 64); err == nil && pause > 0 {
+		log.Println("Pausing for %d seconds...", pause)
+		time.Sleep(time.Duration(pause) * time.Second)
+	}
 }
 
 func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
@@ -81,6 +86,21 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	s.reconfigureGoDemo("")
 
 	resp, err := s.sendHelloRequest()
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf())
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_Domain() {
+	s.reconfigureGoDemo("&serviceDomain=my-domain.com")
+
+	client := new(http.Client)
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Host = "my-domain.com"
+	resp, err := client.Do(req)
 
 	s.NoError(err)
 	if resp != nil {
