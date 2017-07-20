@@ -23,10 +23,6 @@ type IntegrationSwarmTestSuite struct {
 }
 
 func (s *IntegrationSwarmTestSuite) SetupTest() {
-	if pause, err := strconv.ParseInt(os.Getenv("PAUSE_TEST"), 10, 64); err == nil && pause > 0 {
-		log.Println("Pausing for %d seconds...", pause)
-		time.Sleep(time.Duration(pause) * time.Second)
-	}
 }
 
 func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
@@ -636,16 +632,19 @@ func (s IntegrationSwarmTestSuite) Test_DenyHttp() {
 
 	resp, err := s.sendHelloRequest()
 
-	s.NoError(err)
-	s.Equal(403, resp.StatusCode, s.getProxyConf())
+	if err != nil {
+		s.Fail(err.Error())
+	} else {
+		s.Equal(403, resp.StatusCode, s.getProxyConf())
+	}
 }
 
 // Util
 
 func (s *IntegrationSwarmTestSuite) areContainersRunning(expected int, name string) bool {
-	out, _ := exec.Command("/bin/sh", "-c", "docker service ps -q -f desired-state=Running "+name).Output()
+	out, _ := exec.Command("/bin/sh", "-c", "docker service ps -f desired-state=Running "+name+" | grep -v Preparing").Output()
 	lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
-	return len(lines) == expected
+	return len(lines) == (expected + 1)
 }
 
 func (s *IntegrationSwarmTestSuite) createService(command string) ([]byte, error) {
@@ -666,13 +665,10 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		if s.areContainersRunning(expected, name) {
 			break
 		}
-		if i > 10 {
+		if i > 30 {
 			fmt.Printf("Failed to run the service %s\n", name)
 			out, _ := exec.Command("/bin/sh", "-c", "docker service ps -f desired-state=Running "+name).Output()
-			lines := strings.Split(strings.Trim(string(out), "\n"), "\n")
 			println(string(out))
-			println(len(lines))
-			println(expected)
 			out, _ = exec.Command("/bin/sh", "-c", "docker service ls").Output()
 			println(string(out))
 			break
