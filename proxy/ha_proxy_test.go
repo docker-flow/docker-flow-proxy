@@ -759,6 +759,44 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWithRootPat
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_DoesNotPutServicesWithRootPathToTheEnd_WhenDomainIsSet() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_01-first-service1111 path_beg /
+    acl domain_01-first-service1111 hdr(host) -i my-domain.com
+    use_backend 01-first-service-be1111 if url_01-first-service1111 domain_01-first-service1111
+    acl url_02-second-service1111 path_beg /path
+    use_backend 02-second-service-be1111 if url_02-second-service1111%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	// Will be listed first. Even though it has servicePath set to `/`.
+	dataInstance.Services["01-first-service"] = Service{
+		ServiceName: "01-first-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/"}, ServiceDomain: []string{"my-domain.com"}},
+		},
+	}
+	// Will be listed second
+	dataInstance.Services["02-second-service"] = Service{
+		ServiceName: "02-second-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWellKnownPathToTheBeginning() {
 	var actualData string
 	tmpl := s.TemplateContent
