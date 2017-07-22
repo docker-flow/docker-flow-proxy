@@ -92,7 +92,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_SetsContentTypeToJSON() {
 func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfigureDistributeIsTrueAndError() {
 	serve := serve{}
 	serve.port = "1234"
-	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo&port=1234"
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 	sendDistributeRequestsOrig := sendDistributeRequests
@@ -109,7 +109,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_WritesErrorHeader_WhenReconfig
 func (s *ServerTestSuite) Test_ReconfigureHandler_WritesStatusOK_WhenReconfigureDistributeIsTrue() {
 	serve := serve{}
 	serve.port = "1234"
-	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo"
+	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&distribute=true&servicePath=/demo&port=1234"
 	req, _ := http.NewRequest("GET", addr, nil)
 	rw := getResponseWriterMock()
 	sendDistributeRequestsOrig := sendDistributeRequests
@@ -151,7 +151,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus200_WhenReqModeIs
 	rw := getResponseWriterMock()
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service) actions.Reconfigurable {
 		return ReconfigureMock{
 			ExecuteMock: func(reloadAfter bool) error {
 				return nil
@@ -187,23 +187,12 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenReqModeIs
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
 }
 
-func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsServiceAndPortIsNotPresent() {
+func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenPortIsNotPresent() {
 	url := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&serviceColor=orange&servicePath=/demo&serviceDomain=my-domain.com"
 	req, _ := http.NewRequest("GET", url, nil)
 	rw := getResponseWriterMock()
 
-	srv := serve{mode: "service"}
-	srv.ReconfigureHandler(rw, req)
-
-	rw.AssertCalled(s.T(), "WriteHeader", 400)
-}
-
-func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus400_WhenModeIsSwarmAndPortIsNotPresent() {
-	addr := "/v1/docker-flow-proxy/reconfigure?serviceName=my-service&serviceColor=orange&servicePath=/demo&serviceDomain=my-domain.com"
-	req, _ := http.NewRequest("GET", addr, nil)
-	rw := getResponseWriterMock()
-
-	srv := serve{mode: "swARM"}
+	srv := serve{}
 	srv.ReconfigureHandler(rw, req)
 
 	rw.AssertCalled(s.T(), "WriteHeader", 400)
@@ -215,7 +204,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
 	invoked := false
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service) actions.Reconfigurable {
 		return ReconfigureMock{
 			ExecuteMock: func(reloadAfter bool) error {
 				invoked = true
@@ -224,7 +213,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute() {
 		}
 	}
 
-	srv := serve{mode: "swarm"}
+	srv := serve{}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.True(invoked)
@@ -236,7 +225,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecut
 	invoked := false
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service) actions.Reconfigurable {
 		return ReconfigureMock{
 			ExecuteMock: func(reloadAfter bool) error {
 				invoked = true
@@ -245,7 +234,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecut
 		}
 	}
 
-	srv := serve{mode: "swarm"}
+	srv := serve{}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.False(invoked)
@@ -254,7 +243,7 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_DoesNotInvokeReconfigureExecut
 func (s *ServerTestSuite) Test_ReconfigureHandler_ReturnsStatus500_WhenReconfigureExecuteFails() {
 	newReconfigureOrig := actions.NewReconfigure
 	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
+	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service) actions.Reconfigurable {
 		return ReconfigureMock{
 			ExecuteMock: func(reloadAfter bool) error {
 				return fmt.Errorf("This is an error")
@@ -286,7 +275,6 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCert_WhenServiceCert
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := serve{
-		mode: "swarm",
 		cert: cert,
 	}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
@@ -310,65 +298,12 @@ func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesPutCertWithDomainName_W
 	req, _ := http.NewRequest("GET", addr, nil)
 
 	srv := serve{
-		mode: "swarm",
 		cert: cert,
 	}
 	srv.ReconfigureHandler(getResponseWriterMock(), req)
 
 	s.Equal("my-domain.com", actualCertName)
 	s.Equal(strings.Replace(expectedCert, "\\n", "\n", -1), actualCert)
-}
-
-func (s *ServerTestSuite) Test_ReconfigureHandler_InvokesReconfigureExecute_WhenConsulTemplatePathIsPresent() {
-	sd := proxy.ServiceDest{
-		AllowedMethods: []string{},
-		DeniedMethods:  []string{},
-		ServicePath:    []string{},
-		ReqMode:        "http",
-		ServiceDomain:  []string{},
-		ServiceHeader:  map[string]string{},
-	}
-	pathFe := "/path/to/consul/fe/template"
-	pathBe := "/path/to/consul/be/template"
-	var actualBase actions.BaseReconfigure
-	expectedBase := actions.BaseReconfigure{
-		ConsulAddresses: []string{"http://my-consul.com"},
-	}
-	var actualService proxy.Service
-	expectedService := proxy.Service{
-		ServiceName:          "my-service",
-		ConsulTemplateFePath: pathFe,
-		ConsulTemplateBePath: pathBe,
-		ServiceDest:          []proxy.ServiceDest{sd},
-	}
-	newReconfigureOrig := actions.NewReconfigure
-	defer func() { actions.NewReconfigure = newReconfigureOrig }()
-	invoked := false
-	actions.NewReconfigure = func(baseData actions.BaseReconfigure, serviceData proxy.Service, mode string) actions.Reconfigurable {
-		actualBase = baseData
-		actualService = serviceData
-		return ReconfigureMock{
-			ExecuteMock: func(reloadAfter bool) error {
-				invoked = true
-				return nil
-			},
-		}
-	}
-	serverImpl := serve{
-		consulAddresses: []string{"http://my-consul.com"},
-	}
-	addr := fmt.Sprintf(
-		"/v1/docker-flow-proxy/reconfigure?serviceName=my-service&consulTemplateFePath=%s&consulTemplateBePath=%s",
-		pathFe,
-		pathBe,
-	)
-	req, _ := http.NewRequest("GET", addr, nil)
-
-	serverImpl.ReconfigureHandler(getResponseWriterMock(), req)
-
-	s.Equal(expectedBase, actualBase)
-	s.Equal(expectedService, actualService)
-	s.True(invoked)
 }
 
 // ReloadHandler
@@ -538,23 +473,19 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 		ServiceName:     s.serviceName,
 		TemplatesPath:   "",
 		ConfigsPath:     "",
-		ConsulAddresses: []string{"http://1.2.3.4:1234"},
 		InstanceName:    "proxy-test-instance",
 		AclName:         aclName,
 	}
 	actions.NewRemove = func(
 		serviceName, aclName, configsPath, templatesPath string,
-		consulAddresses []string,
-		instanceName, mode string,
+		instanceName string,
 	) actions.Removable {
 		actual = actions.Remove{
 			ServiceName:     serviceName,
 			AclName:         aclName,
 			TemplatesPath:   templatesPath,
 			ConfigsPath:     configsPath,
-			ConsulAddresses: consulAddresses,
 			InstanceName:    instanceName,
-			Mode:            mode,
 		}
 		return mockObj
 	}
@@ -562,8 +493,7 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 	req, _ := http.NewRequest("GET", url, nil)
 
 	srv := serve{
-		consulAddresses: expected.ConsulAddresses,
-		serviceName:     expected.InstanceName,
+		serviceName: expected.InstanceName,
 	}
 	srv.RemoveHandler(getResponseWriterMock(), req)
 
@@ -590,8 +520,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
 		ConnectionMode:        "my-connection-mode",
-		ConsulTemplateFePath:  "consulTemplateFePath",
-		ConsulTemplateBePath:  "consulTemplateBePath",
 		DelReqHeader:          []string{"add-header-1", "add-header-2"},
 		DelResHeader:          []string{"add-header-1", "add-header-2"},
 		Distribute:            true,
@@ -603,7 +531,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
-		ServiceColor:          "serviceColor",
 		ServiceDest: []proxy.ServiceDest{{
 			AllowedMethods: []string{"GET", "DELETE"},
 			DeniedMethods:  []string{"PUT", "POST"},
@@ -627,17 +554,14 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceColor=%s&serviceCert=%s&outboundHostname=%s&consulTemplateFePath=%s&consulTemplateBePath=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
 		true,
 		expected.AclName,
-		expected.ServiceColor,
 		expected.ServiceCert,
 		expected.OutboundHostname,
-		expected.ConsulTemplateFePath,
-		expected.ConsulTemplateBePath,
 		expected.PathType,
 		expected.ReqPathSearch,
 		expected.ReqPathReplace,
@@ -727,8 +651,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
 		ConnectionMode:        "my-connection-mode",
-		ConsulTemplateBePath:  "my-ConsulTemplateBePath",
-		ConsulTemplateFePath:  "my-ConsulTemplateFePath",
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
@@ -765,8 +687,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_ADD_REQ_HEADER", strings.Join(service.AddReqHeader, ","))
 	os.Setenv("DFP_SERVICE_ADD_RES_HEADER", strings.Join(service.AddResHeader, ","))
 	os.Setenv("DFP_SERVICE_CONNECTION_MODE", service.ConnectionMode)
-	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH", service.ConsulTemplateFePath)
-	os.Setenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH", service.ConsulTemplateBePath)
 	os.Setenv("DFP_SERVICE_DEL_REQ_HEADER", strings.Join(service.DelReqHeader, ","))
 	os.Setenv("DFP_SERVICE_DEL_RES_HEADER", strings.Join(service.DelResHeader, ","))
 	os.Setenv("DFP_SERVICE_DISTRIBUTE", strconv.FormatBool(service.Distribute))
@@ -800,8 +720,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_ADD_REQ_HEADER")
 		os.Unsetenv("DFP_SERVICE_ADD_RES_HEADER")
 		os.Unsetenv("DFP_SERVICE_CONNECTION_MODE")
-		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_BE_PATH")
-		os.Unsetenv("DFP_SERVICE_CONSUL_TEMPLATE_FE_PATH")
 		os.Unsetenv("DFP_SERVICE_DEL_REQ_HEADER")
 		os.Unsetenv("DFP_SERVICE_DEL_RES_HEADER")
 		os.Unsetenv("DFP_SERVICE_DISTRIBUTE")
@@ -831,7 +749,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_X_FORWARDED_PROTO")
 	}()
 	srv := serve{}
-	println("000")
 	actual := srv.GetServicesFromEnvVars()
 
 	s.Len(*actual, 1)
@@ -994,23 +911,23 @@ func (m ReconfigureMock) GetTemplates() (front, back string, err error) {
 }
 
 type FetchMock struct {
-	ReloadServicesFromRegistryMock func(addresses []string, instanceName, mode string) error
+	ReloadServicesFromRegistryMock func(addresses []string, instanceName string) error
 	ReloadClusterConfigMock        func(listenerAddr string) error
-	ReloadConfigMock               func(baseData actions.BaseReconfigure, mode string, listenerAddr string) error
+	ReloadConfigMock               func(baseData actions.BaseReconfigure, listenerAddr string) error
 }
 
-func (m *FetchMock) ReloadServicesFromRegistry(addresses []string, instanceName, mode string) error {
-	return m.ReloadServicesFromRegistryMock(addresses, instanceName, mode)
+func (m *FetchMock) ReloadServicesFromRegistry(addresses []string, instanceName string) error {
+	return m.ReloadServicesFromRegistryMock(addresses, instanceName)
 }
 func (m FetchMock) ReloadClusterConfig(listenerAddr string) error {
 	return m.ReloadClusterConfigMock(listenerAddr)
 }
-func (m FetchMock) ReloadConfig(baseData actions.BaseReconfigure, mode string, listenerAddr string) error {
-	return m.ReloadConfigMock(baseData, mode, listenerAddr)
+func (m FetchMock) ReloadConfig(baseData actions.BaseReconfigure, listenerAddr string) error {
+	return m.ReloadConfigMock(baseData, listenerAddr)
 }
 func MockFetch(mock FetchMock) func() {
 	newFetchOrig := actions.NewFetch
-	actions.NewFetch = func(baseData actions.BaseReconfigure, mode string) actions.Fetchable {
+	actions.NewFetch = func(baseData actions.BaseReconfigure) actions.Fetchable {
 		return &mock
 	}
 	return func() {
