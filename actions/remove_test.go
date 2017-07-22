@@ -36,10 +36,10 @@ func (s *RemoveTestSuite) SetupTest() {
 		return nil
 	}
 	s.remove = Remove{
-		ServiceName:     s.ServiceName,
-		ConfigsPath:     s.ConfigsPath,
-		TemplatesPath:   s.TemplatesPath,
-		InstanceName:    s.InstanceName,
+		ServiceName:   s.ServiceName,
+		ConfigsPath:   s.ConfigsPath,
+		TemplatesPath: s.TemplatesPath,
+		InstanceName:  s.InstanceName,
 	}
 }
 

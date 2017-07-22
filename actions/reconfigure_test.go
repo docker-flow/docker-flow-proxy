@@ -14,11 +14,11 @@ import (
 type ReconfigureTestSuite struct {
 	suite.Suite
 	proxy.Service
-	ConfigsPath       string
-	TemplatesPath     string
-	reconfigure       Reconfigure
-	PutPathResponse   string
-	InstanceName      string
+	ConfigsPath     string
+	TemplatesPath   string
+	reconfigure     Reconfigure
+	PutPathResponse string
+	InstanceName    string
 }
 
 func (s *ReconfigureTestSuite) SetupTest() {
@@ -32,9 +32,9 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	s.PathType = "path_beg"
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
-			TemplatesPath:   s.TemplatesPath,
-			ConfigsPath:     s.ConfigsPath,
-			InstanceName:    s.InstanceName,
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  s.InstanceName,
 		},
 		Service: proxy.Service{
 			ServiceName: s.ServiceName,
@@ -134,7 +134,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresentA
 		{Username: "user-1", Password: "pass-1", PassEncrypted: true},
 		{Username: "user-2", Password: "pass-2", PassEncrypted: false},
 	}
-	s.reconfigure.ServiceDest = []proxy.ServiceDest{proxy.ServiceDest{Port: "1234"}}
+	s.reconfigure.ServiceDest = []proxy.ServiceDest{{Port: "1234"}}
 	expected := `userlist myServiceUsers
     user user-1 password pass-1
     user user-2 insecure-password pass-2
@@ -365,7 +365,7 @@ backend myService-be5555
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchAndReqPathReplaceArePresent() {
 	s.reconfigure.ReqPathSearch = "this"
 	s.reconfigure.ReqPathReplace = "that"
-	s.reconfigure.ServiceDest = []proxy.ServiceDest{proxy.ServiceDest{Port: "1234"}}
+	s.reconfigure.ServiceDest = []proxy.ServiceDest{{Port: "1234"}}
 	expected := fmt.Sprintf(`
 backend myService-be1234
     mode http
@@ -382,7 +382,7 @@ backend myService-be1234
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsBackendExtra() {
 	s.reconfigure.BackendExtra = "Additional backend"
-	s.reconfigure.ServiceDest = []proxy.ServiceDest{proxy.ServiceDest{Port: "1234"}}
+	s.reconfigure.ServiceDest = []proxy.ServiceDest{{Port: "1234"}}
 	expected := fmt.Sprintf(`
 backend myService-be1234
     mode http
@@ -784,9 +784,9 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	}
 	r := NewReconfigure(
 		BaseReconfigure{
-			TemplatesPath:   s.TemplatesPath,
-			ConfigsPath:     s.ConfigsPath,
-			InstanceName:    s.InstanceName,
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  s.InstanceName,
 		},
 		expected,
 	)

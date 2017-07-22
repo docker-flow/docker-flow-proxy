@@ -20,7 +20,7 @@ type Server interface {
 }
 
 type serve struct {
-	IP string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	IP              string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
 	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
 	Port            string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
 	ServiceName     string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`

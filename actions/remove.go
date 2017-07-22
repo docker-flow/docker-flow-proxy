@@ -12,21 +12,21 @@ type Removable interface {
 
 // Remove contains the information required for removing services from the proxy
 type Remove struct {
-	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	ServiceName     string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
-	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
-	AclName         string
+	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	ServiceName   string `short:"s" long:"service-name" required:"true" description:"The name of the service that should be removed (e.g. my-service)."`
+	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	AclName       string
 }
 
 // NewRemove returns singleton based on the Removable interface
 var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, instanceName string) Removable {
 	return &Remove{
-		ServiceName:     serviceName,
-		AclName:         aclName,
-		TemplatesPath:   templatesPath,
-		ConfigsPath:     configsPath,
-		InstanceName:    instanceName,
+		ServiceName:   serviceName,
+		AclName:       aclName,
+		TemplatesPath: templatesPath,
+		ConfigsPath:   configsPath,
+		InstanceName:  instanceName,
 	}
 }
 

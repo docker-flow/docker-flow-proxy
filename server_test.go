@@ -78,7 +78,7 @@ func (s *ServerTestSuite) SetupTest() {
 	}
 	serverImpl = serve{
 		BaseReconfigure: actions.BaseReconfigure{
-			InstanceName:    s.InstanceName,
+			InstanceName: s.InstanceName,
 		},
 	}
 	logPrintfOrig := logPrintf
@@ -494,8 +494,8 @@ func (m ReloadMock) Execute(recreate bool) error {
 }
 
 type FetchMock struct {
-	ReloadClusterConfigMock        func(listenerAddr string) error
-	ReloadConfigMock               func(baseData actions.BaseReconfigure, listenerAddr string) error
+	ReloadClusterConfigMock func(listenerAddr string) error
+	ReloadConfigMock        func(baseData actions.BaseReconfigure, listenerAddr string) error
 }
 
 func (m FetchMock) ReloadClusterConfig(listenerAddr string) error {

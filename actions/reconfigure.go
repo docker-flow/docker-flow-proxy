@@ -7,8 +7,8 @@ import (
 	"html/template"
 	"os"
 	"strconv"
-	"sync"
 	"strings"
+	"sync"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -31,9 +31,9 @@ type Reconfigure struct {
 
 // BaseReconfigure contains base data required to reconfigure the proxy
 type BaseReconfigure struct {
-	ConfigsPath     string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
-	InstanceName    string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
-	TemplatesPath   string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
+	ConfigsPath   string `short:"c" long:"configs-path" default:"/cfg" description:"The path to the configurations directory"`
+	InstanceName  string `long:"proxy-instance-name" env:"PROXY_INSTANCE_NAME" default:"docker-flow" required:"true" description:"The name of the proxy instance."`
+	TemplatesPath string `short:"t" long:"templates-path" default:"/cfg/tmpl" description:"The path to the templates directory"`
 }
 
 // NewReconfigure creates new instance of the Reconfigurable interface

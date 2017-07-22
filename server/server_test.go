@@ -470,22 +470,22 @@ func (s *ServerTestSuite) Test_RemoveHandler_InvokesRemoveExecute() {
 	aclName := "my-acl"
 	var actual actions.Remove
 	expected := actions.Remove{
-		ServiceName:     s.serviceName,
-		TemplatesPath:   "",
-		ConfigsPath:     "",
-		InstanceName:    "proxy-test-instance",
-		AclName:         aclName,
+		ServiceName:   s.serviceName,
+		TemplatesPath: "",
+		ConfigsPath:   "",
+		InstanceName:  "proxy-test-instance",
+		AclName:       aclName,
 	}
 	actions.NewRemove = func(
 		serviceName, aclName, configsPath, templatesPath string,
 		instanceName string,
 	) actions.Removable {
 		actual = actions.Remove{
-			ServiceName:     serviceName,
-			AclName:         aclName,
-			TemplatesPath:   templatesPath,
-			ConfigsPath:     configsPath,
-			InstanceName:    instanceName,
+			ServiceName:   serviceName,
+			AclName:       aclName,
+			TemplatesPath: templatesPath,
+			ConfigsPath:   configsPath,
+			InstanceName:  instanceName,
 		}
 		return mockObj
 	}

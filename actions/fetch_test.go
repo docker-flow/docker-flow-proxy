@@ -14,11 +14,11 @@ import (
 type FetchTestSuite struct {
 	suite.Suite
 	proxy.Service
-	ConfigsPath       string
-	TemplatesPath     string
-	fetch             fetch
-	PutPathResponse   string
-	InstanceName      string
+	ConfigsPath     string
+	TemplatesPath   string
+	fetch           fetch
+	PutPathResponse string
+	InstanceName    string
 }
 
 func (s *FetchTestSuite) SetupTest() {
@@ -32,9 +32,9 @@ func (s *FetchTestSuite) SetupTest() {
 	s.PathType = "path_beg"
 	s.fetch = fetch{
 		BaseReconfigure: BaseReconfigure{
-			TemplatesPath:   s.TemplatesPath,
-			ConfigsPath:     s.ConfigsPath,
-			InstanceName:    s.InstanceName,
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  s.InstanceName,
 		},
 	}
 

@@ -114,6 +114,7 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	return nil
 }
 
+// CreateConfigFromTemplates creates haproxy.cfg configuration file based on templates
 func (m HaProxy) CreateConfigFromTemplates() error {
 	configsContent, err := m.getConfigs()
 	if err != nil {
@@ -123,6 +124,7 @@ func (m HaProxy) CreateConfigFromTemplates() error {
 	return writeFile(configPath, []byte(configsContent), 0664)
 }
 
+// ReadConfig returns the current HAProxy configuration
 func (m HaProxy) ReadConfig() (string, error) {
 	configPath := fmt.Sprintf("%s/haproxy.cfg", m.configsPath)
 	out, err := ReadFile(configPath)
@@ -132,7 +134,7 @@ func (m HaProxy) ReadConfig() (string, error) {
 	return string(out[:]), nil
 }
 
-// Reloads HAProxy
+// Reload HAProxy
 func (m HaProxy) Reload() error {
 	logPrintf("Reloading the proxy")
 	var reloadErr error
@@ -154,10 +156,13 @@ func (m HaProxy) Reload() error {
 	return reloadErr
 }
 
+// AddService puts a service into `dataInstance` map.
+// The key of the map is `ServiceName`
 func (m HaProxy) AddService(service Service) {
 	dataInstance.Services[service.ServiceName] = service
 }
 
+// RemoveService deletes a service from the `dataInstance` map using `ServiceName` as the key
 func (m HaProxy) RemoveService(service string) {
 	delete(dataInstance.Services, service)
 }
@@ -425,9 +430,9 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 }
 
 // TODO: Refactor into template
-func (m *HaProxy) getFrontTemplateSNI(s Service, si int, gen_header bool) string {
+func (m *HaProxy) getFrontTemplateSNI(s Service, si int, genHeader bool) string {
 	tmplString := ``
-	if gen_header {
+	if genHeader {
 		tmplString += fmt.Sprintf(`{{$sd1 := index $.ServiceDest %d}}
 
 frontend service_{{$sd1.SrcPort}}

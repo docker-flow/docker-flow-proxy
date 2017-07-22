@@ -82,4 +82,3 @@ func (m *fetch) getReconfigure(service *proxy.Service) Reconfigurable {
 func (m *fetch) getReload() Reloader {
 	return NewReload()
 }
-

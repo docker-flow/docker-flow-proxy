@@ -150,9 +150,9 @@ func (m *serve) ReconfigureHandler(w http.ResponseWriter, req *http.Request) {
 func (m *serve) getBaseReconfigure() actions.BaseReconfigure {
 	//MW: What about skipAddressValidation???
 	return actions.BaseReconfigure{
-		ConfigsPath:     m.configsPath,
-		InstanceName:    os.Getenv("PROXY_INSTANCE_NAME"),
-		TemplatesPath:   m.templatesPath,
+		ConfigsPath:   m.configsPath,
+		InstanceName:  os.Getenv("PROXY_INSTANCE_NAME"),
+		TemplatesPath: m.templatesPath,
 	}
 }
 
