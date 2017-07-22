@@ -11,7 +11,7 @@ The examples that follow assume that you are using Docker v1.13+, Docker Compose
 
 Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're using it as an easy way to create a cluster.
 
-## Swarm Cluster Setup
+## Setting Up A Swarm Cluster
 
 To setup an example Swarm cluster using Docker Machine, please run the commands that follow.
 
@@ -29,6 +29,8 @@ chmod +x swarm-cluster.sh
 
 eval $(docker-machine env node-1)
 ```
+
+# Deploying Services
 
 Now we're ready to deploy the services that form the proxy stack and the demo services.
 
@@ -56,11 +58,11 @@ We should wait until all the services are running before proceeding towards the 
 docker service ls
 ```
 
-Now we are ready to explore way to block access requests.
+Now we are ready to explore how to block access requests.
 
 ## Blocking Requests Based on Request Type
 
-In some cases, we want to deny certain types of methods to requests sent through the proxy. A common use case would be a service that can accept `DELETE` request which should be performed only by other services connected to it through internal networking.
+In some cases, we want to deny certain types of methods to requests sent through the proxy. An example use case would be a service that can accept `GET` and `DELETE` request through the proxy and deny requests on any other method. That way, our front-end could send `GET` and `DELETE` requests through the proxy while any other request type would be allowed only through internal networking.
 
 We can block requests by specifying which types are allowed.
 
@@ -83,10 +85,15 @@ curl -i "http://$(docker-machine ip node-1)/demo/hello"
 We sent an `GET` request (default type) and the output is as follows.
 
 ```
-TODO
+HTTP/1.1 200 OK
+Date: Sat, 22 Jul 2017 13:35:55 GMT
+Content-Length: 14
+Content-Type: text/plain; charset=utf-8
+
+hello, world!
 ```
 
-Since get is on the list of allowed request methods, we got OK (status code `200`) indicating that the proxy allowed it to pass to the destination service.
+Since `GET` is on the list of allowed request methods, we got OK (status code `200`) indicating that the proxy allowed it to pass to the destination service.
 
 Let's confirm that the behavior is the same with a `DELETE` request.
 
@@ -104,11 +111,17 @@ curl -i -XPUT \
     "http://$(docker-machine ip node-1)/demo/hello"
 ```
 
+The output is as follows (limited to relevant parts).
+
 ```
-TODO
+HTTP/1.0 403 Forbidden
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+...
 ```
 
-This time, the proxy responded with TODO (status code TODO). The request method is not on the list of those that are allowed and proxy choose not to forward it to the destination service. Instead, it returned with TODO.
+This time the proxy responded with `403` status code. The response comes from the proxy. The request method is not on the list of those that are allowed, and proxy chose not to forward it to the destination service. Instead, it returned `403 Forbidden`.
 
 Similarly, we can choose which methods to deny.
 
@@ -121,21 +134,21 @@ docker service update \
 
 We removed the `com.df.allowedMethods` label and created `com.df.deniedMethods` with the value `DELETE`.
 
-If we send an `GET` request, the response should be `200` since it is not on the list of those that are denied.
+If we send a `GET` request, the response should be `200` since it is not on the list of those that are denied.
 
 ```bash
 curl -i \
     "http://$(docker-machine ip node-1)/demo/hello"
 ```
 
-On the other hand, if we choose to send an `DELETE` request, the response should be denied.
+On the other hand, if we choose to send a `DELETE` request, the response should be denied.
 
 ```bash
 curl -i -XDELETE \
     "http://$(docker-machine ip node-1)/demo/hello"
 ```
 
-We got the response TODO proving that no one can send a `DELETE` request to our service.
+We got the response `403` thus confirming that no one can send a `DELETE` request to our service.
 
 Let's remove the `deniedMethods` label and explore how we can block HTTP request.
 
@@ -147,22 +160,35 @@ docker service update \
 
 ## Blocking HTTP Requests
 
-TODO: Continue writing
+We can block any HTTP request thus allowing only HTTPS. The parameter that allows that is `denyHttp`.
 
 ```bash
 docker service update \
     --label-add "com.df.denyHttp=true" \
     go-demo_main
-
-curl -i \
-    "http://$(docker-machine ip node-1)/demo/hello"
-
-# NOTE: No certs, so not HTTPS
 ```
+
+Let's test whether HTTP requests are indeed denied.
+
+```bash
+curl -i "http://$(docker-machine ip node-1)/demo/hello"
+```
+
+The output is as follows (limited to relevant parts).
+
+```bash
+HTTP/1.0 403 Forbidden
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+...
+```
+
+From now on, only HTTPS requests are allowed. Typically, we'd prove that by sending an HTTPS request. However, we do not have a valid SSL certificate, so I'll leave that as an exercise. You might want to try [hamburml/docker-flow-letsencrypt](https://github.com/hamburml/docker-flow-letsencrypt). It is well integrated with *Docker Flow Proxy* and will provide you with the certificates from [Let's Encrypt](https://letsencrypt.org/).
 
 ## Summary
 
-TODO: Write
+Please remove the machines we created and free your resources for some other tasks.
 
 ```bash
 docker-machine rm node-1 node-2 node-3
