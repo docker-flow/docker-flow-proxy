@@ -25,6 +25,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |DEBUG_HTTP_FORMAT  |Logging format that will be used with HTTP requests. Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.7/configuration.html#8.2.4) for more info about the available options.|
 |DEBUG_TCP_FORMAT   |Logging format that will be used with TCP requests. Please consult [Custom log format](https://cbonte.github.io/haproxy-dconv/1.7/configuration.html#8.2.4) for more info about the available options.|
 |DEFAULT_PORTS      |The default ports used by the proxy. Multiple values can be separated with comma (`,`). If a port should be for SSL connections, append it with `:ssl`. Additional binding options can be added after a port. For example, `80 accept-proxy,443 accept-proxy:ssl` adds `accept-proxy` to the defalt binding options.<br>**Default value:** `80,443:ssl`|
+|DO_NOT_RESOLVE_ADDR|Whether not to resolve addresses. If set to `true`, the proxy will NOT fail if the service is not available.<br>**Default value:** `true`|
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration. Multiple lines should be separated with comma (*,*).|
 |EXTRA_GLOBAL       |Value will be added to the default `global` configuration. Multiple lines should be separated with comma (*,*).|
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.<br>**Example:** swarm-listener|

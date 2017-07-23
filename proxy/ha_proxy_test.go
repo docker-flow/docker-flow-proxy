@@ -382,6 +382,32 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultServer_WhenC
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultServer_WhenDoNotResolveAddrIsSetToTrue() {
+	orig := os.Getenv("DO_NOT_RESOLVE_ADDR")
+	defer func() { os.Setenv("DO_NOT_RESOLVE_ADDR", orig) }()
+	os.Setenv("DO_NOT_RESOLVE_ADDR", "true")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"balance roundrobin\n",
+		"balance roundrobin\n\n    default-server init-addr last,libc,none",
+		-1,
+	)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCompressionAlgo_WhenSet() {
 	compressionAlgoOrig := os.Getenv("COMPRESSION_ALGO")
 	defer func() { os.Setenv("COMPRESSION_ALGO", compressionAlgoOrig) }()

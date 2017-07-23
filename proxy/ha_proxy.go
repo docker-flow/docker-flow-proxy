@@ -234,10 +234,7 @@ func (m HaProxy) getConfigData() configData {
 	if len(d.ExtraFrontend) > 0 {
 		d.ExtraFrontend = fmt.Sprintf("    %s", d.ExtraFrontend)
 	}
-	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil && value {
-		d.ExtraDefaults += `
-    default-server init-addr last,libc,none`
-	}
+	m.addDefaultServer(&d)
 	m.addCompression(&d)
 	m.addDebug(&d)
 
@@ -314,6 +311,15 @@ func (m *HaProxy) addCompression(data *configData) {
 				os.Getenv("COMPRESSION_TYPE"),
 			)
 		}
+	}
+}
+
+func (m *HaProxy) addDefaultServer(data *configData) {
+	checkResolvers, _ := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS"))
+	doNotResolveAddr, _ := strconv.ParseBool(os.Getenv("DO_NOT_RESOLVE_ADDR"))
+	if checkResolvers || doNotResolveAddr {
+		data.ExtraDefaults += `
+    default-server init-addr last,libc,none`
 	}
 }
 

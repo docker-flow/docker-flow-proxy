@@ -30,7 +30,7 @@ chmod +x swarm-cluster.sh
 eval $(docker-machine env node-1)
 ```
 
-# Deploying Services
+## Deploying Services
 
 Now we're ready to deploy the services that form the proxy stack and the demo services.
 
