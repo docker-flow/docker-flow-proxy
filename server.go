@@ -49,6 +49,7 @@ func (m *serve) Execute(args []string) error {
 		m.TemplatesPath,
 		cert,
 	)
+	config := server.NewConfig()
 	if err := m.reconfigure(server2); err != nil {
 		return err
 	}
@@ -56,7 +57,7 @@ func (m *serve) Execute(args []string) error {
 	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/v1/docker-flow-proxy/cert", m.certPutHandler).Methods("PUT")
 	r.HandleFunc("/v1/docker-flow-proxy/certs", m.certsHandler)
-	r.HandleFunc("/v1/docker-flow-proxy/config", m.configHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/config", config.Get)
 	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
@@ -115,11 +116,6 @@ func (m *serve) certsHandler(w http.ResponseWriter, req *http.Request) {
 	cert.GetAll(w, req)
 }
 
-// TODO: Move to server package
-func (m *serve) configHandler(w http.ResponseWriter, req *http.Request) {
-	m.config(w, req)
-}
-
 func (m *serve) hasPort(sd []proxy.ServiceDest) bool {
 	return len(sd) > 0 && len(sd[0].Port) > 0
 }
@@ -142,15 +138,4 @@ func (m *serve) writeInternalServerError(w http.ResponseWriter, resp *server.Res
 	resp.Status = "NOK"
 	resp.Message = msg
 	w.WriteHeader(http.StatusInternalServerError)
-}
-
-func (m *serve) config(w http.ResponseWriter, req *http.Request) {
-	httpWriterSetContentType(w, "text/html")
-	out, err := proxy.Instance.ReadConfig()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-	w.Write([]byte(out))
 }

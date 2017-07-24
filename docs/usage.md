@@ -231,7 +231,11 @@ HEALTHCHECK --interval=5s --timeout=5s CMD wget -qO- "http://localhost:8080/v1/d
 
 > Outputs HAProxy configuration
 
-The address is **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/config**
+The following query arguments can be used to send a *reload* request to *Docker Flow Proxy*. They should be added to the base address **[PROXY_IP]:[PROXY_PORT]/v1/docker-flow-proxy/config**.
+
+|Query      |Description                                                |
+|-----------|-----------------------------------------------------------|
+|type       |If set to `json`, the list of services is returned in JSON format. Any other value returns HAProxy configuration in text format.<br>**Default:** `text`<br>**Example:** `json`|
 
 ## Templates
 

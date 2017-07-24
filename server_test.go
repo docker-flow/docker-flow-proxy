@@ -296,50 +296,6 @@ func (s *ServerTestSuite) Test_CertsHandler_InvokesCertGetAll_WhenUrlIsCerts() {
 	s.Assert().True(invoked)
 }
 
-// ServeHTTP > Config
-
-func (s *ServerTestSuite) Test_ConfigHandler_SetsContentTypeToText_WhenUrlIsConfig() {
-	var actual string
-	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
-		actual = value
-	}
-	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-
-	srv := serve{}
-	srv.configHandler(s.ResponseWriter, req)
-
-	s.Equal("text/html", actual)
-}
-
-func (s *ServerTestSuite) Test_ConfigHandler_ReturnsConfig_WhenUrlIsConfig() {
-	expected := "some text"
-	readFileOrig := proxy.ReadFile
-	defer func() { proxy.ReadFile = readFileOrig }()
-	proxy.ReadFile = func(filename string) ([]byte, error) {
-		return []byte(expected), nil
-	}
-
-	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-	srv := serve{}
-	srv.configHandler(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "Write", []byte(expected))
-}
-
-func (s *ServerTestSuite) Test_ConfigHandler_ReturnsStatus500_WhenReadFileFails() {
-	readFileOrig := readFile
-	defer func() { readFile = readFileOrig }()
-	readFile = func(filename string) ([]byte, error) {
-		return []byte(""), fmt.Errorf("This is an error")
-	}
-
-	req, _ := http.NewRequest("GET", s.ConfigUrl, nil)
-	srv := serve{}
-	srv.configHandler(s.ResponseWriter, req)
-
-	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", 500)
-}
-
 // Mock
 
 type ResponseWriterMock struct {

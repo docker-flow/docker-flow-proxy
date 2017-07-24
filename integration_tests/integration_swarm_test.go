@@ -84,7 +84,7 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -100,8 +100,22 @@ func (s IntegrationSwarmTestSuite) Test_Domain() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_Config() {
+	s.reconfigureGoDemo("")
+
+	actual := s.getProxyConf("")
+
+	// Cannot validate that the config is correct but only that some text is returned
+	s.Contains(actual, "pidfile /var/run/haproxy.pid")
+
+	actual = s.getProxyConf("json")
+
+	// Cannot validate that the config is correct but only that some json is returned
+	s.Contains(actual, `{"go-demo-api":`)
 }
 
 func (s IntegrationSwarmTestSuite) Test_Compression() {
@@ -126,8 +140,8 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
-		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf(""))
 	}
 }
 
@@ -167,7 +181,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// Responds with 200 since both headers match
@@ -180,7 +194,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// Does NOT respond with 200 since both headers do NOT match
@@ -192,7 +206,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.NotEqual(200, resp.StatusCode, s.getProxyConf())
+		s.NotEqual(200, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// Does NOT respond with 200 since headers do not match
@@ -200,7 +214,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	resp, err = client.Get(url)
 
 	s.NoError(err)
-	s.NotEqual(200, resp.StatusCode, s.getProxyConf())
+	s.NotEqual(200, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
@@ -210,8 +224,8 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
-		s.Contains(resp.Header["My-Res-Header"], "my-res-value", s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+		s.Contains(resp.Header["My-Res-Header"], "my-res-value", s.getProxyConf(""))
 	}
 }
 
@@ -229,7 +243,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// Without the matching agent
@@ -238,7 +252,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.NotEqual(200, resp.StatusCode, s.getProxyConf())
+		s.NotEqual(200, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// With the amiga agent
@@ -249,7 +263,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -270,7 +284,7 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -285,7 +299,7 @@ func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
 
 	s.NoError(err)
 	if resp != nil {
-		s.Equal(403, resp.StatusCode, s.getProxyConf())
+		s.Equal(403, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -295,7 +309,7 @@ func (s IntegrationSwarmTestSuite) Test_Stats() {
 	resp, err := http.Get(url)
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_Remove() {
@@ -310,7 +324,7 @@ func (s IntegrationSwarmTestSuite) Test_Remove() {
 	resp, err := s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(503, resp.StatusCode, s.getProxyConf())
+	s.Equal(503, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_Scale() {
@@ -351,13 +365,13 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	)
 	resp, err := http.Get(url)
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	url = fmt.Sprintf("http://%s/something/hello", s.hostIP)
 	resp, err = http.Get(url)
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	// With empty reqPathReplace
 
@@ -367,13 +381,13 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	)
 	resp, err = http.Get(url)
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
 	resp, err = http.Get(url)
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	// Without reqPathReplace
 
@@ -387,10 +401,10 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	url = fmt.Sprintf("http://%s/something/demo/hello", s.hostIP)
 	resp, err = http.Get(url)
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
@@ -411,7 +425,7 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	if err == nil {
 		statusCode = resp.StatusCode
 	}
-	s.Equal(401, statusCode, s.getProxyConf())
+	s.Equal(401, statusCode, s.getProxyConf(""))
 
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
@@ -423,7 +437,7 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthentication() {
 	if err == nil {
 		statusCode = resp.StatusCode
 	}
-	s.Equal(200, statusCode, s.getProxyConf())
+	s.Equal(200, statusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {
@@ -439,17 +453,19 @@ func (s IntegrationSwarmTestSuite) Test_GlobalAuthenticationWithEncryption() {
 
 	resp, err := s.sendHelloRequest()
 
-	s.NoError(err)
-	s.Equal(401, resp.StatusCode, s.getProxyConf())
+	if err != nil {
+		s.Fail(err.Error())
+	} else {
+		s.Equal(401, resp.StatusCode, s.getProxyConf(""))
+		url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+		req, err := http.NewRequest("GET", url, nil)
+		req.SetBasicAuth("my-user", "my-pass")
+		client := &http.Client{}
+		resp, err = client.Do(req)
 
-	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
-	req, err := http.NewRequest("GET", url, nil)
-	req.SetBasicAuth("my-user", "my-pass")
-	client := &http.Client{}
-	resp, err = client.Do(req)
-
-	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.NoError(err)
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+	}
 }
 
 func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
@@ -468,7 +484,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 	if err != nil {
 		s.Fail(err.Error())
 	} else {
-		s.Equal(401, resp.StatusCode, s.getProxyConf())
+		s.Equal(401, resp.StatusCode, s.getProxyConf(""))
 	}
 
 	// Proxy returns 200 when user/pass is provided
@@ -480,7 +496,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 	resp, err = client.Do(req)
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	// Add ignoreAuthorization
 
@@ -494,7 +510,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 	if err != nil {
 		s.Fail(err.Error())
 	} else {
-		s.Equal(200, resp.StatusCode, s.getProxyConf())
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -522,7 +538,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 //	s.NoError(
 //		err,
 //		"CONFIG\n%s\n\nOUT:\n%s\n\nERR:\n%s",
-//		s.getProxyConf(),
+//		s.getProxyConf(""),
 //		stdout.String(),
 //		stderr.String(),
 //	)
@@ -535,7 +551,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 //	s.reconfigureGoDemo("")
 //	resp, err := s.sendHelloRequest()
 //	s.NoError(err)
-//	s.Equal(200, resp.StatusCode, s.getProxyConf())
+//	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 //
 //	// Corrupt the config
 //	out, _ := exec.Command("/bin/sh", "-c", "docker ps -q -f label=com.docker.swarm.service.name=proxy").Output()
@@ -550,7 +566,7 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 //
 //	// Reload with reconfigure
 //	s.reloadService("?recreate=true")
-//	config := s.getProxyConf()
+//	config := s.getProxyConf("")
 //	s.NotEqual("This config is corrupt", config)
 //}
 
@@ -591,7 +607,7 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureWithDefaultBackend() {
 	resp, err := s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_Methods() {
@@ -603,7 +619,7 @@ func (s IntegrationSwarmTestSuite) Test_Methods() {
 	resp, err := s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(403, resp.StatusCode, s.getProxyConf())
+	s.Equal(403, resp.StatusCode, s.getProxyConf(""))
 
 	// Allowed
 
@@ -612,7 +628,7 @@ func (s IntegrationSwarmTestSuite) Test_Methods() {
 	resp, err = s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(200, resp.StatusCode, s.getProxyConf())
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	// Forbidden
 
@@ -621,7 +637,7 @@ func (s IntegrationSwarmTestSuite) Test_Methods() {
 	resp, err = s.sendHelloRequest()
 
 	s.NoError(err)
-	s.Equal(403, resp.StatusCode, s.getProxyConf())
+	s.Equal(403, resp.StatusCode, s.getProxyConf(""))
 }
 
 func (s IntegrationSwarmTestSuite) Test_DenyHttp() {
@@ -632,7 +648,7 @@ func (s IntegrationSwarmTestSuite) Test_DenyHttp() {
 	if err != nil {
 		s.Fail(err.Error())
 	} else {
-		s.Equal(403, resp.StatusCode, s.getProxyConf())
+		s.Equal(403, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 
@@ -674,7 +690,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
@@ -712,7 +728,7 @@ func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
 	)
 	resp, err := http.Get(url)
 	if err != nil {
-		println(s.getProxyConf())
+		println(s.getProxyConf(""))
 		s.Fail(err.Error())
 	} else {
 		msg := fmt.Sprintf(
@@ -721,7 +737,7 @@ func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
 CONFIGURATION:
 %s`,
 			url,
-			s.getProxyConf())
+			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
 	time.Sleep(5 * time.Second)
@@ -743,17 +759,20 @@ func (s *IntegrationSwarmTestSuite) reloadService(params string) {
 CONFIGURATION:
 %s`,
 			url,
-			s.getProxyConf())
+			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
 	time.Sleep(1 * time.Second)
 }
 
-func (s *IntegrationSwarmTestSuite) getProxyConf() string {
+func (s *IntegrationSwarmTestSuite) getProxyConf(respType string) string {
 	configAddr := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/config",
 		s.hostIP,
 	)
+	if strings.EqualFold(respType, "json") {
+		configAddr += "?type=json"
+	}
 	resp, err := http.Get(configAddr)
 	if err != nil {
 		println(err.Error())

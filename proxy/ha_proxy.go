@@ -167,6 +167,10 @@ func (m HaProxy) RemoveService(service string) {
 	delete(dataInstance.Services, service)
 }
 
+func (m HaProxy) GetServices() map[string]Service {
+	return dataInstance.Services
+}
+
 func (m HaProxy) getConfigs() (string, error) {
 	contentArr := []string{}
 	tmplPath := "haproxy.tmpl"

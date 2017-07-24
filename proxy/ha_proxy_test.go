@@ -1926,6 +1926,22 @@ func (s *HaProxyTestSuite) Test_ReadConfig_ReturnsError_WhenReadFileFails() {
 	s.Error(actual)
 }
 
+// GetServices
+
+func (s *HaProxyTestSuite) Test_GetServices_ReturnsData() {
+	dataInstanceOrig := dataInstance
+	defer func() { dataInstance = dataInstanceOrig }()
+	expected := map[string]Service{
+		"my-service-1": Service{ServiceName: "my-service-1"},
+		"my-service-2": Service{ServiceName: "my-service-2"},
+	}
+	proxy := HaProxy{}
+	dataInstance = Data{Services: expected}
+
+	actual := proxy.GetServices()
+	s.Equal(expected, actual)
+}
+
 // Reload
 
 func (s *HaProxyTestSuite) Test_Reload_ReadsPidFile() {
