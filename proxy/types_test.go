@@ -207,6 +207,33 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexed
 	s.Equal(expected, *actual)
 }
 
+func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntries_WhenEmpty() {
+	expected := Service{
+		ServiceDest: []ServiceDest{{
+			AllowedMethods: []string{},
+			DeniedMethods:  []string{},
+			HttpsOnly:      true,
+			ServiceDomain:  []string{},
+			ServiceHeader:  map[string]string{},
+			ServicePath:    []string{"/"},
+			Port:           "1234",
+			ReqMode:        "reqMode",
+		}},
+		ServiceName: "serviceName",
+	}
+	serviceMap := map[string]string{
+//		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
+		"httpsOnly":     strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
+		"serviceName":   expected.ServiceName,
+		"port.1":        expected.ServiceDest[0].Port,
+		"reqMode.1":     expected.ServiceDest[0].ReqMode,
+		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+	}
+	provider := mapParameterProvider{&serviceMap}
+	actual := GetServiceFromProvider(&provider)
+	s.Equal(expected, *actual)
+}
+
 // Suite
 
 func TestRunUnitTestSuite(t *testing.T) {
@@ -229,7 +256,6 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix string) map
 		"delReqHeader":          strings.Join(expected.DelReqHeader, ","),
 		"delResHeader":          strings.Join(expected.DelResHeader, ","),
 		"distribute":            strconv.FormatBool(expected.Distribute),
-		"httpsOnly":             strconv.FormatBool(expected.HttpsOnly),
 		"httpsPort":             strconv.Itoa(expected.HttpsPort),
 		"isDefaultBackend":      strconv.FormatBool(expected.IsDefaultBackend),
 		"outboundHostname":      expected.OutboundHostname,
@@ -254,6 +280,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix string) map
 		"allowedMethods" + indexSuffix:      strings.Join(expected.ServiceDest[0].AllowedMethods, ","),
 		"deniedMethods" + indexSuffix:       strings.Join(expected.ServiceDest[0].DeniedMethods, ","),
 		"denyHttp" + indexSuffix:            strconv.FormatBool(expected.ServiceDest[0].DenyHttp),
+		"httpsOnly" + indexSuffix:           strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"ignoreAuthorization" + indexSuffix: strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
 		"port" + indexSuffix:                expected.ServiceDest[0].Port,
 		"reqMode" + indexSuffix:             expected.ServiceDest[0].ReqMode,
@@ -274,7 +301,6 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
-		HttpsOnly:             true,
 		HttpsPort:             1234,
 		IsDefaultBackend:      true,
 		OutboundHostname:      "outboundHostname",
@@ -288,6 +314,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			AllowedMethods:      []string{"GET", "DELETE"},
 			DeniedMethods:       []string{"PUT", "POST"},
 			DenyHttp:            true,
+			HttpsOnly:           true,
 			IgnoreAuthorization: true,
 			ServiceDomain:       []string{"domain1", "domain2"},
 			ServiceHeader:       map[string]string{"X-Version": "3", "name": "Viktor"},

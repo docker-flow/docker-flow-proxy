@@ -94,6 +94,7 @@ func (s IntegrationSwarmTestSuite) Test_Domain() {
 	client := new(http.Client)
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 	req, err := http.NewRequest("GET", url, nil)
+	s.NoError(err)
 	req.Host = "my-domain.com"
 	resp, err := client.Do(req)
 

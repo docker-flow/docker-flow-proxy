@@ -146,7 +146,7 @@ backend {{$.ServiceName}}-be{{.Port}}
 		{{- if .DenyHttp}}
     http-request deny if !{ ssl_fc }
 		{{- end}}
-		{{- if $.HttpsOnly}}
+		{{- if .HttpsOnly}}
     redirect scheme https if !{ ssl_fc }
 		{{- end}}
     server {{$.ServiceName}} {{$.Host}}:{{.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}

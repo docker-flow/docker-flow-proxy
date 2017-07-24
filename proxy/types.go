@@ -16,6 +16,8 @@ type ServiceDest struct {
 	DeniedMethods []string
 	// Whether to deny HTTP requests thus allowing only HTTPS.
 	DenyHttp bool
+	// Whether to redirect all http requests to https
+	HttpsOnly bool
 	// Whether to ignore authorization for this service destination.
 	IgnoreAuthorization bool
 	// The internal port of a service that should be reconfigured.
@@ -87,8 +89,6 @@ type Service struct {
 	// Whether to distribute a request to all the instances of the proxy.
 	// Used only in the swarm mode.
 	Distribute bool `split_words:"true"`
-	// Whether to redirect all http requests to https
-	HttpsOnly bool `split_words:"true"`
 	// The internal HTTPS port of a service that should be reconfigured.
 	// The port is used only in the swarm mode.
 	// If not specified, the `port` parameter will be used instead.
@@ -311,6 +311,7 @@ func getServiceDestList(sr *Service, provider ServiceParameterProvider) []Servic
 	} else {
 		serviceDomain = sd.ServiceDomain
 	}
+	httpsOnly := sd.HttpsOnly
 	for i := 1; i <= 10; i++ {
 		sd := getServiceDest(sr, provider, i)
 		if isServiceDestValid(&sd) {
@@ -331,6 +332,9 @@ func getServiceDestList(sr *Service, provider ServiceParameterProvider) []Servic
 			sdList[i].ServicePath = []string{"/"}
 		} else if len(sd.ServiceDomain) == 0 && len(serviceDomain) > 0 {
 			sdList[i].ServiceDomain = serviceDomain
+		}
+		if httpsOnly && !sd.HttpsOnly {
+			sdList[i].HttpsOnly = true
 		}
 	}
 	return sdList
@@ -365,6 +369,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		AllowedMethods:      getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),
 		DeniedMethods:       getSliceFromString(provider, fmt.Sprintf("deniedMethods%s", suffix)),
 		DenyHttp:            getBoolParam(provider, fmt.Sprintf("denyHttp%s", suffix)),
+		HttpsOnly:           getBoolParam(provider, fmt.Sprintf("httpsOnly%s", suffix)),
 		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
 		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
 		ReqMode:             reqMode,

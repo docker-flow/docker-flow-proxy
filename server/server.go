@@ -278,10 +278,12 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	if len(reqMode) == 0 {
 		reqMode = "http"
 	}
+	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix+"_HTTPS_ONLY"))
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
+				HttpsOnly:     httpsOnly,
 				Port:          port,
 				ReqMode:       reqMode,
 				ServiceDomain: domain,
@@ -294,6 +296,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
 		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
 		reqMode := os.Getenv(fmt.Sprintf("%s_REQ_MODE_%d", prefix, i))
+		httpsOnly, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_HTTPS_ONLY_%d", prefix, i)))
 		if len(reqMode) == 0 {
 			reqMode = "http"
 		}
@@ -301,7 +304,13 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		if len(path) > 0 && len(port) > 0 {
 			sd = append(
 				sd,
-				proxy.ServiceDest{Port: port, SrcPort: srcPort, ServicePath: strings.Split(path, ","), ReqMode: reqMode},
+				proxy.ServiceDest{
+					HttpsOnly:   httpsOnly,
+					Port:        port,
+					SrcPort:     srcPort,
+					ServicePath: strings.Split(path, ","),
+					ReqMode:     reqMode,
+				},
 			)
 		} else {
 			break

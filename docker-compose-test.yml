@@ -10,3 +10,13 @@ services:
     environment:
       - HOST_IP=${HOST_IP}
       - DOCKER_HUB_USER=${DOCKER_HUB_USER}
+
+  staging-swarm-local:
+    image: vfarcic/docker-flow-proxy-test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/src
+    environment:
+      - HOST_IP=${HOST_IP}
+      - DOCKER_HUB_USER=${DOCKER_HUB_USER}
+    command: ["sh", "-c", "chmod +x /src/run-tests.sh && /src/run-tests.sh"]

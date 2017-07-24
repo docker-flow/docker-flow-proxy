@@ -489,7 +489,7 @@ backend %s-be%s
 }
 
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithRedirectToHttps_WhenHttpsOnlyIsTrue() {
-	s.reconfigure.HttpsOnly = true
+	s.reconfigure.ServiceDest[0].HttpsOnly = true
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
