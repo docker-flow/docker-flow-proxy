@@ -50,6 +50,7 @@ func (m *serve) Execute(args []string) error {
 		cert,
 	)
 	config := server.NewConfig()
+	metrics := server.NewMetrics("")
 	if err := m.reconfigure(server2); err != nil {
 		return err
 	}
@@ -58,10 +59,11 @@ func (m *serve) Execute(args []string) error {
 	r.HandleFunc("/v1/docker-flow-proxy/cert", m.certPutHandler).Methods("PUT")
 	r.HandleFunc("/v1/docker-flow-proxy/certs", m.certsHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/config", config.Get)
-	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
-	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
-	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/metrics", metrics.Get)
 	r.HandleFunc("/v1/docker-flow-proxy/ping", server2.PingHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
 	r.HandleFunc("/v1/test", server2.Test1Handler)
 	r.HandleFunc("/v2/test", server2.Test2Handler)
 	if err := httpListenAndServe(address, r); err != nil {

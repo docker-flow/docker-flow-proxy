@@ -21,11 +21,6 @@ func TestConfigUnitTestSuite(t *testing.T) {
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("")
 	proxy.Instance = proxyMock
-
-//	logPrintfOrig := logPrintf
-//	defer func() { logPrintf = logPrintfOrig }()
-//	logPrintf = func(format string, v ...interface{}) {}
-
 	s := new(ConfigTestSuite)
 	suite.Run(t, s)
 }
@@ -103,7 +98,7 @@ func (s *ConfigTestSuite) Test_Get_WritesConfig() {
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()
 	proxyMock := getProxyMock("ReadConfig")
-	proxyMock.On("ReadConfig").Return(expected, fmt.Errorf("This is an error"))
+	proxyMock.On("ReadConfig").Return(expected, nil)
 	proxy.Instance = proxyMock
 
 	c.Get(w, req)

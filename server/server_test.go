@@ -815,14 +815,12 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 		os.Unsetenv("DFP_SERVICE_SRC_PORT_2")
 	}()
 	srv := serve{}
-	println("000")
 	actual := srv.GetServicesFromEnvVars()
 
 	service.ServiceDest[0].ReqMode = "http"
 	service.ServiceDest[1].ReqMode = "http"
 	s.Len(*actual, 1)
 	s.Contains(*actual, service)
-	println("999")
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameIsNotSet() {

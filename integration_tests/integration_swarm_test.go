@@ -118,6 +118,39 @@ func (s IntegrationSwarmTestSuite) Test_Config() {
 	s.Contains(actual, `{"go-demo-api":`)
 }
 
+func (s IntegrationSwarmTestSuite) Test_Metrics() {
+	defer func() {
+		exec.Command("/bin/sh", "-c", "docker service scale proxy=1").Output()
+		s.waitForContainers(1, "proxy")
+	}()
+	addr := fmt.Sprintf(
+		"http://%s:8080/v1/docker-flow-proxy/metrics",
+		s.hostIP,
+	)
+	out, err := exec.Command("/bin/sh", "-c", "docker service scale proxy=3").CombinedOutput()
+	if err != nil {
+		s.Fail("%s\n%s", err.Error(), string(out))
+	} else {
+		s.waitForContainers(3, "proxy")
+	}
+
+	resp, err := http.Get(addr)
+	s.NoError(err)
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	// Cannot validate that the metrics are correct but only that some text is returned
+	s.Contains(string(body[:]), "services,FRONTEND")
+
+	resp, err = http.Get(addr + "?distribute=true")
+	s.NoError(err)
+
+	body, _ = ioutil.ReadAll(resp.Body)
+
+	// Cannot validate that the metrics are correct but only that some text is returned
+	s.Contains(string(body[:]), "services,FRONTENDxxx")
+}
+
 func (s IntegrationSwarmTestSuite) Test_Compression() {
 	defer func() {
 		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" proxy`).Output()
