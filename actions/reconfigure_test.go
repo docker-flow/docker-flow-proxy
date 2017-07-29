@@ -542,13 +542,13 @@ func (s ReconfigureTestSuite) Test_Execute_WritesServerSession() {
 	s.reconfigure.SessionType = "sticky-server"
 	var actualData string
 	expectedData := `
-backend my-service-be1111
+backend my-service-be1111_0
     mode http
     balance roundrobin
     cookie my-service insert indirect nocache
     server my-service_0 1.2.3.4:1111 check cookie my-service_0
     server my-service_1 4.3.2.1:1111 check cookie my-service_1
-backend https-my-service-be1111
+backend https-my-service-be1111_0
     mode http
     balance roundrobin
     cookie my-service insert indirect nocache
