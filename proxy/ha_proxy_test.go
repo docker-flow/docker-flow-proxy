@@ -1939,8 +1939,8 @@ func (s *HaProxyTestSuite) Test_GetServices_ReturnsData() {
 	dataInstanceOrig := dataInstance
 	defer func() { dataInstance = dataInstanceOrig }()
 	expected := map[string]Service{
-		"my-service-1": Service{ServiceName: "my-service-1"},
-		"my-service-2": Service{ServiceName: "my-service-2"},
+		"my-service-1": {ServiceName: "my-service-1"},
+		"my-service-2": {ServiceName: "my-service-2"},
 	}
 	proxy := HaProxy{}
 	dataInstance = Data{Services: expected}

@@ -167,6 +167,8 @@ func (m HaProxy) RemoveService(service string) {
 	delete(dataInstance.Services, service)
 }
 
+// GetServices returns a map with all the services used by the proxy.
+// The key of the map is the name of a service.
 func (m HaProxy) GetServices() map[string]Service {
 	return dataInstance.Services
 }

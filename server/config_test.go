@@ -2,11 +2,11 @@ package server
 
 import (
 	"../proxy"
+	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"testing"
-	"fmt"
-	"encoding/json"
 )
 
 type ConfigTestSuite struct {
@@ -115,8 +115,8 @@ func (s *ConfigTestSuite) Test_Get_WritesServices() {
 		nil,
 	)
 	services := map[string]proxy.Service{
-		"my-service-1": proxy.Service{ServiceName: "my-service-1"},
-		"my-service-2": proxy.Service{ServiceName: "my-service-2"},
+		"my-service-1": {ServiceName: "my-service-1"},
+		"my-service-2": {ServiceName: "my-service-2"},
 	}
 	proxyOrig := proxy.Instance
 	defer func() { proxy.Instance = proxyOrig }()

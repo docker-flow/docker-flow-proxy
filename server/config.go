@@ -2,16 +2,16 @@ package server
 
 import (
 	"../proxy"
+	"encoding/json"
 	"net/http"
 	"strings"
-	"encoding/json"
 )
 
 type Configer interface {
 	Get(w http.ResponseWriter, req *http.Request)
 }
 
-type Config struct {}
+type Config struct{}
 
 func NewConfig() Configer {
 	return &Config{}

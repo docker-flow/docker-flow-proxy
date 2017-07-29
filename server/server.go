@@ -278,7 +278,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	if len(reqMode) == 0 {
 		reqMode = "http"
 	}
-	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix+"_HTTPS_ONLY"))
+	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
 			sd,

@@ -3,16 +3,16 @@ package server
 import (
 	"../proxy"
 	"github.com/stretchr/testify/suite"
-//	"net/http"
+	//	"net/http"
 	"testing"
-//	"fmt"
-//	"encoding/json"
-"net/http"
+	//	"fmt"
+	//	"encoding/json"
 	"fmt"
-	"net/http/httptest"
-	"strings"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 )
 
 type MetricsTestSuite struct {

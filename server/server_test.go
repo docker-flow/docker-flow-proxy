@@ -944,7 +944,7 @@ type CertMock struct {
 	PutMock     func(http.ResponseWriter, *http.Request) (string, error)
 	PutCertMock func(certName string, certContent []byte) (string, error)
 	GetAllMock  func(w http.ResponseWriter, req *http.Request) (CertResponse, error)
-	GetInitMock func() error
+	InitMock    func() error
 }
 
 func (m CertMock) Put(w http.ResponseWriter, req *http.Request) (string, error) {
@@ -960,5 +960,5 @@ func (m CertMock) GetAll(w http.ResponseWriter, req *http.Request) (CertResponse
 }
 
 func (m CertMock) Init() error {
-	return m.GetInitMock()
+	return m.InitMock()
 }

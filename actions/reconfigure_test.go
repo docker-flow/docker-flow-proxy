@@ -24,7 +24,7 @@ type ReconfigureTestSuite struct {
 func (s *ReconfigureTestSuite) SetupTest() {
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
-		Index: 0,
+		Index:       0,
 	}
 	s.InstanceName = "proxy-test-instance"
 	s.ServiceDest = []proxy.ServiceDest{sd}

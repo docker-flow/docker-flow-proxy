@@ -76,11 +76,11 @@ func (s *CertTestSuite) Test_GetAll_WritesHeaderStatus200() {
 }
 
 func (s *CertTestSuite) Test_GetAll_WritesReturnsCert() {
-	certs := []Cert{}
+	certs := []cert{}
 	proxyCerts := map[string]string{}
 	name := "my-service"
 	path := fmt.Sprintf("/my/certs/dir/%s", name)
-	cert := Cert{
+	cert := cert{
 		ProxyServiceName: name,
 		CertsDir:         "/my/certs/dir",
 		CertContent:      "Content of the cert",
@@ -300,9 +300,9 @@ func (s *CertTestSuite) Test_Init_WritesCertToFile_WhenItComesFromTheBiggestResp
 
 func (s *CertTestSuite) getCertGetAllMockServer(from, to int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		certs := []Cert{}
+		certs := []cert{}
 		for i := from; i <= to; i++ {
-			cert := Cert{
+			cert := cert{
 				ProxyServiceName: fmt.Sprintf("my-cert-%d.pem", i),
 				CertContent:      fmt.Sprintf("Content of my-cert-%d.pem", i),
 			}

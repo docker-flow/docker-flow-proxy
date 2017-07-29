@@ -7,8 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 )
 
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {

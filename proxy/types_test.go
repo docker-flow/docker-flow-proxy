@@ -247,7 +247,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 		ServiceName: "serviceName",
 	}
 	serviceMap := map[string]string{
-//		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
+		//		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
 		"httpsOnly":     strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"serviceName":   expected.ServiceName,
 		"port.1":        expected.ServiceDest[0].Port,

@@ -1,12 +1,12 @@
 package server
 
 import (
-	"net/http"
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
-	"io/ioutil"
-	"bytes"
 )
 
 // TODO: Test with haproxy_exporter and Prometheus
@@ -69,7 +69,7 @@ func (m *Metrics) getHaProxyMetrics() ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (m *Metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte, error)  {
+func (m *Metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte, error) {
 	msg := []byte("")
 	for _, ip := range ips {
 		values := req.URL.Query()
