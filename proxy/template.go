@@ -39,7 +39,7 @@ func getFrontTemplate(s Service) string {
         {{- if eq .ReqMode "http"}}
             {{- if ne .Port ""}}
     acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{.SrcPortAclName}}
+    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}{{end}}{{.SrcPortAclName}}
             {{- end}}
         {{- end}}
     {{- end}}

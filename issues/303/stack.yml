@@ -1,0 +1,64 @@
+version: "3.3"
+
+services:
+
+  proxy:
+    image: vfarcic/docker-flow-proxy
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - proxy
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  webui:
+    image: nginx
+    networks:
+      - proxy
+    deploy:
+      labels:
+        - com.df.httpsOnly=true
+        - com.df.redirectWhenHttpProto=true
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/
+        - com.df.port=80
+
+#  rest:
+#    image: vfarcic/go-demo
+#    environment:
+#      - DB=go-demo-db
+#    networks:
+#      - proxy
+#      - default
+#    deploy:
+#      replicas: 3
+#      labels:
+#        - com.df.notify=true
+#        - com.df.distribute=true
+#        - com.df.servicePath=/demo
+#        - com.df.port=8080
+#
+#  go-demo-db:
+#    image: mongo
+#    networks:
+#      - default
+
+networks:
+  proxy:
+    driver: overlay
+    external: true

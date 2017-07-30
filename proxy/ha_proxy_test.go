@@ -1446,7 +1446,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRed
 		`%s
     acl url_my-service1111_0 path_beg /path
     acl is_my-service_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_my-service_http url_my-service1111
+    redirect scheme https if is_my-service_http url_my-service1111_0
     use_backend my-service-be1111_0 if url_my-service1111_0%s`,
 		tmpl,
 		s.ServicesContent,
