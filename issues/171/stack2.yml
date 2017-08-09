@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3"
 
 services:
 
@@ -6,11 +6,17 @@ services:
     image: vfarcic/docker-flow-proxy
     ports:
       - 80:80
-      - 443:443
+      - 8000:8000
+      - 8080:8080
     networks:
       - proxy
     environment:
       - LISTENER_ADDRESS=swarm-listener
+      - MODE=swarm
+      - BIND_PORTS=8000
+      - REPEAT_RELOAD=true
+    deploy:
+      replicas: 1
 
   swarm-listener:
     image: vfarcic/docker-flow-swarm-listener
@@ -25,40 +31,31 @@ services:
       placement:
         constraints: [node.role == manager]
 
-  webui:
-    image: nginx
+  docs:
+    image: vfarcic/docker-flow-proxy-docs
+    hostname: proxydocs
     networks:
       - proxy
     deploy:
+      replicas: 1
       labels:
-        - com.df.httpsOnly=true
-        - com.df.redirectWhenHttpProto=true
         - com.df.notify=true
         - com.df.distribute=true
+        - com.df.serviceDomain=proxydocs.demo.splunkoxygen.com
+        - com.df.serviceDomainMatchAll=true
+        - com.df.srcPort=80
         - com.df.servicePath=/
         - com.df.port=80
+        - com.df.sessionType=sticky-server
+        - com.docker.ucp.access.label=production
+        - com.docker.ucp.access.owner=mwilde
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
 
-#  rest:
-#    image: vfarcic/go-demo
-#    environment:
-#      - DB=go-demo-db
-#    networks:
-#      - proxy
-#      - default
-#    deploy:
-#      replicas: 3
-#      labels:
-#        - com.df.notify=true
-#        - com.df.distribute=true
-#        - com.df.servicePath=/demo
-#        - com.df.port=8080
-#
-#  go-demo-db:
-#    image: mongo
-#    networks:
-#      - default
 
 networks:
   proxy:
-    driver: overlay
     external: true

@@ -25,7 +25,7 @@ type Metrics struct {
 
 func NewMetrics(metricsUrl string) Metricer {
 	if len(metricsUrl) == 0 {
-		metricsUrl = fmt.Sprintf("http://%slocalhost/admin?stats;csv", getCreds())
+		metricsUrl = fmt.Sprintf("http://%slocalhost/admin?stats;csv", GetCreds())
 	}
 	return &Metrics{metricsUrl: metricsUrl}
 }
@@ -99,7 +99,7 @@ func (m *Metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte,
 	return msg, nil
 }
 
-func getCreds() string {
+func GetCreds() string {
 	statsUser := getSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
 	statsPass := getSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
 	if len(statsUser) > 0 && !strings.EqualFold(statsUser, "none") && len(statsPass) > 0 && !strings.EqualFold(statsPass, "none") {

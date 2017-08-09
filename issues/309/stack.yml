@@ -1,0 +1,81 @@
+version: "3.2"
+
+services:
+
+  proxy:
+    image: vfarcic/docker-flow-proxy:${TAG:-latest}
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    networks:
+      - proxy
+    deploy:
+      replicas: 3
+      labels:
+        - com.df.notify=true
+        - com.df.scrapePort=8080
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+      - MODE=swarm
+      - CONNECTION_MODE=${CONNECTION_MODE:-http-server-close}
+      - STATS_USER=admin
+      - STATS_PASS=admin
+
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure,http://monitor:8080/v1/docker-flow-monitor/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove,http://monitor:8080/v1/docker-flow-monitor/remove
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  monitor:
+    image: vfarcic/docker-flow-monitor:${TAG:-latest}
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+      - GLOBAL_SCRAPE_INTERVAL=${SCRAPE_INTERVAL:-10s}
+      - ARG_WEB_ROUTE-PREFIX=/monitor
+      - ARG_WEB_EXTERNAL-URL=http://${DOMAIN:-localhost}/monitor
+    networks:
+      - proxy
+      - monitor
+    deploy:
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/monitor
+        - com.df.serviceDomain=${DOMAIN:-localhost}
+        - com.df.port=9090
+  go-demo:
+    image: vfarcic/go-demo
+    environment:
+      - DB=db
+    networks:
+      - proxy
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.servicePath=/demo
+        - com.df.port=8080
+
+  db:
+    image: mongo
+    networks:
+      - proxy
+
+networks:
+  monitor:
+    external: true
+  proxy:
+    external: true

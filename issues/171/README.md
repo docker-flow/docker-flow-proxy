@@ -37,3 +37,14 @@ curl "http://localhost:8080/v1/docker-flow-proxy/config"
 
 # `go-demo` should have five IPs. Since it was scaled to two, the proxy detected that there are two replicas (instead of three) and reconfigured itself.
 ```
+
+
+```bash
+docker network create -d overlay proxy
+
+docker stack deploy -c stack2.yml proxy
+
+docker stack ps proxy
+
+docker service scale proxy_docs=2
+```

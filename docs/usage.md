@@ -238,6 +238,12 @@ The following query arguments can be used to send a *reload* request to *Docker 
 |-----------|-----------------------------------------------------------|
 |type       |If set to `json`, the list of services is returned in JSON format. Any other value returns HAProxy configuration in text format.<br>**Default:** `text`<br>**Example:** `json`|
 
+## Metrics
+
+> Outputs Prometheus-friendly metrics
+
+Metrics can be retrieved though the address **[PROXY_IP]:[PROXY_PORT]/metrics**.
+
 ## Templates
 
 Proxy configuration is a combination of configuration files generated from templates. Base template is `haproxy.tmpl`. Each service appends frontend and backend templates on top of the base template. Once all the templates are combined, they are converted into the `haproxy.cfg` configuration file.

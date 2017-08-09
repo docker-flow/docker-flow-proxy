@@ -2,6 +2,7 @@ package main
 
 import (
 	"./actions"
+	"./metrics"
 	"./proxy"
 	"./server"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Server defines interface used for creating DFP Web server
@@ -50,16 +52,18 @@ func (m *serve) Execute(args []string) error {
 		cert,
 	)
 	config := server.NewConfig()
-	metrics := server.NewMetrics("")
+	sm := server.NewMetrics("")
 	if err := m.reconfigure(server2); err != nil {
 		return err
 	}
+	metrics.SetupHandler(server.GetCreds())
 	logPrintf(`Starting "Docker Flow: Proxy"`)
 	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/v1/docker-flow-proxy/cert", m.certPutHandler).Methods("PUT")
 	r.HandleFunc("/v1/docker-flow-proxy/certs", m.certsHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/config", config.Get)
-	r.HandleFunc("/v1/docker-flow-proxy/metrics", metrics.Get)
+	r.HandleFunc("/v1/docker-flow-proxy/metrics", sm.Get)
+	r.Handle("/metrics", prometheus.Handler())
 	r.HandleFunc("/v1/docker-flow-proxy/ping", server2.PingHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
