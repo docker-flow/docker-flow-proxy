@@ -127,7 +127,6 @@ The map between the HTTP query parameters and environment variables is as follow
 |reqPathSearch        |REQ_PATH_SEARCH         |
 |serviceCert          |SERVICE_CERT            |
 |serviceDomain        |SERVICE_DOMAIN          |
-|serviceDomainMatchAll|SERVICE_DOMAIN_MATCH_ALL|
 |serviceName          |SERVICE_NAME            |
 |servicePath          |SERVICE_PATH            |
 |setReqHeader         |SET_REQ_HEADER          |

@@ -266,7 +266,7 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	provider.Fill(sr)
 	// TODO: Remove. It's added to maintain backwards compatibility with the deprecated parameter serviceDomainMatchAll (since July 2017)
 	if strings.EqualFold(provider.GetString("serviceDomainMatchAll"), "true") {
-		sr.ServiceDomainAlgo = "hdr_dom"
+		sr.ServiceDomainAlgo = "hdr_dom(host)"
 	}
 	if len(provider.GetString("httpsPort")) > 0 {
 		sr.HttpsPort, _ = strconv.Atoi(provider.GetString("httpsPort"))
