@@ -601,7 +601,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServiceDomainAlgoToHdrDom_W
 
 	actual := srv.GetServiceFromUrl(req)
 
-	s.Equal("hdr_dom", actual.ServiceDomainAlgo)
+	s.Equal("hdr_dom(host)", actual.ServiceDomainAlgo)
 }
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
@@ -766,7 +766,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdr
 				ReqMode:       "http",
 			},
 		},
-		ServiceDomainAlgo: "hdr_dom",
+		ServiceDomainAlgo: "hdr_dom(host)",
 	}
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN", strings.Join(service.ServiceDest[0].ServiceDomain, ","))
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN_MATCH_ALL", "true")

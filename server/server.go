@@ -271,9 +271,10 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	if len(os.Getenv(prefix+"_SERVICE_DOMAIN")) > 0 {
 		domain = strings.Split(os.Getenv(prefix+"_SERVICE_DOMAIN"), ",")
 	}
-	// TODO: Remove. It is a temporary workaround to maintain compatibility with the deprecated serviceDomainMatchAll parameter (since July 2017).
+	// TODO: Remove.
+	// It is a temporary workaround to maintain compatibility with the deprecated serviceDomainMatchAll parameter (since July 2017).
 	if len(s.ServiceDomainAlgo) == 0 && strings.EqualFold(os.Getenv(prefix+"_SERVICE_DOMAIN_MATCH_ALL"), "true") {
-		s.ServiceDomainAlgo = "hdr_dom"
+		s.ServiceDomainAlgo = "hdr_dom(host)"
 	}
 	if len(reqMode) == 0 {
 		reqMode = "http"
