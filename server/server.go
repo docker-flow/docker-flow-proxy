@@ -176,7 +176,6 @@ func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 		if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
 			logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
 			m.writeInternalServerError(w, &Response{}, err.Error())
-
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}

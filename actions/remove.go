@@ -55,8 +55,8 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string) error {
 		fmt.Sprintf("%s/%s-fe.cfg", templatesPath, aclName),
 		fmt.Sprintf("%s/%s-be.cfg", templatesPath, aclName),
 	}
-	mu.Lock()
-	defer mu.Unlock()
+//	mu.Lock()
+//	defer mu.Unlock()
 	for _, path := range paths {
 		osRemove(path)
 	}

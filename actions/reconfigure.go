@@ -68,7 +68,14 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 		reload := reload{}
 		if err := reload.Execute(true); err != nil {
 			logPrintf(err.Error())
-			proxy.Instance.RemoveService(m.Service.ServiceName)
+			action := NewRemove(
+				m.Service.ServiceName,
+				m.Service.AclName,
+				m.ConfigsPath,
+				m.TemplatesPath,
+				m.InstanceName,
+			)
+			action.Execute([]string{})
 			return err
 		}
 	}

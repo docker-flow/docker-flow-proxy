@@ -1,0 +1,32 @@
+version: "3.1"
+
+services:
+
+  proxy:
+    image: vfarcic/docker-flow-proxy:${TAG:-latest}
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    networks:
+      - proxy
+    deploy:
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.alertName=memlimit
+        - com.df.alertIf=@service_mem_limit:0.8
+        - com.df.alertFor=30s
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        reservations:
+          memory: 10M
+        limits:
+          memory: 20M
+
+networks:
+  proxy:
+    external: true

@@ -1,5 +1,3 @@
-// +build !integration
-
 package actions
 
 import (
@@ -815,6 +813,18 @@ func (s ReconfigureTestSuite) Test_Execute_RemovesService_WhenProxyFails() {
 	s.reconfigure.Execute(true)
 
 	mockObj.AssertCalled(s.T(), "RemoveService", s.ServiceName)
+}
+
+func (s ReconfigureTestSuite) Test_Execute_ReloadsAgain_WhenProxyFails() {
+	mockObj := getProxyMock("Reload")
+	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+
+	s.reconfigure.Execute(true)
+
+	mockObj.AssertNumberOfCalls(s.T(), "Reload", 2)
 }
 
 func (s ReconfigureTestSuite) Test_Execute_AddsService() {
