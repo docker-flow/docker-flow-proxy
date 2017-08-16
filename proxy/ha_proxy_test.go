@@ -1445,9 +1445,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRed
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111_0 path_beg /path
+    acl domain_my-service1111_0 hdr(host) -i my-domain.com
     acl is_my-service_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_my-service_http url_my-service1111_0
-    use_backend my-service-be1111_0 if url_my-service1111_0%s`,
+    redirect scheme https if is_my-service_http url_my-service1111_0 domain_my-service1111_0
+    use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1462,7 +1463,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRed
 		RedirectWhenHttpProto: true,
 		AclName:               "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}},
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}},
 		},
 	}
 

@@ -113,6 +113,7 @@ func (m *cert) Init() error {
 			hostPort = net.JoinHostPort(ip, m.ServicePort)
 		}
 		addr := fmt.Sprintf("http://%s/v1/docker-flow-proxy/certs", hostPort)
+		logPrintf("Getting certs from %s", addr)
 		req, _ := http.NewRequest("GET", addr, nil)
 		if resp, err := client.Do(req); err == nil {
 			defer resp.Body.Close()
@@ -124,6 +125,7 @@ func (m *cert) Init() error {
 			}
 		}
 	}
+	logPrintf("Found %d certs", len(certs))
 	if len(certs) > 0 {
 		for _, cert := range certs {
 			m.writeFile(cert.ProxyServiceName, []byte(cert.CertContent))
