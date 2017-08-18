@@ -103,12 +103,12 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	}
 	args = append(args, extraArgs...)
 	if err := cmdRunHa(args); err != nil {
-//		configData, _ := readConfigsFile("/cfg/haproxy.cfg")
+		// configData, _ := readConfigsFile("/cfg/haproxy.cfg")
 		return fmt.Errorf(
 			"Command %s\n%s",
 			strings.Join(args, " "),
 			err.Error(),
-//			string(configData),
+			// string(configData),
 		)
 	}
 	return nil

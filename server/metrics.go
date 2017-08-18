@@ -14,27 +14,28 @@ import (
 // TODO: Check whether data should be aggregated
 // TODO: Document
 
-type Metricer interface {
+type metricer interface {
 	Get(w http.ResponseWriter, req *http.Request)
-	GetMetricsUrl() string
+	getMetricsUrl() string
 }
 
-type Metrics struct {
+type metrics struct {
 	metricsUrl string
 }
 
-func NewMetrics(metricsUrl string) Metricer {
+// NewMetrics returns metricer instance
+func NewMetrics(metricsUrl string) metricer {
 	if len(metricsUrl) == 0 {
 		metricsUrl = fmt.Sprintf("http://%slocalhost/admin?stats;csv", GetCreds())
 	}
-	return &Metrics{metricsUrl: metricsUrl}
+	return &metrics{metricsUrl: metricsUrl}
 }
 
-func (m *Metrics) GetMetricsUrl() string {
+func (m *metrics) getMetricsUrl() string {
 	return m.metricsUrl
 }
 
-func (m *Metrics) Get(w http.ResponseWriter, req *http.Request) {
+func (m *metrics) Get(w http.ResponseWriter, req *http.Request) {
 	contentType := "text/html"
 	if strings.EqualFold(req.URL.Query().Get("distribute"), "true") {
 		dns := fmt.Sprintf("tasks.%s", os.Getenv("SERVICE_NAME"))
@@ -59,7 +60,7 @@ func (m *Metrics) Get(w http.ResponseWriter, req *http.Request) {
 	httpWriterSetContentType(w, contentType)
 }
 
-func (m *Metrics) getHaProxyMetrics() ([]byte, error) {
+func (m *metrics) getHaProxyMetrics() ([]byte, error) {
 	resp, err := http.Get(m.metricsUrl)
 	if err != nil {
 		logPrintf("Failed to fetch metrics from %s\nERROR: %s", m.metricsUrl, err.Error())
@@ -69,7 +70,7 @@ func (m *Metrics) getHaProxyMetrics() ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (m *Metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte, error) {
+func (m *metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte, error) {
 	msg := []byte("")
 	for _, ip := range ips {
 		values := req.URL.Query()
@@ -84,21 +85,21 @@ func (m *Metrics) getAllHaProxyMetrics(req *http.Request, ips []string) ([]byte,
 		if err != nil {
 			logPrintf("Failed to fetch metrics from %s\nERROR: %s", addr, err.Error())
 			return []byte(""), err
-		} else {
-			defer resp.Body.Close()
-			if resp.StatusCode >= 300 {
-				return []byte(""), fmt.Errorf("Got response status %d", resp.StatusCode)
-			}
-			body, _ := ioutil.ReadAll(resp.Body)
-			msg = append(msg, body...)
-			if !bytes.HasSuffix(msg, []byte("\n")) {
-				msg = append(msg, byte('\n'))
-			}
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode >= 300 {
+			return []byte(""), fmt.Errorf("Got response status %d", resp.StatusCode)
+		}
+		body, _ := ioutil.ReadAll(resp.Body)
+		msg = append(msg, body...)
+		if !bytes.HasSuffix(msg, []byte("\n")) {
+			msg = append(msg, byte('\n'))
 		}
 	}
 	return msg, nil
 }
 
+// GetCreds returns credentials from environment variables.
 func GetCreds() string {
 	statsUser := getSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
 	statsPass := getSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")

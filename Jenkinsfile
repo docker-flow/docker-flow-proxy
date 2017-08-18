@@ -67,9 +67,9 @@ pipeline {
     }
   }
   post {
-//    always {
-//      sh "docker system prune -f"
-//    }
+    always {
+      sh "docker system prune -f"
+    }
     failure {
       slackSend(
         color: "danger",

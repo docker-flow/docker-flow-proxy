@@ -57,24 +57,6 @@ type Response struct {
 	proxy.Service
 }
 
-type ServiceParameterProvider interface {
-	Fill(service *proxy.Service)
-	GetString(name string) string
-}
-
-type HttpRequestParameterProvider struct {
-	*http.Request
-}
-
-func (p *HttpRequestParameterProvider) Fill(service *proxy.Service) {
-	p.ParseForm()
-	decoder.Decode(service, p.Form)
-}
-
-func (p *HttpRequestParameterProvider) GetString(name string) string {
-	return p.URL.Query().Get(name)
-}
-
 func (m *serve) GetServiceFromUrl(req *http.Request) *proxy.Service {
 	provider := HttpRequestParameterProvider{Request: req}
 	return proxy.GetServiceFromProvider(&provider)

@@ -7,12 +7,12 @@ import (
 	"./server"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Server defines interface used for creating DFP Web server

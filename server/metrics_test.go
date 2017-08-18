@@ -38,14 +38,14 @@ func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrl() {
 	expected := "http://acme.com"
 	m := NewMetrics(expected)
 
-	s.Equal(expected, m.GetMetricsUrl())
+	s.Equal(expected, m.getMetricsUrl())
 }
 
 func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrl_WhenNotPresent() {
 	expected := "http://localhost/admin?stats;csv"
 	m := NewMetrics("")
 
-	s.Equal(expected, m.GetMetricsUrl())
+	s.Equal(expected, m.getMetricsUrl())
 }
 
 func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrlWithCredentials() {
@@ -62,7 +62,7 @@ func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrlWithCredentials() {
 	expected := "http://my-user:my-pass@localhost/admin?stats;csv"
 	m := NewMetrics("")
 
-	s.Equal(expected, m.GetMetricsUrl())
+	s.Equal(expected, m.getMetricsUrl())
 }
 
 func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrlWithoutCredentials_WhenNone() {
@@ -79,7 +79,7 @@ func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrlWithoutCredentials_When
 	expected := "http://localhost/admin?stats;csv"
 	m := NewMetrics("")
 
-	s.Equal(expected, m.GetMetricsUrl())
+	s.Equal(expected, m.getMetricsUrl())
 }
 
 // Get
@@ -91,7 +91,7 @@ func (s *MetricsTestSuite) Test_Get_SetsContentTypeToText() {
 	httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 		actual = value
 	}
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
@@ -110,7 +110,7 @@ func (s *MetricsTestSuite) Test_Get_WritesHeaderStatus500_WhenLookupHostFails() 
 	lookupHost = func(host string) (addrs []string, err error) {
 		return []string{}, fmt.Errorf("This is an LookupHost error")
 	}
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
@@ -124,7 +124,7 @@ func (s *MetricsTestSuite) Test_Get_WritesHeaderStatus500_WhenLookupHostFails() 
 }
 
 func (s *MetricsTestSuite) Test_Get_SendsRequestsToAllReplicas_WhenDistributeIsTrue() {
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
@@ -163,7 +163,7 @@ func (s *MetricsTestSuite) Test_Get_SendsRequestsToAllReplicas_WhenDistributeIsT
 }
 
 func (s *MetricsTestSuite) Test_Get_ReturnsMetricsFromAllReplicas_WhenDistributeIsTrue() {
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
@@ -189,7 +189,7 @@ func (s *MetricsTestSuite) Test_Get_ReturnsMetricsFromAllReplicas_WhenDistribute
 }
 
 func (s *MetricsTestSuite) Test_Get_WritesHeaderStatus500_WhenMetricsCanNotBeFetchedAndDistributeIsTrue() {
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
@@ -208,7 +208,7 @@ func (s *MetricsTestSuite) Test_Get_WritesHeaderStatus500_WhenMetricsCanNotBeFet
 }
 
 func (s *MetricsTestSuite) Test_Get_WritesHeaderStatus500_WhenRequestFailsAndDistributeIsTrue() {
-	m := Metrics{}
+	m := metrics{}
 	w := getResponseWriterMock()
 	req, _ := http.NewRequest(
 		"GET",
