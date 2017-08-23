@@ -104,9 +104,9 @@ func (m HaProxy) RunCmd(extraArgs []string) error {
 	args = append(args, extraArgs...)
 	if err := cmdRunHa(args); err != nil {
 		configData := ""
-		strings.EqualFold(os.Getenv("DISPLAY_CONFIG_ON_ERROR"), "true") {
-			configData, _ = readConfigsFile("/cfg/haproxy.cfg")
-			configData = "\n" + configData
+		if strings.EqualFold(os.Getenv("DISPLAY_CONFIG_ON_ERROR"), "true") {
+			data, _ := readConfigsFile("/cfg/haproxy.cfg")
+			configData = "\n" + string(data)
 		}
 		return fmt.Errorf(
 			"Command %s\n%s%s",
