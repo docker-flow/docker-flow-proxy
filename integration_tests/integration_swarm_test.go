@@ -153,7 +153,7 @@ func (s IntegrationSwarmTestSuite) Test_Metrics() {
 
 func (s IntegrationSwarmTestSuite) Test_Compression() {
 	defer func() {
-		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" proxy`).Output()
+		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" --env-rm "COMPRESSION_TYPE" proxy`).Output()
 		s.waitForContainers(1, "proxy")
 	}()
 	_, err := exec.Command(
@@ -263,7 +263,6 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_UserAgent() {
-	defer func() { s.reconfigureGoDemo("") }()
 	s.reconfigureGoDemo("&userAgent=amiga,amstrad")
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 	client := new(http.Client)
@@ -322,7 +321,6 @@ func (s IntegrationSwarmTestSuite) Test_UserAgent_LastIndexCatchesAllNonMatchedR
 }
 
 func (s IntegrationSwarmTestSuite) Test_VerifyClientSsl_DeniesRequest() {
-	defer func() { s.reconfigureGoDemo("") }()
 	s.reconfigureGoDemo("&verifyClientSsl=true")
 	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
 
@@ -376,11 +374,11 @@ func (s IntegrationSwarmTestSuite) Test_Scale() {
 		ok := 0
 		for i := 0; i < 10; i++ {
 			resp, err := s.sendHelloRequest()
-			if resp.StatusCode == 200 {
+			if err != nil {
+				s.Fail(err.Error())
+			} else if resp.StatusCode == 200 {
 				ok++
 			}
-
-			s.NoError(err)
 		}
 		// For some unexplainable reason one of the go-demo-api requests will fail.
 		s.True(ok >= 7, "Expected at least 7 requests with the response code 200 but got %d", ok)
@@ -605,11 +603,10 @@ func (s IntegrationSwarmTestSuite) Test_ServiceAuthentication() {
 
 func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 	defer func() {
-		s.removeServices("proxy-env")
-		time.Sleep(1 * time.Second)
+		s.removeServices("envproxy")
 	}()
 	cmd := fmt.Sprintf(
-		`docker service create --name proxy-env \
+		`docker service create --name envproxy \
     -p 8081:80 \
     --network proxy \
     -e MODE=swarm \
@@ -620,7 +617,8 @@ func (s IntegrationSwarmTestSuite) Test_ReconfigureFromEnvVars() {
 		s.dockerHubUser)
 	_, err := s.createService(cmd)
 	s.NoError(err)
-	s.waitForContainers(1, "proxy-env")
+	s.waitForContainers(1, "envproxy")
+	time.Sleep(1 * time.Second)
 
 	url := fmt.Sprintf("http://%s:8081/demo/hello", s.hostIP)
 	resp, err := http.Get(url)
@@ -723,7 +721,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {
@@ -773,7 +771,6 @@ CONFIGURATION:
 			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
-	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reloadService(params string) {
