@@ -16,7 +16,6 @@ pipeline {
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
         checkout scm
-        stash name: "compose", includes: "docker-compose-test.yml"
         sh "docker image build -t vfarcic/docker-flow-proxy ."
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta"
         withCredentials([usernamePassword(
@@ -38,11 +37,7 @@ pipeline {
       environment {
         DOCKER_HUB_USER = "vfarcic"
       }
-      agent {
-        label "test-cluster"
-      }
       steps {
-        unstash "compose"
         script {
             hostIp = sh returnStdout: true, script: 'ifconfig eth0 | grep \'inet addr:\'  | cut -d: -f2 | awk \'{ print $1}\''
             hostIp = hostIp.trim()
