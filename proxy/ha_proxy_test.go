@@ -1556,6 +1556,31 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_SetsProtocol() {
+	defaultReqMode := os.Getenv("DEFAULT_REQ_MODE")
+	defer func() { os.Setenv("DEFAULT_REQ_MODE", defaultReqMode) }()
+	os.Setenv("DEFAULT_REQ_MODE", "tcp")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"mode http",
+		"mode tcp",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPortsWithText() {
 	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
 	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()

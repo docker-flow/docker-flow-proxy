@@ -258,7 +258,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		s.ServiceDomainAlgo = "hdr_dom(host)"
 	}
 	if len(reqMode) == 0 {
-		reqMode = "http"
+		reqMode = getSecretOrEnvVar("DEFAULT_PROTOCOL", "http")
 	}
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	if len(path) > 0 || len(port) > 0 {

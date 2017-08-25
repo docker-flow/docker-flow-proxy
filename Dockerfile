@@ -20,6 +20,7 @@ ENV CERTS="" \
     CONNECTION_MODE="http-keep-alive" \
     DEBUG="false" \
     DEFAULT_PORTS="80,443:ssl" \
+    DEFAULT_REQ_MODE="http" \
     DO_NOT_RESOLVE_ADDR="false" \
     EXTRA_FRONTEND="" \
     LISTENER_ADDRESS="" \
