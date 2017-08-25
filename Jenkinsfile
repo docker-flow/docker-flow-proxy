@@ -16,6 +16,7 @@ pipeline {
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
         checkout scm
+        stash name: "compose", includes: "docker-compose-test.yml"
         sh "docker image build -t vfarcic/docker-flow-proxy ."
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta"
         withCredentials([usernamePassword(
@@ -33,15 +34,21 @@ pipeline {
         sh "docker tag vfarcic/docker-flow-proxy-docs vfarcic/docker-flow-proxy-docs:${currentBuild.displayName}"
       }
     }
-//    stage("test") {
-//      environment {
-//        HOST_IP = "build.dockerflow.com"
-//        DOCKER_HUB_USER = "vfarcic"
-//      }
-//      steps {
-//        sh "docker-compose -f docker-compose-test.yml run --rm staging-swarm"
-//      }
-//    }
+    stage("test") {
+      environment {
+        DOCKER_HUB_USER = "vfarcic"
+      }
+      agent {
+        label "test-cluster"
+      }
+      steps {
+        unstash "compose"
+        script {
+            var hostIp = sh returnStdout: true, script: "ifconfig eth0 | grep 'inet addr:'  | cut -d: -f2 | awk '{ print $1}'"
+            sh "HOST_IP=$hostIp docker-compose -f docker-compose-test.yml run --rm staging-swarm"
+        }
+      }
+    }
     stage("release") {
       when {
         branch "master"
