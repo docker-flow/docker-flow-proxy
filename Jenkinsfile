@@ -44,7 +44,7 @@ pipeline {
       steps {
         unstash "compose"
         script {
-            var hostIp = sh returnStdout: true, script: 'ifconfig eth0 | grep \'inet addr:\'  | cut -d: -f2 | awk \'{ print $1}\''
+            hostIp = sh returnStdout: true, script: 'ifconfig eth0 | grep \'inet addr:\'  | cut -d: -f2 | awk \'{ print $1}\''
             sh "HOST_IP=$hostIp docker-compose -f docker-compose-test.yml run --rm staging-swarm"
         }
       }
