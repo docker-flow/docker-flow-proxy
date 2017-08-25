@@ -45,7 +45,8 @@ pipeline {
         unstash "compose"
         script {
             hostIp = sh returnStdout: true, script: 'ifconfig eth0 | grep \'inet addr:\'  | cut -d: -f2 | awk \'{ print $1}\''
-            sh "export HOST_IP=$hostIp && docker-compose -f docker-compose-test.yml run --rm staging-swarm"
+            hostIp = hostIp.trim()
+            sh "HOST_IP=$hostIp docker-compose -f docker-compose-test.yml run --rm staging-swarm"
         }
       }
     }
