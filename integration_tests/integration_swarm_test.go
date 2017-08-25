@@ -748,7 +748,6 @@ func (s *IntegrationSwarmTestSuite) sendHelloRequest() (*http.Response, error) {
 func (s *IntegrationSwarmTestSuite) reconfigureGoDemo(extraParams string) {
 	params := fmt.Sprintf("serviceName=go-demo-api&servicePath=/demo&port=8080%s", extraParams)
 	s.reconfigureService(params)
-	time.Sleep(1 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reconfigureRedis() {
@@ -775,6 +774,7 @@ CONFIGURATION:
 			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
+	time.Sleep(1 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reloadService(params string) {
