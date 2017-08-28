@@ -1,4 +1,4 @@
-# Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration
+# Running Docker Flow Proxy With Automatic Reconfiguration
 
 *Docker Flow Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*.
 
@@ -344,6 +344,8 @@ As an example, we'll create the `go-demo` service that will be configured in the
 The command is as follows.
 
 ```bash
+docker service rm go-demo
+
 docker service create --name go-demo \
     -e DB=go-demo-db \
     --network go-demo \
@@ -381,6 +383,26 @@ hello, world!
 
 We sent a request to `/something/hello`. The proxy accepted the request, rewrote the path to `/demo/hello`, and forwarded it to the `go-demo` service.
 
+The `reqPathSearch` label accepts regular expressions. We can, for example, rewrite any path that starts with `/something/` to `/demo/hello`.
+
+```bash
+docker service update \
+    --label-add com.df.reqPathSearch='/something/.*' \
+    --label-add com.df.reqPathReplace='/demo/hello' \
+    go-demo
+```
+
+Let's check whether it works as expected.
+
+```bash
+curl -i $(docker-machine ip node-1)/something/hello
+
+curl -i $(docker-machine ip node-1)/something/else
+
+curl -i $(docker-machine ip node-1)/something/totaly/different
+```
+
+All three requests resulted in the same response. Everything that starts with `/something/` is rewritten to `/demo/hello`.
 
 Let's remove the `go-demo` service before we proceed with *authentication*.
 

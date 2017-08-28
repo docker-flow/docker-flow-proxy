@@ -31,7 +31,7 @@ type configData struct {
 	ContentFrontendSNI   string
 	ContentFrontendTcp   string
 	DefaultBinds         string
-	DefaultReqMode 		 string
+	DefaultReqMode       string
 	ExtraDefaults        string
 	ExtraFrontend        string
 	ExtraGlobal          string
