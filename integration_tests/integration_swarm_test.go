@@ -774,7 +774,7 @@ CONFIGURATION:
 			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reloadService(params string) {
