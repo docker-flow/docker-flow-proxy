@@ -54,12 +54,16 @@ func (s *MetricsTestSuite) Test_NewMetrics_SetsMetricsUrlWithCredentials() {
 		os.Unsetenv("STATS_USER_ENV")
 		os.Unsetenv("STATS_PASS")
 		os.Unsetenv("STATS_PASS_ENV")
+		os.Unsetenv("STATS_URI")
+		os.Unsetenv("STATS_URI_ENV")
 	}()
 	os.Setenv("STATS_USER_ENV", "STATS_USER")
 	os.Setenv("STATS_USER", "my-user")
 	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	os.Setenv("STATS_PASS", "my-pass")
-	expected := "http://my-user:my-pass@localhost/admin?stats;csv"
+	os.Setenv("STATS_URI", "/myStats")
+	os.Setenv("STATS_URI_ENV", "STATS_URI")
+	expected := "http://my-user:my-pass@localhost/myStats;csv"
 	m := NewMetrics("")
 
 	s.Equal(expected, m.getMetricsUrl())

@@ -1,4 +1,4 @@
-version: "3.1"
+version: "3.2"
 
 services:
 
@@ -11,6 +11,8 @@ services:
       - proxy
     environment:
       - LISTENER_ADDRESS=swarm-listener
+      - STATS_USER=none
+      - STATS_PASS=none
     secrets:
       - dfp_users_vfarcic
     deploy:
@@ -56,7 +58,7 @@ services:
     networks:
       - proxy
     environment:
-      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com")
+      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com" "jenkins.dockerflow.com")
       - CERTBOT_EMAIL=viktor@farcic.com
       - PROXY_ADDRESS=proxy
       - CERTBOT_CRON_RENEW=("0 3 * * *" "0 15 * * *")
@@ -68,7 +70,11 @@ services:
         - com.df.notify=true
         - com.df.distribute=true
         - com.df.port=80
-      replicas: 1
+      resources:
+        reservations:
+          memory: 20M
+        limits:
+          memory: 30M
 
 networks:
   proxy:
@@ -81,6 +87,4 @@ secrets:
 volumes:
   lets-encrypt:
     driver: cloudstor:aws
-    driver_opts:
-      size: "5"
     external: false

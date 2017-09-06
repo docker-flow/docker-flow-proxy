@@ -241,7 +241,7 @@ The following query arguments can be used to send a *reload* request to *Docker 
 
 > Outputs Prometheus-friendly metrics
 
-Metrics can be retrieved though the address **[PROXY_IP]:[PROXY_PORT]/metrics**.
+Metrics can be retrieved though the address **[PROXY_IP]:[PROXY_PORT]/metrics**. The metrics are in the same format as those provided with the [HAProxy Exporter](https://github.com/prometheus/haproxy_exporter). This endpoint will be available only if environment variables `STATS_USER` and `STATS_PASS` are defined.
 
 ## Templates
 

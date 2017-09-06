@@ -26,7 +26,8 @@ type metrics struct {
 // NewMetrics returns metricer instance
 func NewMetrics(metricsUrl string) metricer {
 	if len(metricsUrl) == 0 {
-		metricsUrl = fmt.Sprintf("http://%slocalhost/admin?stats;csv", GetCreds())
+		statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
+		metricsUrl = fmt.Sprintf("http://%slocalhost%s;csv", GetCreds(), statsUri)
 	}
 	return &metrics{metricsUrl: metricsUrl}
 }

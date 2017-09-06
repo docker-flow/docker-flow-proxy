@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"os"
 )
 
 const (
@@ -40,7 +41,8 @@ var (
 // SetupHandler initializes prometheus exporter
 func SetupHandler(creds string) {
 	if !isInitialized {
-		uri := fmt.Sprintf("http://%slocalhost/admin?stats;csv", creds)
+		statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
+		uri := fmt.Sprintf("http://%slocalhost%s;csv", creds, statsUri)
 
 		selectedServerMetrics, err := filterServerMetrics(serverMetrics.String())
 		if err != nil {
