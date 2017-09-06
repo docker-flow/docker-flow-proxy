@@ -42,7 +42,11 @@ var (
 func SetupHandler(creds string) {
 	if !isInitialized {
 		statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
-		uri := fmt.Sprintf("http://%slocalhost%s;csv", creds, statsUri)
+		statsPort := getSecretOrEnvVar("STATS_PORT", "")
+		if len(statsPort) > 0 {
+			statsPort = ":" + statsPort
+		}
+		uri := fmt.Sprintf("http://%slocalhost%s%s;csv", creds, statsPort, statsUri)
 
 		selectedServerMetrics, err := filterServerMetrics(serverMetrics.String())
 		if err != nil {

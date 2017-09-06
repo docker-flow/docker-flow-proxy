@@ -506,6 +506,52 @@ frontend services`
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_CreatesSeparateFrontEndAndBackEnd_WhenStatsPortIsNot80() {
+	var actualData string
+	statUserOrig := os.Getenv("STATS_USER")
+	statPassOrig := os.Getenv("STATS_PASS")
+	statUserEnvOrig := os.Getenv("STATS_USER_ENV")
+	statPassEnvOrig := os.Getenv("STATS_PASS_ENV")
+	defer func() {
+		os.Setenv("STATS_USER", statUserOrig)
+		os.Setenv("STATS_PASS", statPassOrig)
+		os.Setenv("STATS_USER_ENV", statUserEnvOrig)
+		os.Setenv("STATS_PASS_ENV", statPassEnvOrig)
+		os.Unsetenv("STATS_PORT")
+	}()
+	os.Setenv("STATS_USER", "my-user")
+	os.Setenv("STATS_PASS", "my-pass")
+	os.Setenv("STATS_USER_ENV", "STATS_USER")
+	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
+	os.Setenv("STATS_PORT", "81")
+	stats := `frontend stats
+    bind *:81
+    default_backend stats
+
+backend stats
+    mode http
+    stats enable
+    stats refresh 30s
+    stats realm Strictly\ Private
+    stats uri /admin?stats
+    stats auth my-user:my-pass
+
+frontend services`
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		strings.Replace(s.TemplateContent, "\nfrontend services", stats, -1),
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_RemovesStatsAuth_WhenUserIsNone() {
 	var actualData string
 	statUserOrig := os.Getenv("STATS_USER")

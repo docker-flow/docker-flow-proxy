@@ -252,7 +252,6 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 	s.reconfigureGoDemo("&addResHeader=my-res-header%20my-res-value")
-	time.Sleep(2 * time.Second)
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
 
@@ -756,6 +755,7 @@ func (s *IntegrationSwarmTestSuite) reconfigureRedis() {
 }
 
 func (s *IntegrationSwarmTestSuite) reconfigureService(params string) {
+	time.Sleep(1 * time.Second)
 	url := fmt.Sprintf(
 		"http://%s:8080/v1/docker-flow-proxy/reconfigure?%s",
 		s.hostIP,
@@ -775,7 +775,7 @@ CONFIGURATION:
 			s.getProxyConf(""))
 		s.Equal(200, resp.StatusCode, msg)
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) reloadService(params string) {

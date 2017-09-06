@@ -27,7 +27,11 @@ type metrics struct {
 func NewMetrics(metricsUrl string) metricer {
 	if len(metricsUrl) == 0 {
 		statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
-		metricsUrl = fmt.Sprintf("http://%slocalhost%s;csv", GetCreds(), statsUri)
+		statsPort := getSecretOrEnvVar("STATS_PORT", "")
+		if len(statsPort) > 0 {
+			statsPort = ":" + statsPort
+		}
+		metricsUrl = fmt.Sprintf("http://%slocalhost%s%s;csv", GetCreds(), statsPort, statsUri)
 	}
 	return &metrics{metricsUrl: metricsUrl}
 }

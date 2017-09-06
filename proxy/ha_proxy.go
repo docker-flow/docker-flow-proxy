@@ -364,8 +364,19 @@ func (m *HaProxy) putStats(data *configData) {
 	statsUser := getSecretOrEnvVar(os.Getenv("STATS_USER_ENV"), "")
 	statsPass := getSecretOrEnvVar(os.Getenv("STATS_PASS_ENV"), "")
 	statsUri := getSecretOrEnvVar(os.Getenv("STATS_URI_ENV"), "/admin?stats")
+	statsPort := getSecretOrEnvVar("STATS_PORT", "")
+	if statsPort != "80" && len(statsPort) > 0 {
+		data.Stats += fmt.Sprintf(`
+frontend stats
+    bind *:%s
+    default_backend stats
+
+backend stats
+    mode http`,
+		statsPort)
+	}
 	if len(statsUser) > 0 && len(statsPass) > 0 {
-		data.Stats = fmt.Sprintf(`
+		data.Stats += fmt.Sprintf(`
     stats enable
     stats refresh 30s
     stats realm Strictly\ Private
