@@ -252,6 +252,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 	s.reconfigureGoDemo("&addResHeader=my-res-header%20my-res-value")
+	time.Sleep(2 * time.Second)
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
 
