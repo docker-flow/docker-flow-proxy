@@ -15,7 +15,6 @@ pipeline {
           def dateFormat = new SimpleDateFormat("yy.MM.dd")
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
-        checkout scm
         sh "docker image build -t vfarcic/docker-flow-proxy ."
         sh "docker tag vfarcic/docker-flow-proxy vfarcic/docker-flow-proxy:beta"
         withCredentials([usernamePassword(
