@@ -178,28 +178,27 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 	}
 }
 
-// The attempt to remove zombie processes failed
-//func (s IntegrationSwarmTestSuite) Test_ZombieProcesses() {
-//	for i:=0; i < 30; i++ {
-//		s.reconfigureGoDemo("")
-//	}
-//	out, err := exec.Command(
-//		"/bin/sh",
-//		"-c",
-//		"docker container ls -q -f \"label=com.docker.swarm.service.name=proxy\" | tail -n 1",
-//	).CombinedOutput()
-//	s.NoError(err)
-//	out, err = exec.Command(
-//		"/bin/sh",
-//		"-c",
-//		"docker container exec -t " + strings.Trim(string(out), "\n") + " ps aux | grep haproxy",
-//	).CombinedOutput()
-//	time.Sleep(10 * time.Second)
-//
-//	s.NoError(err)
-//	// There should be only one processes plus extra line at the end of the output
-//	s.Len(strings.Split(string(out), "\n"), 2)
-//}
+func (s IntegrationSwarmTestSuite) Test_ZombieProcesses() {
+	for i:=0; i < 30; i++ {
+		s.reconfigureGoDemo("")
+	}
+	out, err := exec.Command(
+		"/bin/sh",
+		"-c",
+		"docker container ls -q -f \"label=com.docker.swarm.service.name=proxy\" | tail -n 1",
+	).CombinedOutput()
+	s.NoError(err)
+	out, err = exec.Command(
+		"/bin/sh",
+		"-c",
+		"docker container exec -t " + strings.Trim(string(out), "\n") + " ps aux | grep haproxy",
+	).CombinedOutput()
+	time.Sleep(10 * time.Second)
+
+	s.NoError(err)
+	// There should be only one processes plus extra line at the end of the output
+	s.Len(strings.Split(string(out), "\n"), 2)
+}
 
 func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	client := new(http.Client)
