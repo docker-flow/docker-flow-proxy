@@ -373,7 +373,7 @@ frontend stats
 
 backend stats
     mode http`,
-		statsPort)
+			statsPort)
 	}
 	if len(statsUser) > 0 && len(statsPass) > 0 {
 		data.Stats += fmt.Sprintf(`
