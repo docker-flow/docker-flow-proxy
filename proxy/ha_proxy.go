@@ -143,7 +143,11 @@ func (m HaProxy) ReadConfig() (string, error) {
 func (m HaProxy) Reload() error {
 	logPrintf("Reloading the proxy")
 	var reloadErr error
-	for i := 0; i < 10; i++ {
+	reconfigureAttempts := 20
+	if len(os.Getenv("RECONFIGURE_ATTEMPTS")) > 0 {
+		reconfigureAttempts, _ = strconv.Atoi(os.Getenv("RECONFIGURE_ATTEMPTS"))
+	}
+	for i := 0; i < reconfigureAttempts; i++ {
 		pidPath := "/var/run/haproxy.pid"
 		pid, err := readPidFile(pidPath)
 		if err != nil {
@@ -156,6 +160,7 @@ func (m HaProxy) Reload() error {
 			logPrintf("Proxy config was reloaded")
 			break
 		}
+		logPrintf("Proxy config could not be reloaded. Will try again...")
 		time.Sleep(time.Millisecond * reloadPauseMilliseconds)
 	}
 	return reloadErr

@@ -58,7 +58,7 @@ services:
     networks:
       - proxy
     environment:
-      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com" "jenkins.dockerflow.com")
+      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com" "jenkins.dockerflow.com" "prometheus.dockerflow.com" "proxy-letsencrypt.dockerflow.com")
       - CERTBOT_EMAIL=viktor@farcic.com
       - PROXY_ADDRESS=proxy
       - CERTBOT_CRON_RENEW=("0 3 * * *" "0 15 * * *")

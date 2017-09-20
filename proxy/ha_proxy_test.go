@@ -87,8 +87,11 @@ config2 be content`
 	os.Setenv("STATS_URI_ENV", "STATS_URI")
 	os.Setenv("SERVICE_DOMAIN_ALGO", "hdr(host)")
 	reloadPauseMillisecondsOrig := reloadPauseMilliseconds
+	reconfigureAttemptsOrig := os.Getenv("RECONFIGURE_ATTEMPTS")
+	os.Setenv("RECONFIGURE_ATTEMPTS", "1")
 	defer func() {
 		reloadPauseMilliseconds = reloadPauseMillisecondsOrig
+		os.Setenv("RECONFIGURE_ATTEMPTS", reconfigureAttemptsOrig)
 		os.Unsetenv("SERVICE_DOMAIN_ALGO")
 	}()
 	reloadPauseMilliseconds = 1
