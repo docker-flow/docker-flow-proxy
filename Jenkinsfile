@@ -37,7 +37,7 @@ pipeline {
       }
       steps {
         dfRelease("docker-flow-proxy")
-        sh "docker image push vfarcic/${project}:${currentBuild.displayName}-packet-beat"
+        sh "docker image push vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
       }
     }
     stage("deploy") {
