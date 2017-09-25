@@ -11,6 +11,7 @@ services:
       - proxy
     environment:
       - LISTENER_ADDRESS=swarm-listener
+      - HEALTHCHECK=true
 
   swarm-listener:
     image: vfarcic/docker-flow-swarm-listener
