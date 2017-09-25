@@ -164,6 +164,7 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 	).Output()
 	s.NoError(err)
 	s.waitForContainers(1, "proxy")
+	time.Sleep(5 * time.Second)
 	s.reconfigureGoDemo("")
 
 	client := new(http.Client)
