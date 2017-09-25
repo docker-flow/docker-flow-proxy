@@ -42,7 +42,10 @@ EXPOSE 8080
 RUN apk --no-cache add tini
 ENTRYPOINT ["/sbin/tini","--"]
 CMD ["docker-flow-proxy", "server"]
+HEALTHCHECK --interval=10s --start-period=1s --timeout=5s CMD check.sh
 
+COPY check.sh /usr/local/bin/check.sh
+RUN chmod +x /usr/local/bin/check.sh
 COPY errorfiles /errorfiles
 COPY haproxy.cfg /cfg/haproxy.cfg
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
