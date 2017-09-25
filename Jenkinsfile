@@ -16,6 +16,7 @@ pipeline {
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
         dfBuild("docker-flow-proxy")
+        sh "docker image build -t vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat ."
       }
     }
     stage("staging") {
@@ -36,6 +37,7 @@ pipeline {
       }
       steps {
         dfRelease("docker-flow-proxy")
+        sh "docker image push vfarcic/${project}:${currentBuild.displayName}-packet-beat"
       }
     }
     stage("deploy") {

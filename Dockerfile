@@ -44,7 +44,7 @@ ENTRYPOINT ["/sbin/tini","--"]
 CMD ["docker-flow-proxy", "server"]
 HEALTHCHECK --interval=5s --start-period=3s --timeout=5s CMD check.sh
 
-COPY check.sh /usr/local/bin/check.sh
+COPY scripts/check.sh /usr/local/bin/check.sh
 RUN chmod +x /usr/local/bin/check.sh
 COPY errorfiles /errorfiles
 COPY haproxy.cfg /cfg/haproxy.cfg
