@@ -37,7 +37,9 @@ pipeline {
       }
       steps {
         dfRelease("docker-flow-proxy")
+        dockerLogin()
         sh "docker image push vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
+        dockerLogout()
       }
     }
     stage("deploy") {
