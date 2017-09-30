@@ -536,6 +536,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			DeniedMethods:  []string{"PUT", "POST"},
 			HttpsOnly:      true,
 			Port:           "1234",
+			RedirectFromDomain: []string{"sub.domain1", "sub.domain2"},
 			ReqMode:        "reqMode",
 			ServiceDomain:  []string{"domain1", "domain2"},
 			ServiceHeader:  map[string]string{"X-Version": "3", "name": "Viktor"},
@@ -555,7 +556,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&xForwardedProto=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
@@ -577,6 +578,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.RedirectWhenHttpProto,
 		expected.HttpsPort,
 		strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
+		strings.Join(expected.ServiceDest[0].RedirectFromDomain, ","),
 		expected.Distribute,
 		expected.SslVerifyNone,
 		expected.ServiceDomainAlgo,
@@ -622,6 +624,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 				AllowedMethods: []string{},
 				DeniedMethods:  []string{},
 				Port:           "1234",
+				RedirectFromDomain: []string{},
 				ReqMode:        "http",
 				ServiceDomain:  []string{"domain1", "domain2"},
 				ServiceHeader:  map[string]string{},

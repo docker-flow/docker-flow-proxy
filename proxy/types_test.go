@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"github.com/stretchr/testify/suite"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
-	"os"
 )
 
 type TypesTestSuite struct {
@@ -229,12 +229,13 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexed
 		ServiceDest: []ServiceDest{{
 			AllowedMethods: []string{},
 			DeniedMethods:  []string{},
+			Index:          1,
+			Port:           "1234",
+			RedirectFromDomain: []string{},
+			ReqMode:        "reqMode",
 			ServiceDomain:  []string{"domain1", "domain2"},
 			ServiceHeader:  map[string]string{},
 			ServicePath:    []string{"/"},
-			Port:           "1234",
-			ReqMode:        "reqMode",
-			Index:          1,
 		}},
 		ServiceName: "serviceName",
 	}
@@ -256,12 +257,13 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 			AllowedMethods: []string{},
 			DeniedMethods:  []string{},
 			HttpsOnly:      true,
+			Index:          1,
+			Port:           "1234",
+			RedirectFromDomain: []string{},
+			ReqMode:        "reqMode",
 			ServiceDomain:  []string{},
 			ServiceHeader:  map[string]string{},
 			ServicePath:    []string{"/"},
-			Port:           "1234",
-			ReqMode:        "reqMode",
-			Index:          1,
 		}},
 		ServiceName: "serviceName",
 	}
@@ -322,6 +324,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"httpsOnly" + indexSuffix:           strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"ignoreAuthorization" + indexSuffix: strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
 		"port" + indexSuffix:                expected.ServiceDest[0].Port,
+		"redirectFromDomain" + indexSuffix:  strings.Join(expected.ServiceDest[0].RedirectFromDomain, separator),
 		"reqMode" + indexSuffix:             expected.ServiceDest[0].ReqMode,
 		"serviceDomain" + indexSuffix:       strings.Join(expected.ServiceDest[0].ServiceDomain, separator),
 		"serviceHeader" + indexSuffix:       header,
@@ -355,10 +358,11 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			DenyHttp:            true,
 			HttpsOnly:           true,
 			IgnoreAuthorization: true,
+			Port:                "1234",
+			RedirectFromDomain:  []string{"sub.domain1", "sub.domain2"},
 			ServiceDomain:       []string{"domain1", "domain2"},
 			ServiceHeader:       map[string]string{"X-Version": "3", "name": "Viktor"},
 			ServicePath:         []string{"/"},
-			Port:                "1234",
 			ReqMode:             "reqMode",
 			UserAgent:           UserAgent{Value: []string{"agent-1", "agent-2/replace-with_"}, AclName: "agent_1_agent_2_replace_with_"},
 			VerifyClientSsl:     true,

@@ -34,12 +34,17 @@ func getFrontTemplate(s Service) string {
     acl http_{{.ServiceName}} src_port 80
     acl https_{{.ServiceName}} src_port 443
 {{- end}}
+{{- range $sd := .ServiceDest}}
+    {{- range $rd := $sd.RedirectFromDomain}}
+    http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr(host) -i {{$rd}} }
+    {{- end}}
+{{- end}}
 {{- if $.RedirectWhenHttpProto}}
     {{- range .ServiceDest}}
         {{- if eq .ReqMode "http"}}
             {{- if ne .Port ""}}
     acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
+    http-request redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
             {{- end}}
         {{- end}}
     {{- end}}
@@ -147,7 +152,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     http-request deny if !{ ssl_fc }
 		{{- end}}
 		{{- if .HttpsOnly}}
-    redirect scheme https if !{ ssl_fc }
+    http-request redirect scheme https if !{ ssl_fc }
 		{{- end}}
 		{{- if eq $.SessionType "sticky-server"}}
     balance roundrobin

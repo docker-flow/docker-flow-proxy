@@ -510,7 +510,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithRedirectToHttps_W
 		`
 backend %s-be%s_0
     mode http
-    redirect scheme https if !{ ssl_fc }
+    http-request redirect scheme https if !{ ssl_fc }
     server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
