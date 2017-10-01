@@ -1,17 +1,18 @@
 package server
 
 import (
-	"../actions"
-	"../proxy"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"../actions"
+	"../proxy"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {
@@ -532,15 +533,16 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
 		ServiceDest: []proxy.ServiceDest{{
-			AllowedMethods: []string{"GET", "DELETE"},
-			DeniedMethods:  []string{"PUT", "POST"},
-			HttpsOnly:      true,
-			Port:           "1234",
+			AllowedMethods:     []string{"GET", "DELETE"},
+			DeniedMethods:      []string{"PUT", "POST"},
+			HttpsOnly:          true,
+			HttpsRedirectCode:  "302",
+			Port:               "1234",
 			RedirectFromDomain: []string{"sub.domain1", "sub.domain2"},
-			ReqMode:        "reqMode",
-			ServiceDomain:  []string{"domain1", "domain2"},
-			ServiceHeader:  map[string]string{"X-Version": "3", "name": "Viktor"},
-			ServicePath:    []string{"/"},
+			ReqMode:            "reqMode",
+			ServiceDomain:      []string{"domain1", "domain2"},
+			ServiceHeader:      map[string]string{"X-Version": "3", "name": "Viktor"},
+			ServicePath:        []string{"/"},
 		}},
 		ServiceDomainAlgo: "hdr_dom",
 		ServiceName:       "serviceName",
@@ -555,7 +557,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
@@ -572,6 +574,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.TimeoutTunnel,
 		expected.ServiceDest[0].ReqMode,
 		expected.ServiceDest[0].HttpsOnly,
+		expected.ServiceDest[0].HttpsRedirectCode,
 		expected.IsDefaultBackend,
 		expected.RedirectWhenHttpProto,
 		expected.HttpsPort,
@@ -619,15 +622,15 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 		ServiceName: "serviceName",
 		ServiceDest: []proxy.ServiceDest{
 			{
-				AllowedMethods: []string{},
-				DeniedMethods:  []string{},
-				Port:           "1234",
+				AllowedMethods:     []string{},
+				DeniedMethods:      []string{},
+				Port:               "1234",
 				RedirectFromDomain: []string{},
-				ReqMode:        "http",
-				ServiceDomain:  []string{"domain1", "domain2"},
-				ServiceHeader:  map[string]string{},
-				ServicePath:    []string{"/"},
-				Index:          0,
+				ReqMode:            "http",
+				ServiceDomain:      []string{"domain1", "domain2"},
+				ServiceHeader:      map[string]string{},
+				ServicePath:        []string{"/"},
+				Index:              0,
 			},
 		},
 	}
@@ -676,12 +679,13 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		TimeoutTunnel:         "my-TimeoutTunnel",
 		ServiceDest: []proxy.ServiceDest{
 			{
-				HttpsOnly:     true,
-				Port:          "1111",
-				ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
-				ServicePath:   []string{"my-path-11", "my-path-12"},
-				SrcPort:       1112,
-				ReqMode:       "my-ReqMode",
+				HttpsOnly:         true,
+				HttpsRedirectCode: "302",
+				Port:              "1111",
+				ServiceDomain:     []string{"my-domain-1.com", "my-domain-2.com"},
+				ServicePath:       []string{"my-path-11", "my-path-12"},
+				SrcPort:           1112,
+				ReqMode:           "my-ReqMode",
 			},
 		},
 	}
@@ -693,6 +697,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_DEL_RES_HEADER", strings.Join(service.DelResHeader, ","))
 	os.Setenv("DFP_SERVICE_DISTRIBUTE", strconv.FormatBool(service.Distribute))
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY", strconv.FormatBool(service.ServiceDest[0].HttpsOnly))
+	os.Setenv("DFP_SERVICE_HTTPS_REDIRECT_CODE", service.ServiceDest[0].HttpsRedirectCode)
 	os.Setenv("DFP_SERVICE_HTTPS_PORT", strconv.Itoa(service.HttpsPort))
 	os.Setenv("DFP_SERVICE_IS_DEFAULT_BACKEND", strconv.FormatBool(service.IsDefaultBackend))
 	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.OutboundHostname)
@@ -726,6 +731,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_DISTRIBUTE")
 		os.Unsetenv("DFP_SERVICE_HTTPS_ONLY")
 		os.Unsetenv("DFP_SERVICE_HTTPS_PORT")
+		os.Unsetenv("DFP_SERVICE_HTTPS_REDIRECT_CODE")
 		os.Unsetenv("DFP_SERVICE_IS_DEFAULT_BACKEND")
 		os.Unsetenv("DFP_SERVICE_OUTBOUND_HOSTNAME")
 		os.Unsetenv("DFP_SERVICE_PATH_TYPE")

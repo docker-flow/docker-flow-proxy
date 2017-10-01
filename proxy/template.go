@@ -153,10 +153,10 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
 		{{- end}}
 		{{- if .DenyHttp}}
     http-request deny if !{ ssl_fc }
-		{{- end}}
-		{{- if .HttpsOnly}}
-    http-request redirect scheme https if !{ ssl_fc }
-		{{- end}}
+        {{- end}}
+        {{- if .HttpsOnly}}
+    http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
+        {{- end}}
 		{{- if eq $.SessionType "sticky-server"}}
     balance roundrobin
     cookie {{$.ServiceName}} insert indirect nocache
