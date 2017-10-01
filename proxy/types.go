@@ -19,7 +19,7 @@ type ServiceDest struct {
 	DenyHttp bool
 	// Whether to redirect all http requests to https
 	HttpsOnly bool
-	// http code for http to https redirects
+	// HTTP code for HTTP to HTTPS redirects. This parameter is used only if `httpsOnly` is set to `true`.
 	HttpsRedirectCode string
 	// Whether to ignore authorization for this service destination.
 	IgnoreAuthorization bool

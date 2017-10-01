@@ -1,18 +1,17 @@
 package server
 
 import (
+	"../actions"
+	"../proxy"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
-
-	"../actions"
-	"../proxy"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {

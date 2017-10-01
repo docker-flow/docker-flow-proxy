@@ -1546,14 +1546,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToDomain_WhenRe
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	dataInstance.Services["my-service"] = Service{
-		ServiceName:           "my-service",
-		PathType:              "path_beg",
-		AclName:               "my-service",
+		ServiceName: "my-service",
+		PathType:    "path_beg",
+		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{
-				Port: "1111",
-				ServicePath: []string{"/path"},
-				ServiceDomain: []string{"my-domain-1.com", "my-domain-2.com"},
+				Port:               "1111",
+				ServicePath:        []string{"/path"},
+				ServiceDomain:      []string{"my-domain-1.com", "my-domain-2.com"},
 				RedirectFromDomain: []string{"my-other-domain-1.com", "my-other-domain-2.com"},
 			},
 		},
