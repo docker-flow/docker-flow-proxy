@@ -37,8 +37,8 @@ func getFrontTemplate(s Service) string {
     {{- end}}
 {{- end}}
 {{- if gt $.HttpsPort 0 }}
-    acl http_{{.ServiceName}} src_port 80
-    acl https_{{.ServiceName}} src_port 443
+    acl http_{{.ServiceName}} dst_port 80
+    acl https_{{.ServiceName}} dst_port 443
 {{- end}}
 {{- range $sd := .ServiceDest}}
     {{- range $rd := $sd.RedirectFromDomain}}

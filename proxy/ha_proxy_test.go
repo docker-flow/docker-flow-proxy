@@ -1467,8 +1467,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111_0 path_beg /path
-    acl http_my-service src_port 80
-    acl https_my-service src_port 443
+    acl http_my-service dst_port 80
+    acl https_my-service dst_port 443
     use_backend my-service-be1111_0 if url_my-service1111_0 http_my-service
     use_backend https-my-service-be1111_0 if url_my-service1111_0 https_my-service%s`,
 		tmpl,
