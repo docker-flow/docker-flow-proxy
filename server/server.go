@@ -263,6 +263,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	}
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
+	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
 
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
@@ -270,6 +271,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			proxy.ServiceDest{
 				HttpsOnly:         httpsOnly,
 				HttpsRedirectCode: httpsRedirectCode,
+				OutboundHostname:  globalOutboundHostname,
 				Port:              port,
 				ReqMode:           reqMode,
 				ServiceDomain:     domain,
@@ -289,11 +291,16 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		}
 		srcPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_PORT_%d", prefix, i)))
 		if len(path) > 0 && len(port) > 0 {
+			outboundHostname := os.Getenv(fmt.Sprintf("%s_OUTBOUND_HOSTNAME_%d", prefix, i))
+			if len(outboundHostname) == 0 {
+				outboundHostname = globalOutboundHostname
+			}
 			sd = append(
 				sd,
 				proxy.ServiceDest{
 					HttpsOnly:         httpsOnly,
 					HttpsRedirectCode: httpsRedirectCode,
+					OutboundHostname:  outboundHostname,
 					Port:              port,
 					SrcPort:           srcPort,
 					ServicePath:       strings.Split(path, ","),

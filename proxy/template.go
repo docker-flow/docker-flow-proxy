@@ -171,7 +171,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}
 		{{- end}}
 		{{- if not $.Tasks}}
-    server {{$.ServiceName}} {{$.Host}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
         {{- end}}
         {{- if not .IgnoreAuthorization}}
             {{- if and ($.Users) (not .IgnoreAuthorization)}}
@@ -234,7 +234,7 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}
 		    {{- end}}
 		    {{- if not $.Tasks}}
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
             {{- end}}
             {{- if not .IgnoreAuthorization}}
                 {{- if $.Users}}

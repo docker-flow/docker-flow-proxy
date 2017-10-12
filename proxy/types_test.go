@@ -252,6 +252,34 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexed
 	s.Equal(expected, *actual)
 }
 
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedOutboundHostname() {
+	expected := Service{
+		ServiceDest: []ServiceDest{{
+			AllowedMethods:     []string{},
+			DeniedMethods:      []string{},
+			Index:              1,
+			OutboundHostname:   "my-outbound-host.com",
+			Port:               "1234",
+			RedirectFromDomain: []string{},
+			ReqMode:            "reqMode",
+			ServiceDomain:      []string{},
+			ServiceHeader:      map[string]string{},
+			ServicePath:        []string{"/"},
+		}},
+		ServiceName: "serviceName",
+	}
+	serviceMap := map[string]string{
+		"outboundHostname": expected.ServiceDest[0].OutboundHostname,
+		"port.1":           expected.ServiceDest[0].Port,
+		"reqMode.1":        expected.ServiceDest[0].ReqMode,
+		"serviceName":      expected.ServiceName,
+		"servicePath.1":    strings.Join(expected.ServiceDest[0].ServicePath, ","),
+	}
+	provider := mapParameterProvider{&serviceMap}
+	actual := GetServiceFromProvider(&provider)
+	s.Equal(expected, *actual)
+}
+
 func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntries_WhenEmpty() {
 	expected := Service{
 		ServiceDest: []ServiceDest{{
@@ -300,7 +328,6 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"distribute":            strconv.FormatBool(expected.Distribute),
 		"httpsPort":             strconv.Itoa(expected.HttpsPort),
 		"isDefaultBackend":      strconv.FormatBool(expected.IsDefaultBackend),
-		"outboundHostname":      expected.OutboundHostname,
 		"pathType":              expected.PathType,
 		"redirectWhenHttpProto": strconv.FormatBool(expected.RedirectWhenHttpProto),
 		"reqPathReplace":        expected.ReqPathReplace,
@@ -325,6 +352,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"httpsOnly" + indexSuffix:           strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"httpsRedirectCode" + indexSuffix:   expected.ServiceDest[0].HttpsRedirectCode,
 		"ignoreAuthorization" + indexSuffix: strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
+		"outboundHostname" + indexSuffix:    expected.ServiceDest[0].OutboundHostname,
 		"port" + indexSuffix:                expected.ServiceDest[0].Port,
 		"redirectFromDomain" + indexSuffix:  strings.Join(expected.ServiceDest[0].RedirectFromDomain, separator),
 		"reqMode" + indexSuffix:             expected.ServiceDest[0].ReqMode,
@@ -347,7 +375,6 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		Distribute:            true,
 		HttpsPort:             1234,
 		IsDefaultBackend:      true,
-		OutboundHostname:      "outboundHostname",
 		PathType:              "pathType",
 		RedirectWhenHttpProto: true,
 		ReqPathReplace:        "reqPathReplace",
@@ -361,6 +388,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			HttpsOnly:           true,
 			HttpsRedirectCode:   "302",
 			IgnoreAuthorization: true,
+			OutboundHostname:    "outboundHostname",
 			Port:                "1234",
 			RedirectFromDomain:  []string{"sub.domain1", "sub.domain2"},
 			ServiceDomain:       []string{"domain1", "domain2"},

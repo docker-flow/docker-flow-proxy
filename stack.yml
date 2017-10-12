@@ -45,9 +45,12 @@ services:
         - com.df.port=80
         - com.df.serviceDomain=proxy.dockerflow.com
         - com.df.servicePath=/
-        - com.df.alertName=memlimit
-        - com.df.alertIf=@service_mem_limit:0.8
-        - com.df.alertFor=30s
+        - com.df.alertName.1=mem_limit
+        - com.df.alertIf.1=@service_mem_limit:0.8
+        - com.df.alertFor.1=30s
+        - com.df.alertName.2=replicas_running
+        - com.df.alertIf.2=@replicas_running
+        - com.df.alertFor.2=1m
       replicas: 2
       resources:
         reservations:

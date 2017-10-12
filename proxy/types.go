@@ -23,6 +23,9 @@ type ServiceDest struct {
 	HttpsRedirectCode string
 	// Whether to ignore authorization for this service destination.
 	IgnoreAuthorization bool
+	// The hostname where the service is running, for instance on a separate swarm.
+	// If specified, the proxy will dispatch requests to that domain.
+	OutboundHostname string
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
 	Port string
@@ -107,9 +110,6 @@ type Service struct {
 	HttpsPort int `split_words:"true"`
 	// If set to true, it will be the default_backend service.
 	IsDefaultBackend bool `split_words:"true"`
-	// The hostname where the service is running, for instance on a separate swarm.
-	// If specified, the proxy will dispatch requests to that domain.
-	OutboundHostname string `split_words:"true"`
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType string `split_words:"true"`
@@ -157,7 +157,6 @@ type Service struct {
 	// The rest of variables are for internal use only
 	ServicePort         string
 	AclCondition        string
-	Host                string
 	LookupRetry         int
 	LookupRetryInterval int
 	ServiceDest         []ServiceDest
@@ -388,6 +387,10 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	if sdIndex < 0 {
 		sdIndex = 0
 	}
+	outboundHostname := provider.GetString(fmt.Sprintf("outboundHostname%s", suffix))
+	if len(outboundHostname) == 0 {
+		outboundHostname = provider.GetString("outboundHostname")
+	}
 	return ServiceDest{
 		AllowedMethods:      getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),
 		DeniedMethods:       getSliceFromString(provider, fmt.Sprintf("deniedMethods%s", suffix)),
@@ -395,6 +398,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		HttpsOnly:           getBoolParam(provider, fmt.Sprintf("httpsOnly%s", suffix)),
 		HttpsRedirectCode:   provider.GetString(fmt.Sprintf("httpsRedirectCode%s", suffix)),
 		IgnoreAuthorization: getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
+		OutboundHostname:    outboundHostname,
 		Port:                provider.GetString(fmt.Sprintf("port%s", suffix)),
 		RedirectFromDomain:  getSliceFromString(provider, fmt.Sprintf("redirectFromDomain%s", suffix)),
 		ReqMode:             reqMode,

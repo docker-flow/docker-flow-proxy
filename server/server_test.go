@@ -527,7 +527,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		DelResHeader:          []string{"add-header-1", "add-header-2"},
 		Distribute:            true,
 		HttpsPort:             1234,
-		OutboundHostname:      "outboundHostname",
 		PathType:              "pathType",
 		RedirectWhenHttpProto: true,
 		ReqPathReplace:        "reqPathReplace",
@@ -538,6 +537,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			DeniedMethods:      []string{"PUT", "POST"},
 			HttpsOnly:          true,
 			HttpsRedirectCode:  "302",
+			OutboundHostname:   "outboundHostname",
 			Port:               "1234",
 			RedirectFromDomain: []string{"sub.domain1", "sub.domain2"},
 			ReqMode:            "reqMode",
@@ -565,7 +565,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		true,
 		expected.AclName,
 		expected.ServiceCert,
-		expected.OutboundHostname,
+		expected.ServiceDest[0].OutboundHostname,
 		expected.PathType,
 		expected.ReqPathSearch,
 		expected.ReqPathReplace,
@@ -667,7 +667,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		Distribute:            true,
 		HttpsPort:             1234,
 		IsDefaultBackend:      true,
-		OutboundHostname:      "my-OutboundHostname",
 		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
 		ReqPathReplace:        "my-ReqPathReplace",
@@ -686,6 +685,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 			{
 				HttpsOnly:         true,
 				HttpsRedirectCode: "302",
+				OutboundHostname:  "my-OutboundHostname",
 				Port:              "1111",
 				ServiceDomain:     []string{"my-domain-1.com", "my-domain-2.com"},
 				ServicePath:       []string{"my-path-11", "my-path-12"},
@@ -707,7 +707,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_HTTPS_REDIRECT_CODE", service.ServiceDest[0].HttpsRedirectCode)
 	os.Setenv("DFP_SERVICE_HTTPS_PORT", strconv.Itoa(service.HttpsPort))
 	os.Setenv("DFP_SERVICE_IS_DEFAULT_BACKEND", strconv.FormatBool(service.IsDefaultBackend))
-	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.OutboundHostname)
+	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.ServiceDest[0].OutboundHostname)
 	os.Setenv("DFP_SERVICE_PATH_TYPE", service.PathType)
 	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
 	os.Setenv("DFP_SERVICE_REQ_MODE", service.ServiceDest[0].ReqMode)
@@ -765,6 +765,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_X_FORWARDED_PROTO")
 	}()
 	srv := serve{}
+	println("000")
 	actual := srv.GetServicesFromEnvVars()
 
 	s.Len(*actual, 1)
@@ -802,22 +803,23 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdr
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexedData() {
-	service := proxy.Service{
+	expected := proxy.Service{
 		ServiceName: "my-ServiceName",
 		ServiceDest: []proxy.ServiceDest{
 			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, HttpsOnly: true},
-			{Port: "2221", ServicePath: []string{"my-path-21", "my-path-22"}, SrcPort: 2222, HttpsOnly: false},
+			{Port: "2221", ServicePath: []string{"my-path-21", "my-path-22"}, SrcPort: 2222, HttpsOnly: false, OutboundHostname: "my-outbound-domain.com"},
 		},
 	}
-	os.Setenv("DFP_SERVICE_SERVICE_NAME", service.ServiceName)
+	os.Setenv("DFP_SERVICE_SERVICE_NAME", expected.ServiceName)
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY_1", "true")
-	os.Setenv("DFP_SERVICE_PORT_1", service.ServiceDest[0].Port)
-	os.Setenv("DFP_SERVICE_SERVICE_PATH_1", strings.Join(service.ServiceDest[0].ServicePath, ","))
-	os.Setenv("DFP_SERVICE_SRC_PORT_1", strconv.Itoa(service.ServiceDest[0].SrcPort))
+	os.Setenv("DFP_SERVICE_PORT_1", expected.ServiceDest[0].Port)
+	os.Setenv("DFP_SERVICE_SERVICE_PATH_1", strings.Join(expected.ServiceDest[0].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SRC_PORT_1", strconv.Itoa(expected.ServiceDest[0].SrcPort))
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY_2", "false")
-	os.Setenv("DFP_SERVICE_PORT_2", service.ServiceDest[1].Port)
-	os.Setenv("DFP_SERVICE_SERVICE_PATH_2", strings.Join(service.ServiceDest[1].ServicePath, ","))
-	os.Setenv("DFP_SERVICE_SRC_PORT_2", strconv.Itoa(service.ServiceDest[1].SrcPort))
+	os.Setenv("DFP_SERVICE_PORT_2", expected.ServiceDest[1].Port)
+	os.Setenv("DFP_SERVICE_SERVICE_PATH_2", strings.Join(expected.ServiceDest[1].ServicePath, ","))
+	os.Setenv("DFP_SERVICE_SRC_PORT_2", strconv.Itoa(expected.ServiceDest[1].SrcPort))
+	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME_2", expected.ServiceDest[1].OutboundHostname)
 
 	defer func() {
 		os.Unsetenv("DFP_SERVICE_SERVICE_NAME")
@@ -829,14 +831,15 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 		os.Unsetenv("DFP_SERVICE_PORT_2")
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_2")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT_2")
+		os.Unsetenv("DFP_SERVICE_OUTBOUND_HOSTNAME_2")
 	}()
 	srv := serve{}
 	actual := srv.GetServicesFromEnvVars()
 
-	service.ServiceDest[0].ReqMode = "http"
-	service.ServiceDest[1].ReqMode = "http"
+	expected.ServiceDest[0].ReqMode = "http"
+	expected.ServiceDest[1].ReqMode = "http"
 	s.Len(*actual, 1)
-	s.Contains(*actual, service)
+	s.Contains(*actual, expected)
 }
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameIsNotSet() {

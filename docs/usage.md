@@ -36,7 +36,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutServer  |The server timeout in seconds.<br>**Default:** `20`<br>**Example:** `60`|
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Default:** `3600`<br>**Example:** `3600`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain``allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, or `ReqMode` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain``allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, or `outboundHostname` parameters. In that case, `srcPort` is required.
 
 ### HTTP Mode Query Parameters
 
@@ -51,7 +51,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |denyHttp     |Whether to deny HTTP requests thus allowing only HTTPS. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `denyHttp.1`, `denyHttp.2`, and so on).<br>**Example:** `true`<br>**Default Value:** `false`|
 |httpsRedirectCode|HTTP code for HTTP to HTTPS redirects. This parameter is used only if `httpsOnly` is set to `true`<br>**Example:** `301`|
 |httpsOnly    |If set to true, HTTP requests to the service will be redirected to HTTPS. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `httpsOnly.1`, `httpsOnly.2`, and so on).<br>**Example:** `true`<br>**Default Value:** `false`|
-|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain.<br>**Example:** `ecme.com`|
+|outboundHostname|The hostname where the service is running, for instance on a separate swarm. If specified, the proxy will dispatch requests to that domain. The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `outboundHostname.1`, `outboundHostname.2`, and so on).<br>**Example:** `ecme.com`|
 |pathType     |The ACL derivative. Defaults to *path_beg*. See [HAProxy path](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path) for more info.<br>**Example:** `path_beg`|
 |redirectFromDomain|If a request is sent to one of the domains in this list, it will be redirected to one of the values of the `ServiceDomain`. Multiple domains can be separated with comma (e.g. `acme.com,something.acme.com`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service.<br>**Example:** `acme.com,something.acme.com`|
 |redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port.<br>**Example:** `true`<br>**Default Value:** `false`|
@@ -70,14 +70,11 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |verifyClientSsl|Whether to verify client SSL and, if it is not valid, deny request and return 403 Forbidden status code. SSL is validated against the `ca-file` specified through the environment variable `CA_FILE`.<br>**Example:** true<br>**Default Value:** `false`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, or `ReqMode` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, or `outboundHostname` parameters. In that case, `srcPort` is required.
 
 ### TCP Mode HTTP Query Parameters
 
 The `reqMode` set to `tcp` does not have any specific parameters beyond those specified in the [Reconfigure General Parameters](#reconfigure-general-parameters) section.
-
-!!! warning
-    If multiple TCP services are defined to use the same `srcPort`, `serviceDomain` must be set for those services.
 
 Please consult the [Using TCP Request Mode](swarm-mode-auto.md#using-tcp-request-mode) section for an example of working with `tcp` request mode.
 
