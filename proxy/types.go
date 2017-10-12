@@ -195,7 +195,7 @@ func (slice Services) Swap(i, j int) {
 func hasRoot(service Service) bool {
 	for _, sd := range service.ServiceDest {
 		for _, path := range sd.ServicePath {
-			if path == "/" && len(sd.ServiceDomain) == 0 {
+			if path == "/" {
 				return true
 			}
 		}
