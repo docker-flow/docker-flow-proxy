@@ -151,6 +151,7 @@ func (m HaProxy) Reload() error {
 		if err := m.validateConfig(); err != nil {
 			logPrintf("Config validation failed. Will try again...")
 			reloadErr = err
+			time.Sleep(time.Millisecond * reloadPauseMilliseconds)
 			continue
 		}
 		pidPath := "/var/run/haproxy.pid"
