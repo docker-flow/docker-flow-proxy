@@ -9,13 +9,15 @@ curl -i "http://localhost/demo/hello"
 
 docker service scale proxy_main=0
 
-docker service logs -f proxy_swarm-listener
+# docker service logs proxy_swarm-listener
 
+# Repeat until we get response 503
 curl -i "http://localhost/demo/hello"
 
 docker service scale proxy_main=1
 
-docker service logs proxy_swarm-listener
+# docker service logs proxy_swarm-listener
 
+# Repeat until we get response 200
 curl -i "http://localhost/demo/hello"
 ```
