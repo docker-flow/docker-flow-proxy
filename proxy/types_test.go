@@ -289,7 +289,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 			Index:              1,
 			Port:               "1234",
 			RedirectFromDomain: []string{},
-			ReqMode:            "reqMode",
+			ReqMode:            "http",
 			ServiceDomain:      []string{},
 			ServiceHeader:      map[string]string{},
 			ServicePath:        []string{"/"},
@@ -297,16 +297,43 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 		ServiceName: "serviceName",
 	}
 	serviceMap := map[string]string{
-		//		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
 		"httpsOnly":         strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
-		"httpsRedirectCode": expected.ServiceDest[0].HttpsRedirectCode,
 		"serviceName":       expected.ServiceName,
 		"port.1":            expected.ServiceDest[0].Port,
-		"reqMode.1":         expected.ServiceDest[0].ReqMode,
 		"servicePath.1":     strings.Join(expected.ServiceDest[0].ServicePath, ","),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
+	s.Equal(expected, *actual)
+}
+
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
+	defer func() { os.Unsetenv("HTTPS_ONLY") }()
+	os.Setenv("HTTPS_ONLY", "true")
+	expected := Service{
+		ServiceDest: []ServiceDest{{
+			AllowedMethods:     []string{},
+			DeniedMethods:      []string{},
+			HttpsOnly:          true,
+			Index:              1,
+			Port:               "1234",
+			RedirectFromDomain: []string{},
+			ReqMode:            "http",
+			ServiceDomain:      []string{},
+			ServiceHeader:      map[string]string{},
+			ServicePath:        []string{"/"},
+		}},
+		ServiceName: "serviceName",
+	}
+	serviceMap := map[string]string{
+		"serviceName":       expected.ServiceName,
+		"port.1":            expected.ServiceDest[0].Port,
+		"servicePath.1":     strings.Join(expected.ServiceDest[0].ServicePath, ","),
+	}
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
 	s.Equal(expected, *actual)
 }
 

@@ -329,6 +329,9 @@ func getServiceDestList(sr *Service, provider ServiceParameterProvider) []Servic
 		serviceDomain = sd.ServiceDomain
 	}
 	httpsOnly := sd.HttpsOnly
+	if !httpsOnly {
+		httpsOnly, _ = strconv.ParseBool(os.Getenv("HTTPS_ONLY"))
+	}
 	for i := 1; i <= 10; i++ {
 		sd := getServiceDest(sr, provider, i)
 		if isServiceDestValid(&sd) {
