@@ -10,7 +10,6 @@ import (
 )
 
 func getFrontTemplate(s Service) string {
-	// TODO: Change domain_{{$.AclName}} to a unique value
 	tmplString := `
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}

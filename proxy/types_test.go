@@ -297,10 +297,10 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 		ServiceName: "serviceName",
 	}
 	serviceMap := map[string]string{
-		"httpsOnly":         strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
-		"serviceName":       expected.ServiceName,
-		"port.1":            expected.ServiceDest[0].Port,
-		"servicePath.1":     strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"httpsOnly":     strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
+		"serviceName":   expected.ServiceName,
+		"port.1":        expected.ServiceDest[0].Port,
+		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
@@ -326,9 +326,9 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
 		ServiceName: "serviceName",
 	}
 	serviceMap := map[string]string{
-		"serviceName":       expected.ServiceName,
-		"port.1":            expected.ServiceDest[0].Port,
-		"servicePath.1":     strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"serviceName":   expected.ServiceName,
+		"port.1":        expected.ServiceDest[0].Port,
+		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
 	}
 	provider := mapParameterProvider{&serviceMap}
 
