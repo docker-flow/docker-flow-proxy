@@ -21,7 +21,7 @@ type HaProxy struct {
 // Instance is a singleton containing an instance of the proxy
 var Instance proxy
 
-var reloadPauseMilliseconds time.Duration = 1000
+var reloadPause time.Duration = 1000
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type configData struct {
@@ -151,7 +151,7 @@ func (m HaProxy) Reload() error {
 		if err := m.validateConfig(); err != nil {
 			logPrintf("Config validation failed. Will try again...")
 			reloadErr = err
-			time.Sleep(time.Millisecond * reloadPauseMilliseconds)
+			time.Sleep(time.Millisecond * reloadPause)
 			continue
 		}
 		pidPath := "/var/run/haproxy.pid"
@@ -167,7 +167,7 @@ func (m HaProxy) Reload() error {
 			break
 		}
 		logPrintf("Proxy config could not be reloaded. Will try again...")
-		time.Sleep(time.Millisecond * reloadPauseMilliseconds)
+		time.Sleep(time.Millisecond * reloadPause)
 	}
 	return reloadErr
 }

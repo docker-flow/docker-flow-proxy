@@ -125,6 +125,9 @@ func GetBackTemplate(sr *Service) string {
 	tmpl := `{{- range $sd := .ServiceDest}}
 backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
+    {{- if .HttpsOnly}}
+    http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
+    {{- end}}
     {{- if eq .ReqModeFormatted "http"}}
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
 	{{- end}}
@@ -158,9 +161,6 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
 		{{- end}}
 		{{- if .DenyHttp}}
     http-request deny if !{ ssl_fc }
-        {{- end}}
-        {{- if .HttpsOnly}}
-    http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
         {{- end}}
 		{{- if eq $.SessionType "sticky-server"}}
     balance roundrobin

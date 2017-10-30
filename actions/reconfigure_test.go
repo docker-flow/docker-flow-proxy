@@ -537,8 +537,8 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithRedirectToHttps_W
 		`
 backend %s-be%s_0
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     http-request redirect scheme https if !{ ssl_fc }
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
@@ -570,8 +570,8 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithHttpsRedirectCode
 		`
 backend %s-be%s_0
     mode http
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     http-request redirect scheme https code %s if !{ ssl_fc }
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,
@@ -693,7 +693,7 @@ backend %s-be%s_0
 }
 
 func (s ReconfigureTestSuite) Test_Execute_AddsReqHeader_WhenSetReqHeaderIsSet() {
-	s.reconfigure.SetReqHeader = []string{"header-1", "header-2"}
+	s.reconfigure.SetReqHeader = []string{"header-1", "Strict-Transport-Security \"max-age=16000000; includeSubDomains; preload;\""}
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -702,7 +702,7 @@ backend %s-be%s_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     http-request set-header header-1
-    http-request set-header header-2
+    http-request set-header Strict-Transport-Security "max-age=16000000; includeSubDomains; preload;"
     server %s %s:%s`,
 		s.ServiceName,
 		s.reconfigure.ServiceDest[0].Port,

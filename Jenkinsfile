@@ -58,7 +58,7 @@ pipeline {
   }
   post {
     always {
-      sh "docker system prune -f"
+      sh "docker system prune -f -a --volumes"
     }
     failure {
       slackSend(

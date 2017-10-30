@@ -86,7 +86,7 @@ config2 be content`
 	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	os.Setenv("STATS_URI_ENV", "STATS_URI")
 	os.Setenv("SERVICE_DOMAIN_ALGO", "hdr(host)")
-	reloadPauseMillisecondsOrig := reloadPauseMilliseconds
+	reloadPauseOrig := reloadPause
 	reconfigureAttemptsOrig := os.Getenv("RECONFIGURE_ATTEMPTS")
 	os.Setenv("RECONFIGURE_ATTEMPTS", "1")
 	cmdRunHa = func(args []string) error {
@@ -96,11 +96,11 @@ config2 be content`
 		return nil
 	}
 	defer func() {
-		reloadPauseMilliseconds = reloadPauseMillisecondsOrig
+		reloadPause = reloadPauseOrig
 		os.Setenv("RECONFIGURE_ATTEMPTS", reconfigureAttemptsOrig)
 		os.Unsetenv("SERVICE_DOMAIN_ALGO")
 	}()
-	reloadPauseMilliseconds = 1
+	reloadPause = 1
 	suite.Run(t, s)
 }
 
