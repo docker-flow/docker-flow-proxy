@@ -300,7 +300,7 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
         s.Equal(200, resp.StatusCode, s.getProxyConf(""))
         s.Contains(
             resp.Header["Strict-Transport-Security"],
-            "max-age=16000000; includeSubDomains; preload;xxx",
+            "max-age=16000000; includeSubDomains; preload;",
             s.getProxyConf(""),
         )
     }
