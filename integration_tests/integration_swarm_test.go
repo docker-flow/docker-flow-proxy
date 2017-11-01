@@ -291,7 +291,7 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
     }
     
 	// setReqHeader
-	s.reconfigureGoDemo("&setReqHeader=Strict-Transport-Security%20%22max-age%3D16000000%3B%20includeSubDomains%3B%20preload%3B%22")
+	s.reconfigureGoDemo("&setResHeader=Strict-Transport-Security%20%22max-age%3D16000000%3B%20includeSubDomains%3B%20preload%3B%22")
     
     resp, err = http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
 
@@ -300,7 +300,7 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
         s.Equal(200, resp.StatusCode, s.getProxyConf(""))
         s.Contains(
             resp.Header["Strict-Transport-Security"],
-            "max-age=16000000; includeSubDomains; preload;",
+            "max-age=16000000; includeSubDomains; preload;xxx",
             s.getProxyConf(""),
         )
     }
