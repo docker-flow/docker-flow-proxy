@@ -154,6 +154,9 @@ func (m HaProxy) Reload() error {
 			time.Sleep(time.Millisecond * reloadPause)
 			continue
 		}
+		if reloadErr != nil {
+			logPrintf(reloadErr.Error())
+		}
 		pidPath := "/var/run/haproxy.pid"
 		pid, err := readPidFile(pidPath)
 		if err != nil {
