@@ -3,7 +3,6 @@ package proxy
 import (
     "bytes"
     "fmt"
-    "io"
     "io/ioutil"
     "log"
     "net"
@@ -14,7 +13,6 @@ import (
     "strings"
     "sync"
     "unicode"
-	"time"
 )
 
 var haProxyCmd = "haproxy"
@@ -22,29 +20,14 @@ var haProxyCmd = "haproxy"
 var cmdRunHa = func(args []string) error {
     var stdoutBuf, stderrBuf bytes.Buffer
     cmd := exec.Command(haProxyCmd, args...)
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	err := cmd.Run()
 
-    stdoutIn, _ := cmd.StdoutPipe()
-    stderrIn, _ := cmd.StderrPipe()
+	stdOut, stdErr := stdoutBuf.String(), stderrBuf.String()
+    combinedOut := fmt.Sprintf("\nout:\n%s\nerr:\n%s\n", stdOut, stdErr)
 
-    stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
-    stderr := io.MultiWriter(os.Stderr, &stderrBuf)
-    cmd.Start()
-
-    go func() {
-        io.Copy(stdout, stdoutIn)
-    }()
-
-    go func() {
-        io.Copy(stderr, stderrIn)
-    }()
-
-    cmd.Wait()
-	time.Sleep(10 * time.Millisecond)
-
-    outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-    combinedOut := fmt.Sprintf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
-
-    if strings.Contains(combinedOut, "could not resolve address") || errStr != "" {
+    if strings.Contains(combinedOut, "could not resolve address") || stdErr != "" || err != nil {
         return fmt.Errorf(combinedOut)
     }
 
