@@ -22,6 +22,7 @@ ENV CERTS="" \
     DEFAULT_PORTS="80,443:ssl" \
     DEFAULT_REQ_MODE="http" \
     DO_NOT_RESOLVE_ADDR="false" \
+    HEALTHCHECK="true" \
     HTTPS_ONLY="false" \
     EXTRA_FRONTEND="" \
     LISTENER_ADDRESS="" \
