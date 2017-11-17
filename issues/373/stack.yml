@@ -2,23 +2,6 @@ version: "3.2"
 
 services:
 
-  web:
-    image: ghost:1.10-alpine
-    networks:
-      - proxy
-    environment:
-      url: https://zarbis.tk
-    deploy:
-      labels:
-        - com.df.notify=true
-        - com.df.distribute=true
-        - com.df.port=2368
-#        - com.df.servicePath=/
-#        - com.df.httpsOnly=false
-        - com.df.serviceDomain=zarbis.tk
-#        - com.df.letsencrypt.host=zarbis.tk
-#        - com.df.letsencrypt.email=ubuntolog@gmail.com
-
   proxy:
     image: vfarcic/docker-flow-proxy:${TAG:-latest}
     ports:
@@ -39,11 +22,28 @@ services:
       - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
       - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
     deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  main:
+    image: vfarcic/go-demo-2
+    environment:
+      - DB=db
+    networks:
+      - proxy
+    deploy:
       labels:
         - com.df.notify=true
         - com.df.distribute=true
-      placement:
-        constraints: [node.role == manager]
+        - com.df.servicePath=/demo
+        - com.df.redirectFromDomain=acme.com
+        - com.df.serviceDomain=google.com
+        - com.df.port=8080
+
+  db:
+    image: mongo
+    networks:
+      - proxy
 
 networks:
   proxy:
