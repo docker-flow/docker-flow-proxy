@@ -14,6 +14,7 @@ import (
     "strings"
     "sync"
     "unicode"
+	"time"
 )
 
 var haProxyCmd = "haproxy"
@@ -38,6 +39,7 @@ var cmdRunHa = func(args []string) error {
     }()
 
     cmd.Wait()
+	time.Sleep(1 * time.Millisecond)
 
     outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
     combinedOut := fmt.Sprintf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
