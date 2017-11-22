@@ -44,6 +44,18 @@ func getFrontTemplate(s Service) string {
     http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr_beg(host) -i {{$rd}} }
     {{- end}}
 {{- end}}
+{{- if $.RedirectWhenHttpProto}}
+    {{- range .ServiceDest}}
+        {{- if eq .ReqMode "http"}}
+           {{- if ne .Port ""}}
+    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
+    http-request redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
+    acl is_{{$.AclName}}_https hdr(X-Forwarded-Proto) https
+    http-request redirect scheme https if !is_{{$.AclName}}_https url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
+            {{- end}}
+        {{- end}}
+    {{- end}}
+{{- end}}
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.ServiceName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
@@ -55,18 +67,6 @@ func getFrontTemplate(s Service) string {
     default_backend {{$.ServiceName}}-be{{.Port}}_{{$sd.Index}}
         {{- end}}
     {{- end}}{{- end}}
-{{- end}}
-{{- if $.RedirectWhenHttpProto}}
-    {{- range .ServiceDest}}
-        {{- if eq .ReqMode "http"}}
-            {{- if ne .Port ""}}
-    acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    http-request redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
-    acl is_{{$.AclName}}_https hdr(X-Forwarded-Proto) https
-    http-request redirect scheme https if !is_{{$.AclName}}_https url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
-            {{- end}}
-        {{- end}}
-    {{- end}}
 {{- end}}`
 	return templateToString(tmplString, s)
 }
