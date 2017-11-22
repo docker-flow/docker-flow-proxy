@@ -1,37 +1,36 @@
 package proxy
 
 import (
-    "bytes"
-    "fmt"
-    "io/ioutil"
-    "log"
-    "net"
-    "net/http"
-    "os"
-    "os/exec"
-    "regexp"
-    "strings"
-    "sync"
-    "unicode"
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"os/exec"
+	"regexp"
+	"strings"
+	"sync"
+	"unicode"
 )
 
 var haProxyCmd = "haproxy"
 
 var cmdRunHa = func(args []string) error {
-    var stdoutBuf, stderrBuf bytes.Buffer
-    cmd := exec.Command(haProxyCmd, args...)
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd := exec.Command(haProxyCmd, args...)
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	err := cmd.Run()
 
 	stdOut, stdErr := stdoutBuf.String(), stderrBuf.String()
-    combinedOut := fmt.Sprintf("\nout:\n%s\nerr:\n%s\n", stdOut, stdErr)
 
-    if strings.Contains(combinedOut, "could not resolve address") || stdErr != "" || err != nil {
-        return fmt.Errorf(combinedOut)
-    }
+	if strings.Contains(stdOut, "could not resolve address") || stdErr != "" || err != nil {
+		return fmt.Errorf("out:\n%s\nerr:\n%s\n", stdOut, stdErr)
+	}
 
-    return nil
+	return nil
 }
 
 var cmdValidateHa = func(args []string) error {

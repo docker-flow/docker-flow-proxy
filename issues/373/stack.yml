@@ -38,6 +38,7 @@ services:
         - com.df.servicePath=/demo
         - com.df.redirectFromDomain=acme.com
         - com.df.serviceDomain=google.com
+        - com.df.httpsOnly=true
         - com.df.port=8080
 
   db:
