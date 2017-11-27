@@ -21,7 +21,7 @@ type HaProxy struct {
 // Instance is a singleton containing an instance of the proxy
 var Instance proxy
 
-var reloadPauseMilliseconds time.Duration = 1000
+var reloadPause time.Duration = 1000
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type configData struct {
@@ -143,7 +143,20 @@ func (m HaProxy) ReadConfig() (string, error) {
 func (m HaProxy) Reload() error {
 	logPrintf("Reloading the proxy")
 	var reloadErr error
-	for i := 0; i < 10; i++ {
+	reconfigureAttempts := 20
+	if len(os.Getenv("RECONFIGURE_ATTEMPTS")) > 0 {
+		reconfigureAttempts, _ = strconv.Atoi(os.Getenv("RECONFIGURE_ATTEMPTS"))
+	}
+	for i := 0; i < reconfigureAttempts; i++ {
+		if err := m.validateConfig(); err != nil {
+			logPrintf("Config validation failed. Will try again...")
+			reloadErr = err
+			time.Sleep(time.Millisecond * reloadPause)
+			continue
+		}
+		if reloadErr != nil {
+			logPrintf(reloadErr.Error())
+		}
 		pidPath := "/var/run/haproxy.pid"
 		pid, err := readPidFile(pidPath)
 		if err != nil {
@@ -156,7 +169,8 @@ func (m HaProxy) Reload() error {
 			logPrintf("Proxy config was reloaded")
 			break
 		}
-		time.Sleep(time.Millisecond * reloadPauseMilliseconds)
+		logPrintf("Proxy config could not be reloaded. Will try again...")
+		time.Sleep(time.Millisecond * reloadPause)
 	}
 	return reloadErr
 }
@@ -373,7 +387,7 @@ frontend stats
 
 backend stats
     mode http`,
-		statsPort)
+			statsPort)
 	}
 	if len(statsUser) > 0 && len(statsPass) > 0 {
 		data.Stats += fmt.Sprintf(`
@@ -427,6 +441,8 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 		for i, sd := range s.ServiceDest {
 			if strings.EqualFold(sd.ReqMode, "http") {
 				if !httpDone {
+					// TODO: Remove that line once the problems with redirectWhenHttpProto are resolved
+					s.RedirectWhenHttpProto = false
 					config.ContentFrontend += getFrontTemplate(s)
 				}
 				httpDone = true
@@ -483,4 +499,23 @@ func (m *HaProxy) getReloadStrategy() string {
 		reloadStrategy = "-st"
 	}
 	return reloadStrategy
+}
+
+func (m HaProxy) validateConfig() error {
+	logPrintf("Validating configuration")
+	args := []string{
+		"-c",
+		"-V",
+		"-f",
+		"/cfg/haproxy.cfg",
+	}
+	if err := cmdValidateHa(args); err != nil {
+		config, _ := readConfigsFile("/cfg/haproxy.cfg")
+		return fmt.Errorf(
+			"Config validation failed\n%s\n%s",
+			err.Error(),
+			config,
+		)
+	}
+	return nil
 }

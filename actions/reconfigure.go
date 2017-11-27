@@ -50,8 +50,8 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 	defer mu.Unlock()
 	if strings.EqualFold(os.Getenv("SKIP_ADDRESS_VALIDATION"), "false") {
 		host := m.ServiceName
-		if len(m.OutboundHostname) > 0 {
-			host = m.OutboundHostname
+		if len(m.ServiceDest) > 0 && len(m.ServiceDest[0].OutboundHostname) > 0 {
+			host = m.ServiceDest[0].OutboundHostname
 		}
 		if _, err := lookupHost(host); err != nil {
 			logPrintf("Could not reach the service %s. Is the service running and connected to the same network as the proxy?", host)
@@ -141,10 +141,6 @@ func (m *Reconfigure) formatData(sr *proxy.Service) {
 	sr.AclCondition = ""
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
-	}
-	sr.Host = m.ServiceName
-	if len(m.OutboundHostname) > 0 {
-		sr.Host = m.OutboundHostname
 	}
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"

@@ -30,7 +30,6 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	s.dockerHubUser = os.Getenv("DOCKER_HUB_USER")
 
 	s.removeServices("go-demo-api", "go-demo-db", "proxy", "proxy-env", "redis")
-	//	exec.Command("/bin/sh", "-c", "docker system prune -f").Output()
 
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr %s", s.hostIP)
 	exec.Command("/bin/sh", "-c", cmd).Output()
@@ -68,11 +67,13 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 
 	s.createGoDemoService()
 
+	s.waitForContainers(1, "go-demo-db")
 	s.waitForContainers(1, "proxy")
 
 	suite.Run(t, s)
 
 	s.removeServices("go-demo-api", "go-demo-db", "proxy", "proxy-env", "redis")
+	exec.Command("/bin/sh", "-c", "docker system prune -f").Output()
 }
 
 // Tests
@@ -99,6 +100,23 @@ func (s IntegrationSwarmTestSuite) Test_Domain() {
 	resp, err := client.Do(req)
 
 	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_RedirectFromDomain() {
+	params := fmt.Sprintf("&serviceDomain=%s&redirectFromDomain=my-other-domain.com", s.hostIP)
+	s.reconfigureGoDemo(params)
+
+	client := new(http.Client)
+	url := fmt.Sprintf("http://%s/demo/hello", s.hostIP)
+	req, err := http.NewRequest("GET", url, nil)
+	s.NoError(err)
+	req.Host = "my-other-domain.com"
+	resp, err := client.Do(req)
+
+	s.NoError(err, s.getProxyConf(""))
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 	}
@@ -152,10 +170,9 @@ func (s IntegrationSwarmTestSuite) Test_Metrics() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_Compression() {
-	defer func() {
-		exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" --env-rm "COMPRESSION_TYPE" proxy`).Output()
-		s.waitForContainers(1, "proxy")
-	}()
+
+	// Compression defined for all services
+
 	_, err := exec.Command(
 		"/bin/sh",
 		"-c",
@@ -176,30 +193,41 @@ func (s IntegrationSwarmTestSuite) Test_Compression() {
 		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf(""))
 	}
+
+	exec.Command("/bin/sh", "-c", `docker service update --env-rm "COMPRESSION_ALGO" --env-rm "COMPRESSION_TYPE" proxy`).Output()
+	s.waitForContainers(1, "proxy")
+
+	// Compression defined on a service level
+
+	s.reconfigureGoDemo("&compressionAlgo=gzip&compressionType=text/css%20text/html%20text/javascript%20application/javascript%20text/plain%20text/xml%20application/json")
+
+	resp, err = client.Do(req)
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+		s.Contains(resp.Header["Content-Encoding"], "gzip", s.getProxyConf(""))
+	}
 }
 
-// The attempt to remove zombie processes failed
-//func (s IntegrationSwarmTestSuite) Test_ZombieProcesses() {
-//	for i:=0; i < 30; i++ {
-//		s.reconfigureGoDemo("")
-//	}
-//	out, err := exec.Command(
-//		"/bin/sh",
-//		"-c",
-//		"docker container ls -q -f \"label=com.docker.swarm.service.name=proxy\" | tail -n 1",
-//	).CombinedOutput()
-//	s.NoError(err)
-//	out, err = exec.Command(
-//		"/bin/sh",
-//		"-c",
-//		"docker container exec -t " + strings.Trim(string(out), "\n") + " ps aux | grep haproxy",
-//	).CombinedOutput()
-//	time.Sleep(10 * time.Second)
-//
-//	s.NoError(err)
-//	// There should be only one processes plus extra line at the end of the output
-//	s.Len(strings.Split(string(out), "\n"), 2)
-//}
+func (s IntegrationSwarmTestSuite) Test_ZombieProcesses() {
+	// Given
+	for i := 0; i < 3; i++ {
+		s.reconfigureGoDemo("")
+	}
+	command := "docker container ls -q -f \"label=com.docker.swarm.service.name=proxy\" | tail -n 1"
+	out, err := exec.Command("/bin/sh", "-c", command).CombinedOutput()
+	s.NoError(err)
+
+	// When
+	command = fmt.Sprintf("docker container exec -t %s ps aux | grep haproxy", strings.Trim(string(out), "\n"))
+	out, err = exec.Command("/bin/sh", "-c", command).CombinedOutput()
+
+	// Then
+	s.NoError(err)
+	// There should be only one process plus an extra line at the end of the output
+	s.Len(strings.Split(string(out), "\n"), 2, string(out))
+}
 
 func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 	client := new(http.Client)
@@ -251,6 +279,7 @@ func (s IntegrationSwarmTestSuite) Test_HeaderAcls() {
 }
 
 func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
+	// addResHeader
 	s.reconfigureGoDemo("&addResHeader=my-res-header%20my-res-value")
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
@@ -259,6 +288,21 @@ func (s IntegrationSwarmTestSuite) Test_AddHeaders() {
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 		s.Contains(resp.Header["My-Res-Header"], "my-res-value", s.getProxyConf(""))
+	}
+
+	// setReqHeader
+	s.reconfigureGoDemo("&setResHeader=Strict-Transport-Security%20%22max-age%3D16000000%3B%20includeSubDomains%3B%20preload%3B%22")
+
+	resp, err = http.Get(fmt.Sprintf("http://%s/demo/hello", s.hostIP))
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+		s.Contains(
+			resp.Header["Strict-Transport-Security"],
+			"max-age=16000000; includeSubDomains; preload;",
+			s.getProxyConf(""),
+		)
 	}
 }
 
@@ -726,7 +770,7 @@ func (s *IntegrationSwarmTestSuite) waitForContainers(expected int, name string)
 		i = i + 1
 		time.Sleep(1 * time.Second)
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *IntegrationSwarmTestSuite) createGoDemoService() {

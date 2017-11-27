@@ -10,10 +10,15 @@ import (
 )
 
 func getFrontTemplate(s Service) string {
-	// TODO: Change domain_{{$.AclName}} to a unique value
 	tmplString := `
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}
+        {{- if ne $.CompressionAlgo ""}}
+    compression algo {{$.CompressionAlgo}}
+            {{- if ne $.CompressionType ""}}
+    compression type {{$.CompressionType}}
+            {{- end}}
+        {{- end}}
         {{- if ne .Port ""}}
     acl url_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}{{.SrcPortAcl}}
         {{- end}}
@@ -31,15 +36,22 @@ func getFrontTemplate(s Service) string {
     {{- end}}
 {{- end}}
 {{- if gt $.HttpsPort 0 }}
-    acl http_{{.ServiceName}} src_port 80
-    acl https_{{.ServiceName}} src_port 443
+    acl http_{{.ServiceName}} dst_port 80
+    acl https_{{.ServiceName}} dst_port 443
+{{- end}}
+{{- range $sd := .ServiceDest}}
+    {{- range $rd := $sd.RedirectFromDomain}}
+    http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr_beg(host) -i {{$rd}} }
+    {{- end}}
 {{- end}}
 {{- if $.RedirectWhenHttpProto}}
     {{- range .ServiceDest}}
         {{- if eq .ReqMode "http"}}
-            {{- if ne .Port ""}}
+           {{- if ne .Port ""}}
     acl is_{{$.AclName}}_http hdr(X-Forwarded-Proto) http
-    redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
+    http-request redirect scheme https if is_{{$.AclName}}_http url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
+    acl is_{{$.AclName}}_https hdr(X-Forwarded-Proto) https
+    http-request redirect scheme https if !is_{{$.AclName}}_https url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcPortAclName}}
             {{- end}}
         {{- end}}
     {{- end}}
@@ -115,7 +127,13 @@ func GetBackTemplate(sr *Service) string {
 	tmpl := `{{- range $sd := .ServiceDest}}
 backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
-        {{- if ne $.ConnectionMode ""}}
+    {{- if .HttpsOnly}}
+    http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
+    {{- end}}
+    {{- if eq .ReqModeFormatted "http"}}
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+	{{- end}}
+	{{- if ne $.ConnectionMode ""}}
     option {{$.ConnectionMode}}
         {{- end}}
         {{- if $.Debug}}
@@ -145,10 +163,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
 		{{- end}}
 		{{- if .DenyHttp}}
     http-request deny if !{ ssl_fc }
-		{{- end}}
-		{{- if .HttpsOnly}}
-    redirect scheme https if !{ ssl_fc }
-		{{- end}}
+        {{- end}}
 		{{- if eq $.SessionType "sticky-server"}}
     balance roundrobin
     cookie {{$.ServiceName}} insert indirect nocache
@@ -157,7 +172,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}
 		{{- end}}
 		{{- if not $.Tasks}}
-    server {{$.ServiceName}} {{$.Host}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
         {{- end}}
         {{- if not .IgnoreAuthorization}}
             {{- if and ($.Users) (not .IgnoreAuthorization)}}
@@ -180,6 +195,9 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
         {{- range $sd := .ServiceDest}}
 backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
+            {{- if eq .ReqModeFormatted "http"}}
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+            {{- end}}
             {{- if ne $.ConnectionMode ""}}
     option {{$.ConnectionMode}}
             {{- end}}
@@ -217,7 +235,7 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}
 		    {{- end}}
 		    {{- if not $.Tasks}}
-    server {{$.ServiceName}} {{$.Host}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
             {{- end}}
             {{- if not .IgnoreAuthorization}}
                 {{- if $.Users}}
@@ -242,10 +260,6 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
 
 func getHeaders(sr *Service) string {
 	tmpl := ""
-	if sr.XForwardedProto {
-		tmpl += `
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }`
-	}
 	for _, header := range sr.AddReqHeader {
 		tmpl += fmt.Sprintf(`
     http-request add-header %s`,

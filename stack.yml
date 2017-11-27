@@ -28,9 +28,9 @@ services:
         delay: 10s
       resources:
         reservations:
-          memory: 10M
-        limits:
           memory: 20M
+        limits:
+          memory: 50M
 
   docs:
     image: vfarcic/docker-flow-proxy-docs:${TAG:-latest}
@@ -40,12 +40,16 @@ services:
       labels:
         - com.df.distribute=true
         - com.df.notify=true
+        - com.df.reschedule=true
         - com.df.port=80
         - com.df.serviceDomain=proxy.dockerflow.com
         - com.df.servicePath=/
-        - com.df.alertName=memlimit
-        - com.df.alertIf=@service_mem_limit:0.8
-        - com.df.alertFor=30s
+        - com.df.alertName.1=mem_limit
+        - com.df.alertIf.1=@service_mem_limit:0.8
+        - com.df.alertFor.1=30s
+        - com.df.alertName.2=replicas_running
+        - com.df.alertIf.2=@replicas_running
+        - com.df.alertFor.2=1m
       replicas: 2
       resources:
         reservations:
@@ -58,7 +62,7 @@ services:
     networks:
       - proxy
     environment:
-      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com" "jenkins.dockerflow.com")
+      - DOMAIN_1=("dockerflow.com" "proxy.dockerflow.com" "swarmlistener.dockerflow.com" "monitor.dockerflow.com" "jenkins.dockerflow.com" "prometheus.dockerflow.com" "proxy-letsencrypt.dockerflow.com" "registry.dockerflow.com")
       - CERTBOT_EMAIL=viktor@farcic.com
       - PROXY_ADDRESS=proxy
       - CERTBOT_CRON_RENEW=("0 3 * * *" "0 15 * * *")

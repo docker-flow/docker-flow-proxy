@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,13 +15,26 @@ import (
 	"unicode"
 )
 
+var haProxyCmd = "haproxy"
+
 var cmdRunHa = func(args []string) error {
-	out, err := exec.Command("haproxy", args...).CombinedOutput()
-	outString := string(out)
-	if strings.Contains(outString, "could not resolve address") {
-		err = fmt.Errorf(outString)
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd := exec.Command(haProxyCmd, args...)
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	err := cmd.Run()
+
+	stdOut, stdErr := stdoutBuf.String(), stderrBuf.String()
+
+	if strings.Contains(stdOut, "could not resolve address") || stdErr != "" || err != nil {
+		return fmt.Errorf("out:\n%s\nerr:\n%s\n", stdOut, stdErr)
 	}
-	return err
+
+	return nil
+}
+
+var cmdValidateHa = func(args []string) error {
+	return cmdRunHa(args)
 }
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile

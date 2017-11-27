@@ -1,6 +1,7 @@
 /.idea
 /*.iml
 /*.out
+/certs
 /docker-flow-proxy
 *.bak
 /tmp
