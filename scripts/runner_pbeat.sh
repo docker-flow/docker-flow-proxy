@@ -2,7 +2,7 @@
 
 # Start the first process
 echo 'Packetbeat starting';
-nohup ./packetbeat/packetbeat -c /packetbeat/packetbeat.yml &
+nohup ./packetbeat/packetbeat -c ${PACKETBEAT_CONFIG} &
 status=$?
 if [ $status -ne 0 ]; then
   echo "Failed to start packetbeat: $status"

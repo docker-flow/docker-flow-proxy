@@ -10,7 +10,10 @@ output.logstash:
   enabled: true
   hosts: '${DF_PACKETBEAT_LOGSTASH_HOSTS}'
   index: 'packetbeat'
-  ssl.enabled: false
+  ssl.enabled: '${DF_PACKETBEAT_LOGSTASH_SSL:true}'
+  ssl.certificate_authorities: '${DF_PACKETBEAT_LOGSTASH_SSL_AUTHORITIES}'
+  ssl.certificate: '${DF_PACKETBEAT_LOGSTASH_SSL_CERTIFICATE}'
+  ssl.key: '${DF_PACKETBEAT_LOGSTASH_SSL_KEY}'
 output.file:
   enabled: '${DF_PACKETBEAT_OUTPUT_FILE:true}'
   path: "/tmp/packetbeat"
