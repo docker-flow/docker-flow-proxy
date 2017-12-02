@@ -441,8 +441,6 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 		for i, sd := range s.ServiceDest {
 			if strings.EqualFold(sd.ReqMode, "http") {
 				if !httpDone {
-					// TODO: Remove that line once the problems with redirectWhenHttpProto are resolved
-					s.RedirectWhenHttpProto = false
 					config.ContentFrontend += getFrontTemplate(s)
 				}
 				httpDone = true
