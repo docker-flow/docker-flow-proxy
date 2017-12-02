@@ -740,6 +740,39 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service-11111_0 path_beg /path-1
+    acl url_exclude_my-service-11111_0 path_beg /path-2 path_beg /path-3
+    acl http_my-service-1 dst_port 80
+    acl https_my-service-1 dst_port 443
+    use_backend my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 http_my-service-1
+    use_backend https-my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 https_my-service-1%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		PathType:    "path_beg",
+		HttpsPort:   2222,
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path-1"}, ServicePathExclude: []string{"/path-2", "/path-3"}},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontEnd() {
 	var actualData string
 	tmpl := s.TemplateContent
