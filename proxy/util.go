@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,47 +13,48 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"unicode"
 )
 
 var haProxyCmd = "haproxy"
 
 var cmdRunHa = func(args []string) error {
-    var stdoutBuf, stderrBuf bytes.Buffer
-    cmd := exec.Command(haProxyCmd, args...)
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd := exec.Command(haProxyCmd, args...)
 
-    stdoutIn, _ := cmd.StdoutPipe()
-    stderrIn, _ := cmd.StderrPipe()
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
 
-    stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
-    stderr := io.MultiWriter(os.Stderr, &stderrBuf)
-    cmd.Start()
+	stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
+	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
+	cmd.Start()
 
-    go func() {
-        io.Copy(stdout, stdoutIn)
-    }()
+	go func() {
+		io.Copy(stdout, stdoutIn)
+	}()
 
-    go func() {
-        io.Copy(stderr, stderrIn)
-    }()
+	go func() {
+		io.Copy(stderr, stderrIn)
+	}()
 
-    err := cmd.Wait()
+	err := cmd.Wait()
 
-    outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-    combinedOut := fmt.Sprintf("\nstdout:\n%s\nstderr:\n%s\n", outStr, errStr)
+	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+	combinedOut := fmt.Sprintf("\nstdout:\n%s\nstderr:\n%s\n", outStr, errStr)
 
-    if exitError, ok := err.(*exec.ExitError); ok {
-        waitStatus := exitError.Sys().(syscall.WaitStatus)
-        fmt.Printf("Exit Status: %s\n", []byte(fmt.Sprintf("%d", waitStatus.ExitStatus())))
-        return fmt.Errorf(combinedOut)
-    }
-	
-    if errStr != "" {
-        fmt.Println("The configuration file is valid, but there still may be a misconfiguration",
-         "somewhere that will give unexpected results, please verify:", combinedOut)
-    }
-	
-    return nil
+	if exitError, ok := err.(*exec.ExitError); ok {
+		waitStatus := exitError.Sys().(syscall.WaitStatus)
+		fmt.Printf("Exit Status: %s\n", []byte(fmt.Sprintf("%d", waitStatus.ExitStatus())))
+		return fmt.Errorf(combinedOut)
+	}
+
+	if errStr != "" {
+		fmt.Println("The configuration file is valid, but there still may be a misconfiguration",
+			"somewhere that will give unexpected results, please verify:", combinedOut)
+	}
+
+	return nil
 }
 
 var cmdValidateHa = func(args []string) error {
