@@ -1,9 +1,10 @@
 package proxy
 
 import (
-	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type UtilTestSuite struct {
