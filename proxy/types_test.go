@@ -237,6 +237,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexed
 			ServiceDomain:      []string{"domain1", "domain2"},
 			ServiceHeader:      map[string]string{},
 			ServicePath:        []string{"/"},
+			ServicePathExclude: []string{},
 		}},
 		ServiceName: "serviceName",
 	}
@@ -265,6 +266,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedOutboundHostn
 			ServiceDomain:      []string{},
 			ServiceHeader:      map[string]string{},
 			ServicePath:        []string{"/"},
+			ServicePathExclude: []string{},
 		}},
 		ServiceName: "serviceName",
 	}
@@ -293,6 +295,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 			ServiceDomain:      []string{},
 			ServiceHeader:      map[string]string{},
 			ServicePath:        []string{"/"},
+			ServicePathExclude: []string{},
 		}},
 		ServiceName: "serviceName",
 	}
@@ -322,6 +325,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
 			ServiceDomain:      []string{},
 			ServiceHeader:      map[string]string{},
 			ServicePath:        []string{"/"},
+			ServicePathExclude: []string{},
 		}},
 		ServiceName: "serviceName",
 	}
@@ -421,6 +425,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			ServiceDomain:       []string{"domain1", "domain2"},
 			ServiceHeader:       map[string]string{"X-Version": "3", "name": "Viktor"},
 			ServicePath:         []string{"/"},
+			ServicePathExclude:  []string{},
 			ReqMode:             "reqMode",
 			UserAgent:           UserAgent{Value: []string{"agent-1", "agent-2/replace-with_"}, AclName: "agent_1_agent_2_replace_with_"},
 			VerifyClientSsl:     true,

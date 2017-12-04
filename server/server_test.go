@@ -1,17 +1,18 @@
 package server
 
 import (
-	"../actions"
-	"../proxy"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"../actions"
+	"../proxy"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {
@@ -544,6 +545,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			ServiceDomain:      []string{"domain1", "domain2"},
 			ServiceHeader:      map[string]string{"X-Version": "3", "name": "Viktor"},
 			ServicePath:        []string{"/"},
+			ServicePathExclude: []string{"/excluded-path"},
 		}},
 		ServiceDomainAlgo: "hdr_dom",
 		ServiceName:       "serviceName",
@@ -558,7 +560,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
@@ -590,6 +592,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		strings.Join(expected.SetResHeader, ","),
 		strings.Join(expected.DelReqHeader, ","),
 		strings.Join(expected.DelResHeader, ","),
+		strings.Join(expected.ServiceDest[0].ServicePathExclude, ","),
 		expected.ConnectionMode,
 		expected.CompressionAlgo,
 		expected.CompressionType,
@@ -633,6 +636,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 				ServiceDomain:      []string{"domain1", "domain2"},
 				ServiceHeader:      map[string]string{},
 				ServicePath:        []string{"/"},
+				ServicePathExclude: []string{},
 				Index:              0,
 			},
 		},

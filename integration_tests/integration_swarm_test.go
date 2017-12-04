@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 // Setup
@@ -73,6 +74,7 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 	suite.Run(t, s)
 
 	s.removeServices("go-demo-api", "go-demo-db", "proxy", "proxy-env", "redis")
+	exec.Command("/bin/sh", "-c", "docker network rm proxy").Output()
 	exec.Command("/bin/sh", "-c", "docker system prune -f").Output()
 }
 
@@ -86,6 +88,17 @@ func (s IntegrationSwarmTestSuite) Test_Reconfigure() {
 	s.NoError(err)
 	if resp != nil {
 		s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+	}
+}
+
+func (s IntegrationSwarmTestSuite) Test_ExcludePaths() {
+	s.reconfigureGoDemo("&servicePathExclude=/demo/hello")
+
+	resp, err := s.sendHelloRequest()
+
+	s.NoError(err)
+	if resp != nil {
+		s.Equal(503, resp.StatusCode, s.getProxyConf(""))
 	}
 }
 

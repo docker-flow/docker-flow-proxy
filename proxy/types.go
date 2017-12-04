@@ -43,6 +43,8 @@ type ServiceDest struct {
 	ServiceHeader map[string]string
 	// The URL path of the service.
 	ServicePath []string
+	// The URL path that should be excluded from the rules.
+	ServicePathExclude []string
 	// The source (entry) port of a service.
 	// Useful only when specifying multiple destinations of a single service.
 	SrcPort int
@@ -408,6 +410,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		ServiceDomain:       getSliceFromString(provider, fmt.Sprintf("serviceDomain%s", suffix)),
 		ServiceHeader:       header,
 		ServicePath:         getSliceFromString(provider, fmt.Sprintf("servicePath%s", suffix)),
+		ServicePathExclude:  getSliceFromString(provider, fmt.Sprintf("servicePathExclude%s", suffix)),
 		SrcPort:             srcPort,
 		VerifyClientSsl:     getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
 		UserAgent:           userAgent,
