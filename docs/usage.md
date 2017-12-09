@@ -128,8 +128,7 @@ The map between the HTTP query parameters and environment variables is as follow
 |redirectFromDomain   |REDIRECT_FROM_DOMAIN    |
 |redirectWhenHttpProto|REDIRECT_WHEN_HTTP_PROTO|
 |reqMode              |REQ_MODE                |
-|reqPathReplace       |REQ_PATH_REPLACE        |
-|reqPathSearch        |REQ_PATH_SEARCH         |
+|reqPathSearchReplace |REQ_PATH_SEARCH_REPLACE |
 |serviceCert          |SERVICE_CERT            |
 |serviceDomain        |SERVICE_DOMAIN          |
 |serviceName          |SERVICE_NAME            |

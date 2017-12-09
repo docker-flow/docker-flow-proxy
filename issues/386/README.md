@@ -9,7 +9,7 @@ $GOPATH/bin/gox
 
 go get github.com/aktau/github-release
 
-export GITHUB_TOKEN=0482fee415cb440a76417c7159af4ca9407ccd0a
+export GITHUB_TOKEN=[...]
 
 $GOPATH/bin/github-release --help
 
