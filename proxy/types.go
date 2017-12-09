@@ -117,12 +117,19 @@ type Service struct {
 	PathType string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
+	// TODO: Deprecated since Dec. 2017.
 	// A regular expression to apply the modification.
 	// If specified, `reqPathSearch` needs to be set as well.
 	ReqPathReplace string `split_words:"true"`
+	// TODO: Deprecated since Dec. 2017.
 	// A regular expression to search the content to be replaced.
 	// If specified, `reqPathReplace` needs to be set as well.
 	ReqPathSearch string `split_words:"true"`
+	// A regular expression to search and replace the content.
+	// Search and replace values are separated with comma (`,`).
+	// Multiple search/replace combinations can be separated with colon (`:`).
+	// This field deprecates `ReqPathSearch` and `ReqPathReplace`.
+	ReqPathSearchReplace string `split_words:"true"`
 	// Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.
 	ServiceCert string `split_words:"true"`
 	// The algorithm that should be applied to domain acl. The default value is `hdr_beg(host)`.
@@ -157,12 +164,13 @@ type Service struct {
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
 	Users []User `split_words:"true"`
 	// The rest of variables are for internal use only
-	ServicePort         string
-	AclCondition        string
-	LookupRetry         int
-	LookupRetryInterval int
-	ServiceDest         []ServiceDest
-	Tasks               []string
+	ServicePort                   string
+	AclCondition                  string
+	LookupRetry                   int
+	LookupRetryInterval           int
+	ServiceDest                   []ServiceDest
+	Tasks                         []string
+	ReqPathSearchReplaceFormatted []string
 }
 
 // Services contains the list of services used inside the proxy
@@ -395,6 +403,20 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	outboundHostname := provider.GetString(fmt.Sprintf("outboundHostname%s", suffix))
 	if len(outboundHostname) == 0 {
 		outboundHostname = provider.GetString("outboundHostname")
+	}
+	sr.ReqPathSearchReplaceFormatted = []string{}
+	if len(sr.ReqPathSearch) > 0 {
+		sr.ReqPathSearchReplaceFormatted = append(
+			sr.ReqPathSearchReplaceFormatted,
+			fmt.Sprintf("%s,%s", sr.ReqPathSearch, sr.ReqPathReplace),
+		)
+	}
+	if len(sr.ReqPathSearchReplace) > 0 {
+		searchReplace := strings.Split(sr.ReqPathSearchReplace, ":")
+		sr.ReqPathSearchReplaceFormatted = append(
+			sr.ReqPathSearchReplaceFormatted,
+			searchReplace...,
+		)
 	}
 	return ServiceDest{
 		AllowedMethods:      getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),

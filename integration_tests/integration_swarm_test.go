@@ -62,6 +62,9 @@ func TestGeneralIntegrationSwarmTestSuite(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	exec.Command("/bin/sh", "-c", "docker image pull mongo").Output()
+	exec.Command("/bin/sh", "-c", "docker image pull vfarcic/go-demo:no-health").Output()
+
 	s.createService(`docker service create --name go-demo-db \
     --network go-demo \
     mongo`)
@@ -456,6 +459,22 @@ func (s IntegrationSwarmTestSuite) Test_RewritePaths() {
 	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
 
 	url = fmt.Sprintf("http://%s/something/hello", s.hostIP)
+	resp, err = http.Get(url)
+
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+
+	// With reqPathSearchReplace
+
+	url = fmt.Sprintf(
+		`http://%s:8080/v1/docker-flow-proxy/reconfigure?serviceName=go-demo-api&servicePath=/else&port=8080&reqPathSearchReplace=/else/,/demo/`,
+		s.hostIP,
+	)
+	resp, err = http.Get(url)
+	s.NoError(err)
+	s.Equal(200, resp.StatusCode, s.getProxyConf(""))
+
+	url = fmt.Sprintf("http://%s/else/hello", s.hostIP)
 	resp, err = http.Get(url)
 
 	s.NoError(err)

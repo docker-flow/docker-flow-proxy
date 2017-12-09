@@ -518,21 +518,22 @@ func (s *ServerTestSuite) Test_RemoveHandler_WritesErrorHeader_WhenRemoveDistrib
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 	expected := proxy.Service{
-		AclName:               "aclName",
-		AddReqHeader:          []string{"add-header-1", "add-header-2"},
-		AddResHeader:          []string{"add-header-1", "add-header-2"},
-		CompressionAlgo:       "compressionAlgo",
-		CompressionType:       "compressionType",
-		ConnectionMode:        "my-connection-mode",
-		DelReqHeader:          []string{"add-header-1", "add-header-2"},
-		DelResHeader:          []string{"add-header-1", "add-header-2"},
-		Distribute:            true,
-		HttpsPort:             1234,
-		PathType:              "pathType",
-		RedirectWhenHttpProto: true,
-		ReqPathReplace:        "reqPathReplace",
-		ReqPathSearch:         "reqPathSearch",
-		ServiceCert:           "serviceCert",
+		AclName:                       "aclName",
+		AddReqHeader:                  []string{"add-header-1", "add-header-2"},
+		AddResHeader:                  []string{"add-header-1", "add-header-2"},
+		CompressionAlgo:               "compressionAlgo",
+		CompressionType:               "compressionType",
+		ConnectionMode:                "my-connection-mode",
+		DelReqHeader:                  []string{"add-header-1", "add-header-2"},
+		DelResHeader:                  []string{"add-header-1", "add-header-2"},
+		Distribute:                    true,
+		HttpsPort:                     1234,
+		PathType:                      "pathType",
+		RedirectWhenHttpProto:         true,
+		ReqPathReplace:                "reqPathReplace",
+		ReqPathSearch:                 "reqPathSearch",
+		ReqPathSearchReplaceFormatted: []string{"reqPathSearch,reqPathReplace"},
+		ServiceCert:                   "serviceCert",
 		ServiceDest: []proxy.ServiceDest{{
 			AllowedMethods:     []string{"GET", "DELETE"},
 			DeniedMethods:      []string{"PUT", "POST"},
@@ -625,7 +626,8 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 
 func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDomainIsPresent() {
 	expected := proxy.Service{
-		ServiceName: "serviceName",
+		ReqPathSearchReplaceFormatted: []string{},
+		ServiceName:                   "serviceName",
 		ServiceDest: []proxy.ServiceDest{
 			{
 				AllowedMethods:     []string{},

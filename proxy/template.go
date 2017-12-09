@@ -149,8 +149,8 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
         {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
         {{- end}}
-        {{- if ne $.ReqPathSearch ""}}
-    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
+        {{- range $.ReqPathSearchReplaceFormatted}}
+    http-request set-path %[path,regsub({{.}})]
         {{- end}}
 		{{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
@@ -215,8 +215,8 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
             {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
             {{- end}}
-            {{- if ne $.ReqPathSearch ""}}
-    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
+            {{- range $.ReqPathSearchReplaceFormatted}}
+    http-request set-path %[path,regsub({{.}})]
             {{- end}}
 		    {{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0

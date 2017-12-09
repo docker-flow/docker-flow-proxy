@@ -336,9 +336,9 @@ From now on, the username and password are `secret-user` and `secret-pass`. Unli
 
 ## Rewriting Paths
 
-In some cases, you might want to rewrite the path of the incoming request before forwarding it to the destination service. We can do that using request parameters `reqPathSearch` and `reqPathReplace`.
+In some cases, you might want to rewrite the path of the incoming request before forwarding it to the destination service. We can do that using request parameter `reqPathSearchReplace`.
 
-As an example, we'll create the `go-demo` service that will be configured in the proxy to accept requests with the path starting with `/something`. Since the `go-demo` service allows only requests that start with `/demo`, we'll use `reqPathSearch` and `reqPathReplace` to rewrite the path.
+As an example, we'll create the `go-demo` service that will be configured in the proxy to accept requests with the path starting with `/something`. Since the `go-demo` service allows only requests that start with `/demo`, we'll use `reqPathSearchReplace` to rewrite the path.
 
 The command is as follows.
 
@@ -353,13 +353,12 @@ docker service create --name go-demo \
     --label com.df.distribute=true \
     --label com.df.servicePath=/something \
     --label com.df.port=8080 \
-    --label com.df.reqPathSearch='/something/' \
-    --label com.df.reqPathReplace='/demo/' \
+    --label com.df.reqPathSearchReplace='/something/,/demo/' \
     --replicas 3 \
     vfarcic/go-demo
 ```
 
-Please notice that, this time, the `servicePath` is `/something`. The `reqPathSearch` specifies the regular expression that will be used to search for part of the address and the `reqPathReplace` will replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses the *regsub* function within the *http-request set-path* directive to apply a regex-based substitution which operates as the well-known *sed* utility with `"s/<regex>/<subst>/"`. For more information, please consult [Configuration: 4.2 http-request](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-http-request) and [Configuration: 7.3.1 regsub](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#7.3.1-regsub).
+The `reqPathSearchReplace` specifies the regular expression that will be used to search for part of the address and replace it. In this case, `/something/` will be replaced with `/demo/`. The proxy uses the *regsub* function within the *http-request set-path* directive to apply a regex-based substitution which operates as the well-known *sed* utility with `"s/<regex>/<subst>/"`. For more information, please consult [Configuration: 4.2 http-request](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-http-request) and [Configuration: 7.3.1 regsub](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#7.3.1-regsub).
 
 Please wait a few moments until the `go-demo` service is running. You can see the status of the service by executing `docker service ps go-demo`.
 
@@ -382,12 +381,11 @@ hello, world!
 
 We sent a request to `/something/hello`. The proxy accepted the request, rewrote the path to `/demo/hello`, and forwarded it to the `go-demo` service.
 
-The `reqPathSearch` label accepts regular expressions. We can, for example, rewrite any path that starts with `/something/` to `/demo/hello`.
+The `reqPathSearchReplace` label accepts regular expressions. We can, for example, rewrite any path that starts with `/something/` to `/demo/hello`.
 
 ```bash
 docker service update \
-    --label-add com.df.reqPathSearch='/something/.*' \
-    --label-add com.df.reqPathReplace='/demo/hello' \
+    --label-add com.df.reqPathSearchReplace='/something/.*,/demo/hello' \
     go-demo
 ```
 

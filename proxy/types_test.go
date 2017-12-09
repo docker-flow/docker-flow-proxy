@@ -227,6 +227,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_AddsTasksWhenSessionTypeIsN
 
 func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexedEntries_WhenPortIsEmpty() {
 	expected := Service{
+		ReqPathSearchReplaceFormatted: []string{},
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:     []string{},
 			DeniedMethods:      []string{},
@@ -255,6 +256,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexed
 
 func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedOutboundHostname() {
 	expected := Service{
+		ReqPathSearchReplaceFormatted: []string{},
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:     []string{},
 			DeniedMethods:      []string{},
@@ -284,6 +286,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedOutboundHostn
 
 func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntries_WhenEmpty() {
 	expected := Service{
+		ReqPathSearchReplaceFormatted: []string{},
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:     []string{},
 			DeniedMethods:      []string{},
@@ -314,6 +317,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
 	defer func() { os.Unsetenv("HTTPS_ONLY") }()
 	os.Setenv("HTTPS_ONLY", "true")
 	expected := Service{
+		ReqPathSearchReplaceFormatted: []string{},
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:     []string{},
 			DeniedMethods:      []string{},
@@ -363,6 +367,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"redirectWhenHttpProto": strconv.FormatBool(expected.RedirectWhenHttpProto),
 		"reqPathReplace":        expected.ReqPathReplace,
 		"reqPathSearch":         expected.ReqPathSearch,
+		"reqPathSearchReplace":  expected.ReqPathSearchReplace,
 		"serviceCert":           expected.ServiceCert,
 		"serviceDomainAlgo":     expected.ServiceDomainAlgo,
 		"serviceName":           expected.ServiceName,
@@ -397,21 +402,23 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 
 func (s *TypesTestSuite) getExpectedService() Service {
 	return Service{
-		AclName:               "aclName",
-		AddReqHeader:          []string{"add-header-1", "add-header-2"},
-		AddResHeader:          []string{"add-header-1", "add-header-2"},
-		BackendExtra:          "additional backend config",
-		DelReqHeader:          []string{"del-header-1", "del-header-2"},
-		DelResHeader:          []string{"del-header-1", "del-header-2"},
-		Distribute:            true,
-		HttpsPort:             1234,
-		IsDefaultBackend:      true,
-		PathType:              "pathType",
-		RedirectWhenHttpProto: true,
-		ReqPathReplace:        "reqPathReplace",
-		ReqPathSearch:         "reqPathSearch",
-		ServiceCert:           "serviceCert",
-		ServiceDomainAlgo:     "hdr_dom",
+		AclName:                       "aclName",
+		AddReqHeader:                  []string{"add-header-1", "add-header-2"},
+		AddResHeader:                  []string{"add-header-1", "add-header-2"},
+		BackendExtra:                  "additional backend config",
+		DelReqHeader:                  []string{"del-header-1", "del-header-2"},
+		DelResHeader:                  []string{"del-header-1", "del-header-2"},
+		Distribute:                    true,
+		HttpsPort:                     1234,
+		IsDefaultBackend:              true,
+		PathType:                      "pathType",
+		RedirectWhenHttpProto:         true,
+		ReqPathReplace:                "reqPathReplace",
+		ReqPathSearch:                 "reqPathSearch",
+		ReqPathSearchReplace:          "something,else:foo,bar",
+		ReqPathSearchReplaceFormatted: []string{"reqPathSearch,reqPathReplace", "something,else", "foo,bar"},
+		ServiceCert:                   "serviceCert",
+		ServiceDomainAlgo:             "hdr_dom",
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:      []string{"GET", "DELETE"},
 			DeniedMethods:       []string{"PUT", "POST"},
