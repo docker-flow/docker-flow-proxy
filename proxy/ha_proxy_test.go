@@ -1767,7 +1767,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 	tmpl := strings.Replace(
 		s.TemplateContent,
 		"\n    bind *:80\n    bind *:443",
-		"\n    bind *:80\n    bind *:443 ssl crt-list /cfg/crt-list.txt",
+		"\n    bind *:80\n    bind *:443 ssl crt-list /cfg/crt-list.txt alpn h2,http/1.1",
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s%s`,

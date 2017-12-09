@@ -311,7 +311,7 @@ func (m *HaProxy) getCertsConfigSnippet() string {
 	certPaths := m.GetCertPaths()
 	certs := ""
 	if len(certPaths) > 0 {
-		certs = " ssl crt-list /cfg/crt-list.txt"
+		certs = " ssl crt-list /cfg/crt-list.txt alpn h2,http/1.1"
 		mu.Lock()
 		defer mu.Unlock()
 		writeFile("/cfg/crt-list.txt", []byte(strings.Join(certPaths, "\n")), 0664)
