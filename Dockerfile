@@ -6,7 +6,6 @@ RUN go test --cover ./... --run UnitTest
 RUN go build -v -o docker-flow-proxy
 
 
-
 FROM haproxy:1.8-alpine
 MAINTAINER 	Viktor Farcic <viktor@farcic.com>
 
