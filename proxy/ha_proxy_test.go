@@ -779,9 +779,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsSortedContentFrontE
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_acl11111_0 path_beg /path
-    use_backend my-second-service-be1111_0 if url_acl11111_0
+    use_backend acl1-be1111_0 if url_acl11111_0
     acl url_acl21111_0 path_beg /path
-    use_backend my-first-service-be1111_0 if url_acl21111_0
+    use_backend acl2-be1111_0 if url_acl21111_0
     acl url_the-last-service1111_0 path_beg /path
     use_backend the-last-service-be1111_0 if url_the-last-service1111_0%s`,
 		tmpl,

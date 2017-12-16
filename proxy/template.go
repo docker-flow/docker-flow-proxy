@@ -61,13 +61,13 @@ func getFrontTemplate(s Service) string {
 {{- end}}
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
+    use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
 	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
-    use_backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
+    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
         {{- if $.IsDefaultBackend}}
-    default_backend {{$.ServiceName}}-be{{.Port}}_{{$sd.Index}}
+    default_backend {{$.AclName}}-be{{.Port}}_{{$sd.Index}}
         {{- end}}
     {{- end}}{{- end}}
 {{- end}}`
@@ -94,10 +94,10 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
         {{- range $sd := .ServiceDest}}
             {{- if $sd.ServiceDomain}}
     acl domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}} {{$s.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
-    use_backend {{$s.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}}
+    use_backend {{$s.AclName}}-be{{$sd.Port}}_{{$sd.Index}} if domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}}
             {{- end}}
             {{- if not $sd.ServiceDomain}}
-    default_backend {{$s.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}}
+    default_backend {{$s.AclName}}-be{{$sd.Port}}_{{$sd.Index}}
             {{- end}}
         {{- end}}
     {{- end}}`
@@ -128,7 +128,7 @@ func GetBackTemplate(sr *Service) string {
 
 	// HTTP
 	tmpl := `{{- range $sd := .ServiceDest}}
-backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
+backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
     {{- if .HttpsOnly}}
     http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
@@ -196,7 +196,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     {{- end}}
     {{- if gt .HttpsPort 0}}
         {{- range $sd := .ServiceDest}}
-backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
+backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
