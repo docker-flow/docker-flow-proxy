@@ -42,14 +42,7 @@ pipeline {
         sh "docker image push vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
         dockerLogout()
         dfRelease("docker-flow-proxy")
-      }
-    }
-    stage("release-github") {
-      when {
-        branch "master"
-      }
-      steps {
-        dfReleaseGithub("docker-flow-proxy")
+        //dfReleaseGithub("docker-flow-proxy")
       }
     }
     stage("deploy") {
