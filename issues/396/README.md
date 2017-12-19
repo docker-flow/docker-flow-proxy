@@ -43,3 +43,11 @@ proxy_proxy.1.mksawvb1tlua@linuxkit-025000000001    | 2017/12/18 14:04:19 Valida
 proxy_proxy.1.mksawvb1tlua@linuxkit-025000000001    | Configuration file is valid
 proxy_proxy.1.mksawvb1tlua@linuxkit-025000000001    | 2017/12/18 14:04:19 Proxy config was reloaded
 ```
+
+```bash
+docker service scale proxy_proxy=0
+
+docker service scale proxy_proxy=1
+
+docker service logs -f proxy_proxy
+```
