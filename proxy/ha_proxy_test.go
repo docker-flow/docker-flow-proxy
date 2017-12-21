@@ -1499,11 +1499,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRed
 		`%s
     acl url_my-service1111_0 path_beg /path
     acl domain_my-service1111_0 hdr_beg(host) -i my-domain.com
+    use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0
     acl is_my-service_http hdr(X-Forwarded-Proto) http
     http-request redirect scheme https if is_my-service_http url_my-service1111_0 domain_my-service1111_0
     acl is_my-service_https hdr(X-Forwarded-Proto) https
-    http-request redirect scheme https if !is_my-service_https url_my-service1111_0 domain_my-service1111_0
-    use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0%s`,
+    http-request redirect scheme https if !is_my-service_https url_my-service1111_0 domain_my-service1111_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1735,9 +1735,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPortsWithTex
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 	readDirOrig := readDir
+	enableH2Orig := os.Getenv("ENABLE_H2")
 	defer func() {
 		readDir = readDirOrig
+		os.Setenv("ENABLE_H2", enableH2Orig)
 	}()
+	os.Setenv("ENABLE_H2", "true")
 	expected := "ssl"
 	expectedCertList := []string{}
 	actualCertList := ""
@@ -1786,6 +1789,51 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts() {
 
 	s.Equal(expectedData, actualData)
 	s.Equal(strings.Join(expectedCertList, "\n"), actualCertList)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_DoesNotAddH2_WhenEnableH2IsFalse() {
+	readDirOrig := readDir
+	enableH2Orig := os.Getenv("ENABLE_H2")
+	defer func() {
+		readDir = readDirOrig
+		os.Setenv("ENABLE_H2", enableH2Orig)
+	}()
+	os.Setenv("ENABLE_H2", "false")
+	mockedFiles := []os.FileInfo{}
+	file := FileInfoMock{
+		NameMock: func() string {
+			return "my-cert"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	}
+	mockedFiles = append(mockedFiles, file)
+	readDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:80\n    bind *:443 ssl crt-list /cfg/crt-list.txt alpn http/1.1",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIsSet() {
