@@ -1,0 +1,73 @@
+version: "3.2"
+
+services:
+
+  proxy:
+    image: vfarcic/docker-flow-proxy:${TAG:-latest}
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - proxy
+    environment:
+      - LISTENER_ADDRESS=swarm-listener
+      - STATS_USER=none
+      - STATS_PASS=none
+    deploy:
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.alertName=memlimit
+        - com.df.alertIf=@service_mem_limit:0.8
+        - com.df.alertFor=30s
+      update_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        reservations:
+          memory: 20M
+        limits:
+          memory: 50M
+
+  swarm-listener:
+    image: vfarcic/docker-flow-swarm-listener
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  main:
+    image: vfarcic/go-demo
+    environment:
+      - DB=db
+    networks:
+      - proxy
+      - default
+    deploy:
+      replicas: 3
+      labels:
+        - com.df.notify=true
+        - com.df.distribute=true
+        - com.df.port=8080
+        - com.df.serviceDomain=rainbowbridge.rip
+        - com.df.redirectFromDomain=www.rainbowbridge.rip,www.regenbogenbruecke.at,www.regenbogenbruecke.rip,regenbogenbruecke.at,regenbogenbruecke.rip
+        - com.df.httpsOnly=true
+        - com.df.httpsRedirectCode=301
+        # - com.df.srcPort=443
+        - com.df.compressionAlgo=gzip
+        - com.df.compressionType=text/css text/html text/javascript application/javascript text/plain text/xml application/json
+
+  db:
+    image: mongo
+    networks:
+      - default
+
+networks:
+  proxy:
+    external: true
