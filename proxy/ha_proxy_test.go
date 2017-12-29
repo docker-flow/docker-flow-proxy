@@ -73,8 +73,6 @@ frontend services
     bind *:80
     bind *:443
     mode http
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 `
 	s.ServicesContent = `
 
@@ -1536,8 +1534,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToDomain_WhenRe
 		`%s
     acl url_my-service1111_0 path_beg /path
     acl domain_my-service1111_0 hdr_beg(host) -i my-domain-1.com my-domain-2.com
-    http-request redirect code 301 prefix %%[var(req.scheme)]://my-domain-1.com if { hdr_beg(host) -i my-other-domain-1.com }
-    http-request redirect code 301 prefix %%[var(req.scheme)]://my-domain-1.com if { hdr_beg(host) -i my-other-domain-2.com }
+    http-request redirect code 301 prefix http://my-domain-1.com if { hdr_beg(host) -i my-other-domain-1.com }
+    http-request redirect code 301 prefix http://my-domain-1.com if { hdr_beg(host) -i my-other-domain-2.com }
     use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0%s`,
 		tmpl,
 		s.ServicesContent,
@@ -2330,15 +2328,11 @@ func (s *HaProxyTestSuite) getTemplateWithLogs() string {
     bind *:80
     bind *:443
     mode http
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 `,
 		`frontend services
     bind *:80
     bind *:443
     mode http
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 
     option httplog
     log global`,
@@ -2356,15 +2350,11 @@ func (s *HaProxyTestSuite) getTemplateWithLogsAndErrorsOnly() string {
     bind *:80
     bind *:443
     mode http
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 `,
 		`frontend services
     bind *:80
     bind *:443
     mode http
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 
     option httplog
     log global`,

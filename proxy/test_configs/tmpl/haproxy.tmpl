@@ -39,6 +39,4 @@ defaults
 {{.UserList}}
 frontend services{{.DefaultBinds}}
     mode {{.DefaultReqMode}}
-    http-request set-var(req.scheme) str(https) if { ssl_fc }
-    http-request set-var(req.scheme) str(http) if ! { ssl_fc }
 {{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}
