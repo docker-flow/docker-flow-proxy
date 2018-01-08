@@ -172,7 +172,7 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     cookie {{$.ServiceName}} insert indirect nocache
 		{{- end}}
 		{{- range $i, $t := $.Tasks}}
-    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}
+    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
 		{{- end}}
 		{{- if not $.Tasks}}
     server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
@@ -235,7 +235,7 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     cookie {{$.ServiceName}} insert indirect nocache
 		    {{- end}}
 		    {{- range $i, $t := $.Tasks}}
-    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}
+    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
 		    {{- end}}
 		    {{- if not $.Tasks}}
     server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
