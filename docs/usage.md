@@ -29,7 +29,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |reqMode        |The request mode. The proxy should be able to work with any mode supported by HAProxy. However, actively supported and tested modes are `http`, `tcp`, and `sni`. The `sni` mode implies TCP with an SNI-based routing. The parameter can be prefixed with an index thus allowing definition of multiple modes for a single service (e.g. `http`, `tcp`, and so on).<br>**Default:** value of the `DEFAULT_REQ_MODE` environment variable.<br>**Example:** `tcp`|
 |reqPathReplace |**This field is deprecated. Use `reqPathSearchReplace` instead.**|
 |reqPathSearch  |**This field is deprecated. Use `reqPathSearchReplace` instead.**|
-|reqPathSearchReplace|A regular expression to search and replace request paths. Search and replace values are separated with comma (`,`). Multiple search and replace combinations can be separated with colon (`:`). <br>**Example:** `/replace-something/,/with-else/:/replace-with-empty,:/foo,/bar`|
+|reqPathSearchReplace|A regular expression to search and replace request paths. Search and replace values are separated with comma (`,`). Multiple search and replace combinations can be separated with colon (`:`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `reqPathSearchReplace.1`, `reqPathSearchReplace.2`, and so on). <br>**Example:** `/replace-something/,/with-else/:/replace-with-empty,:/foo,/bar`|
 |serviceName    |The name of the service. It must match the name of the Swarm service. This parameter is **mandatory**. If used through *Docker Flow Swarm Listener*, this parameter is added automatically.<br>**Example:** `go-demo`|
 |setReqHeader   |Additional headers that will be set to the request before forwarding it to the service. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Change the environment variable `SEPARATOR` if comma is to be used for other purposes. Please consult [Set a header to the request](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-request) for more info.<br>**Example:** `X-Forwarded-Port %[dst_port],X-Forwarded-Ssl on if { ssl_fc }`|
 |setResHeader   |Additional headers that will be set to the response before forwarding it to the client. If a specified header exists, it will be replaced with the new one. Multiple headers should be separated with comma (`,`). Change the environment variable `SEPARATOR` if comma is to be used for other purposes. Please consult [Set a header to the response](https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#set-a-header-in-the-response) for more info.<br>**Example:** `X-Via %[env(HOSTNAME)],Server haproxy`|
@@ -37,7 +37,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutServer  |The server timeout in seconds.<br>**Default:** `20`<br>**Example:** `60`|
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Default:** `3600`<br>**Example:** `3600`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain``allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, or `outboundHostname` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, or `outboundHostname` parameters. In that case, `srcPort` is required.
 
 ### HTTP Mode Query Parameters
 
@@ -72,7 +72,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |verifyClientSsl|Whether to verify client SSL and, if it is not valid, deny request and return 403 Forbidden status code. SSL is validated against the `ca-file` specified through the environment variable `CA_FILE`.<br>**Example:** true<br>**Default Value:** `false`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, or `outboundHostname` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, `reqPathSearchReplace`, or `outboundHostname` parameters. In that case, `srcPort` is required.
 
 ### TCP Mode HTTP Query Parameters
 
