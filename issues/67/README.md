@@ -25,11 +25,15 @@ docker service create --name proxy \
     -e MODE=swarm \
     vfarcic/docker-flow-proxy
 
-curl "http://localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=laravel_app&servicePath=/&port=8080"
+docker service ls
+
+curl "http://localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=api-informes&servicePath=/&port=8080"
 
 curl "http://localhost/api/informes/1" # working ok
 
-curl "http://localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=laravel_app&servicePath=/informes&port=8080"
+curl "http://localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=api-informes&servicePath=/informes&port=8080"
+
+curl "http://localhost:8080/v1/docker-flow-proxy/reconfigure?serviceName=api-informes&servicePath=/informes&port=8080&reqPathSearchReplace=/informes/,/"
 
 curl "http://localhost/informes/api/informes/1" # not working anymore
 ```

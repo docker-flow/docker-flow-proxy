@@ -400,8 +400,11 @@ backend myService-be5555_2
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchReplaceFormattedIsPresent() {
 	s.reconfigure.HttpsPort = 1234
-	s.reconfigure.ReqPathSearchReplaceFormatted = []string{"this,that", "foo,bar"}
-	s.reconfigure.ServiceDest = []proxy.ServiceDest{{Port: "1234", Index: 0}}
+	s.reconfigure.ServiceDest = []proxy.ServiceDest{{
+		Port:  "1234",
+		Index: 0,
+		ReqPathSearchReplaceFormatted: []string{"this,that", "foo,bar"},
+	}}
 	expected := `
 backend myService-be1234_0
     mode http

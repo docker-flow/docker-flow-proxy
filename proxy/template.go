@@ -149,7 +149,7 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
         {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
         {{- end}}
-        {{- range $.ReqPathSearchReplaceFormatted}}
+        {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
         {{- end}}
 		{{- if eq .VerifyClientSsl true}}
@@ -215,7 +215,7 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
             {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
             {{- end}}
-            {{- range $.ReqPathSearchReplaceFormatted}}
+            {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
             {{- end}}
 		    {{- if eq .VerifyClientSsl true}}
