@@ -662,11 +662,10 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDoma
 
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	service := proxy.Service{
-		AclName:         "my-AclName",
-		AddReqHeader:    []string{"add-header-1", "add-header-2"},
-		AddResHeader:    []string{"add-header-1", "add-header-2"},
-		CompressionAlgo: "compressionAlgo",
-		//		CompressionType:       "compressionType",
+		AclName:               "my-AclName",
+		AddReqHeader:          []string{"add-header-1", "add-header-2"},
+		AddResHeader:          []string{"add-header-1", "add-header-2"},
+		CompressionAlgo:       "compressionAlgo",
 		ConnectionMode:        "my-connection-mode",
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
@@ -675,8 +674,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		IsDefaultBackend:      true,
 		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
-		ReqPathReplace:        "my-ReqPathReplace",
-		ReqPathSearch:         "my-ReqPathSearch",
 		ServiceCert:           "my-ServiceCert",
 		ServiceDomainAlgo:     "hdr_dom",
 		ServiceName:           "my-ServiceName",
@@ -689,14 +686,15 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		TimeoutTunnel:         "my-TimeoutTunnel",
 		ServiceDest: []proxy.ServiceDest{
 			{
-				HttpsOnly:         true,
-				HttpsRedirectCode: "302",
-				OutboundHostname:  "my-OutboundHostname",
-				Port:              "1111",
-				ServiceDomain:     []string{"my-domain-1.com", "my-domain-2.com"},
-				ServicePath:       []string{"my-path-11", "my-path-12"},
-				SrcPort:           1112,
-				ReqMode:           "my-ReqMode",
+				HttpsOnly:            true,
+				HttpsRedirectCode:    "302",
+				OutboundHostname:     "my-OutboundHostname",
+				Port:                 "1111",
+				ReqPathSearchReplace: "/something,/else",
+				ServiceDomain:        []string{"my-domain-1.com", "my-domain-2.com"},
+				ServicePath:          []string{"my-path-11", "my-path-12"},
+				SrcPort:              1112,
+				ReqMode:              "my-ReqMode",
 			},
 		},
 	}
@@ -717,8 +715,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_PATH_TYPE", service.PathType)
 	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
 	os.Setenv("DFP_SERVICE_REQ_MODE", service.ServiceDest[0].ReqMode)
-	os.Setenv("DFP_SERVICE_REQ_PATH_REPLACE", service.ReqPathReplace)
-	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH", service.ReqPathSearch)
+	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE", service.ServiceDest[0].ReqPathSearchReplace)
 	os.Setenv("DFP_SERVICE_SERVICE_CERT", service.ServiceCert)
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN", strings.Join(service.ServiceDest[0].ServiceDomain, ","))
 	os.Setenv("DFP_SERVICE_SERVICE_DOMAIN_ALGO", service.ServiceDomainAlgo)
@@ -753,8 +750,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_PORT")
 		os.Unsetenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO")
 		os.Unsetenv("DFP_SERVICE_REQ_MODE")
-		os.Unsetenv("DFP_SERVICE_REQ_PATH_REPLACE")
-		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH")
+		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE")
 		os.Unsetenv("DFP_SERVICE_SERVICE_CERT")
 		os.Unsetenv("DFP_SERVICE_SERVICE_DOMAIN")
 		os.Unsetenv("DFP_SERVICE_SERVICE_DOMAIN_ALGO")
@@ -812,17 +808,31 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 	expected := proxy.Service{
 		ServiceName: "my-ServiceName",
 		ServiceDest: []proxy.ServiceDest{
-			{Port: "1111", ServicePath: []string{"my-path-11", "my-path-12"}, SrcPort: 1112, HttpsOnly: true},
-			{Port: "2221", ServicePath: []string{"my-path-21", "my-path-22"}, SrcPort: 2222, HttpsOnly: false, OutboundHostname: "my-outbound-domain.com"},
+			{
+				Port:                 "1111",
+				ReqPathSearchReplace: "/this,/that",
+				ServicePath:          []string{"my-path-11", "my-path-12"},
+				SrcPort:              1112,
+				HttpsOnly:            true,
+			}, {
+				Port:                 "2221",
+				ReqPathSearchReplace: "/something,/else",
+				ServicePath:          []string{"my-path-21", "my-path-22"},
+				SrcPort:              2222,
+				HttpsOnly:            false,
+				OutboundHostname:     "my-outbound-domain.com",
+			},
 		},
 	}
 	os.Setenv("DFP_SERVICE_SERVICE_NAME", expected.ServiceName)
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY_1", "true")
 	os.Setenv("DFP_SERVICE_PORT_1", expected.ServiceDest[0].Port)
+	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE_1", expected.ServiceDest[0].ReqPathSearchReplace)
 	os.Setenv("DFP_SERVICE_SERVICE_PATH_1", strings.Join(expected.ServiceDest[0].ServicePath, ","))
 	os.Setenv("DFP_SERVICE_SRC_PORT_1", strconv.Itoa(expected.ServiceDest[0].SrcPort))
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY_2", "false")
 	os.Setenv("DFP_SERVICE_PORT_2", expected.ServiceDest[1].Port)
+	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE_2", expected.ServiceDest[1].ReqPathSearchReplace)
 	os.Setenv("DFP_SERVICE_SERVICE_PATH_2", strings.Join(expected.ServiceDest[1].ServicePath, ","))
 	os.Setenv("DFP_SERVICE_SRC_PORT_2", strconv.Itoa(expected.ServiceDest[1].SrcPort))
 	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME_2", expected.ServiceDest[1].OutboundHostname)
@@ -831,10 +841,12 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 		os.Unsetenv("DFP_SERVICE_SERVICE_NAME")
 		os.Unsetenv("DFP_SERVICE_HTTPS_ONLY_1")
 		os.Unsetenv("DFP_SERVICE_PORT_1")
+		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE_1")
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_1")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT_1")
 		os.Unsetenv("DFP_SERVICE_HTTPS_ONLY_2")
 		os.Unsetenv("DFP_SERVICE_PORT_2")
+		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE_2")
 		os.Unsetenv("DFP_SERVICE_SERVICE_PATH_2")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT_2")
 		os.Unsetenv("DFP_SERVICE_OUTBOUND_HOSTNAME_2")

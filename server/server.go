@@ -269,14 +269,15 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
-				HttpsOnly:         httpsOnly,
-				HttpsRedirectCode: httpsRedirectCode,
-				OutboundHostname:  globalOutboundHostname,
-				Port:              port,
-				ReqMode:           reqMode,
-				ServiceDomain:     domain,
-				ServicePath:       path,
-				SrcPort:           srcPort,
+				HttpsOnly:            httpsOnly,
+				HttpsRedirectCode:    httpsRedirectCode,
+				OutboundHostname:     globalOutboundHostname,
+				Port:                 port,
+				ReqMode:              reqMode,
+				ReqPathSearchReplace: os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE"),
+				ServiceDomain:        domain,
+				ServicePath:          path,
+				SrcPort:              srcPort,
 			},
 		)
 	}
@@ -284,6 +285,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
 		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
 		reqMode := os.Getenv(fmt.Sprintf("%s_REQ_MODE_%d", prefix, i))
+		reqPathSearchReplace := os.Getenv(fmt.Sprintf("%s_REQ_PATH_SEARCH_REPLACE_%d", prefix, i))
 		httpsOnly, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_HTTPS_ONLY_%d", prefix, i)))
 		httpsRedirectCode := os.Getenv(fmt.Sprintf("%s_HTTPS_REDIRECT_CODE_%d", prefix, i))
 		if len(reqMode) == 0 {
@@ -298,13 +300,14 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			sd = append(
 				sd,
 				proxy.ServiceDest{
-					HttpsOnly:         httpsOnly,
-					HttpsRedirectCode: httpsRedirectCode,
-					OutboundHostname:  outboundHostname,
-					Port:              port,
-					SrcPort:           srcPort,
-					ServicePath:       strings.Split(path, ","),
-					ReqMode:           reqMode,
+					HttpsOnly:            httpsOnly,
+					HttpsRedirectCode:    httpsRedirectCode,
+					OutboundHostname:     outboundHostname,
+					Port:                 port,
+					ReqPathSearchReplace: reqPathSearchReplace,
+					SrcPort:              srcPort,
+					ServicePath:          strings.Split(path, ","),
+					ReqMode:              reqMode,
 				},
 			)
 		} else {
