@@ -47,6 +47,18 @@ func getFrontTemplate(s Service) string {
     http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr_beg(host) -i {{$rd}} }
     {{- end}}
 {{- end}}
+{{- range $sd := .ServiceDest}}
+    {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
+    use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
+	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
+    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
+        {{- end}}
+    {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
+        {{- if $.IsDefaultBackend}}
+    default_backend {{$.AclName}}-be{{.Port}}_{{$sd.Index}}
+        {{- end}}
+    {{- end}}{{- end}}
+{{- end}}
 {{- if $.RedirectWhenHttpProto}}
     {{- range .ServiceDest}}
         {{- if eq .ReqMode "http"}}
@@ -58,18 +70,6 @@ func getFrontTemplate(s Service) string {
             {{- end}}
         {{- end}}
     {{- end}}
-{{- end}}
-{{- range $sd := .ServiceDest}}
-    {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.ServiceName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
-    use_backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
-        {{- end}}
-    {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
-        {{- if $.IsDefaultBackend}}
-    default_backend {{$.ServiceName}}-be{{.Port}}_{{$sd.Index}}
-        {{- end}}
-    {{- end}}{{- end}}
 {{- end}}`
 	return templateToString(tmplString, s)
 }
@@ -94,10 +94,10 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
         {{- range $sd := .ServiceDest}}
             {{- if $sd.ServiceDomain}}
     acl domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}} {{$s.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
-    use_backend {{$s.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}}
+    use_backend {{$s.AclName}}-be{{$sd.Port}}_{{$sd.Index}} if domain_{{$s.AclName}}{{.Port}}_{{$sd.Index}}
             {{- end}}
             {{- if not $sd.ServiceDomain}}
-    default_backend {{$s.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}}
+    default_backend {{$s.AclName}}-be{{$sd.Port}}_{{$sd.Index}}
             {{- end}}
         {{- end}}
     {{- end}}`
@@ -128,7 +128,7 @@ func GetBackTemplate(sr *Service) string {
 
 	// HTTP
 	tmpl := `{{- range $sd := .ServiceDest}}
-backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
+backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
     {{- if .HttpsOnly}}
     http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
@@ -149,8 +149,8 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
         {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
         {{- end}}
-        {{- if ne $.ReqPathSearch ""}}
-    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
+        {{- range $sd.ReqPathSearchReplaceFormatted}}
+    http-request set-path %[path,regsub({{.}})]
         {{- end}}
 		{{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
@@ -172,7 +172,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     cookie {{$.ServiceName}} insert indirect nocache
 		{{- end}}
 		{{- range $i, $t := $.Tasks}}
-    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}
+    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
 		{{- end}}
 		{{- if not $.Tasks}}
     server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
@@ -196,7 +196,7 @@ backend {{$.ServiceName}}-be{{.Port}}_{{.Index}}
     {{- end}}
     {{- if gt .HttpsPort 0}}
         {{- range $sd := .ServiceDest}}
-backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
+backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
@@ -215,8 +215,8 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
             {{- if ne $.TimeoutTunnel ""}}
     timeout tunnel {{$.TimeoutTunnel}}s
             {{- end}}
-            {{- if ne $.ReqPathSearch ""}}
-    http-request set-path %[path,regsub({{$.ReqPathSearch}},{{$.ReqPathReplace}})]
+            {{- range $sd.ReqPathSearchReplaceFormatted}}
+    http-request set-path %[path,regsub({{.}})]
             {{- end}}
 		    {{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
@@ -235,7 +235,7 @@ backend https-{{$.ServiceName}}-be{{.Port}}_{{.Index}}
     cookie {{$.ServiceName}} insert indirect nocache
 		    {{- end}}
 		    {{- range $i, $t := $.Tasks}}
-    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}
+    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}
 		    {{- end}}
 		    {{- if not $.Tasks}}
     server {{$.ServiceName}} {{if ne $.ServiceName ""}}{{$.ServiceName}}{{end}}{{if eq $.ServiceName ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $.SslVerifyNone true}} ssl verify none{{end}}

@@ -264,19 +264,26 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
+	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
+	reqPathSearchReplaceFormatted := []string{}
+	if len(reqPathSearchReplace) > 0 {
+		reqPathSearchReplaceFormatted = strings.Split(reqPathSearchReplace, ":")
+	}
 
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
-				HttpsOnly:         httpsOnly,
-				HttpsRedirectCode: httpsRedirectCode,
-				OutboundHostname:  globalOutboundHostname,
-				Port:              port,
-				ReqMode:           reqMode,
-				ServiceDomain:     domain,
-				ServicePath:       path,
-				SrcPort:           srcPort,
+				HttpsOnly:                     httpsOnly,
+				HttpsRedirectCode:             httpsRedirectCode,
+				OutboundHostname:              globalOutboundHostname,
+				Port:                          port,
+				ReqMode:                       reqMode,
+				ReqPathSearchReplace:          reqPathSearchReplace,
+				ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
+				ServiceDomain:                 domain,
+				ServicePath:                   path,
+				SrcPort:                       srcPort,
 			},
 		)
 	}
@@ -284,6 +291,11 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
 		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
 		reqMode := os.Getenv(fmt.Sprintf("%s_REQ_MODE_%d", prefix, i))
+		reqPathSearchReplace := os.Getenv(fmt.Sprintf("%s_REQ_PATH_SEARCH_REPLACE_%d", prefix, i))
+		reqPathSearchReplaceFormatted := []string{}
+		if len(reqPathSearchReplace) > 0 {
+			reqPathSearchReplaceFormatted = strings.Split(reqPathSearchReplace, ":")
+		}
 		httpsOnly, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_HTTPS_ONLY_%d", prefix, i)))
 		httpsRedirectCode := os.Getenv(fmt.Sprintf("%s_HTTPS_REDIRECT_CODE_%d", prefix, i))
 		if len(reqMode) == 0 {
@@ -298,13 +310,15 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			sd = append(
 				sd,
 				proxy.ServiceDest{
-					HttpsOnly:         httpsOnly,
-					HttpsRedirectCode: httpsRedirectCode,
-					OutboundHostname:  outboundHostname,
-					Port:              port,
-					SrcPort:           srcPort,
-					ServicePath:       strings.Split(path, ","),
-					ReqMode:           reqMode,
+					HttpsOnly:                     httpsOnly,
+					HttpsRedirectCode:             httpsRedirectCode,
+					OutboundHostname:              outboundHostname,
+					Port:                          port,
+					ReqPathSearchReplace:          reqPathSearchReplace,
+					ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
+					SrcPort:     srcPort,
+					ServicePath: strings.Split(path, ","),
+					ReqMode:     reqMode,
 				},
 			)
 		} else {
