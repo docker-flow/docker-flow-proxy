@@ -61,7 +61,9 @@ type ServiceDest struct {
 	VerifyClientSsl bool
 	// If specified, only requests with the same agent will be forwarded to the backend.
 	UserAgent UserAgent
-	// Allows user defined variable that can be used with custom templates
+	// User defined value.
+	// This value is not used with current template.
+	// It is designed as a way to provide additional data that can be used with custom templates.
 	UserDef string
 	// Internal use only
 	Index int
