@@ -398,6 +398,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"serviceHeader" + indexSuffix:        header,
 		"servicePath" + indexSuffix:          strings.Join(expected.ServiceDest[0].ServicePath, separator),
 		"userAgent" + indexSuffix:            strings.Join(expected.ServiceDest[0].UserAgent.Value, separator),
+		"userDef" + indexSuffix:              expected.ServiceDest[0].UserDef,
 		"verifyClientSsl" + indexSuffix:      strconv.FormatBool(expected.ServiceDest[0].VerifyClientSsl),
 	}
 }
@@ -437,6 +438,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			ReqPathSearchReplace:          "something,else:foo,bar",
 			ReqPathSearchReplaceFormatted: []string{"reqPathSearch,reqPathReplace", "something,else", "foo,bar"},
 			UserAgent:                     UserAgent{Value: []string{"agent-1", "agent-2/replace-with_"}, AclName: "agent_1_agent_2_replace_with_"},
+			UserDef:                       "userDef",
 			VerifyClientSsl:               true,
 			Index:                         1,
 		}},

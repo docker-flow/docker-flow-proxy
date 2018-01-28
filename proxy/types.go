@@ -61,6 +61,8 @@ type ServiceDest struct {
 	VerifyClientSsl bool
 	// If specified, only requests with the same agent will be forwarded to the backend.
 	UserAgent UserAgent
+	// Allows user defined variable that can be used with custom templates
+	UserDef string
 	// Internal use only
 	Index int
 	// Internal use only
@@ -443,6 +445,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		SrcPort:                       srcPort,
 		VerifyClientSsl:               getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
 		UserAgent:                     userAgent,
+		UserDef:                       provider.GetString(fmt.Sprintf("userDef%s", suffix)),
 		Index:                         sdIndex,
 	}
 }
