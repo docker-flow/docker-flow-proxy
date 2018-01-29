@@ -242,11 +242,11 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		return proxy.Service{}, fmt.Errorf("%s_SERVICE_NAME is not set", prefix)
 	}
 	sd := []proxy.ServiceDest{}
-	path := getSliceFromString(os.Getenv(prefix+"_SERVICE_PATH"))
+	path := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH"))
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
 	reqMode := os.Getenv(prefix + "_REQ_MODE")
-	domain := getSliceFromString(os.Getenv(prefix+"_SERVICE_DOMAIN"))
+	domain := getSliceFromString(os.Getenv(prefix + "_SERVICE_DOMAIN"))
 	// TODO: Remove.
 	// It is a temporary workaround to maintain compatibility with the deprecated serviceDomainMatchAll parameter (since July 2017).
 	if len(s.ServiceDomainAlgo) == 0 && strings.EqualFold(os.Getenv(prefix+"_SERVICE_DOMAIN_MATCH_ALL"), "true") {
@@ -258,6 +258,8 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
+	println("globalOutboundHostname")
+	println(globalOutboundHostname)
 	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
 	reqPathSearchReplaceFormatted := []string{}
 	if len(reqPathSearchReplace) > 0 {
@@ -326,7 +328,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			sd = append(
 				sd,
 				proxy.ServiceDest{
-					AllowedMethods: 			   allowedMethods,
+					AllowedMethods:                allowedMethods,
 					DeniedMethods:                 deniedMethods,
 					DenyHttp:                      denyHttp,
 					HttpsOnly:                     httpsOnly,
@@ -348,6 +350,10 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		} else {
 			break
 		}
+	}
+	for _, x := range sd {
+		println("xxxxxxxxxxxxx")
+		println(x.OutboundHostname)
 	}
 	s.ServiceDest = sd
 	return s, nil
