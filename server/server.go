@@ -258,8 +258,6 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
-	println("globalOutboundHostname")
-	println(globalOutboundHostname)
 	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
 	reqPathSearchReplaceFormatted := []string{}
 	if len(reqPathSearchReplace) > 0 {
@@ -350,10 +348,6 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		} else {
 			break
 		}
-	}
-	for _, x := range sd {
-		println("xxxxxxxxxxxxx")
-		println(x.OutboundHostname)
 	}
 	s.ServiceDest = sd
 	return s, nil

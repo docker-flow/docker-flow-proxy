@@ -199,7 +199,6 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesSeparatorFromEnvVar() {
 	expected := s.getExpectedService()
 	serviceMap := s.getServiceMap(expected, ".1", "@")
 	provider := mapParameterProvider{&serviceMap}
-	println("xxx")
 	actual := GetServiceFromProvider(&provider)
 
 	s.Equal(expected, *actual)
