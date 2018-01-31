@@ -744,7 +744,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_SET_REQ_HEADER", strings.Join(service.SetReqHeader, ","))
 	os.Setenv("DFP_SERVICE_SET_RES_HEADER", strings.Join(service.SetResHeader, ","))
 	os.Setenv("DFP_SERVICE_SRC_PORT", strconv.Itoa(service.ServiceDest[0].SrcPort))
-	os.Setenv("DFP_SERVICE_SSL_VERIFY_NONE", strconv.FormatBool(service.ServiceDest[0].VerifyClientSsl))
+	os.Setenv("DFP_SERVICE_VERIFY_CLIENT_SSL", strconv.FormatBool(service.ServiceDest[0].VerifyClientSsl))
+	// os.Setenv("DFP_SERVICE_SSL_VERIFY_NONE", strconv.FormatBool(service.ServiceDest[0].VerifyClientSsl))
 
 	defer func() {
 		os.Unsetenv("DFP_SERVICE_ACL_NAME")
@@ -781,11 +782,11 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_SET_RES_HEADER")
 		os.Unsetenv("DFP_SERVICE_SRC_PORT")
 		os.Unsetenv("DFP_SERVICE_SSL_VERIFY_NONE")
-		os.Unsetenv("DFP_SERVICE_SSL_VERIFY_NONE")
 		os.Unsetenv("DFP_SERVICE_TEMPLATE_BE_PATH")
 		os.Unsetenv("DFP_SERVICE_TEMPLATE_FE_PATH")
 		os.Unsetenv("DFP_SERVICE_TIMEOUT_SERVER")
 		os.Unsetenv("DFP_SERVICE_TIMEOUT_TUNNEL")
+		os.Unsetenv("DFP_SERVICE_VERIFY_CLIENT_SSL")
 		os.Unsetenv("DFP_SERVICE_X_FORWARDED_PROTO")
 	}()
 	srv := serve{}
@@ -859,7 +860,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexed
 				DeniedMethods:                 []string{"OPTION", "TRACE"},
 				RedirectFromDomain:            []string{"proxy.dockerflow.com", "dockerflow.com"},
 				ServicePathExclude:            []string{"some-path", "some-path2"},
-				VerifyClientSsl:               true,
 				DenyHttp:                      true,
 				IgnoreAuthorization:           true,
 			},
