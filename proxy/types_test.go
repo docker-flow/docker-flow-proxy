@@ -173,7 +173,6 @@ x:X`, false, false)
 // GetServiceFromMap
 
 func (s *TypesTestSuite) Test_GetServiceFromMap_ReturnsProxyService() {
-	println("000")
 	expected := s.getExpectedService()
 	expected.ServiceDest[0].Index = 0
 	serviceMap := s.getServiceMap(expected, "", ",")
