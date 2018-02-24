@@ -38,7 +38,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Default:** `3600`<br>**Example:** `3600`|
 |userDef        |User defined value. This value is not used with current template. It is designed as a way to provide additional data that can be used with **custom templates**. The parameter must be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `userDef.1`, `userDef.2`, and so on).|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, or `userDef` parameters. In that case, `srcPort` is required. If an indexed field is not specified, it will inherit value of it's non-indexed equivalent.
 
 ### HTTP Mode Query Parameters
 
@@ -73,7 +73,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |verifyClientSsl|Whether to verify client SSL and, if it is not valid, deny request and return 403 Forbidden status code. SSL is validated against the `ca-file` specified through the environment variable `CA_FILE`.<br>**Example:** true<br>**Default Value:** `false`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, `reqPathSearchReplace`, `outboundHostname`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, `reqPathSearchReplace`, `outboundHostname`, or `userDef` parameters. In that case, `srcPort` is required. If an indexed field is not specified, it will inherit value of it's non-indexed equivalent.
 
 ### TCP Mode HTTP Query Parameters
 

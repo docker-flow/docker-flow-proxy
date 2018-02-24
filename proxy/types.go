@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var usersBasePath string = "/run/secrets/dfp_users_%s"
+var usersBasePath = "/run/secrets/dfp_users_%s"
 
 // ServiceDest holds data used to generate proxy configuration. It is extracted as a separate struct since a single service can have multiple combinations.
 type ServiceDest struct {
@@ -325,7 +325,7 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 		sr.ServiceName,
 		provider.GetString("users"),
 		provider.GetString("usersSecret"),
-		getBoolParam(provider, "usersPassEncrypted"),
+		getBoolParam(provider, "usersPassEncrypted", ""),
 		globalUsersString,
 		globalUsersEncrypted,
 	)
@@ -336,20 +336,20 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 
 func getServiceDestList(sr *Service, provider ServiceParameterProvider) []ServiceDest {
 	sdList := []ServiceDest{}
-	sd := getServiceDest(sr, provider, -1)
+	rootSd := getServiceDest(sr, provider, -1)
 	serviceDomain := []string{}
-	if isServiceDestValid(&sd) {
-		sdList = append(sdList, sd)
+	if isServiceDestValid(&rootSd, nil) {
+		sdList = append(sdList, rootSd)
 	} else {
-		serviceDomain = sd.ServiceDomain
+		serviceDomain = rootSd.ServiceDomain
 	}
-	httpsOnly := sd.HttpsOnly
+	httpsOnly := rootSd.HttpsOnly
 	if !httpsOnly {
 		httpsOnly, _ = strconv.ParseBool(os.Getenv("HTTPS_ONLY"))
 	}
 	for i := 1; i <= 10; i++ {
 		sd := getServiceDest(sr, provider, i)
-		if isServiceDestValid(&sd) {
+		if isServiceDestValid(&sd, &rootSd) {
 			sdList = append(sdList, sd)
 		} else {
 			break
@@ -382,16 +382,17 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		suffix = fmt.Sprintf(".%d", index)
 	}
 	userAgent := UserAgent{}
-	if len(provider.GetString(fmt.Sprintf("userAgent%s", suffix))) > 0 {
-		userAgent.Value = strings.Split(provider.GetString(fmt.Sprintf("userAgent%s", suffix)), separator)
+	userAgentString := getStringParam(provider, "userAgent", suffix)
+	if len(userAgentString) > 0 {
+		userAgent.Value = strings.Split(userAgentString, separator)
 		userAgent.AclName = replaceNonAlphabetAndNumbers(userAgent.Value)
 	}
 	reqMode := "http"
-	if len(provider.GetString(fmt.Sprintf("reqMode%s", suffix))) > 0 {
-		reqMode = provider.GetString(fmt.Sprintf("reqMode%s", suffix))
+	if len(getStringParam(provider, "reqMode", suffix)) > 0 {
+		reqMode = getStringParam(provider, "reqMode", suffix)
 	}
-	srcPort, _ := strconv.Atoi(provider.GetString(fmt.Sprintf("srcPort%s", suffix)))
-	headerString := provider.GetString(fmt.Sprintf("serviceHeader%s", suffix))
+	srcPort, _ := strconv.Atoi(getStringParam(provider, "srcPort", suffix))
+	headerString := getStringParam(provider, "serviceHeader", suffix)
 	header := map[string]string{}
 	if len(headerString) > 0 {
 		for _, value := range strings.Split(headerString, separator) {
@@ -405,10 +406,6 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	if sdIndex < 0 {
 		sdIndex = 0
 	}
-	outboundHostname := provider.GetString(fmt.Sprintf("outboundHostname%s", suffix))
-	if len(outboundHostname) == 0 {
-		outboundHostname = provider.GetString("outboundHostname")
-	}
 	reqPathSearchReplaceFormatted := []string{}
 	if len(sr.ReqPathSearch) > 0 {
 		reqPathSearchReplaceFormatted = append(
@@ -416,10 +413,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 			fmt.Sprintf("%s,%s", sr.ReqPathSearch, sr.ReqPathReplace),
 		)
 	}
-	reqPathSearchReplace := provider.GetString(fmt.Sprintf("reqPathSearchReplace%s", suffix))
-	if len(reqPathSearchReplace) == 0 {
-		reqPathSearchReplace = provider.GetString("reqPathSearchReplace")
-	}
+	reqPathSearchReplace := getStringParam(provider, "reqPathSearchReplace", suffix)
 	if len(reqPathSearchReplace) > 0 {
 		searchReplace := strings.Split(reqPathSearchReplace, ":")
 		reqPathSearchReplaceFormatted = append(
@@ -428,49 +422,86 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		)
 	}
 	return ServiceDest{
-		AllowedMethods:                getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),
-		DeniedMethods:                 getSliceFromString(provider, fmt.Sprintf("deniedMethods%s", suffix)),
-		DenyHttp:                      getBoolParam(provider, fmt.Sprintf("denyHttp%s", suffix)),
-		HttpsOnly:                     getBoolParam(provider, fmt.Sprintf("httpsOnly%s", suffix)),
-		HttpsRedirectCode:             provider.GetString(fmt.Sprintf("httpsRedirectCode%s", suffix)),
-		IgnoreAuthorization:           getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
-		OutboundHostname:              outboundHostname,
-		Port:                          provider.GetString(fmt.Sprintf("port%s", suffix)),
-		RedirectFromDomain:            getSliceFromString(provider, fmt.Sprintf("redirectFromDomain%s", suffix)),
+		AllowedMethods:                getSliceFromString(provider, "allowedMethods", suffix),
+		DeniedMethods:                 getSliceFromString(provider, "deniedMethods", suffix),
+		DenyHttp:                      getBoolParam(provider, "denyHttp", suffix),
+		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),
+		HttpsRedirectCode:             getStringParam(provider, "httpsRedirectCode", suffix),
+		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
+		OutboundHostname:              getStringParam(provider, "outboundHostname", suffix),
+		Port:                          getStringParam(provider, "port", suffix),
+		RedirectFromDomain:            getSliceFromString(provider, "redirectFromDomain", suffix),
 		ReqMode:                       reqMode,
 		ReqPathSearchReplace:          reqPathSearchReplace,
 		ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
-		ServiceDomain:                 getSliceFromString(provider, fmt.Sprintf("serviceDomain%s", suffix)),
+		ServiceDomain:                 getSliceFromString(provider, "serviceDomain", suffix),
 		ServiceHeader:                 header,
-		ServicePath:                   getSliceFromString(provider, fmt.Sprintf("servicePath%s", suffix)),
-		ServicePathExclude:            getSliceFromString(provider, fmt.Sprintf("servicePathExclude%s", suffix)),
+		ServicePath:                   getSliceFromString(provider, "servicePath", suffix),
+		ServicePathExclude:            getSliceFromString(provider, "servicePathExclude", suffix),
 		SrcPort:                       srcPort,
-		VerifyClientSsl:               getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
+		VerifyClientSsl:               getBoolParam(provider, "verifyClientSsl", suffix),
 		UserAgent:                     userAgent,
-		UserDef:                       provider.GetString(fmt.Sprintf("userDef%s", suffix)),
+		UserDef:                       getStringParam(provider, "userDef", suffix),
 		Index:                         sdIndex,
 	}
 }
 
-func getSliceFromString(provider ServiceParameterProvider, key string) []string {
+func getSliceFromString(provider ServiceParameterProvider, prefix, suffix string) []string {
 	separator := os.Getenv("SEPARATOR")
 	value := []string{}
+	key := fmt.Sprintf("%s%s", prefix, suffix)
 	if len(provider.GetString(key)) > 0 {
 		value = strings.Split(provider.GetString(key), separator)
+	} else if len(provider.GetString(prefix)) > 0 {
+		value = strings.Split(provider.GetString(prefix), separator)
 	}
 	return value
 }
 
-func isServiceDestValid(sd *ServiceDest) bool {
-	return len(sd.ServicePath) > 0 || len(sd.Port) > 0
-}
-
-func getBoolParam(req ServiceParameterProvider, param string) bool {
+func getBoolParam(req ServiceParameterProvider, prefix, suffix string) bool {
 	value := false
-	if len(req.GetString(param)) > 0 {
-		value, _ = strconv.ParseBool(req.GetString(param))
+	key := fmt.Sprintf("%s%s", prefix, suffix)
+	if len(req.GetString(key)) > 0 {
+		value, _ = strconv.ParseBool(req.GetString(key))
 	}
 	return value
+}
+
+func getStringParam(req ServiceParameterProvider, prefix, suffix string) string {
+	key := fmt.Sprintf("%s%s", prefix, suffix)
+	value := req.GetString(key)
+	if len(value) > 0 {
+		return value
+	}
+	return req.GetString(prefix)
+}
+
+func isServiceDestValid(sd, rootSd *ServiceDest) bool {
+	sdValid := len(sd.ServicePath) > 0 || len(sd.Port) > 0
+	if rootSd == nil {
+		return sdValid
+	}
+	sdSameAsRoot := isSliceEqual(sd.ServicePath, rootSd.ServicePath) && sd.Port == rootSd.Port
+	return sdValid && !sdSameAsRoot
+}
+
+// TODO: Test
+func isSliceEqual(s1, s2 []string) bool {
+	if s1 == nil && s2 == nil {
+		return true
+	}
+	if s1 == nil || s2 == nil {
+		return false
+	}
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func mergeUsers(
