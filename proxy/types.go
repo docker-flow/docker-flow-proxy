@@ -481,7 +481,11 @@ func isServiceDestValid(sd, rootSd *ServiceDest) bool {
 	if rootSd == nil {
 		return sdValid
 	}
-	sdSameAsRoot := isSliceEqual(sd.ServicePath, rootSd.ServicePath) && sd.Port == rootSd.Port
+	sdSameAsRoot := isSliceEqual(sd.ServicePath, rootSd.ServicePath) &&
+		sd.Port == rootSd.Port &&
+		isSliceEqual(sd.ServiceDomain, rootSd.ServiceDomain) &&
+		sd.ReqMode == rootSd.ReqMode &&
+		sd.OutboundHostname == rootSd.OutboundHostname
 	return sdValid && !sdSameAsRoot
 }
 
