@@ -414,12 +414,21 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		)
 	}
 	reqPathSearchReplace := getStringParam(provider, "reqPathSearchReplace", suffix)
+	// TODO: Remove for issue #435
+	if len(reqPathSearchReplace) == 0 {
+		reqPathSearchReplace = getStringParam(provider, "reqPathSearchReplace", "")
+	}
 	if len(reqPathSearchReplace) > 0 {
 		searchReplace := strings.Split(reqPathSearchReplace, ":")
 		reqPathSearchReplaceFormatted = append(
 			reqPathSearchReplaceFormatted,
 			searchReplace...,
 		)
+	}
+	outboundHostname := getStringParam(provider, "outboundHostname", suffix)
+	// TODO: Remove for issue #435
+	if len(outboundHostname) == 0 {
+		outboundHostname = getStringParam(provider, "outboundHostname", "")
 	}
 	return ServiceDest{
 		AllowedMethods:                getSliceFromString(provider, "allowedMethods", suffix),
@@ -428,7 +437,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),
 		HttpsRedirectCode:             getStringParam(provider, "httpsRedirectCode", suffix),
 		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
-		OutboundHostname:              getStringParam(provider, "outboundHostname", suffix),
+		OutboundHostname:              outboundHostname,
 		Port:                          getStringParam(provider, "port", suffix),
 		RedirectFromDomain:            getSliceFromString(provider, "redirectFromDomain", suffix),
 		ReqMode:                       reqMode,
@@ -452,8 +461,9 @@ func getSliceFromString(provider ServiceParameterProvider, prefix, suffix string
 	key := fmt.Sprintf("%s%s", prefix, suffix)
 	if len(provider.GetString(key)) > 0 {
 		value = strings.Split(provider.GetString(key), separator)
-	} else if len(provider.GetString(prefix)) > 0 {
-		value = strings.Split(provider.GetString(prefix), separator)
+		// TODO: Uncomment for issue #435
+		// } else if len(provider.GetString(prefix)) > 0 {
+		// 	value = strings.Split(provider.GetString(prefix), separator)
 	}
 	return value
 }
@@ -470,22 +480,25 @@ func getBoolParam(req ServiceParameterProvider, prefix, suffix string) bool {
 func getStringParam(req ServiceParameterProvider, prefix, suffix string) string {
 	key := fmt.Sprintf("%s%s", prefix, suffix)
 	value := req.GetString(key)
-	if len(value) > 0 {
-		return value
-	}
-	return req.GetString(prefix)
+	// TODO: Uncomment for issue #435
+	// if len(value) > 0 {
+	// 	return value
+	// }
+	// return req.GetString(prefix)
+	return value
 }
 
 func isServiceDestValid(sd, rootSd *ServiceDest) bool {
 	sdValid := len(sd.ServicePath) > 0 || len(sd.Port) > 0
-	if rootSd == nil {
-		return sdValid
-	}
-	sdSameAsRoot := isSliceEqual(sd.ServicePath, rootSd.ServicePath) && sd.Port == rootSd.Port
-	return sdValid && !sdSameAsRoot
+	// TODO: Uncomment for issue #435
+	// if rootSd == nil {
+	// 	return sdValid
+	// }
+	// sdSameAsRoot := isSliceEqual(sd.ServicePath, rootSd.ServicePath) && sd.Port == rootSd.Port
+	// return sdValid && !sdSameAsRoot
+	return sdValid
 }
 
-// TODO: Test
 func isSliceEqual(s1, s2 []string) bool {
 	if s1 == nil && s2 == nil {
 		return true
