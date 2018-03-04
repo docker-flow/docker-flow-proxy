@@ -204,6 +204,32 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenBoolI
 	s.Equal(expected, *actual)
 }
 
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenSliceIndexIsNotPresent() {
+	expected := s.getExpectedService()
+	serviceMap := s.getServiceMap(expected, ".1", ",")
+	delete(serviceMap, "servicePath.1")
+	delete(serviceMap, "allowedMethods.1")
+	serviceMap["servicePath"] = strings.Join(expected.ServiceDest[0].ServicePath, ",")
+	serviceMap["allowedMethods"] = strings.Join(expected.ServiceDest[0].AllowedMethods, ",")
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
+	s.Equal(expected, *actual)
+}
+
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenStringIndexIsNotPresent() {
+	expected := s.getExpectedService()
+	serviceMap := s.getServiceMap(expected, ".1", ",")
+	delete(serviceMap, "httpsRedirectCode.1")
+	serviceMap["httpsRedirectCode"] = expected.ServiceDest[0].HttpsRedirectCode
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
+	s.Equal(expected, *actual)
+}
+
 func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesSeparatorFromEnvVar() {
 	separatorOrig := os.Getenv("SEPARATOR")
 	defer func() { os.Setenv("SEPARATOR", separatorOrig) }()
@@ -233,35 +259,6 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_AddsTasksWhenSessionTypeIsN
 	actual := GetServiceFromProvider(&provider)
 
 	s.Equal("tasks."+expected.ServiceName, actualHost)
-	s.Equal(expected, *actual)
-}
-
-func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexedEntries_WhenPortIsEmpty() {
-	expected := Service{
-		ServiceDest: []ServiceDest{{
-			AllowedMethods:     []string{},
-			DeniedMethods:      []string{},
-			Index:              1,
-			Port:               "1234",
-			RedirectFromDomain: []string{},
-			ReqMode:            "reqMode",
-			ReqPathSearchReplaceFormatted: []string{},
-			ServiceDomain:                 []string{"domain1", "domain2"},
-			ServiceHeader:                 map[string]string{},
-			ServicePath:                   []string{"/"},
-			ServicePathExclude:            []string{},
-		}},
-		ServiceName: "serviceName",
-	}
-	serviceMap := map[string]string{
-		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
-		"serviceName":   expected.ServiceName,
-		"port.1":        expected.ServiceDest[0].Port,
-		"reqMode.1":     expected.ServiceDest[0].ReqMode,
-		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
-	}
-	provider := mapParameterProvider{&serviceMap}
-	actual := GetServiceFromProvider(&provider)
 	s.Equal(expected, *actual)
 }
 
