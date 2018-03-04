@@ -57,6 +57,8 @@ type ServiceDest struct {
 	SrcPortAcl string
 	// Internal use only. Do not modify.
 	SrcPortAclName string
+	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
+	SslVerifyNone bool
 	// Whether to verify client SSL and deny request when it is invalid
 	VerifyClientSsl bool
 	// If specified, only requests with the same agent will be forwarded to the backend.
@@ -149,8 +151,6 @@ type Service struct {
 	SetReqHeader []string `split_words:"true"`
 	// Additional headers that will be set to the response before forwarding it to the client. If a specified header exists, it will be replaced with the new one.
 	SetResHeader []string `split_words:"true"`
-	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
-	SslVerifyNone bool `split_words:"true"`
 	// The path to the template representing a snippet of the backend configuration.
 	// If specified, the backend template will be loaded from the specified file.
 	// If specified, `templateFePath` must be set as well.
@@ -325,7 +325,7 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 		sr.ServiceName,
 		provider.GetString("users"),
 		provider.GetString("usersSecret"),
-		getBoolParam(provider, "usersPassEncrypted"),
+		getBoolParam(provider, "usersPassEncrypted", ""),
 		globalUsersString,
 		globalUsersEncrypted,
 	)
@@ -430,10 +430,10 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	return ServiceDest{
 		AllowedMethods:                getSliceFromString(provider, fmt.Sprintf("allowedMethods%s", suffix)),
 		DeniedMethods:                 getSliceFromString(provider, fmt.Sprintf("deniedMethods%s", suffix)),
-		DenyHttp:                      getBoolParam(provider, fmt.Sprintf("denyHttp%s", suffix)),
-		HttpsOnly:                     getBoolParam(provider, fmt.Sprintf("httpsOnly%s", suffix)),
+		DenyHttp:                      getBoolParam(provider, "denyHttp", suffix),
+		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),
 		HttpsRedirectCode:             provider.GetString(fmt.Sprintf("httpsRedirectCode%s", suffix)),
-		IgnoreAuthorization:           getBoolParam(provider, fmt.Sprintf("ignoreAuthorization%s", suffix)),
+		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
 		OutboundHostname:              outboundHostname,
 		Port:                          provider.GetString(fmt.Sprintf("port%s", suffix)),
 		RedirectFromDomain:            getSliceFromString(provider, fmt.Sprintf("redirectFromDomain%s", suffix)),
@@ -445,7 +445,8 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		ServicePath:                   getSliceFromString(provider, fmt.Sprintf("servicePath%s", suffix)),
 		ServicePathExclude:            getSliceFromString(provider, fmt.Sprintf("servicePathExclude%s", suffix)),
 		SrcPort:                       srcPort,
-		VerifyClientSsl:               getBoolParam(provider, fmt.Sprintf("verifyClientSsl%s", suffix)),
+		SslVerifyNone:                 getBoolParam(provider, "sslVerifyNone", suffix),
+		VerifyClientSsl:               getBoolParam(provider, "verifyClientSsl", suffix),
 		UserAgent:                     userAgent,
 		UserDef:                       provider.GetString(fmt.Sprintf("userDef%s", suffix)),
 		Index:                         sdIndex,
@@ -465,9 +466,12 @@ func isServiceDestValid(sd *ServiceDest) bool {
 	return len(sd.ServicePath) > 0 || len(sd.Port) > 0
 }
 
-func getBoolParam(req ServiceParameterProvider, param string) bool {
+func getBoolParam(req ServiceParameterProvider, param, index string) bool {
 	value := false
-	if len(req.GetString(param)) > 0 {
+	key := fmt.Sprintf("%s%s", param, index)
+	if len(req.GetString(key)) > 0 {
+		value, _ = strconv.ParseBool(req.GetString(key))
+	} else if len(req.GetString(param)) > 0 {
 		value, _ = strconv.ParseBool(req.GetString(param))
 	}
 	return value
