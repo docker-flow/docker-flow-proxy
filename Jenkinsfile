@@ -43,6 +43,7 @@ pipeline {
         dockerLogout()
         dfRelease("docker-flow-proxy")
         dfReleaseGithub("docker-flow-proxy")
+        dfReleaseArm("docker-flow-proxy")
       }
     }
     stage("deploy") {
