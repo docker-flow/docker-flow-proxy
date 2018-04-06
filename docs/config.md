@@ -138,7 +138,7 @@ Please read the [Proxy Statistics](https://proxy.dockerflow.com/swarm-mode-auto/
 
 ## Custom Config
 
-The base HAProxy configuration can be found in [haproxy.tmpl](haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
+The base HAProxy configuration can be found in [haproxy.tmpl](https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
 
 ```
 FROM vfarcic/docker-flow-proxy
