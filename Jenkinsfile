@@ -37,7 +37,7 @@ pipeline {
         branch "master"
       }
       steps {
-        dockerLogin()
+        dfLogin()
         sh "docker image push dockerflow/docker-flow-proxy:latest-packet-beat"
         sh "docker image push dockerflow/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
         dockerLogout()
