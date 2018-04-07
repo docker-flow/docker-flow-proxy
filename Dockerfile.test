@@ -1,4 +1,4 @@
-FROM vfarcic/docker-flow-proxy-test-base
+FROM dockerflow/docker-flow-proxy-test-base
 
 COPY . /src
 WORKDIR /src

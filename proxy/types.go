@@ -154,12 +154,12 @@ type Service struct {
 	// The path to the template representing a snippet of the backend configuration.
 	// If specified, the backend template will be loaded from the specified file.
 	// If specified, `templateFePath` must be set as well.
-	// See the https://github.com/vfarcic/docker-flow-proxy#templates section for more info.
+	// See the https://github.com/docker-flow/docker-flow-proxy#templates section for more info.
 	TemplateBePath string `split_words:"true"`
 	// The path to the template representing a snippet of the frontend configuration.
 	// If specified, the frontend template will be loaded from the specified file.
 	// If specified, `templateBePath` must be set as well.
-	// See the https://github.com/vfarcic/docker-flow-proxy#templates section for more info.
+	// See the https://github.com/docker-flow/docker-flow-proxy#templates section for more info.
 	TemplateFePath string `split_words:"true"`
 	// The server timeout in seconds
 	TimeoutServer string `split_words:"true"`

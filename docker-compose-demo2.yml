@@ -3,7 +3,7 @@ version: '2'
 services:
 
   app:
-    image: vfarcic/go-demo
+    image: dockerflow/go-demo
     ports:
       - 8080
 

@@ -1,4 +1,4 @@
-FROM vfarcic/docker-flow-proxy
+FROM dockerflow/docker-flow-proxy
 
 RUN apk add --update \
     openssl \

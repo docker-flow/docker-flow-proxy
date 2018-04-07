@@ -16,7 +16,7 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 To setup an example environment using Docker Machine, please run the commands that follow.
 
 ```bash
-git clone https://github.com/vfarcic/docker-flow-proxy.git
+git clone https://github.com/docker-flow/docker-flow-proxy.git
 
 cd docker-flow-proxy
 
@@ -88,7 +88,7 @@ docker service create --name proxy \
     -p 8080:8080 \
     --network proxy \
     -e MODE=swarm \
-    vfarcic/docker-flow-proxy
+    docker-flow/docker-flow-proxy
 ```
 
 We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *swarm*.

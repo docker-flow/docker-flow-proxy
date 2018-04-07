@@ -21,7 +21,7 @@ To setup an example Swarm cluster using Docker Machine, please run the commands 
 ```bash
 curl -o swarm-cluster.sh \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/scripts/swarm-cluster.sh
+docker-flow/docker-flow-proxy/master/scripts/swarm-cluster.sh
 
 chmod +x swarm-cluster.sh
 
@@ -39,13 +39,13 @@ docker network create --driver overlay proxy
 
 curl -o docker-compose-stack.yml \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
+docker-flow/docker-flow-proxy/master/docker-compose-stack.yml
 
 docker stack deploy -c docker-compose-stack.yml proxy
 
 curl -o docker-compose-go-demo.yml \
     https://raw.githubusercontent.com/\
-vfarcic/go-demo/master/docker-compose-stack.yml
+docker-flow/go-demo/master/docker-compose-stack.yml
 
 docker stack deploy -c docker-compose-go-demo.yml go-demo
 ```

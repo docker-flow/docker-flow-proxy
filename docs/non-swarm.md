@@ -12,14 +12,14 @@ The examples that follow will show you how to reconfigure *Docker Flow Proxy* ma
 !!! tip
     Feel free to skip this section if you already have a working Swarm cluster.
 
-We'll use the [swarm-cluster.sh](https://github.com/vfarcic/docker-flow-proxy/blob/master/scripts/swarm-cluster.sh) script from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository. It'll create a Swarm cluster based on three Docker Machine nodes.
+We'll use the [swarm-cluster.sh](https://github.com/docker-flow/docker-flow-proxy/blob/master/scripts/swarm-cluster.sh) script from the [docker-flow/docker-flow-proxy](https://github.com/docker-flow/docker-flow-proxy) repository. It'll create a Swarm cluster based on three Docker Machine nodes.
 
 !!! info
-	For the [swarm-cluster.sh](https://github.com/vfarcic/docker-flow-proxy/blob/master/scripts/swarm-cluster.sh) script to work, you are required to have Docker Machine installed on your system.
+	For the [swarm-cluster.sh](https://github.com/docker-flow/docker-flow-proxy/blob/master/scripts/swarm-cluster.sh) script to work, you are required to have Docker Machine installed on your system.
 
 ```bash
 curl -o swarm-cluster.sh \
-    https://raw.githubusercontent.com/vfarcic/docker-flow-proxy/master/scripts/swarm-cluster.sh
+    https://raw.githubusercontent.com/docker-flow/docker-flow-proxy/master/scripts/swarm-cluster.sh
 
 chmod +x swarm-cluster.sh
 
@@ -39,7 +39,7 @@ Now that we have a Swarm cluster, we can deploy *Docker Flow Proxy* stack.
 docker network create -d overlay proxy
 
 curl -o proxy.yml \
-    https://raw.githubusercontent.com/vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
+    https://raw.githubusercontent.com/docker-flow/docker-flow-proxy/master/docker-compose-stack.yml
 
 docker stack deploy -c proxy.yml proxy
 ```

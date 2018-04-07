@@ -3,7 +3,7 @@ version: "3.2"
 services:
 
   proxy:
-    image: vfarcic/docker-flow-proxy:${TAG:-latest}
+    image: dockerflow/docker-flow-proxy:${TAG:-latest}
     ports:
       - 80:80
       - 443:443
@@ -32,7 +32,7 @@ services:
           memory: 50M
 
   docs:
-    image: vfarcic/docker-flow-proxy-docs:${TAG:-latest}
+    image: dockerflow/docker-flow-proxy-docs:${TAG:-latest}
     networks:
       - proxy
     deploy:

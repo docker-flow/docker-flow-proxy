@@ -1,6 +1,6 @@
 # Configuring Docker Flow Proxy
 
-*Docker Flow Proxy* can be configured through Docker environment variables and/or by creating a new image based on `vfarcic/docker-flow-proxy`.
+*Docker Flow Proxy* can be configured through Docker environment variables and/or by creating a new image based on `dockerflow/docker-flow-proxy`.
 
 ## Environment Variables
 
@@ -31,7 +31,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration. Multiple lines should be separated with comma (*,*).|
 |EXTRA_GLOBAL       |Value will be added to the default `global` configuration. Multiple lines should be separated with comma (*,*).|
 |HTTPS_ONLY         |If set to true, all requests to all services will be redirected to HTTPS.<br>**Example:** `true`<br>**Default Value:** `false`|
-|LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) used for automatic proxy configuration.<br>**Example:** `swarm-listener:8080`|
+|LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) used for automatic proxy configuration.<br>**Example:** `swarm-listener:8080`|
 PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.<br>**Default value:** `docker-flow`|
 |SERVICE_NAME       |The name of the service. It must be the same as the value of the `--name` argument used to create the proxy service. Used only in the *swarm* mode.<br>**Example:** `my-proxy`<br>**Default value:** `proxy`|
 |RELOAD_INTERVAL    |Defines the frequency (in milliseconds) between automatic config reloads from Swarm Listener.<br>**Default value:** `5000`|
@@ -40,7 +40,7 @@ PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies a
 |SEPARATOR          |The character used to separate multiple values.<br>**Default value:** `,` (comma)|
 |SERVICE_DOMAIN_ALGO|The default algorithm applied to domain ACLs. It can be overwritten for a service through the `serviceDomainAlgo` parameter.<br>**Examples:**<br>`hdr(host)`: matches only if domain is the same as `serviceDomain`<br>`hdr_dom(host)`: matches the specified `serviceDomain` and any subdomain (a string either isolated or delimited by dots).<br>`req.ssl_sni`: matches Server Name TLS extension<br>**Default Value:** `hdr_beg(host)`|
 |SKIP_ADDRESS_VALIDATION|Whether to skip validating service address before reconfiguring the proxy.<br>**Example:** false<br>**Default value:** `true`|
-|SSL_BIND_CIPHERS   |Sets the default string describing the list of cipher algorithms ("cipher suite") that are negotiated during the SSL/TLS handshake for all "bind" lines which do not explicitly define theirs. The format of the string is defined in "man 1 ciphers" from OpenSSL man pages, and can be for instance a string such as `AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH`.<br>**Default value:** see [Dockerfile](https://github.com/vfarcic/docker-flow-proxy/blob/master/Dockerfile#L31)|
+|SSL_BIND_CIPHERS   |Sets the default string describing the list of cipher algorithms ("cipher suite") that are negotiated during the SSL/TLS handshake for all "bind" lines which do not explicitly define theirs. The format of the string is defined in "man 1 ciphers" from OpenSSL man pages, and can be for instance a string such as `AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH`.<br>**Default value:** see [Dockerfile](https://github.com/docker-flow/docker-flow-proxy/blob/master/Dockerfile#L31)|
 |SSL_BIND_OPTIONS   |Sets default ssl-options to force on all "bind" lines.<br>**Default value:** `no-sslv3`|
 |STATS_USER         |Username for the statistics page. If not set, stats will not be available. If both `STATS_USER` and `STATS_PASS` are set to `none`, statistics will be available without authentication.<br>**Example:** my-user<br>**Default value:** `admin`|
 |STATS_USER_ENV     |The name of the environment variable that holds the username for the statistics page.<br>**Example:** MY_USER<br>**Default value:** `STATS_USER`|
@@ -138,10 +138,10 @@ Please read the [Proxy Statistics](https://proxy.dockerflow.com/swarm-mode-auto/
 
 ## Custom Config
 
-The base HAProxy configuration can be found in [haproxy.tmpl](https://github.com/vfarcic/docker-flow-proxy/blob/master/haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
+The base HAProxy configuration can be found in [haproxy.tmpl](https://github.com/docker-flow/docker-flow-proxy/blob/master/haproxy.tmpl). It can be customized by creating a new image. An example *Dockerfile* is as follows.
 
 ```
-FROM vfarcic/docker-flow-proxy
+FROM dockerflow/docker-flow-proxy
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 ```
 
