@@ -15,7 +15,7 @@ pipeline {
           def dateFormat = new SimpleDateFormat("yy.MM.dd")
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
-        dfBuild("docker-flow-proxy")
+        dfBuild2("docker-flow-proxy")
         sh "docker image build -t vfarcic/docker-flow-proxy:latest-packet-beat -f Dockerfile.packetbeat ."
         sh "docker image tag vfarcic/docker-flow-proxy:latest-packet-beat vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
       }
@@ -41,9 +41,9 @@ pipeline {
         sh "docker image push vfarcic/docker-flow-proxy:latest-packet-beat"
         sh "docker image push vfarcic/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
         dockerLogout()
-        dfRelease("docker-flow-proxy")
-        dfReleaseGithub("docker-flow-proxy")
-        dfReleaseArm("docker-flow-proxy")
+        dfRelease2("docker-flow-proxy")
+        dfReleaseGithub2("docker-flow-proxy")
+        dfReleaseArm2("docker-flow-proxy")
       }
     }
     stage("deploy") {
@@ -54,7 +54,7 @@ pipeline {
         label "prod"
       }
       steps {
-        dfDeploy("docker-flow-proxy", "proxy_proxy", "proxy_docs")
+        dfDeploy2("docker-flow-proxy", "proxy_proxy", "proxy_docs")
       }
     }
   }
