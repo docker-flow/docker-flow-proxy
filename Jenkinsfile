@@ -54,8 +54,7 @@ pipeline {
         label "prod"
       }
       steps {
-          echo "Not yet deploying"
-        // dfDeploy2("docker-flow-proxy", "proxy_proxy", "proxy_docs")
+        dfDeploy2("docker-flow-proxy", "proxy_proxy", "proxy_docs")
       }
     }
   }
