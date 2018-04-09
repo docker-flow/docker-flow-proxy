@@ -9,6 +9,11 @@ global
     ssl-default-server-options {{.SslBindOptions}}
     ssl-default-server-ciphers {{.SslBindCiphers}}
 
+resolvers docker
+{{- range .Resolvers}}
+    {{.}}
+{{- end}}
+
 defaults
     mode    http
     balance roundrobin

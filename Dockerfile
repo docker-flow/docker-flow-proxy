@@ -15,7 +15,7 @@ RUN mkdir -p /cfg/tmpl /templates /certs /logs
 ENV CERTS="" \
     CAPTURE_REQUEST_HEADER="" \
     CFG_TEMPLATE_PATH="/cfg/tmpl/haproxy.tmpl" \
-    CHECK_RESOLVERS=false \
+    CHECK_RESOLVERS=false RESOLVERS="nameserver dns 127.0.0.11:53" \
     CONNECTION_MODE="http-keep-alive" \
     DEBUG="false" \
     DEFAULT_PORTS="80,443:ssl" \

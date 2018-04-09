@@ -39,6 +39,9 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
     ssl-default-server-options no-sslv3
     ssl-default-server-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
 
+resolvers docker
+    nameserver dns 127.0.0.11:53
+
 defaults
     mode    http
     balance roundrobin
@@ -661,6 +664,33 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsExtraGlobal() {
 		s.TemplateContent,
 		"tune.ssl.default-dh-param 2048",
 		"tune.ssl.default-dh-param 2048\n    this is extra content\n    this is a new line",
+		-1,
+	)
+	expectedData := fmt.Sprintf(
+		"%s%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ReplacesDefaultResolvers() {
+	resolversOrig := os.Getenv("RESOLVERS")
+	defer func() { os.Setenv("RESOLVERS", resolversOrig) }()
+	os.Setenv("RESOLVERS", "resolvers1,resolver2")
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"nameserver dns 127.0.0.11:53",
+		`resolvers1
+    resolver2`,
 		-1,
 	)
 	expectedData := fmt.Sprintf(

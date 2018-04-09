@@ -35,6 +35,7 @@ type configData struct {
 	ExtraDefaults        string
 	ExtraFrontend        string
 	ExtraGlobal          string
+	Resolvers            []string
 	Stats                string
 	TimeoutConnect       string
 	TimeoutClient        string
@@ -245,6 +246,8 @@ func (m HaProxy) getConfigData() configData {
 	}
 	d.ConnectionMode = getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
 	d.DefaultReqMode = getSecretOrEnvVar("DEFAULT_REQ_MODE", "http")
+	resolversString := getSecretOrEnvVar("RESOLVERS", "nameserver dns 127.0.0.11:53")
+	d.Resolvers = strings.Split(resolversString, ",")
 	d.SslBindCiphers = getSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
 	d.SslBindOptions = getSecretOrEnvVar("SSL_BIND_OPTIONS", "no-sslv3")
 	d.TimeoutConnect = getSecretOrEnvVar("TIMEOUT_CONNECT", "5")

@@ -401,7 +401,6 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	if sdIndex < 0 {
 		sdIndex = 0
 	}
-
 	reqPathSearchReplaceFormatted := []string{}
 	if len(sr.ReqPathSearch) > 0 {
 		reqPathSearchReplaceFormatted = append(
