@@ -91,7 +91,10 @@ type Service struct {
 	AddResHeader []string `split_words:"true"`
 	// Additional configuration that will be added to the bottom of the service backend
 	BackendExtra string `split_words:"true"`
-	// Whether to use `docker` as a check resolver. Set through the environment variable CHECK_RESOLVERS
+	// Enable resolvers.
+	// Provides higher reliability at the cost of backend initialization time.
+	// If enabled, it might take a few seconds until a backend is resolved and operational.
+	// Resolvers can be customized through the environment variable RESOLVERS.
 	CheckResolvers bool `split_words:"true"`
 	// Enable HTTP compression.
 	// The currently supported algorithms are: identity, gzip, deflate, raw-deflate.

@@ -521,6 +521,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		AclName:               "aclName",
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
+		CheckResolvers:        true,
 		CompressionAlgo:       "compressionAlgo",
 		CompressionType:       "compressionType",
 		ConnectionMode:        "my-connection-mode",
@@ -561,7 +562,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t",
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
@@ -597,6 +598,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ConnectionMode,
 		expected.CompressionAlgo,
 		expected.CompressionType,
+		expected.CheckResolvers,
 	)
 	req, _ := http.NewRequest("GET", addr, nil)
 	srv := serve{}
@@ -664,6 +666,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		AclName:               "my-AclName",
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
+		CheckResolvers:        true,
 		CompressionAlgo:       "compressionAlgo",
 		ConnectionMode:        "my-connection-mode",
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
@@ -709,6 +712,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_ADD_REQ_HEADER", strings.Join(service.AddReqHeader, ","))
 	os.Setenv("DFP_SERVICE_ADD_RES_HEADER", strings.Join(service.AddResHeader, ","))
 	os.Setenv("DFP_SERVICE_ALLOWED_METHODS", strings.Join(service.ServiceDest[0].AllowedMethods, ","))
+	os.Setenv("DFP_SERVICE_CHECK_RESOLVERS", strconv.FormatBool(service.CheckResolvers))
 	os.Setenv("DFP_SERVICE_COMPRESSION_ALGO", service.CompressionAlgo)
 	os.Setenv("DFP_SERVICE_COMPRESSION_TYPE", service.CompressionType)
 	os.Setenv("DFP_SERVICE_CONNECTION_MODE", service.ConnectionMode)
@@ -751,6 +755,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_ADD_REQ_HEADER")
 		os.Unsetenv("DFP_SERVICE_ADD_RES_HEADER")
 		os.Unsetenv("DFP_SERVICE_ALLOWED_METHODS")
+		os.Unsetenv("DFP_SERVICE_CHECK_RESOLVERS")
 		os.Unsetenv("DFP_SERVICE_COMPRESSION_ALGO")
 		os.Unsetenv("DFP_SERVICE_COMPRESSION_TYPE")
 		os.Unsetenv("DFP_SERVICE_CONNECTION_MODE")
