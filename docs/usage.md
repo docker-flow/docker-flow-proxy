@@ -230,7 +230,7 @@ The `ping` endpoint might be useful if implementing `HEALTHCHECK`.
 An example Dockerfile is as follows.
 
 ```
-FROM docker-flow/docker-flow-proxy
+FROM dockerflow/docker-flow-proxy
 
 HEALTHCHECK --interval=5s --timeout=5s CMD wget -qO- "http://localhost:8080/v1/docker-flow-proxy/ping"
 ```
@@ -255,7 +255,7 @@ Metrics can be retrieved though the address **[PROXY_IP]:[PROXY_PORT]/metrics**.
 
 Proxy configuration is a combination of configuration files generated from templates. Base template is `haproxy.tmpl`. Each service appends frontend and backend templates on top of the base template. Once all the templates are combined, they are converted into the `haproxy.cfg` configuration file.
 
-The templates can be extended by creating a new Docker image based on `docker-flow/docker-flow-proxy` and adding the templates through `templateFePath` and `templateBePath` [reconfigure parameters](#reconfigure).
+The templates can be extended by creating a new Docker image based on `dockerflow/docker-flow-proxy` and adding the templates through `templateFePath` and `templateBePath` [reconfigure parameters](#reconfigure).
 
 Templates are based on [Go Templates](https://golang.org/pkg/text/template/).
 

@@ -78,7 +78,7 @@ docker service create --name proxy \
     -p 443:443 \
     --network proxy \
     -e LISTENER_ADDRESS=swarm-listener \
-    docker-flow/docker-flow-proxy
+    dockerflow/docker-flow-proxy
 ```
 
 We opened the ports *80* and *443*. External requests will be routed through them towards destination services. The proxy is attached to the *proxy* network. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.

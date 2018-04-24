@@ -88,7 +88,7 @@ docker service create --name proxy \
     -p 8080:8080 \
     --network proxy \
     -e MODE=swarm \
-    docker-flow/docker-flow-proxy
+    dockerflow/docker-flow-proxy
 ```
 
 We opened ports *80* and *443*. External requests will be routed through them towards the destination services. The third port (*8080*) will be used to send requests to the proxy specifying what it should do. The proxy it belongs to the *proxy* network and has the mode set to *swarm*.
