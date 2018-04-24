@@ -112,9 +112,9 @@ The output is as follows (IDs are removed for brevity).
 
 ```
 NAME                   IMAGE                                         NODE   DESIRED STATE CURRENT STATE         ERROR  PORTS
-proxy_proxy.1          docker-flow/docker-flow-proxy:latest          node-2 Running       Running 2 minutes ago
-proxy_swarm-listener.1 docker-flow/docker-flow-swarm-listener:latest node-1 Running       Running 2 minutes ago
-proxy_proxy.2          docker-flow/docker-flow-proxy:latest          node-3 Running       Running 2 minutes ago
+proxy_proxy.1          dockerflow/docker-flow-proxy:latest          node-2 Running       Running 2 minutes ago
+proxy_swarm-listener.1 dockerflow/docker-flow-swarm-listener:latest node-1 Running       Running 2 minutes ago
+proxy_proxy.2          dockerflow/docker-flow-proxy:latest          node-3 Running       Running 2 minutes ago
 ```
 
 We are running two replicas of the `proxy` (for high-availability in the case of a failure) and one of the `swarm-listener`.

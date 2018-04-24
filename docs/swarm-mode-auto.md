@@ -65,7 +65,7 @@ docker service create --name swarm-listener \
     -e DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
     -e DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
     --constraint 'node.role==manager' \
-    docker-flow/docker-flow-swarm-listener
+    dockerflow/docker-flow-swarm-listener
 ```
 
 The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIFY_CREATE_SERVICE_URL` and `DF_NOTIFY_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the `manager` nodes.
