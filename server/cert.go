@@ -104,7 +104,7 @@ func (m *cert) Init() error {
 	// Waiting until DNS info is propagated throughout the cluster
 	if len(os.Getenv("DNS_LOOKUP_PAUSE_MS")) > 0 {
 		pause, _ := strconv.Atoi(os.Getenv("DNS_LOOKUP_PAUSE_MS"))
-		time.Sleep(time.Duration(pause) * time.Second)
+		time.Sleep(time.Duration(pause) * time.Millisecond)
 	}
 	dns := fmt.Sprintf("tasks.%s", m.ProxyServiceName)
 	client := &http.Client{}
