@@ -91,6 +91,21 @@ backend myService-be1234_0
 	s.Equal(expected, actual)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_UsesServerTemplate_WhenDiscoveryTypeIsDns() {
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
+	s.reconfigure.Service.DiscoveryType = "DNS"
+	s.reconfigure.Service.Replicas = 53
+	expected := `
+backend myService-be1234_0
+    mode http
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    server-template myService 53 myService:1234 check`
+
+	_, actual, _ := s.reconfigure.GetTemplates()
+
+	s.Equal(expected, actual)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
 	s.reconfigure.Users = []proxy.User{
 		{Username: "user-1", Password: "pass-1"},
@@ -319,6 +334,26 @@ backend https-myService-be1234_3
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.ServiceDest[0].Index = 3
 	s.reconfigure.HttpsPort = 4321
+	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
+
+	s.Equal("", actualFront)
+	s.Equal(expectedBack, actualBack)
+}
+
+func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPortAndDnsDiscovery_WhenPresent() {
+	expectedBack := `
+backend myService-be1234_0
+    mode http
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    server-template myService 7 myService:1234 check
+backend https-myService-be1234_0
+    mode http
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    server-template myService 7 myService:4321 check`
+	s.reconfigure.ServiceDest[0].Port = "1234"
+	s.reconfigure.HttpsPort = 4321
+	s.reconfigure.Replicas = 7
+	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)

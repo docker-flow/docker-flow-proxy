@@ -119,6 +119,11 @@ type Service struct {
 	DelReqHeader []string `split_words:"true"`
 	// Additional headers that will be deleted in the response before forwarding it to the client. Please consult https://www.haproxy.com/doc/aloha/7.0/haproxy/http_rewriting.html#delete-a-header-in-the-response for more info.
 	DelResHeader []string `split_words:"true"`
+	// The type of service discovery.
+	// Currently supported are Overlay (default) and DNS.
+	// Overlay discovery relies on Overlay network to perform round-robing load balancing. This is the recommended discovery.
+	// DNS discovery detects the replicas using DNS SD.
+	DiscoveryType string
 	// Whether to distribute a request to all the instances of the proxy.
 	// Used only in the swarm mode.
 	Distribute bool `split_words:"true"`
@@ -133,6 +138,9 @@ type Service struct {
 	PathType string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
+	// The number of replicas of a service.
+	// This parameter is currently used only if `DiscoveryType` is set to `DNS`.
+	Replicas int `split_words:"true"`
 	// TODO: Deprecated since Dec. 2017.
 	// A regular expression to apply the modification.
 	// If specified, `reqPathSearch` needs to be set as well.

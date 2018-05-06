@@ -60,7 +60,7 @@ func getFrontTemplate(s Service) string {
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-	    {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
+        {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
     use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
@@ -81,13 +81,13 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
 {{$sd := (index . 0).ServiceDest}}{{$srcPort := (index $sd 0).SrcPort}}frontend tcpFE_{{$srcPort}}
     bind *:{{$srcPort}}
     mode tcp
-	{{- if (index . 0).Debug}}{{$debugFormat := (index . 0).DebugFormat}}
+    {{- if (index . 0).Debug}}{{$debugFormat := (index . 0).DebugFormat}}
     option tcplog
     log global
-	    {{- if ne $debugFormat ""}}
+        {{- if ne $debugFormat ""}}
     log-format {{$debugFormat}}
-	    {{- end}}
-	{{- end}}
+        {{- end}}
+    {{- end}}
     {{- range $s := .}}
         {{- range $sd := .ServiceDest}}
             {{- if $sd.ServiceDomain}}
@@ -133,8 +133,8 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     {{- end}}
     {{- if eq .ReqModeFormatted "http"}}
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
-	{{- end}}
-	{{- if ne $.ConnectionMode ""}}
+    {{- end}}
+    {{- if ne $.ConnectionMode ""}}
     option {{$.ConnectionMode}}
         {{- end}}
         {{- if $.Debug}}
@@ -150,30 +150,34 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
         {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
         {{- end}}
-		{{- if eq .VerifyClientSsl true}}
+        {{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
     http-request deny unless valid_client_cert_{{$.ServiceName}}{{.Port}}
-		{{- end}}
-		{{- if .AllowedMethods}}
+        {{- end}}
+        {{- if .AllowedMethods}}
     acl valid_allowed_method method{{range .AllowedMethods}} {{.}}{{end}}
     http-request deny unless valid_allowed_method
-		{{- end}}
-		{{- if .DeniedMethods}}
+        {{- end}}
+        {{- if .DeniedMethods}}
     acl valid_denied_method method{{range .DeniedMethods}} {{.}}{{end}}
     http-request deny if valid_denied_method
-		{{- end}}
-		{{- if .DenyHttp}}
+        {{- end}}
+        {{- if .DenyHttp}}
     http-request deny if !{ ssl_fc }
         {{- end}}
-		{{- if eq $.SessionType "sticky-server"}}
+        {{- if eq $.SessionType "sticky-server"}}
     balance roundrobin
     cookie {{$.ServiceName}} insert indirect nocache
-		{{- end}}
-		{{- range $i, $t := $.Tasks}}
+        {{- end}}
+        {{- range $i, $t := $.Tasks}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.Port}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
-		{{- end}}
-		{{- if not $.Tasks}}
+        {{- end}}
+        {{- if not $.Tasks}}
+            {{- if eq $.DiscoveryType "DNS"}}
+    server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+            {{- else }}
     server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+            {{- end}}    
         {{- end}}
         {{- if not .IgnoreAuthorization}}
             {{- if and ($.Users) (not .IgnoreAuthorization)}}
@@ -207,7 +211,7 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
             {{- end}}`
 	tmpl += getHeaders(sr)
 	tmpl += `
-	        {{- if ne $.TimeoutServer ""}}
+            {{- if ne $.TimeoutServer ""}}
     timeout server {{$.TimeoutServer}}s
             {{- end}}
             {{- if ne $.TimeoutTunnel ""}}
@@ -216,27 +220,31 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
             {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
             {{- end}}
-		    {{- if eq .VerifyClientSsl true}}
+            {{- if eq .VerifyClientSsl true}}
     acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
     http-request deny unless valid_client_cert_{{$.ServiceName}}{{.Port}}
-		    {{- end}}
-		    {{- if .AllowedMethods}}
+            {{- end}}
+            {{- if .AllowedMethods}}
     acl valid_allowed_method method{{range .AllowedMethods}} {{.}}{{end}}
     http-request deny unless valid_allowed_method
-		    {{- end}}
-		    {{- if .DeniedMethods}}
+            {{- end}}
+            {{- if .DeniedMethods}}
     acl valid_denied_method method{{range .DeniedMethods}} {{.}}{{end}}
     http-request deny if valid_denied_method
-		    {{- end}}
-		    {{- if eq $.SessionType "sticky-server"}}
+            {{- end}}
+            {{- if eq $.SessionType "sticky-server"}}
     balance roundrobin
     cookie {{$.ServiceName}} insert indirect nocache
-		    {{- end}}
-		    {{- range $i, $t := $.Tasks}}
+            {{- end}}
+            {{- range $i, $t := $.Tasks}}
     server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
-		    {{- end}}
-		    {{- if not $.Tasks}}
+            {{- end}}
+            {{- if not $.Tasks}}
+                {{- if eq $.DiscoveryType "DNS"}}
+    server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+                {{- else }}
     server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+                {{- end}}    
             {{- end}}
             {{- if not .IgnoreAuthorization}}
                 {{- if $.Users}}
