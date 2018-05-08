@@ -72,6 +72,11 @@ var readFile = ioutil.ReadFile
 var logPrintf = log.Printf
 var readPidFile = ioutil.ReadFile
 var readConfigsDir = ioutil.ReadDir
+var haSocketOn = func(address string) bool {
+	conn, err := net.Dial("unix", address)
+	defer conn.Close()
+	return err == nil
+}
 var getSecretOrEnvVarSplit = func(key, defaultValue string) string {
 	value := getSecretOrEnvVar(key, defaultValue)
 	if len(value) > 0 {

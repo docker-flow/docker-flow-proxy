@@ -31,6 +31,7 @@ func TestHaProxyUnitTestSuite(t *testing.T) {
 	s := new(HaProxyTestSuite)
 	s.TemplateContent = `global
     pidfile /var/run/haproxy.pid
+    stats socket /var/run/haproxy.sock mode 660 level admin expose-fd listeners
     tune.ssl.default-dh-param 2048
 
     # disable sslv3, prefer modern ciphers
@@ -121,6 +122,9 @@ func (s *HaProxyTestSuite) SetupTest() {
 	}
 	readPidFile = func(fileName string) ([]byte, error) {
 		return []byte(s.Pid), nil
+	}
+	haSocketOn = func(adddress string) bool {
+		return true
 	}
 }
 
@@ -2570,6 +2574,30 @@ func (s *HaProxyTestSuite) Test_Reload_ReturnsError_WhenReadPidFails() {
 	s.Error(err)
 }
 
+func (s *HaProxyTestSuite) Test_HaProxySocketNotOn_RunsRunCmd() {
+	actual := HaProxyTestSuite{}.mockHaExecCmd()
+	haSocketOnOrig := haSocketOn
+	defer func() {
+		haSocketOn = haSocketOnOrig
+	}()
+	haSocketOn = func(address string) bool {
+		return false
+	}
+	expected := []string{
+		"-f",
+		"/cfg/haproxy.cfg",
+		"-D",
+		"-p",
+		"/var/run/haproxy.pid",
+		"-sf",
+		s.Pid,
+	}
+
+	HaProxy{}.Reload()
+
+	s.Equal(expected, *actual)
+}
+
 func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 	actual := HaProxyTestSuite{}.mockHaExecCmd()
 	expected := []string{
@@ -2578,6 +2606,8 @@ func (s *HaProxyTestSuite) Test_Reload_RunsRunCmd() {
 		"-D",
 		"-p",
 		"/var/run/haproxy.pid",
+		"-x",
+		"/var/run/haproxy.sock",
 		"-sf",
 		s.Pid,
 	}
@@ -2596,6 +2626,8 @@ func (s *HaProxyTestSuite) Test_Reload_Terminate_RunsRunCmd() {
 		"-D",
 		"-p",
 		"/var/run/haproxy.pid",
+		"-x",
+		"/var/run/haproxy.sock",
 		"-st",
 		s.Pid,
 	}
