@@ -1098,8 +1098,8 @@ listen tcpListen_MyGroup_4321
     mode tcp
     option tcplog
     log global
-    timeout client 45s
     option tcp-check
+    timeout client 45s
     balance roundrobin
     server MyGroup-my-service-14321_0 10.0.0.1:4321 check
     server MyGroup-my-service-14321_1 10.0.0.2:4321 check

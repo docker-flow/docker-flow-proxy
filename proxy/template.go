@@ -150,22 +150,21 @@ func getListenTCPGroup(tcpGroups map[string]*tcpGroupInfo) string {
 listen tcpListen_{{$groupName}}_{{$sd.SrcPort}}
     bind *:{{$sd.SrcPort}}
     mode tcp
-    {{- if $s.Debug}}{{$debugFormat := $s.DebugFormat}}
+        {{- if $s.Debug}}{{$debugFormat := $s.DebugFormat}}
     option tcplog
     log global
-        {{- if ne $debugFormat ""}}
+            {{- if ne $debugFormat ""}}
     log-format {{$debugFormat}}
+            {{- end}}
         {{- end}}
-    {{- end}}
-    {{- $timeoutClientSd := $sd.TimeoutClient -}}
-    {{- if ne $timeoutClientSd "" }}
-    timeout client {{$timeoutClientSd}}s
-    {{- end}}
-    {{- if $s.Clitcpka }}
+        {{- if $s.Clitcpka }}
     option clitcpka
-    {{- end}}
+        {{- end}}
         {{- if $sd.CheckTCP}}
     option tcp-check
+        {{- end}}
+        {{- if ne $sd.TimeoutClient "" }}
+    timeout client {{$sd.TimeoutClient}}s
         {{- end}}
         {{- if ne $sd.TimeoutServer ""}}
     timeout server {{ $sd.TimeoutServer }}s
