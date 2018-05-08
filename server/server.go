@@ -259,6 +259,8 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
 	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
+	timeoutServer := os.Getenv(prefix + "_TIMEOUT_SERVER")
+	timeoutTunnel := os.Getenv(prefix + "_TIMEOUT_TUNNEL")
 	reqPathSearchReplaceFormatted := []string{}
 	if len(reqPathSearchReplace) > 0 {
 		reqPathSearchReplaceFormatted = strings.Split(reqPathSearchReplace, ":")
@@ -293,6 +295,8 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 				ServicePathExclude:            servicePathExclude,
 				SrcPort:                       srcPort,
 				SslVerifyNone:                 sslVerifyNone,
+				TimeoutServer:                 timeoutServer,
+				TimeoutTunnel:                 timeoutTunnel,
 				VerifyClientSsl:               verifyClientSsl,
 			},
 		)
@@ -309,6 +313,9 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		}
 		httpsOnly, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_HTTPS_ONLY_%d", prefix, i)))
 		httpsRedirectCode := os.Getenv(fmt.Sprintf("%s_HTTPS_REDIRECT_CODE_%d", prefix, i))
+		timeoutServer := os.Getenv(fmt.Sprintf("%s_TIMEOUT_SERVER_%d", prefix, i))
+		timeoutTunnel := os.Getenv(fmt.Sprintf("%s_TIMEOUT_TUNNEL_%d", prefix, i))
+
 		if len(reqMode) == 0 {
 			reqMode = "http"
 		}
@@ -343,6 +350,8 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 					SrcPort:                       srcPort,
 					ServicePath:                   path,
 					ServicePathExclude:            servicePathExclude,
+					TimeoutServer:                 timeoutServer,
+					TimeoutTunnel:                 timeoutTunnel,
 					ReqMode:                       reqMode,
 					VerifyClientSsl:               verifyClientSsl,
 				},

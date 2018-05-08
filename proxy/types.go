@@ -13,6 +13,12 @@ var usersBasePath string = "/run/secrets/dfp_users_%s"
 type ServiceDest struct {
 	// The list of allowed methods. If specified, a request with a method that is not on the list will be denied.
 	AllowedMethods []string
+	// HAProxy balance mode for in TCP groups.
+	BalanceGroup string
+	// Checks tcp connection. Only used in sni or tcp mode.
+	CheckTCP bool
+	// Enable sending of TCP keepalive packets on the client side. Only used in sni or tcp mode.
+	Clitcpka bool
 	// The list of denied methods. If specified, a request with a method that is on the list will be denied.
 	DeniedMethods []string
 	// Whether to deny HTTP requests thus allowing only HTTPS.
@@ -44,6 +50,8 @@ type ServiceDest struct {
 	// The domain of the service.
 	// If set, the proxy will allow access only to requests coming to that domain.
 	ServiceDomain []string
+	// Name of service group used by tcp groups
+	ServiceGroup string
 	// Headers used to filter requests
 	ServiceHeader map[string]string
 	// The URL path of the service.
@@ -59,6 +67,12 @@ type ServiceDest struct {
 	SrcPortAclName string
 	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
 	SslVerifyNone bool
+	// The server timeout in seconds
+	TimeoutServer string
+	// The client timeout in seconds
+	TimeoutClient string
+	// The tunnel timeout in seconds
+	TimeoutTunnel string
 	// Whether to verify client SSL and deny request when it is invalid
 	VerifyClientSsl bool
 	// If specified, only requests with the same agent will be forwarded to the backend.
@@ -172,10 +186,6 @@ type Service struct {
 	// If specified, `templateBePath` must be set as well.
 	// See the https://github.com/docker-flow/docker-flow-proxy#templates section for more info.
 	TemplateFePath string `split_words:"true"`
-	// The server timeout in seconds
-	TimeoutServer string `split_words:"true"`
-	// The tunnel timeout in seconds
-	TimeoutTunnel string `split_words:"true"`
 	// Internal use only.
 	UseGlobalUsers bool
 	// A comma-separated list of credentials(<user>:<pass>) for HTTP basic auth, which applies only to the service that will be reconfigured.
@@ -429,6 +439,9 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 	}
 	return ServiceDest{
 		AllowedMethods:                getSliceFromString(provider, "allowedMethods", suffix),
+		BalanceGroup:                  getFromString(provider, "balanceGroup", suffix),
+		CheckTCP:                      getBoolParam(provider, "checkTcp", suffix),
+		Clitcpka:                      getBoolParam(provider, "clitcpka", suffix),
 		DeniedMethods:                 getSliceFromString(provider, "deniedMethods", suffix),
 		DenyHttp:                      getBoolParam(provider, "denyHttp", suffix),
 		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),
@@ -441,11 +454,15 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		ReqPathSearchReplace:          reqPathSearchReplace,
 		ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
 		ServiceDomain:                 getSliceFromString(provider, "serviceDomain", suffix),
+		ServiceGroup:                  getFromString(provider, "serviceGroup", suffix),
 		ServiceHeader:                 header,
 		ServicePath:                   getSliceFromString(provider, "servicePath", suffix),
 		ServicePathExclude:            getSliceFromString(provider, "servicePathExclude", suffix),
 		SrcPort:                       srcPort,
 		SslVerifyNone:                 getBoolParam(provider, "sslVerifyNone", suffix),
+		TimeoutClient:                 getFromString(provider, "timeoutClient", suffix),
+		TimeoutServer:                 getFromString(provider, "timeoutServer", suffix),
+		TimeoutTunnel:                 getFromString(provider, "timeoutTunnel", suffix),
 		VerifyClientSsl:               getBoolParam(provider, "verifyClientSsl", suffix),
 		UserAgent:                     userAgent,
 		UserDef:                       getFromString(provider, "userDef", suffix),

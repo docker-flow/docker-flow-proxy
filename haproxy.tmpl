@@ -19,7 +19,6 @@ defaults
     balance roundrobin
 {{.ExtraDefaults}}
     option  {{.ConnectionMode}}
-    option  forwardfor
     option  redispatch
 
     errorfile 400 /errorfiles/400.http
@@ -44,4 +43,7 @@ defaults
 {{.Stats}}
 frontend services{{.DefaultBinds}}
     mode {{.DefaultReqMode}}
-{{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}
+    {{- if eq .DefaultReqMode "http"}}
+    option  forwardfor
+    {{- end}}
+{{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}{{.ContentListen}}

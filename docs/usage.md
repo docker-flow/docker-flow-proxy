@@ -40,7 +40,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Default:** `3600`<br>**Example:** `3600`|
 |userDef        |User defined value. This value is not used with current template. It is designed as a way to provide additional data that can be used with **custom templates**. The parameter must be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `userDef.1`, `userDef.2`, and so on).|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, or `userDef` parameters. In that case, `srcPort` is required.
 
 ### HTTP Mode Query Parameters
 
@@ -79,7 +79,17 @@ Multiple destinations for a single service can be specified by adding index as a
 
 ### TCP Mode HTTP Query Parameters
 
-The `reqMode` set to `tcp` does not have any specific parameters beyond those specified in the [Reconfigure General Parameters](#reconfigure-general-parameters) section.
+The following query parameters can be used only when `reqMode` is set to `tcp`.
+
+|Query          |Description                                                                               |
+|---------------|------------------------------------------------------------------------------------------|
+|checkTcp       |Checks tcp connection. Only used in sni or tcp mode.<br>**Example:** `True`|
+|clitcpka       |Enable sending of TCP keepalive packets on the client side. Only used in sni or tcp mode. <br>**Default value:** `false`|
+|timeoutClient  |The client timeout in seconds. This is only used when defining a tcp or sni frontend. To configure the http client timeout, use the `TIMEOUT_CLIENT` env var or the `dfp_timeout_client` secret. <br>**Default:** `20`<br>**Example:** `60`|
+|serviceGroup   |Name of TCP Group |
+|balanceGroup   |HAProxy balance mode for in TCP groups. Please consult the [HAPRoxy configuration page](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-balance) for all balance parameters|
+
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `serviceDomain`, `reqMode`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, `timeoutClient`, `checkTcp`, `serviceGroup`, `balanceGroup`, `clitcpka` or `userDef` parameters. In that case, `srcPort` is required.
 
 Please consult the [Using TCP Request Mode](swarm-mode-auto.md#using-tcp-request-mode) section for an example of working with `tcp` request mode.
 
@@ -146,6 +156,7 @@ The map between the HTTP query parameters and environment variables is as follow
 |templateBePath       |TEMPLATE_BE_PATH        |
 |templateFePath       |TEMPLATE_FE_PATH        |
 |timeoutServer        |TIMEOUT_SERVER          |
+|timeoutClient        |TIMEOUT_CLIENT          |
 |timeoutTunnel        |TIMEOUT_TUNNEL          |
 |users                |**Not supported**       |
 |usersSecret          |**Not supported**       |
