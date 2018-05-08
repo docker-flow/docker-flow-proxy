@@ -143,10 +143,10 @@ frontend service_{{$sd1.SrcPort}}
 }
 
 func getListenTCPGroup(tcpGroups map[string]*tcpGroupInfo) string {
-	tmplString := `
-{{- range $groupName, $info := . }}
+	tmplString := `{{- range $groupName, $info := . }}
 {{- $s := $info.TargetService }}
 {{- $sd := $info.TargetDest }}
+
 listen tcpListen_{{$groupName}}_{{$sd.SrcPort}}
     bind *:{{$sd.SrcPort}}
     mode tcp
