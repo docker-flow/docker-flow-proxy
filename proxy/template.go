@@ -88,6 +88,13 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
     log-format {{$debugFormat}}
         {{- end}}
     {{- end}}
+    {{- $timeoutClientSd := (index $sd 0).TimeoutClient -}}
+    {{- if ne $timeoutClientSd "" }}
+    timeout client {{$timeoutClientSd}}s
+    {{- end}}
+    {{- if (index . 0).Clitcpka }}
+    option clitcpka
+    {{- end}}
     {{- range $s := .}}
         {{- range $sd := .ServiceDest}}
             {{- if $sd.ServiceDomain}}
@@ -102,6 +109,80 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
 		tmpl += templateToString(tmplString, services)
 	}
 	return tmpl
+}
+
+func getFrontTemplateSNI(s Service, si int, genHeader bool) string {
+	tmplString := ``
+	if genHeader {
+		tmplString += fmt.Sprintf(`{{$sd1 := index $.ServiceDest %d}}
+
+frontend service_{{$sd1.SrcPort}}
+    bind *:{{$sd1.SrcPort}}
+    mode tcp
+    {{- if $.Debug}}{{$debugFormat := $.DebugFormat}}
+    option tcplog
+    log global
+        {{- if ne $debugFormat ""}}
+    log-format {{$debugFormat}}
+        {{- end}}
+    {{- end}}
+    {{- $timeoutClientSd := $sd1.TimeoutClient -}}
+    {{- if ne $timeoutClientSd "" }}
+    timeout client {{$timeoutClientSd}}s
+    {{- end}}
+    {{- if $.Clitcpka }}
+    option clitcpka
+    {{- end}}
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }`, si)
+	}
+	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
+    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}{{$sd.SrcPortAcl}}
+    use_backend {{$.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if sni_{{$.AclName}}{{$sd.Port}}-%d{{$.AclCondition}}{{$sd.SrcPortAclName}}`, si, si+1, si+1)
+	return templateToString(tmplString, s)
+}
+
+func getListenTCPGroup(tcpGroups map[string]*tcpGroupInfo) string {
+	tmplString := `
+{{- range $groupName, $info := . }}
+{{- $s := $info.TargetService }}
+{{- $sd := $info.TargetDest }}
+listen tcpListen_{{$groupName}}_{{$sd.SrcPort}}
+    bind *:{{$sd.SrcPort}}
+    mode tcp
+    {{- if $s.Debug}}{{$debugFormat := $s.DebugFormat}}
+    option tcplog
+    log global
+        {{- if ne $debugFormat ""}}
+    log-format {{$debugFormat}}
+        {{- end}}
+    {{- end}}
+    {{- $timeoutClientSd := $sd.TimeoutClient -}}
+    {{- if ne $timeoutClientSd "" }}
+    timeout client {{$timeoutClientSd}}s
+    {{- end}}
+    {{- if $s.Clitcpka }}
+    option clitcpka
+    {{- end}}
+        {{- if $sd.CheckTCP}}
+    option tcp-check
+        {{- end}}
+        {{- if ne $sd.TimeoutServer ""}}
+    timeout server {{ $sd.TimeoutServer }}s
+        {{- end}}
+        {{- if ne $sd.TimeoutTunnel ""}}
+    timeout tunnel {{ $sd.TimeoutTunnel }}s
+        {{- end}}
+        {{- if ne $sd.BalanceGroup ""}}
+    balance {{$sd.BalanceGroup}}
+        {{- end}}
+        {{- range $tcpIn := .TCPInfo}}
+        {{- range $i, $ip := $tcpIn.IPs}}
+    server {{$sd.ServiceGroup}}-{{$tcpIn.ServiceName}}{{$tcpIn.Port}}_{{$i}} {{$ip}}:{{$tcpIn.Port}}{{if $sd.CheckTCP}} check{{end}}
+        {{- end}}
+        {{- end}}
+{{- end}}`
+	return templateToString(tmplString, tcpGroups)
 }
 
 // GetBackTemplate returns template used to create a service backend
@@ -126,6 +207,7 @@ func GetBackTemplate(sr *Service) string {
 
 	// HTTP
 	tmpl := `{{- range $sd := .ServiceDest}}
+{{- if eq .ReqModeFormatted "http" }}
 backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
     {{- if .HttpsOnly}}
@@ -141,12 +223,12 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     log global
         {{- end}}`
 	tmpl += getHeaders(sr)
-	tmpl += `{{- if ne $.TimeoutServer ""}}
-    timeout server {{$.TimeoutServer}}s
-        {{- end}}
-        {{- if ne $.TimeoutTunnel ""}}
-    timeout tunnel {{$.TimeoutTunnel}}s
-        {{- end}}
+	tmpl += `{{- if ne $sd.TimeoutServer ""}}
+    timeout server {{ $sd.TimeoutServer }}s
+    {{- end}}
+    {{- if ne $sd.TimeoutTunnel ""}}
+    timeout tunnel {{ $sd.TimeoutTunnel }}s
+    {{- end}}
         {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
         {{- end}}
@@ -177,7 +259,7 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
             {{- else }}
     server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
-            {{- end}}    
+            {{- end}}
         {{- end}}
         {{- if not .IgnoreAuthorization}}
             {{- if and ($.Users) (not .IgnoreAuthorization)}}
@@ -192,12 +274,28 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     http-request del-header Authorization
             {{- end}}
         {{- end}}
+{{- else if eq .ReqModeFormatted "tcp"}}
+    {{- if eq $sd.ServiceGroup "" }}
+backend {{$.AclName}}-be{{.Port}}_{{.Index}}
+    mode tcp
+        {{- if .CheckTCP}}
+    option tcp-check
+        {{- end}}
+        {{- if ne $sd.TimeoutServer ""}}
+    timeout server {{ $sd.TimeoutServer }}s
+        {{- end}}
+        {{- if ne $sd.TimeoutTunnel ""}}
+    timeout tunnel {{ $sd.TimeoutTunnel }}s
+        {{- end}}
+    server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if .CheckTCP}} check{{end}}
     {{- end}}
+{{- end}}
+{{- end}}
     {{- if ne $.BackendExtra ""}}
     {{ $.BackendExtra }}
     {{- end}}
-    {{- if gt .HttpsPort 0}}
-        {{- range $sd := .ServiceDest}}
+{{- if gt .HttpsPort 0}}
+    {{- range $sd := .ServiceDest}}
 backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
@@ -211,12 +309,12 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
             {{- end}}`
 	tmpl += getHeaders(sr)
 	tmpl += `
-            {{- if ne $.TimeoutServer ""}}
-    timeout server {{$.TimeoutServer}}s
-            {{- end}}
-            {{- if ne $.TimeoutTunnel ""}}
-    timeout tunnel {{$.TimeoutTunnel}}s
-            {{- end}}
+        {{- if ne $sd.TimeoutServer ""}}
+    timeout server {{ $sd.TimeoutServer }}s
+        {{- end}}
+        {{- if ne $sd.TimeoutTunnel ""}}
+    timeout tunnel {{ $sd.TimeoutTunnel }}s
+        {{- end}}
             {{- range $sd.ReqPathSearchReplaceFormatted}}
     http-request set-path %[path,regsub({{.}})]
             {{- end}}
@@ -244,7 +342,7 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
                 {{- else }}
     server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
-                {{- end}}    
+                {{- end}}
             {{- end}}
             {{- if not .IgnoreAuthorization}}
                 {{- if $.Users}}
@@ -264,6 +362,7 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     {{ $.BackendExtra }}
         {{- end}}
     {{- end}}`
+
 	return tmpl
 }
 

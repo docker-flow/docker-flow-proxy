@@ -3,6 +3,7 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -49,7 +50,6 @@ defaults
     option  dontlognull
     option  dontlog-normal
     option  http-server-close
-    option  forwardfor
     option  redispatch
 
     errorfile 400 /errorfiles/400.http
@@ -76,6 +76,7 @@ frontend services
     bind *:80
     bind *:443
     mode http
+    option  forwardfor
 `
 	s.ServicesContent = `
 
@@ -991,6 +992,169 @@ frontend tcpFE_1234
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp_With_Clitcpka() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    option clitcpka
+    default_backend my-service-1-be4321_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
+		},
+		Clitcpka: true,
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcpWithClientTimeout() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    timeout client 60s
+    default_backend my-service-1-be4321_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp",
+				TimeoutClient: "60"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsListen_TcpGroup() {
+	lookupHostOrig := lookupHost
+	defer func() {
+		lookupHost = lookupHostOrig
+	}()
+	lookupHost = func(host string) (addrs []string, err error) {
+		switch host {
+		case "tasks.my-service-1":
+			return []string{"10.0.0.1", "10.0.0.2"}, nil
+		case "tasks.my-service-2":
+			return nil, errors.New("hostlookup error")
+		case "tasks.my-service-4":
+			return []string{"192.168.1.1", "192.168.1.2", "192.168.1.3"}, nil
+		default:
+			return nil, errors.New("hostloopup error")
+		}
+	}
+
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1235
+    bind *:1235
+    mode tcp
+    default_backend my-service-3-be2143_0
+listen tcpListen_AnotherGroup_2345
+    bind *:2345
+    mode tcp
+    option clitcpka
+    option tcp-check
+    timeout server 10s
+    balance roundrobin
+    server AnotherGroup-my-service-42345_0 192.168.1.1:2345 check
+    server AnotherGroup-my-service-42345_1 192.168.1.2:2345 check
+    server AnotherGroup-my-service-42345_2 192.168.1.3:2345 check
+listen tcpListen_MyGroup_4321
+    bind *:4321
+    mode tcp
+    option tcplog
+    log global
+    timeout client 45s
+    option tcp-check
+    balance roundrobin
+    server MyGroup-my-service-14321_0 10.0.0.1:4321 check
+    server MyGroup-my-service-14321_1 10.0.0.2:4321 check
+    server MyGroup-my-service-24325_0 my-service-2:4325 check%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		Debug:       true,
+		ServiceDest: []ServiceDest{
+			{SrcPort: 4321, Port: "4321", ReqMode: "tcp",
+				ServiceGroup:  "MyGroup",
+				TimeoutClient: "45",
+				BalanceGroup:  "roundrobin", CheckTCP: true},
+		},
+	}
+	dataInstance.Services["my-service-2"] = Service{
+		ServiceName: "my-service-2",
+		Debug:       true,
+		ServiceDest: []ServiceDest{
+			{SrcPort: 4321, Port: "4325", ReqMode: "tcp",
+				ServiceGroup:  "MyGroup",
+				TimeoutClient: "45",
+				BalanceGroup:  "roundrobin",
+				CheckTCP:      true},
+		},
+	}
+	dataInstance.Services["my-service-3"] = Service{
+		ServiceName: "my-service-3",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1235, Port: "2143", ReqMode: "tcp"},
+		},
+	}
+	dataInstance.Services["my-service-4"] = Service{
+		ServiceName: "my-service-4",
+		Clitcpka:    true,
+		ServiceDest: []ServiceDest{
+			{SrcPort: 2345, Port: "2345", ReqMode: "tcp",
+				ServiceGroup: "AnotherGroup", BalanceGroup: "roundrobin",
+				CheckTCP: true, TimeoutServer: "10"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsMultipleFrontends() {
 	var actualData string
 	tmpl := s.TemplateContent
@@ -1175,6 +1339,113 @@ frontend service_1234
 		ServiceDest: []ServiceDest{
 			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3},
 		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithDebug() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend service_1234
+    bind *:1234
+    mode tcp
+    option tcplog
+    log global
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+    acl sni_my-service-14321-1
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3},
+		},
+		Debug: true,
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClientTimeoutFromServiceDest() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend service_1234
+    bind *:1234
+    mode tcp
+    timeout client 60s
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+    acl sni_my-service-14321-1
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3,
+				TimeoutClient: "60"},
+		},
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClitcpkaOption() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend service_1234
+    bind *:1234
+    mode tcp
+    timeout client 60s
+    option clitcpka
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+    acl sni_my-service-14321-1
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	dataInstance.Services["my-service-1"] = Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3, TimeoutClient: "60"},
+		},
+		Clitcpka: true,
 	}
 
 	p.CreateConfigFromTemplates()
@@ -1751,7 +2022,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_SetsProtocol() {
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
-		"mode http",
+		`mode http
+    option  forwardfor`,
 		"mode tcp",
 		-1)
 	expectedData := fmt.Sprintf(
@@ -2389,11 +2661,13 @@ func (s *HaProxyTestSuite) getTemplateWithLogs() string {
     bind *:80
     bind *:443
     mode http
+    option  forwardfor
 `,
 		`frontend services
     bind *:80
     bind *:443
     mode http
+    option  forwardfor
 
     option httplog
     log global`,
@@ -2411,11 +2685,13 @@ func (s *HaProxyTestSuite) getTemplateWithLogsAndErrorsOnly() string {
     bind *:80
     bind *:443
     mode http
+    option  forwardfor
 `,
 		`frontend services
     bind *:80
     bind *:443
     mode http
+    option  forwardfor
 
     option httplog
     log global`,

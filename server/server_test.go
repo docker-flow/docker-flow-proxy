@@ -538,6 +538,8 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		ServiceCert:           "serviceCert",
 		ServiceDest: []proxy.ServiceDest{{
 			AllowedMethods:     []string{"GET", "DELETE"},
+			BalanceGroup:       "leastconn",
+			CheckTCP:           true,
 			DeniedMethods:      []string{"PUT", "POST"},
 			HttpsOnly:          true,
 			HttpsRedirectCode:  "302",
@@ -551,6 +553,9 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			ServicePath:                   []string{"/"},
 			ServicePathExclude:            []string{"/excluded-path"},
 			SslVerifyNone:                 true,
+			TimeoutServer:                 "timeoutServer",
+			TimeoutClient:                 "timeoutClient",
+			TimeoutTunnel:                 "timeoutTunnel",
 		}},
 		ServiceDomainAlgo: "hdr_dom",
 		ServiceName:       "serviceName",
@@ -558,18 +563,19 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		SetResHeader:      []string{"set-header-1", "set-header-2"},
 		TemplateBePath:    "templateBePath",
 		TemplateFePath:    "templateFePath",
-		TimeoutServer:     "timeoutServer",
-		TimeoutTunnel:     "timeoutTunnel",
 		Users: []proxy.User{{Username: "user1", Password: "pass1", PassEncrypted: true},
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
+
 		s.BaseUrl,
 		expected.ServiceName,
 		"user1:pass1,user2:pass2",
 		true,
 		expected.AclName,
+		expected.ServiceDest[0].BalanceGroup,
+		expected.ServiceDest[0].CheckTCP,
 		expected.ServiceCert,
 		expected.ServiceDest[0].OutboundHostname,
 		expected.PathType,
@@ -577,8 +583,9 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ReqPathReplace,
 		expected.TemplateFePath,
 		expected.TemplateBePath,
-		expected.TimeoutServer,
-		expected.TimeoutTunnel,
+		expected.ServiceDest[0].TimeoutServer,
+		expected.ServiceDest[0].TimeoutClient,
+		expected.ServiceDest[0].TimeoutTunnel,
 		expected.ServiceDest[0].ReqMode,
 		expected.ServiceDest[0].HttpsOnly,
 		expected.ServiceDest[0].HttpsRedirectCode,
@@ -687,8 +694,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		SetResHeader:          []string{"set-header-1", "set-header-2"},
 		TemplateBePath:        "my-TemplateBePath",
 		TemplateFePath:        "my-TemplateFePath",
-		TimeoutServer:         "my-TimeoutServer",
-		TimeoutTunnel:         "my-TimeoutTunnel",
 		ServiceDest: []proxy.ServiceDest{
 			{
 				HttpsOnly:                     true,
@@ -709,6 +714,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 				VerifyClientSsl:               true,
 				DenyHttp:                      true,
 				SslVerifyNone:                 true,
+				TimeoutServer:                 "my-TimeoutServer",
+				TimeoutTunnel:                 "my-TimeoutTunnel",
 			},
 		},
 	}
@@ -744,8 +751,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_SSL_VERIFY_NONE", strconv.FormatBool(service.ServiceDest[0].SslVerifyNone))
 	os.Setenv("DFP_SERVICE_TEMPLATE_BE_PATH", service.TemplateBePath)
 	os.Setenv("DFP_SERVICE_TEMPLATE_FE_PATH", service.TemplateFePath)
-	os.Setenv("DFP_SERVICE_TIMEOUT_SERVER", service.TimeoutServer)
-	os.Setenv("DFP_SERVICE_TIMEOUT_TUNNEL", service.TimeoutTunnel)
+	os.Setenv("DFP_SERVICE_TIMEOUT_SERVER", service.ServiceDest[0].TimeoutServer)
+	os.Setenv("DFP_SERVICE_TIMEOUT_TUNNEL", service.ServiceDest[0].TimeoutTunnel)
 	os.Setenv("DFP_SERVICE_PORT", service.ServiceDest[0].Port)
 	os.Setenv("DFP_SERVICE_SERVICE_PATH", strings.Join(service.ServiceDest[0].ServicePath, ","))
 	os.Setenv("DFP_SERVICE_SET_REQ_HEADER", strings.Join(service.SetReqHeader, ","))

@@ -30,6 +30,7 @@ type configData struct {
 	ConnectionMode       string
 	ContentFrontendSNI   string
 	ContentFrontendTcp   string
+	ContentListen        string
 	DefaultBinds         string
 	DefaultReqMode       string
 	ExtraDefaults        string
@@ -435,10 +436,23 @@ func (m *HaProxy) getUserList(data *configData) {
 	}
 }
 
+type tcpInfo struct {
+	ServiceName string
+	Port        string
+	IPs         []string
+}
+
+type tcpGroupInfo struct {
+	TargetService Service
+	TargetDest    ServiceDest
+	TCPInfo       []tcpInfo
+}
+
 func (m *HaProxy) getSni(services *Services, config *configData) {
 	sort.Sort(services)
 	snimap := make(map[int]string)
 	tcpFEs := make(map[int]Services)
+	tcpGroups := make(map[string]*tcpGroupInfo)
 	for _, s := range *services {
 		if len(s.ServiceDest) == 0 {
 			s.ServiceDest = []ServiceDest{{ReqMode: "http"}}
@@ -453,11 +467,34 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 				httpDone = true
 			} else if strings.EqualFold(sd.ReqMode, "sni") {
 				_, headerExists := snimap[sd.SrcPort]
-				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, i, !headerExists)
+				snimap[sd.SrcPort] += getFrontTemplateSNI(s, i, !headerExists)
+			} else if len(sd.ServiceGroup) > 0 {
+				tcpGroup, ok := tcpGroups[sd.ServiceGroup]
+				newIPs := []string{s.ServiceName}
+				if ips, err := lookupHost("tasks." + s.ServiceName); err == nil {
+					newIPs = ips
+				}
+				if !ok {
+					tcpGroups[sd.ServiceGroup] = &tcpGroupInfo{
+						TargetService: s,
+						TargetDest:    sd,
+						TCPInfo: []tcpInfo{{
+							ServiceName: s.ServiceName,
+							Port:        sd.Port,
+							IPs:         newIPs,
+						}},
+					}
+					continue
+				}
+				tcpGroups[sd.ServiceGroup].TCPInfo = append(tcpGroup.TCPInfo, tcpInfo{
+					ServiceName: s.ServiceName,
+					Port:        sd.Port,
+					IPs:         newIPs,
+				})
+
 			} else {
 				tcpService := s
 				tcpService.ServiceDest = []ServiceDest{sd}
-				tcpService.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 				if strings.EqualFold(os.Getenv("DEBUG"), "true") {
 					tcpService.Debug = true
 					tcpService.DebugFormat = getSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
@@ -467,6 +504,7 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 		}
 	}
 	config.ContentFrontendTcp += getFrontTemplateTcp(tcpFEs)
+	config.ContentListen += getListenTCPGroup(tcpGroups)
 
 	// Merge the SNI entries into one single string. Sorted by port.
 	var sniports []int
@@ -477,24 +515,6 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 	for _, k := range sniports {
 		config.ContentFrontendSNI += snimap[k]
 	}
-}
-
-// TODO: Refactor into template
-func (m *HaProxy) getFrontTemplateSNI(s Service, si int, genHeader bool) string {
-	tmplString := ``
-	if genHeader {
-		tmplString += fmt.Sprintf(`{{$sd1 := index $.ServiceDest %d}}
-
-frontend service_{{$sd1.SrcPort}}
-    bind *:{{$sd1.SrcPort}}
-    mode tcp
-    tcp-request inspect-delay 5s
-    tcp-request content accept if { req_ssl_hello_type 1 }`, si)
-	}
-	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
-    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}{{$sd.SrcPortAcl}}
-    use_backend {{$.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if sni_{{$.AclName}}{{$sd.Port}}-%d{{$.AclCondition}}{{$sd.SrcPortAclName}}`, si, si+1, si+1)
-	return templateToString(tmplString, s)
 }
 
 func (m *HaProxy) getReloadStrategy() string {

@@ -321,6 +321,22 @@ backend myService-be1234_12
 	s.Equal(expected, actual)
 }
 
+func (s ReconfigureTestSuite) Test_GetTemplates_ReturnsFormattedContent_WhenReqModeIsTcp_CheckTCP_InServiceDest() {
+	s.reconfigure.Service.ServiceDest[0].ReqMode = "tcp"
+	s.reconfigure.Service.ServiceDest[0].Port = "1234"
+	s.reconfigure.Service.ServiceDest[0].Index = 12
+	s.reconfigure.Service.ServiceDest[0].CheckTCP = true
+	expected := `
+backend myService-be1234_12
+    mode tcp
+    option tcp-check
+    server myService myService:1234 check`
+
+	_, actual, _ := s.reconfigure.GetTemplates()
+
+	s.Equal(expected, actual)
+}
+
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPort_WhenPresent() {
 	expectedBack := `
 backend myService-be1234_3
@@ -405,7 +421,7 @@ backend myService-be1234_4
     server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.ServiceDest[0].Index = 4
-	s.reconfigure.TimeoutServer = "9999"
+	s.reconfigure.ServiceDest[0].TimeoutServer = "9999"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
@@ -421,7 +437,7 @@ backend myService-be1234_3
     server myService myService:1234`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.ServiceDest[0].Index = 3
-	s.reconfigure.TimeoutTunnel = "9999"
+	s.reconfigure.ServiceDest[0].TimeoutTunnel = "9999"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
