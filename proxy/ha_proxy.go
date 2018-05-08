@@ -165,7 +165,15 @@ func (m HaProxy) Reload() error {
 			return fmt.Errorf("Could not read the %s file\n%s", pidPath, err.Error())
 		}
 		reloadStrategy := m.getReloadStrategy()
-		cmdArgs := []string{reloadStrategy, string(pid)}
+		haproxySocket := "/var/run/haproxy.sock"
+		socketOn := haSocketOn(haproxySocket)
+
+		var cmdArgs []string
+		if socketOn {
+			cmdArgs = []string{"-x", haproxySocket, reloadStrategy, string(pid)}
+		} else {
+			cmdArgs = []string{reloadStrategy, string(pid)}
+		}
 		reloadErr = HaProxy{}.RunCmd(cmdArgs)
 		if reloadErr == nil {
 			logPrintf("Proxy config was reloaded")
