@@ -89,7 +89,7 @@ The following query parameters can be used only when `reqMode` is set to `tcp`.
 |serviceGroup   |Name of TCP Group |
 |balanceGroup   |HAProxy balance mode for in TCP groups. Please consult the [HAPRoxy configuration page](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-balance) for all balance parameters|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `serviceDomain`, `reqMode`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, `timeoutClient`, `checkTcp`, `serviceGroup`, `balanceGroup`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `srcPort`, `port`, `serviceDomain`, `reqMode`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, `timeoutClient`, `checkTcp`, `serviceGroup`, `balanceGroup`, `clitcpka` or `userDef` parameters. In that case, `srcPort` is required.
 
 Please consult the [Using TCP Request Mode](swarm-mode-auto.md#using-tcp-request-mode) section for an example of working with `tcp` request mode.
 

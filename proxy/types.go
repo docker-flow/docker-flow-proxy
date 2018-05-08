@@ -17,6 +17,8 @@ type ServiceDest struct {
 	BalanceGroup string
 	// Checks tcp connection. Only used in sni or tcp mode.
 	CheckTCP bool
+	// Enable sending of TCP keepalive packets on the client side. Only used in sni or tcp mode.
+	Clitcpka bool
 	// The list of denied methods. If specified, a request with a method that is on the list will be denied.
 	DeniedMethods []string
 	// Whether to deny HTTP requests thus allowing only HTTPS.
@@ -108,8 +110,6 @@ type Service struct {
 	// If enabled, it might take a few seconds until a backend is resolved and operational.
 	// Resolvers can be customized through the environment variable RESOLVERS.
 	CheckResolvers bool `split_words:"true"`
-	// Enable sending of TCP keepalive packets on the client side. Only used in sni or tcp mode.
-	Clitcpka bool `split_words:"true"`
 	// Enable HTTP compression.
 	// The currently supported algorithms are: identity, gzip, deflate, raw-deflate.
 	CompressionAlgo string `split_words:"true"`
@@ -441,6 +441,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		AllowedMethods:                getSliceFromString(provider, "allowedMethods", suffix),
 		BalanceGroup:                  getFromString(provider, "balanceGroup", suffix),
 		CheckTCP:                      getBoolParam(provider, "checkTcp", suffix),
+		Clitcpka:                      getBoolParam(provider, "clitcpka", suffix),
 		DeniedMethods:                 getSliceFromString(provider, "deniedMethods", suffix),
 		DenyHttp:                      getBoolParam(provider, "denyHttp", suffix),
 		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),

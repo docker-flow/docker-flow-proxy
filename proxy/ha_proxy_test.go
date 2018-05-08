@@ -1014,9 +1014,9 @@ frontend tcpFE_1234
 	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp",
+				Clitcpka: true},
 		},
-		Clitcpka: true,
 	}
 
 	p.CreateConfigFromTemplates()
@@ -1141,11 +1141,11 @@ listen tcpListen_MyGroup_4321
 	}
 	dataInstance.Services["my-service-4"] = Service{
 		ServiceName: "my-service-4",
-		Clitcpka:    true,
 		ServiceDest: []ServiceDest{
 			{SrcPort: 2345, Port: "2345", ReqMode: "tcp",
 				ServiceGroup: "AnotherGroup", BalanceGroup: "roundrobin",
-				CheckTCP: true, TimeoutServer: "10"},
+				CheckTCP: true, TimeoutServer: "10",
+				Clitcpka: true},
 		},
 	}
 
@@ -1443,9 +1443,8 @@ frontend service_1234
 	dataInstance.Services["my-service-1"] = Service{
 		ServiceName: "my-service-1",
 		ServiceDest: []ServiceDest{
-			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3, TimeoutClient: "60"},
+			{SrcPort: 1234, Port: "4321", ReqMode: "sni", Index: 3, TimeoutClient: "60", Clitcpka: true},
 		},
-		Clitcpka: true,
 	}
 
 	p.CreateConfigFromTemplates()

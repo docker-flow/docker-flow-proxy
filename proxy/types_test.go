@@ -391,6 +391,8 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		// ServiceDest
 		"allowedMethods" + indexSuffix:       strings.Join(expected.ServiceDest[0].AllowedMethods, separator),
 		"balanceGroup" + indexSuffix:         expected.ServiceDest[0].BalanceGroup,
+		"checkTcp" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].CheckTCP),
+		"clitcpka" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].Clitcpka),
 		"deniedMethods" + indexSuffix:        strings.Join(expected.ServiceDest[0].DeniedMethods, separator),
 		"denyHttp" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].DenyHttp),
 		"httpsOnly" + indexSuffix:            strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
@@ -436,6 +438,8 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:                []string{"GET", "DELETE"},
 			BalanceGroup:                  "balanceGroup",
+			CheckTCP:                      true,
+			Clitcpka:                      true,
 			DeniedMethods:                 []string{"PUT", "POST"},
 			DenyHttp:                      true,
 			HttpsOnly:                     true,

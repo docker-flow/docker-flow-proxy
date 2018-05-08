@@ -92,7 +92,7 @@ func getFrontTemplateTcp(servicesByPort map[int]Services) string {
     {{- if ne $timeoutClientSd "" }}
     timeout client {{$timeoutClientSd}}s
     {{- end}}
-    {{- if (index . 0).Clitcpka }}
+    {{- if (index $sd 0).Clitcpka }}
     option clitcpka
     {{- end}}
     {{- range $s := .}}
@@ -130,7 +130,7 @@ frontend service_{{$sd1.SrcPort}}
     {{- if ne $timeoutClientSd "" }}
     timeout client {{$timeoutClientSd}}s
     {{- end}}
-    {{- if $.Clitcpka }}
+    {{- if $sd1.Clitcpka }}
     option clitcpka
     {{- end}}
     tcp-request inspect-delay 5s
@@ -157,7 +157,7 @@ listen tcpListen_{{$groupName}}_{{$sd.SrcPort}}
     log-format {{$debugFormat}}
             {{- end}}
         {{- end}}
-        {{- if $s.Clitcpka }}
+        {{- if $sd.Clitcpka }}
     option clitcpka
         {{- end}}
         {{- if $sd.CheckTCP}}
