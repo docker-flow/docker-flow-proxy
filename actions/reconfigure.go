@@ -146,6 +146,11 @@ func (m *Reconfigure) formatData(sr *proxy.Service) {
 	if len(sr.PathType) == 0 {
 		sr.PathType = "path_beg"
 	}
+	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
+		if ips, err := lookupHost("tasks." + sr.ServiceName); err == nil {
+			sr.Replicas = len(ips)
+		}
+	}
 	for i, sd := range sr.ServiceDest {
 		if sd.SrcPort > 0 {
 			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
