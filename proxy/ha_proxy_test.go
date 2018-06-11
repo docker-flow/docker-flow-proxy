@@ -92,22 +92,29 @@ config2 be content`
 	os.Setenv("STATS_PASS_ENV", "STATS_PASS")
 	os.Setenv("STATS_URI_ENV", "STATS_URI")
 	os.Setenv("SERVICE_DOMAIN_ALGO", "hdr_beg(host)")
+
 	reloadPauseOrig := reloadPause
 	reconfigureAttemptsOrig := os.Getenv("RECONFIGURE_ATTEMPTS")
 	os.Setenv("RECONFIGURE_ATTEMPTS", "1")
 	cmdRunHaOrig := cmdRunHa
-	defer func() { cmdRunHa = cmdRunHaOrig }()
+	waitForPidToUpdateOrig := waitForPidToUpdate
+	defer func() {
+		cmdRunHa = cmdRunHaOrig
+		waitForPidToUpdate = waitForPidToUpdateOrig
+		reloadPause = reloadPauseOrig
+		os.Setenv("RECONFIGURE_ATTEMPTS", reconfigureAttemptsOrig)
+		os.Unsetenv("SERVICE_DOMAIN_ALGO")
+	}()
+
+	waitForPidToUpdate = func(previousPid []byte, pidPath string) {
+	}
+
 	cmdRunHa = func(args []string) error {
 		return nil
 	}
 	cmdValidateHa = func(args []string) error {
 		return nil
 	}
-	defer func() {
-		reloadPause = reloadPauseOrig
-		os.Setenv("RECONFIGURE_ATTEMPTS", reconfigureAttemptsOrig)
-		os.Unsetenv("SERVICE_DOMAIN_ALGO")
-	}()
 	reloadPause = 1
 	suite.Run(t, s)
 }
