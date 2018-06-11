@@ -174,11 +174,14 @@ func (m HaProxy) Reload() error {
 		} else {
 			cmdArgs = []string{reloadStrategy, string(pid)}
 		}
+
 		reloadErr = HaProxy{}.RunCmd(cmdArgs)
 		if reloadErr == nil {
+			waitForPidToUpdate(pid, pidPath)
 			logPrintf("Proxy config was reloaded")
 			break
 		}
+
 		logPrintf("Proxy config could not be reloaded. Will try again...")
 		time.Sleep(time.Millisecond * reloadPause)
 	}

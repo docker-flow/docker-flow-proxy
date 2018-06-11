@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 	"unicode"
 )
 
@@ -60,6 +61,17 @@ var cmdRunHa = func(args []string) error {
 var cmdValidateHa = func(args []string) error {
 	return cmdRunHa(args)
 }
+var waitForPidToUpdate = func(previousPid []byte, pidPath string) {
+	ticker := time.NewTicker(500 * time.Millisecond).C
+	for range ticker {
+		if currentPid, err := readPidFile(pidPath); err == nil {
+			if !bytes.Equal(previousPid, currentPid) {
+				return
+			}
+		}
+	}
+}
+
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile
 var writeFile = ioutil.WriteFile
