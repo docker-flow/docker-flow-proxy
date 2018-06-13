@@ -365,6 +365,32 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
 	return tmpl
 }
 
+// FormatServiceForTemplates adds addtional variables to service that is used
+// by templates
+func FormatServiceForTemplates(sr *Service) {
+	if len(sr.AclName) == 0 {
+		sr.AclName = sr.ServiceName
+	}
+	if len(sr.PathType) == 0 {
+		sr.PathType = "path_beg"
+	}
+	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
+		if ips, err := LookupHost("tasks." + sr.ServiceName); err == nil {
+			sr.Replicas = len(ips)
+		}
+	}
+	for i, sd := range sr.ServiceDest {
+		if len(sr.ServiceDest[i].ReqMode) == 0 {
+			sr.ServiceDest[i].ReqMode = "http"
+		}
+		if sd.SrcPort > 0 {
+			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
+			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
+    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
+		}
+	}
+}
+
 func getHeaders(sr *Service) string {
 	tmpl := ""
 	for _, header := range sr.AddReqHeader {

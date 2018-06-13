@@ -75,7 +75,9 @@ var waitForPidToUpdate = func(previousPid []byte, pidPath string) {
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile
 var writeFile = ioutil.WriteFile
-var lookupHost = net.LookupHost
+
+// LookupHost overwrites net.LookupHost so that it can be mocked from other packages
+var LookupHost = net.LookupHost
 
 // ReadFile overwrites ioutil.ReadFile so that it can be mocked from other packages
 var ReadFile = ioutil.ReadFile

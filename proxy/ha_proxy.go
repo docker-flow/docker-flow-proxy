@@ -312,7 +312,6 @@ func (m HaProxy) getConfigData() configData {
 		if len(s.AclName) == 0 {
 			s.AclName = s.ServiceName
 		}
-		m.formatData(&s)
 		services = append(services, s)
 		for i := range s.ServiceDest {
 			if len(s.ServiceDest[i].ReqMode) == 0 {
@@ -484,7 +483,7 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 			} else if len(sd.ServiceGroup) > 0 {
 				tcpGroup, ok := tcpGroups[sd.ServiceGroup]
 				newIPs := []string{s.ServiceName}
-				if ips, err := lookupHost("tasks." + s.ServiceName); err == nil {
+				if ips, err := LookupHost("tasks." + s.ServiceName); err == nil {
 					newIPs = ips
 				}
 				if !ok {
@@ -527,29 +526,6 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 	sort.Ints(sniports)
 	for _, k := range sniports {
 		config.ContentFrontendSNI += snimap[k]
-	}
-
-	fmt.Println(config.ContentFrontendSNI)
-}
-
-func (m *HaProxy) formatData(sr *Service) {
-	if len(sr.AclName) == 0 {
-		sr.AclName = sr.ServiceName
-	}
-	if len(sr.PathType) == 0 {
-		sr.PathType = "path_beg"
-	}
-	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
-		if ips, err := lookupHost("tasks." + sr.ServiceName); err == nil {
-			sr.Replicas = len(ips)
-		}
-	}
-	for i, sd := range sr.ServiceDest {
-		if sd.SrcPort > 0 {
-			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
-    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
-		}
 	}
 }
 

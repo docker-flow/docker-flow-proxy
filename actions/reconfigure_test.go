@@ -108,9 +108,20 @@ backend myService-be1234_0
 }
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesServerTemplate_WhenDiscoveryTypeIsDns_ZeroReplicasUsesLookupHost() {
 
+	actualHost := ""
+
+	lookupHostOrig := proxy.LookupHost
+	defer func() {
+		proxy.LookupHost = lookupHostOrig
+	}()
+	proxy.LookupHost = func(host string) (addrs []string, err error) {
+		actualHost = host
+		return []string{"192.168.1.1", "192.168.1.2"}, nil
+	}
+
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.DiscoveryType = "DNS"
-	s.reconfigure.Service.Replicas = 2
+	s.reconfigure.Service.Replicas = 0
 	expected := `
 backend myService-be1234_0
     mode http
@@ -120,6 +131,7 @@ backend myService-be1234_0
 	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, actual)
+	s.Equal("tasks.myService", actualHost)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
@@ -393,6 +405,18 @@ backend https-myService-be1234_0
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPortAndDnsDiscovery_WhenPresent_ZeroReplicasUsesLookupHost() {
+
+	actualHost := ""
+
+	lookupHostOrig := proxy.LookupHost
+	defer func() {
+		proxy.LookupHost = lookupHostOrig
+	}()
+	proxy.LookupHost = func(host string) (addrs []string, err error) {
+		actualHost = host
+		return []string{"192.168.1.1", "192.168.1.2", "192.168.1.3"}, nil
+	}
+
 	expectedBack := `
 backend myService-be1234_0
     mode http
@@ -404,12 +428,13 @@ backend https-myService-be1234_0
     server-template myService 3 myService:4321 check`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.HttpsPort = 4321
-	s.reconfigure.Replicas = 3
+	s.reconfigure.Replicas = 0
 	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
+	s.Equal("tasks.myService", actualHost)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsConnectionMode_WhenPresent() {

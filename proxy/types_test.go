@@ -249,9 +249,9 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_AddsTasksWhenSessionTypeIsN
 	serviceMap := s.getServiceMap(expected, ".1", ",")
 	provider := mapParameterProvider{&serviceMap}
 	actualHost := ""
-	lookupHostOrig := lookupHost
-	defer func() { lookupHost = lookupHostOrig }()
-	lookupHost = func(host string) (addrs []string, err error) {
+	lookupHostOrig := LookupHost
+	defer func() { LookupHost = lookupHostOrig }()
+	LookupHost = func(host string) (addrs []string, err error) {
 		actualHost = host
 		return expected.Tasks, nil
 	}

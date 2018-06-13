@@ -338,7 +338,7 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 		sr.DelResHeader = strings.Split(provider.GetString("delResHeader"), separator)
 	}
 	if len(sr.SessionType) > 0 {
-		sr.Tasks, _ = lookupHost("tasks." + sr.ServiceName)
+		sr.Tasks, _ = LookupHost("tasks." + sr.ServiceName)
 	}
 	globalUsersString := getSecretOrEnvVar("USERS", "")
 	globalUsersEncrypted := strings.EqualFold(getSecretOrEnvVar("USERS_PASS_ENCRYPTED", ""), "true")

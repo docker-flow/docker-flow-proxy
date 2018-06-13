@@ -94,11 +94,7 @@ func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil {
 		sr.CheckResolvers = value
 	}
-	for i := range sr.ServiceDest {
-		if len(sr.ServiceDest[i].ReqMode) == 0 {
-			sr.ServiceDest[i].ReqMode = "http"
-		}
-	}
+	proxy.FormatServiceForTemplates(sr)
 	if len(sr.TemplateFePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
