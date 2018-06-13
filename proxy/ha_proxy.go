@@ -293,7 +293,8 @@ func (m HaProxy) getConfigData() configData {
 	if len(bindPortsString) > 0 {
 		bindPorts := strings.Split(bindPortsString, ",")
 		for _, bindPort := range bindPorts {
-			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
+			formatedBindPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
+			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", formatedBindPort)
 		}
 	}
 	if len(os.Getenv("CAPTURE_REQUEST_HEADER")) > 0 {

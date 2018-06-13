@@ -2002,6 +2002,67 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsBindPorts() {
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCerts_BindPorts() {
+	readDirOrig := readDir
+	enableH2Orig := os.Getenv("ENABLE_H2")
+	bindPortsOrig := os.Getenv("BIND_PORTS")
+	defer func() {
+		readDir = readDirOrig
+		os.Setenv("ENABLE_H2", enableH2Orig)
+		os.Setenv("BIND_PORTS", bindPortsOrig)
+	}()
+	os.Setenv("ENABLE_H2", "true")
+	os.Setenv("BIND_PORTS", "1234,4321:ssl")
+	expected := "ssl"
+	expectedCertList := []string{}
+	actualCertList := ""
+	mockedFiles := []os.FileInfo{}
+	for i := 1; i <= 3; i++ {
+		certName := fmt.Sprintf("my-cert-%d", i)
+		path := fmt.Sprintf("/certs/%s", certName)
+		expected = fmt.Sprintf("%s crt %s", expected, path)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
+		expectedCertList = append(expectedCertList, path)
+	}
+	readDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:80\n    bind *:443 ssl crt-list /cfg/crt-list.txt alpn h2,http/1.1",
+		-1)
+	expectedData := fmt.Sprintf(
+		"%s\n    bind *:1234\n    bind *:4321 ssl crt-list /cfg/crt-list.txt alpn h2,http/1.1%s",
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		if strings.EqualFold(filename, "/cfg/crt-list.txt") {
+			actualCertList = string(data)
+		}
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+	s.Equal(strings.Join(expectedCertList, "\n"), actualCertList)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDefaultPorts() {
 	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
 	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
