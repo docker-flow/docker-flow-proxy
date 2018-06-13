@@ -99,7 +99,6 @@ func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 			sr.ServiceDest[i].ReqMode = "http"
 		}
 	}
-	m.formatData(sr)
 	if len(sr.TemplateFePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
@@ -135,29 +134,6 @@ func (m *Reconfigure) createConfigs() error {
 	destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.AclName)
 	writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	return nil
-}
-
-// TODO: Move to ha_proxy.go
-func (m *Reconfigure) formatData(sr *proxy.Service) {
-	sr.AclCondition = ""
-	if len(sr.AclName) == 0 {
-		sr.AclName = sr.ServiceName
-	}
-	if len(sr.PathType) == 0 {
-		sr.PathType = "path_beg"
-	}
-	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
-		if ips, err := lookupHost("tasks." + sr.ServiceName); err == nil {
-			sr.Replicas = len(ips)
-		}
-	}
-	for i, sd := range sr.ServiceDest {
-		if sd.SrcPort > 0 {
-			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
-    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
-		}
-	}
 }
 
 func (m *Reconfigure) getUsersList(sr *proxy.Service) string {

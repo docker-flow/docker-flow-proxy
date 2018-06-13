@@ -38,6 +38,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 		},
 		Service: proxy.Service{
 			ServiceName: s.ServiceName,
+			AclName:     s.ServiceName,
 			ServiceDest: []proxy.ServiceDest{sd},
 			PathType:    s.PathType,
 		},
@@ -107,20 +108,9 @@ backend myService-be1234_0
 }
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesServerTemplate_WhenDiscoveryTypeIsDns_ZeroReplicasUsesLookupHost() {
 
-	actualHostString := ""
-
-	lookupHostOrig := lookupHost
-	defer func() {
-		lookupHost = lookupHostOrig
-	}()
-	lookupHost = func(host string) (addrs []string, err error) {
-		actualHostString = host
-		return []string{"192.168.1.1", "192.168.1.2"}, nil
-	}
-
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.DiscoveryType = "DNS"
-	s.reconfigure.Service.Replicas = 0
+	s.reconfigure.Service.Replicas = 2
 	expected := `
 backend myService-be1234_0
     mode http
@@ -130,7 +120,6 @@ backend myService-be1234_0
 	_, actual, _ := s.reconfigure.GetTemplates()
 
 	s.Equal(expected, actual)
-	s.Equal("tasks.myService", actualHostString)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent() {
@@ -404,17 +393,6 @@ backend https-myService-be1234_0
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpsPortAndDnsDiscovery_WhenPresent_ZeroReplicasUsesLookupHost() {
-	actualHostString := ""
-
-	lookupHostOrig := lookupHost
-	defer func() {
-		lookupHost = lookupHostOrig
-	}()
-	lookupHost = func(host string) (addrs []string, err error) {
-		actualHostString = host
-		return []string{"192.168.1.1", "192.168.1.2", "192.168.1.3"}, nil
-	}
-
 	expectedBack := `
 backend myService-be1234_0
     mode http
@@ -426,13 +404,12 @@ backend https-myService-be1234_0
     server-template myService 3 myService:4321 check`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.HttpsPort = 4321
-	s.reconfigure.Replicas = 0
+	s.reconfigure.Replicas = 3
 	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
 	s.Equal(expectedBack, actualBack)
-	s.Equal("tasks.myService", actualHostString)
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsConnectionMode_WhenPresent() {
@@ -733,6 +710,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_WritesServerSession() {
 	s.reconfigure.ServiceName = "my-service"
+	s.reconfigure.AclName = "my-service"
 	s.reconfigure.ServiceDest[0].Port = "1111"
 	s.reconfigure.HttpsPort = 2222
 	s.reconfigure.Tasks = []string{"1.2.3.4", "4.3.2.1"}

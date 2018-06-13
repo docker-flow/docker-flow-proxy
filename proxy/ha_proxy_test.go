@@ -1174,7 +1174,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsMultipleFrontends()
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service-12222_0 path_beg /path
-    use_backend my-service-1-be2222_0 if url_my-service-12222_0
+    acl srcPort_my-service-11111 dst_port 1111
+    use_backend my-service-1-be2222_0 if url_my-service-12222_0 srcPort_my-service-11111
 
 frontend tcpFE_3333
     bind *:3333
@@ -1338,7 +1339,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+    acl srcPort_my-service-11234 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1373,7 +1375,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+    acl srcPort_my-service-11234 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1408,7 +1411,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+    acl srcPort_my-service-11234 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1444,7 +1448,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1%s`,
+    acl srcPort_my-service-11234 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1484,7 +1489,8 @@ frontend service_443
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    use_backend my-service-1-be4321_0 if sni_my-service-14321-1%s`,
+    acl srcPort_my-service-1443 dst_port 443
+    use_backend my-service-1-be4321_0 if sni_my-service-14321-1 srcPort_my-service-1443%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1524,11 +1530,14 @@ frontend service_443
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-11111-1
-    use_backend my-service-1-be1111_0 if sni_my-service-11111-1
+    acl srcPort_my-service-1443 dst_port 443
+    use_backend my-service-1-be1111_0 if sni_my-service-11111-1 srcPort_my-service-1443
     acl sni_my-service-11112-2
-    use_backend my-service-1-be1112_1 if sni_my-service-11112-2
+    acl srcPort_my-service-1443 dst_port 443
+    use_backend my-service-1-be1112_1 if sni_my-service-11112-2 srcPort_my-service-1443
     acl sni_my-service-24321-1
-    use_backend my-service-2-be4321_2 if sni_my-service-24321-1%s`,
+    acl srcPort_my-service-2443 dst_port 443
+    use_backend my-service-2-be4321_2 if sni_my-service-24321-1 srcPort_my-service-2443%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1600,9 +1609,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
     acl url_my-service1111_1 path_beg /path
     acl domain_my-service1111_1 hdr_beg(host) -i domain-1-1.com domain-1-2.com
     acl url_my-service2222_45 path_beg /path
+    acl srcPort_my-service4321 dst_port 4321
     acl domain_my-service2222_45 hdr_beg(host) -i domain-2-1.com domain-2-2.com
     use_backend my-service-be1111_1 if url_my-service1111_1 domain_my-service1111_1
-    use_backend my-service-be2222_45 if url_my-service2222_45 domain_my-service2222_45%s`,
+    use_backend my-service-be2222_45 if url_my-service2222_45 domain_my-service2222_45 srcPort_my-service4321%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1804,6 +1814,39 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 
 	s.Equal(expectedData, actualData)
 }
+
+// func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithHttpsPort_CustomSrtPort() {
+// 	var actualData string
+// 	tmpl := s.TemplateContent
+// 	expectedData := fmt.Sprintf(
+// 		`%s
+//     acl url_my-service1111_0 path_beg /path
+//     acl srcPort_app_my-service8081 dst_port 8081
+//     acl https_my-service dst_port 443
+//     use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_app_my-service8081
+//     use_backend https-my-service-be1111_0 if url_my-service1111_0 https_my-service%s`,
+// 		tmpl,
+// 		s.ServicesContent,
+// 	)
+// 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+// 		actualData = string(data)
+// 		return nil
+// 	}
+// 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+// 	dataInstance.Services["my-service"] = Service{
+// 		ServiceName: "my-service",
+// 		PathType:    "path_beg",
+// 		HttpsPort:   2222,
+// 		AclName:     "my-service",
+// 		ServiceDest: []ServiceDest{
+// 			{Port: "1111", ServicePath: []string{"/path"}, SrcPort: 8081},
+// 		},
+// 	}
+
+// 	p.CreateConfigFromTemplates()
+
+// 	s.Equal(expectedData, actualData)
+// }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRedirectWhenHttpProtoIsTrue() {
 	var actualData string
@@ -2749,6 +2792,71 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 	p.RemoveService("my-service-1")
 
 	s.Len(dataInstance.Services, 1)
+}
+
+// FormatData
+
+func (s *HaProxyTestSuite) Test_FormatData_DiscoveryTypeDNS_GetsReplicasCnt() {
+	lookupHostOrig := lookupHost
+	defer func() {
+		lookupHost = lookupHostOrig
+	}()
+
+	actualHost := ""
+	lookupHost = func(host string) ([]string, error) {
+		actualHost = host
+		return []string{"192.168.1.1", "192.168.1.2"}, nil
+	}
+
+	service := Service{
+		ServiceName:   "my-service-1",
+		PathType:      "path_beg",
+		DiscoveryType: "DNS",
+		Replicas:      0}
+
+	hp := HaProxy{}
+	hp.formatData(&service)
+
+	s.Equal(2, service.Replicas)
+	s.Equal("tasks.my-service-1", actualHost)
+
+}
+
+func (s *HaProxyTestSuite) Test_FormatData_UsesServiceNameForAclName() {
+	service := Service{ServiceName: "my-service-1"}
+
+	hp := HaProxy{}
+	hp.formatData(&service)
+	s.Equal("my-service-1", service.AclName)
+
+}
+
+func (s *HaProxyTestSuite) Test_FormatData_NoPathType_DefaultsToPath_Beg() {
+	service := Service{ServiceName: "my-service-1"}
+
+	hp := HaProxy{}
+	hp.formatData(&service)
+	s.Equal("path_beg", service.PathType)
+
+}
+
+func (s *HaProxyTestSuite) Test_FormatData_SrcPort_DefinesSrcPortAclNameAndSrcPortAcl() {
+
+	service := Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 4480, Port: "1111",
+				ServicePath: []string{"/path-1"}}}}
+
+	hp := HaProxy{}
+	hp.formatData(&service)
+
+	s.Require().Len(service.ServiceDest, 1)
+	sd := service.ServiceDest[0]
+
+	s.Equal(" srcPort_my-service-14480", sd.SrcPortAclName)
+	s.Equal("\n    acl srcPort_my-service-14480 dst_port 4480", sd.SrcPortAcl)
+
 }
 
 // Util
