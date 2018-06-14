@@ -40,7 +40,7 @@ The following query parameters can be used to send a *reconfigure* request to *D
 |timeoutTunnel  |The tunnel timeout in seconds.<br>**Default:** `3600`<br>**Example:** `3600`|
 |userDef        |User defined value. This value is not used with current template. It is designed as a way to provide additional data that can be used with **custom templates**. The parameter must be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `userDef.1`, `userDef.2`, and so on).|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `httpsPort`, `redirectFromDomain`, `reqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, `timeoutServer`, `timeoutTunnel`, or `userDef` parameters. In that case, `srcPort` is required.
 
 ### HTTP Mode Query Parameters
 

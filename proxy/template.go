@@ -37,7 +37,7 @@ func getFrontTemplate(s Service) string {
     acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
         {{- end}}
     {{- end}}
-    {{- if gt $.HttpsPort 0 }}
+    {{- if gt $sd.HttpsPort 0 }}
     acl http_{{$.ServiceName}}_{{.Index}} dst_port {{ if gt .SrcPort 0 }}{{.SrcPort}}{{ else }}80{{ end }}
     acl https_{{$.ServiceName}}_{{.Index}} dst_port 443
     {{- end}}
@@ -58,7 +58,7 @@ func getFrontTemplate(s Service) string {
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-        {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}_{{.Index}}
+        {{- if gt $sd.HttpsPort 0 }} http_{{$.ServiceName}}_{{.Index}}
     use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}_{{.Index}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
@@ -292,7 +292,7 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     {{ $.BackendExtra }}
 {{- end}}
 {{- range $sd := .ServiceDest}}
-    {{- if gt $.HttpsPort 0}}
+    {{- if gt $sd.HttpsPort 0}}
 backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
@@ -332,13 +332,13 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     cookie {{$.ServiceName}} insert indirect nocache
             {{- end}}
             {{- range $i, $t := $.Tasks}}
-    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}}_{{$i}} {{$t}}:{{$sd.HttpsPort}} check cookie {{$.ServiceName}}_{{$i}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
             {{- end}}
             {{- if not $.Tasks}}
                 {{- if eq $.DiscoveryType "DNS"}}
-    server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+    server-template {{$.ServiceName}} {{$.Replicas}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.HttpsPort}} check{{if eq $.CheckResolvers true}} resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
                 {{- else }}
-    server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
+    server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.HttpsPort}}{{if eq $.CheckResolvers true}} check resolvers docker{{end}}{{if eq $sd.SslVerifyNone true}} ssl verify none{{end}}
                 {{- end}}
             {{- end}}
             {{- if not .IgnoreAuthorization}}

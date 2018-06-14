@@ -139,10 +139,9 @@ func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpAuth_WhenUsersIsPresent(
 		{Username: "user-1", Password: "pass-1"},
 		{Username: "user-2", Password: "pass-2"},
 	}
-	s.reconfigure.HttpsPort = 3333
 	sd := []proxy.ServiceDest{
-		{Port: "1111", Index: 0},
-		{Port: "2222", IgnoreAuthorization: true, Index: 1},
+		{Port: "1111", Index: 0, HttpsPort: 3333},
+		{Port: "2222", IgnoreAuthorization: true, Index: 1, HttpsPort: 3333},
 	}
 	s.reconfigure.Service.ServiceDest = sd
 	expected := `userlist myServiceUsers
@@ -252,7 +251,7 @@ backend myService-be1234_3
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsRequestDeny_WhenNotOneOfAllowedMethods() {
-	s.reconfigure.Service.HttpsPort = 4321
+	s.reconfigure.Service.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.ServiceDest[0].AllowedMethods = []string{"GET", "DELETE"}
 	s.reconfigure.Service.ServiceDest[0].Index = 2
@@ -276,7 +275,7 @@ backend https-myService-be1234_2
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsRequestDeny_WhenOneOfDeniedMethods() {
-	s.reconfigure.Service.HttpsPort = 4321
+	s.reconfigure.Service.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.ServiceDest[0].Index = 5
 	s.reconfigure.Service.ServiceDest[0].DeniedMethods = []string{"GET", "DELETE"}
@@ -300,7 +299,7 @@ backend https-myService-be1234_5
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpDeny() {
-	s.reconfigure.Service.HttpsPort = 4321
+	s.reconfigure.Service.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.ServiceDest[0].DenyHttp = true
 	s.reconfigure.Service.ServiceDest[0].Index = 32
@@ -377,7 +376,7 @@ backend https-myService-be1234_3
     server myService myService:4321`
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.ServiceDest[0].Index = 3
-	s.reconfigure.HttpsPort = 4321
+	s.reconfigure.ServiceDest[0].HttpsPort = 4321
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
 	s.Equal("", actualFront)
@@ -395,7 +394,7 @@ backend https-myService-be1234_0
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 7 myService:4321 check`
 	s.reconfigure.ServiceDest[0].Port = "1234"
-	s.reconfigure.HttpsPort = 4321
+	s.reconfigure.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Replicas = 7
 	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
@@ -427,7 +426,7 @@ backend https-myService-be1234_0
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 3 myService:4321 check`
 	s.reconfigure.ServiceDest[0].Port = "1234"
-	s.reconfigure.HttpsPort = 4321
+	s.reconfigure.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Replicas = 0
 	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
@@ -454,7 +453,7 @@ backend myService-be1234_0
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_UsesOutboundHostname() {
-	s.reconfigure.Service.HttpsPort = 4321
+	s.reconfigure.Service.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.ServiceDest[0].Index = 1
 	s.reconfigure.Service.ServiceDest[0].OutboundHostname = "acme.com"
@@ -531,11 +530,11 @@ backend myService-be5555_2
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchReplaceFormattedIsPresent() {
-	s.reconfigure.HttpsPort = 1234
 	s.reconfigure.ServiceDest = []proxy.ServiceDest{{
 		Port:  "1234",
 		Index: 0,
 		ReqPathSearchReplaceFormatted: []string{"this,that", "foo,bar"},
+		HttpsPort:                     1234,
 	}}
 	expected := `
 backend myService-be1234_0
@@ -737,7 +736,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesServerSession() {
 	s.reconfigure.ServiceName = "my-service"
 	s.reconfigure.AclName = "my-service"
 	s.reconfigure.ServiceDest[0].Port = "1111"
-	s.reconfigure.HttpsPort = 2222
+	s.reconfigure.ServiceDest[0].HttpsPort = 2222
 	s.reconfigure.Tasks = []string{"1.2.3.4", "4.3.2.1"}
 	s.reconfigure.SessionType = "sticky-server"
 	var actualData string

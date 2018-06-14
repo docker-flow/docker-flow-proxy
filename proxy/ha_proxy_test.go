@@ -806,9 +806,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude(
 	service := Service{
 		ServiceName: "my-service-1",
 		PathType:    "path_beg",
-		HttpsPort:   2222,
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path-1"}, ServicePathExclude: []string{"/path-2", "/path-3"}},
+			{Port: "1111", HttpsPort: 2222, ServicePath: []string{"/path-1"}, ServicePathExclude: []string{"/path-2", "/path-3"}},
 		},
 	}
 	p.AddService(service)
@@ -1848,10 +1847,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	service1 := Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
-		HttpsPort:   2222,
 		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}},
+			{Port: "1111", ServicePath: []string{"/path"}, HttpsPort: 2222},
 		},
 	}
 	p.AddService(service1)
@@ -1883,11 +1881,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	service1 := Service{
 		ServiceName: "my-service",
 		PathType:    "path_beg",
-		HttpsPort:   2222,
 		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"},
-				SrcPort: 8080},
+				SrcPort: 8080, HttpsPort: 2222},
 		},
 	}
 	p.AddService(service1)

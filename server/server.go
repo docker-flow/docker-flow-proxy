@@ -256,6 +256,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		reqMode = getSecretOrEnvVar("DEFAULT_PROTOCOL", "http")
 	}
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
+	httpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_HTTPS_PORT"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
 	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
@@ -282,6 +283,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 				DeniedMethods:                 deniedMethods,
 				DenyHttp:                      denyHTTP,
 				HttpsOnly:                     httpsOnly,
+				HttpsPort:                     httpsPort,
 				HttpsRedirectCode:             httpsRedirectCode,
 				IgnoreAuthorization:           ignoreAuthorization,
 				OutboundHostname:              globalOutboundHostname,

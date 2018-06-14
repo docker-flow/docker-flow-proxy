@@ -529,7 +529,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		DelResHeader:          []string{"add-header-1", "add-header-2"},
 		DiscoveryType:         "DNS",
 		Distribute:            true,
-		HttpsPort:             1234,
 		PathType:              "pathType",
 		RedirectWhenHttpProto: true,
 		Replicas:              83,
@@ -543,6 +542,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			Clitcpka:           true,
 			DeniedMethods:      []string{"PUT", "POST"},
 			HttpsOnly:          true,
+			HttpsPort:          1234,
 			HttpsRedirectCode:  "302",
 			OutboundHostname:   "outboundHostname",
 			Port:               "1234",
@@ -593,7 +593,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceDest[0].HttpsRedirectCode,
 		expected.IsDefaultBackend,
 		expected.RedirectWhenHttpProto,
-		expected.HttpsPort,
+		expected.ServiceDest[0].HttpsPort,
 		strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
 		strings.Join(expected.ServiceDest[0].RedirectFromDomain, ","),
 		expected.Distribute,
@@ -685,7 +685,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
-		HttpsPort:             1234,
 		IsDefaultBackend:      true,
 		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
@@ -699,6 +698,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		ServiceDest: []proxy.ServiceDest{
 			{
 				HttpsOnly:                     true,
+				HttpsPort:                     1234,
 				HttpsRedirectCode:             "302",
 				IgnoreAuthorization:           true,
 				OutboundHostname:              "my-OutboundHostname",
@@ -736,7 +736,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_DISTRIBUTE", strconv.FormatBool(service.Distribute))
 	os.Setenv("DFP_SERVICE_HTTPS_ONLY", strconv.FormatBool(service.ServiceDest[0].HttpsOnly))
 	os.Setenv("DFP_SERVICE_HTTPS_REDIRECT_CODE", service.ServiceDest[0].HttpsRedirectCode)
-	os.Setenv("DFP_SERVICE_HTTPS_PORT", strconv.Itoa(service.HttpsPort))
+	os.Setenv("DFP_SERVICE_HTTPS_PORT", strconv.Itoa(service.ServiceDest[0].HttpsPort))
 	os.Setenv("DFP_SERVICE_IGNORE_AUTHORIZATION", strconv.FormatBool(service.ServiceDest[0].IgnoreAuthorization))
 	os.Setenv("DFP_SERVICE_IS_DEFAULT_BACKEND", strconv.FormatBool(service.IsDefaultBackend))
 	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.ServiceDest[0].OutboundHostname)

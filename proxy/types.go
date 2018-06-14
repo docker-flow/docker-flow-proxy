@@ -25,6 +25,10 @@ type ServiceDest struct {
 	DenyHttp bool
 	// Whether to redirect all http requests to https
 	HttpsOnly bool
+	// The internal HTTPS port of a service that should be reconfigured.
+	// The port is used only in the swarm mode.
+	// If not specified, the `port` parameter will be used instead.
+	HttpsPort int
 	// HTTP code for HTTP to HTTPS redirects. This parameter is used only if `httpsOnly` is set to `true`.
 	HttpsRedirectCode string
 	// Whether to ignore authorization for this service destination.
@@ -141,10 +145,6 @@ type Service struct {
 	// Whether to distribute a request to all the instances of the proxy.
 	// Used only in the swarm mode.
 	Distribute bool `split_words:"true"`
-	// The internal HTTPS port of a service that should be reconfigured.
-	// The port is used only in the swarm mode.
-	// If not specified, the `port` parameter will be used instead.
-	HttpsPort int `split_words:"true"`
 	// If set to true, it will be the default_backend service.
 	IsDefaultBackend bool `split_words:"true"`
 	// The ACL derivative. Defaults to path_beg.
@@ -312,9 +312,6 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	if strings.EqualFold(provider.GetString("serviceDomainMatchAll"), "true") {
 		sr.ServiceDomainAlgo = "hdr_dom(host)"
 	}
-	if len(provider.GetString("httpsPort")) > 0 {
-		sr.HttpsPort, _ = strconv.Atoi(provider.GetString("httpsPort"))
-	}
 	if len(provider.GetString("addReqHeader")) > 0 {
 		sr.AddReqHeader = strings.Split(provider.GetString("addReqHeader"), separator)
 	} else if len(provider.GetString("addHeader")) > 0 { // TODO: Deprecated since Apr. 2017.
@@ -408,6 +405,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		reqMode = "http"
 	}
 	srcPort, _ := strconv.Atoi(getFromString(provider, "srcPort", suffix))
+	httpsPort, _ := strconv.Atoi(getFromString(provider, "httpsPort", suffix))
 	headerString := getFromString(provider, "serviceHeader", suffix)
 	header := map[string]string{}
 	if len(headerString) > 0 {
@@ -445,6 +443,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		DeniedMethods:                 getSliceFromString(provider, "deniedMethods", suffix),
 		DenyHttp:                      getBoolParam(provider, "denyHttp", suffix),
 		HttpsOnly:                     getBoolParam(provider, "httpsOnly", suffix),
+		HttpsPort:                     httpsPort,
 		HttpsRedirectCode:             getFromString(provider, "httpsRedirectCode", suffix),
 		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
 		OutboundHostname:              getFromString(provider, "outboundHostname", suffix),
