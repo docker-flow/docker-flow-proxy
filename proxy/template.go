@@ -385,8 +385,8 @@ func FormatServiceForTemplates(sr *Service) {
 		}
 		if sd.SrcPort > 0 {
 			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
-    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
+			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf("\n    acl srcPort_%s%d dst_port %d",
+				sr.ServiceName, sd.SrcPort, sd.SrcPort)
 		}
 	}
 }
