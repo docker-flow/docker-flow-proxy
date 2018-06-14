@@ -40,11 +40,11 @@ defaults
     timeout tunnel  {{.TimeoutTunnel}}s
     timeout http-request {{.TimeoutHttpRequest}}s
     timeout http-keep-alive {{.TimeoutHttpKeepAlive}}s
-{{.UserList}}
 {{.Stats}}
+{{.UserList}}
 frontend services{{.DefaultBinds}}
     mode {{.DefaultReqMode}}
-    {{- if eq .DefaultReqMode "http"}}
+    {{- if eq .DefaultReqMode "http" }}
     option  forwardfor
     {{- end}}
 {{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}{{.ContentListen}}
