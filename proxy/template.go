@@ -37,12 +37,10 @@ func getFrontTemplate(s Service) string {
     acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
         {{- end}}
     {{- end}}
-{{- end}}
-{{- if gt $.HttpsPort 0 }}
-    acl http_{{.ServiceName}} dst_port 80
-    acl https_{{.ServiceName}} dst_port 443
-{{- end}}
-{{- range $sd := .ServiceDest}}
+    {{- if gt $.HttpsPort 0 }}
+    acl http_{{$.ServiceName}}_{{.Index}} dst_port 80
+    acl https_{{$.ServiceName}}_{{.Index}} dst_port 443
+    {{- end}}
     {{- range $rd := $sd.RedirectFromDomain}}
     http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr_beg(host) -i {{$rd}} }
     {{- end}}
@@ -60,8 +58,8 @@ func getFrontTemplate(s Service) string {
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-        {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}
-    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}
+        {{- if gt $.HttpsPort 0 }} http_{{$.ServiceName}}_{{.Index}}
+    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}_{{.Index}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
         {{- if $.IsDefaultBackend}}
