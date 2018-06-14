@@ -19,11 +19,28 @@ func getFrontTemplate(s Service) string {
     compression type {{$.CompressionType}}
             {{- end}}
         {{- end}}
-        {{- if ne .Port ""}}
-    acl url_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+        {{- if ne $sd.Port ""}}
+    acl url_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+            {{- if .ServicePathExclude}}
+    acl url_exclude_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+            {{- end}}
+            {{- if $sd.ServiceDomain}}
+    acl domain_{{$.AclName}}{{$sd.Port}}_{{$sd.Index}} {{$.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
+            {{- end}}
+            {{- if $sd.ServiceHeader}}{{$skIndex := 0}}
+                {{- range $key, $value := $sd.ServiceHeader}}
+    acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
+                {{- end}}
+            {{- end}}
         {{- end}}
-        {{- if .ServicePathExclude}}
-    acl url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+        {{- if gt $sd.HttpsPort 0}}
+    acl url_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+            {{- if .ServicePathExclude}}
+    acl url_exclude_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+            {{- end}}
+            {{- if $sd.ServiceDomain}}
+    acl domain_https_{{$.AclName}}{{$sd.HttpsPort}}_{{$sd.Index}} {{$.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
+            {{- end}}
         {{- end}}
         {{- if $sd.IncludeSrcPortACL }}
     {{$sd.SrcPortAcl}}
@@ -33,14 +50,6 @@ func getFrontTemplate(s Service) string {
         {{- end }}
         {{- $length := len .UserAgent.Value}}{{if gt $length 0}}
     acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
-        {{- end}}
-    {{- end}}
-    {{- if .ServiceDomain}}
-    acl domain_{{$.AclName}}{{.Port}}_{{.Index}} {{$.ServiceDomainAlgo}} -i{{range .ServiceDomain}} {{.}}{{end}}
-    {{- end}}
-    {{- if .ServiceHeader}}{{$skIndex := 0}}
-        {{- range $key, $value := .ServiceHeader}}
-    acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
         {{- end}}
     {{- end}}
     {{- range $rd := $sd.RedirectFromDomain}}
@@ -58,16 +67,17 @@ func getFrontTemplate(s Service) string {
     {{- end}}
 {{- end}}
 {{- range $sd := .ServiceDest}}
-    {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
-    use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-        {{- if gt $sd.HttpsPort 0 }}
-    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcHttpsPortAclName}}
-        {{- end}}
-    {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
-        {{- if $.IsDefaultBackend}}
+    {{- if eq .ReqMode "http" }}
+        {{- if ne .Port ""}}
+    use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}{{ $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
+            {{- if $.IsDefaultBackend}}
     default_backend {{$.AclName}}-be{{.Port}}_{{$sd.Index}}
+            {{- end}}
+        {{- end }}
+        {{- if gt $sd.HttpsPort 0 }}
+    use_backend https-{{$.AclName}}-be{{.HttpsPort}}_{{.Index}} if url_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_https{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{.SrcHttpsPortAclName}}{{ $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
         {{- end}}
-    {{- end}}{{- end}}
+    {{- end}}
 {{- end}}`
 	return templateToString(tmplString, s)
 }
@@ -300,7 +310,7 @@ backend {{$.AclName}}-be{{$sd.Port}}_{{.Index}}
 {{- end}}
 {{- range $sd := .ServiceDest}}
     {{- if gt $sd.HttpsPort 0}}
-backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
+backend https-{{$.AclName}}-be{{.HttpsPort}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
@@ -323,8 +333,8 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     http-request set-path %[path,regsub({{.}})]
             {{- end}}
             {{- if eq .VerifyClientSsl true}}
-    acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
-    http-request deny unless valid_client_cert_{{$.ServiceName}}{{.Port}}
+    acl valid_client_cert_{{$.ServiceName}}{{.HttpsPort}} ssl_c_used ssl_c_verify 0
+    http-request deny unless valid_client_cert_{{$.ServiceName}}{{.HttpsPort}}
             {{- end}}
             {{- if .AllowedMethods}}
     acl valid_allowed_method method{{range .AllowedMethods}} {{.}}{{end}}

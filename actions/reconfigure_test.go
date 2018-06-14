@@ -160,14 +160,14 @@ backend myService-be2222_1
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:2222
-backend https-myService-be1111_0
+backend https-myService-be3333_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:3333
     acl myServiceUsersAcl http_auth(myServiceUsers)
     http-request auth realm myServiceRealm if !myServiceUsersAcl
     http-request del-header Authorization
-backend https-myService-be2222_1
+backend https-myService-be3333_1
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:3333`
@@ -262,7 +262,7 @@ backend myService-be1234_2
     acl valid_allowed_method method GET DELETE
     http-request deny unless valid_allowed_method
     server myService myService:1234
-backend https-myService-be1234_2
+backend https-myService-be4321_2
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     acl valid_allowed_method method GET DELETE
@@ -286,7 +286,7 @@ backend myService-be1234_5
     acl valid_denied_method method GET DELETE
     http-request deny if valid_denied_method
     server myService myService:1234
-backend https-myService-be1234_5
+backend https-myService-be4321_5
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     acl valid_denied_method method GET DELETE
@@ -309,7 +309,7 @@ backend myService-be1234_32
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     http-request deny if !{ ssl_fc }
     server myService myService:1234
-backend https-myService-be1234_32
+backend https-myService-be4321_32
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:4321`
@@ -370,7 +370,7 @@ backend myService-be1234_3
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
-backend https-myService-be1234_3
+backend https-myService-be4321_3
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:4321`
@@ -389,7 +389,7 @@ backend myService-be1234_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 7 myService:1234 check
-backend https-myService-be1234_0
+backend https-myService-be4321_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 7 myService:4321 check`
@@ -421,7 +421,7 @@ backend myService-be1234_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 3 myService:1234 check
-backend https-myService-be1234_0
+backend https-myService-be4321_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server-template myService 3 myService:4321 check`
@@ -462,7 +462,7 @@ backend myService-be1234_1
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService acme.com:1234
-backend https-myService-be1234_1
+backend https-myService-be4321_1
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService acme.com:4321`
@@ -750,7 +750,7 @@ backend my-service-be1111_0
     cookie my-service insert indirect nocache
     server my-service_0 1.2.3.4:1111 check cookie my-service_0
     server my-service_1 4.3.2.1:1111 check cookie my-service_1
-backend https-my-service-be1111_0
+backend https-my-service-be2222_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     balance roundrobin

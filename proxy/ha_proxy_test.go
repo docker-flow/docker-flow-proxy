@@ -794,10 +794,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude(
 		`%s
     acl url_my-service-11111_0 path_beg /path-1
     acl url_exclude_my-service-11111_0 path_beg /path-2 path_beg /path-3
+    acl url_https_my-service-12222_0 path_beg /path-1
+    acl url_exclude_https_my-service-12222_0 path_beg /path-2 path_beg /path-3
     acl srcPort_my-service-180_0 dst_port 80
     acl srcHttpsPort_my-service-1443_0 dst_port 443
     use_backend my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 srcPort_my-service-180_0
-    use_backend https-my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 srcHttpsPort_my-service-1443_0%s`,
+    use_backend https-my-service-1-be2222_0 if url_https_my-service-12222_0 !url_exclude_https_my-service-12222_0 srcHttpsPort_my-service-1443_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1651,8 +1653,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
     acl url_my-service1111_1 path_beg /path
     acl domain_my-service1111_1 hdr_beg(host) -i domain-1-1.com domain-1-2.com
     acl url_my-service2222_45 path_beg /path
-    acl srcPort_my-service4321_45 dst_port 4321
     acl domain_my-service2222_45 hdr_beg(host) -i domain-2-1.com domain-2-2.com
+    acl srcPort_my-service4321_45 dst_port 4321
     use_backend my-service-be1111_1 if url_my-service1111_1 domain_my-service1111_1
     use_backend my-service-be2222_45 if url_my-service2222_45 domain_my-service2222_45 srcPort_my-service4321_45%s`,
 		tmpl,
@@ -1808,7 +1810,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl domain_my-service_0 hdr_end(host) -i domain-1%s`,
+    acl url_my-service8080_0
+    acl domain_my-service8080_0 hdr_end(host) -i domain-1
+    use_backend my-service-be8080_0 if url_my-service8080_0 domain_my-service8080_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1820,7 +1824,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	service1 := Service{
 		ServiceName: "my-service",
 		ServiceDest: []ServiceDest{
-			{ServiceDomain: []string{"*domain-1"}},
+			{ServiceDomain: []string{"*domain-1"},
+				Port: "8080"},
 		},
 	}
 	p.AddService(service1)
@@ -1836,10 +1841,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111_0 path_beg /path
+    acl url_https_my-service2222_0 path_beg /path
     acl srcPort_my-service80_0 dst_port 80
     acl srcHttpsPort_my-service443_0 dst_port 443
     use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service80_0
-    use_backend https-my-service-be1111_0 if url_my-service1111_0 srcHttpsPort_my-service443_0%s`,
+    use_backend https-my-service-be2222_0 if url_https_my-service2222_0 srcHttpsPort_my-service443_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1870,10 +1876,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111_0 path_beg /path
+    acl url_https_my-service2222_0 path_beg /path
     acl srcPort_my-service8080_0 dst_port 8080
     acl srcHttpsPort_my-service443_0 dst_port 443
     use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service8080_0
-    use_backend https-my-service-be1111_0 if url_my-service1111_0 srcHttpsPort_my-service443_0%s`,
+    use_backend https-my-service-be2222_0 if url_https_my-service2222_0 srcHttpsPort_my-service443_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
