@@ -290,11 +290,11 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     {{- end}}
 {{- end}}
 {{- end}}
-    {{- if ne $.BackendExtra ""}}
+{{- if ne $.BackendExtra ""}}
     {{ $.BackendExtra }}
-    {{- end}}
-{{- if gt .HttpsPort 0}}
-    {{- range $sd := .ServiceDest}}
+{{- end}}
+{{- range $sd := .ServiceDest}}
+    {{- if gt $.HttpsPort 0}}
 backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
             {{- if eq .ReqModeFormatted "http"}}
@@ -356,11 +356,11 @@ backend https-{{$.AclName}}-be{{.Port}}_{{.Index}}
     http-request del-header Authorization
                 {{- end}}
             {{- end}}
-        {{- end}}
-        {{- if ne $.BackendExtra ""}}
+            {{- if ne $.BackendExtra ""}}
     {{ $.BackendExtra }}
-        {{- end}}
-    {{- end}}`
+            {{- end}}
+    {{- end}}
+{{- end}}`
 
 	return tmpl
 }
@@ -383,10 +383,11 @@ func FormatServiceForTemplates(sr *Service) {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
 			sr.ServiceDest[i].ReqMode = "http"
 		}
+
 		if sd.SrcPort > 0 {
-			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf("\n    acl srcPort_%s%d dst_port %d",
-				sr.ServiceName, sd.SrcPort, sd.SrcPort)
+			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d_%d", sr.ServiceName, sd.SrcPort, sd.Index)
+			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf("\n    acl srcPort_%s%d_%d dst_port %d",
+				sr.ServiceName, sd.SrcPort, sd.Index, sd.SrcPort)
 		}
 	}
 }

@@ -1195,8 +1195,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsMultipleFrontends()
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service-12222_0 path_beg /path
-    acl srcPort_my-service-11111 dst_port 1111
-    use_backend my-service-1-be2222_0 if url_my-service-12222_0 srcPort_my-service-11111
+    acl srcPort_my-service-11111_0 dst_port 1111
+    use_backend my-service-1-be2222_0 if url_my-service-12222_0 srcPort_my-service-11111_0
 
 frontend tcpFE_3333
     bind *:3333
@@ -1366,8 +1366,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    acl srcPort_my-service-11234 dst_port 1234
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
+    acl srcPort_my-service-11234_3 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234_3%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1405,8 +1405,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    acl srcPort_my-service-11234 dst_port 1234
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
+    acl srcPort_my-service-11234_3 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234_3%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1444,8 +1444,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    acl srcPort_my-service-11234 dst_port 1234
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
+    acl srcPort_my-service-11234_3 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234_3%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1483,8 +1483,8 @@ frontend service_1234
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    acl srcPort_my-service-11234 dst_port 1234
-    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234%s`,
+    acl srcPort_my-service-11234_3 dst_port 1234
+    use_backend my-service-1-be4321_3 if sni_my-service-14321-1 srcPort_my-service-11234_3%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1526,8 +1526,8 @@ frontend service_443
     tcp-request inspect-delay 5s
     tcp-request content accept if { req_ssl_hello_type 1 }
     acl sni_my-service-14321-1
-    acl srcPort_my-service-1443 dst_port 443
-    use_backend my-service-1-be4321_0 if sni_my-service-14321-1 srcPort_my-service-1443%s`,
+    acl srcPort_my-service-1443_0 dst_port 443
+    use_backend my-service-1-be4321_0 if sni_my-service-14321-1 srcPort_my-service-1443_0%s`,
 		tmpl,
 		s.ServicesContent,
 	)
@@ -1648,10 +1648,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
     acl url_my-service1111_1 path_beg /path
     acl domain_my-service1111_1 hdr_beg(host) -i domain-1-1.com domain-1-2.com
     acl url_my-service2222_45 path_beg /path
-    acl srcPort_my-service4321 dst_port 4321
+    acl srcPort_my-service4321_45 dst_port 4321
     acl domain_my-service2222_45 hdr_beg(host) -i domain-2-1.com domain-2-2.com
     use_backend my-service-be1111_1 if url_my-service1111_1 domain_my-service1111_1
-    use_backend my-service-be2222_45 if url_my-service2222_45 domain_my-service2222_45 srcPort_my-service4321%s`,
+    use_backend my-service-be2222_45 if url_my-service2222_45 domain_my-service2222_45 srcPort_my-service4321_45%s`,
 		tmpl,
 		s.ServicesContent,
 	)
