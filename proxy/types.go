@@ -89,6 +89,8 @@ type ServiceDest struct {
 	Index int
 	// Internal use only
 	ReqPathSearchReplaceFormatted []string
+	// Internal use only
+	IncludeSrcPortACL bool
 }
 
 // UserAgent holds data used to generate proxy configuration. It is extracted as a separate struct since each user agent needs an ACL identifier. If specified, only requests with the same agent will be forwarded to the backend.

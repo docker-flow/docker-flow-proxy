@@ -747,11 +747,14 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	tmpl := s.TemplateContent
 	expectedData := fmt.Sprintf(
 		`%s
-    acl url_my-service-11111_0 path_beg /path-1 path_beg /path-2 port1111Acl
-    acl url_my-service-12222_1 path_beg /path-3 port2222Acl
+    acl url_my-service-11111_0 path_beg /path-1 path_beg /path-2
+    acl port1111Acl
+    acl url_my-service-12222_1 path_beg /path-3
+    acl port2222Acl
     use_backend my-service-1-be1111_0 if url_my-service-11111_0 my-src-port
     use_backend my-service-1-be2222_1 if url_my-service-12222_1
-    acl url_my-service-23333_0 path_beg /path-4 port3333Acl
+    acl url_my-service-23333_0 path_beg /path-4
+    acl port3333Acl
     use_backend my-service-2-be3333_0 if url_my-service-23333_0%s`,
 		tmpl,
 		s.ServicesContent,
@@ -765,15 +768,15 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 		ServiceName: "my-service-1",
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: " port1111Acl", SrcPortAclName: " my-src-port", Index: 0},
-			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: " port2222Acl", Index: 1},
+			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: "acl port1111Acl", SrcPortAclName: " my-src-port", IncludeSrcPortACL: true, Index: 0},
+			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: "acl port2222Acl", Index: 1, IncludeSrcPortACL: true},
 		},
 	}
 	service2 := Service{
 		ServiceName: "my-service-2",
 		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "3333", ServicePath: []string{"/path-4"}, SrcPortAcl: " port3333Acl", Index: 0},
+			{Port: "3333", ServicePath: []string{"/path-4"}, SrcPortAcl: "acl port3333Acl", Index: 0, IncludeSrcPortACL: true},
 		},
 	}
 	p.AddService(service1)
@@ -791,9 +794,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude(
 		`%s
     acl url_my-service-11111_0 path_beg /path-1
     acl url_exclude_my-service-11111_0 path_beg /path-2 path_beg /path-3
-    acl http_my-service-1_0 dst_port 80
+    acl srcPort_my-service-180_0 dst_port 80
     acl https_my-service-1_0 dst_port 443
-    use_backend my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 http_my-service-1_0
+    use_backend my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 srcPort_my-service-180_0
     use_backend https-my-service-1-be1111_0 if url_my-service-11111_0 !url_exclude_my-service-11111_0 https_my-service-1_0%s`,
 		tmpl,
 		s.ServicesContent,
@@ -812,6 +815,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude(
 	}
 	p.AddService(service)
 
+	FormatServiceForTemplates(&service)
 	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
@@ -1832,9 +1836,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	expectedData := fmt.Sprintf(
 		`%s
     acl url_my-service1111_0 path_beg /path
-    acl http_my-service_0 dst_port 80
+    acl srcPort_my-service80_0 dst_port 80
     acl https_my-service_0 dst_port 443
-    use_backend my-service-be1111_0 if url_my-service1111_0 http_my-service_0
+    use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service80_0
     use_backend https-my-service-be1111_0 if url_my-service1111_0 https_my-service_0%s`,
 		tmpl,
 		s.ServicesContent,
@@ -1854,6 +1858,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	}
 	p.AddService(service1)
 
+	FormatServiceForTemplates(&service1)
 	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
@@ -1866,9 +1871,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		`%s
     acl url_my-service1111_0 path_beg /path
     acl srcPort_my-service8080_0 dst_port 8080
-    acl http_my-service_0 dst_port 8080
     acl https_my-service_0 dst_port 443
-    use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service8080_0 http_my-service_0
+    use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service8080_0
     use_backend https-my-service-be1111_0 if url_my-service1111_0 https_my-service_0%s`,
 		tmpl,
 		s.ServicesContent,

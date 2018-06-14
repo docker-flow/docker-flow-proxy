@@ -20,11 +20,14 @@ func getFrontTemplate(s Service) string {
             {{- end}}
         {{- end}}
         {{- if ne .Port ""}}
-    acl url_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}{{.SrcPortAcl}}
+    acl url_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
         {{- end}}
         {{- if .ServicePathExclude}}
-    acl url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}{{.SrcPortAcl}}
+    acl url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
         {{- end}}
+        {{- if $sd.IncludeSrcPortACL }}
+    {{$sd.SrcPortAcl}}
+        {{- end }}
         {{- $length := len .UserAgent.Value}}{{if gt $length 0}}
     acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
         {{- end}}
@@ -38,7 +41,6 @@ func getFrontTemplate(s Service) string {
         {{- end}}
     {{- end}}
     {{- if gt $sd.HttpsPort 0 }}
-    acl http_{{$.ServiceName}}_{{.Index}} dst_port {{ if gt .SrcPort 0 }}{{.SrcPort}}{{ else }}80{{ end }}
     acl https_{{$.ServiceName}}_{{.Index}} dst_port 443
     {{- end}}
     {{- range $rd := $sd.RedirectFromDomain}}
@@ -58,7 +60,7 @@ func getFrontTemplate(s Service) string {
 {{- range $sd := .ServiceDest}}
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
-        {{- if gt $sd.HttpsPort 0 }} http_{{$.ServiceName}}_{{.Index}}
+        {{- if gt $sd.HttpsPort 0 }}
     use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}_{{.Index}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
@@ -135,7 +137,10 @@ frontend service_{{$sd1.SrcPort}}
     tcp-request content accept if { req_ssl_hello_type 1 }`, si)
 	}
 	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
-    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}{{$sd.SrcPortAcl}}
+    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}
+    {{- if ne $sd.SrcPortAcl "" }}
+    {{$sd.SrcPortAcl}}
+    {{- end }}
     use_backend {{$.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if sni_{{$.AclName}}{{$sd.Port}}-%d{{$.AclCondition}}{{$sd.SrcPortAclName}}`, si, si+1, si+1)
 	return templateToString(tmplString, s)
 }
@@ -382,11 +387,20 @@ func FormatServiceForTemplates(sr *Service) {
 			sr.ServiceDest[i].ReqMode = "http"
 		}
 
-		if sd.SrcPort > 0 {
-			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d_%d", sr.AclName, sd.SrcPort, sd.Index)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf("\n    acl srcPort_%s%d_%d dst_port %d",
-				sr.AclName, sd.SrcPort, sd.Index, sd.SrcPort)
+		srcPort := sd.SrcPort
+		if sd.HttpsPort > 0 && srcPort == 0 {
+			srcPort = 80
 		}
+		if srcPort > 0 {
+			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d_%d", sr.AclName, srcPort, sd.Index)
+			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf("acl srcPort_%s%d_%d dst_port %d",
+				sr.AclName, srcPort, sd.Index, srcPort)
+		}
+		if srcPort > 0 && (len(sd.Port) > 0 || len(sd.ServicePathExclude) > 0) {
+			sr.ServiceDest[i].IncludeSrcPortACL = true
+		}
+		sr.ServiceDest[i].SrcPort = srcPort
+
 	}
 }
 

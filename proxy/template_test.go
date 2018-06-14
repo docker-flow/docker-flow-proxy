@@ -70,6 +70,6 @@ func (s *TemplateTestSuite) Test_FormatData_SrcPort_DefinesSrcPortAclNameAndSrcP
 	sd := service.ServiceDest[0]
 
 	s.Equal(" srcPort_my-service-14480_0", sd.SrcPortAclName)
-	s.Equal("\n    acl srcPort_my-service-14480_0 dst_port 4480", sd.SrcPortAcl)
+	s.Equal("acl srcPort_my-service-14480_0 dst_port 4480", sd.SrcPortAcl)
 
 }
