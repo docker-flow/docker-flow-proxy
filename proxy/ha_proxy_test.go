@@ -1861,6 +1861,43 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithHttpsPort_WithSrcPort() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111_0 path_beg /path
+    acl srcPort_my-service8080_0 dst_port 8080
+    acl http_my-service_0 dst_port 8080
+    acl https_my-service_0 dst_port 443
+    use_backend my-service-be1111_0 if url_my-service1111_0 srcPort_my-service8080_0 http_my-service_0
+    use_backend https-my-service-be1111_0 if url_my-service1111_0 https_my-service_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	service1 := Service{
+		ServiceName: "my-service",
+		PathType:    "path_beg",
+		HttpsPort:   2222,
+		AclName:     "my-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"},
+				SrcPort: 8080},
+		},
+	}
+	p.AddService(service1)
+
+	FormatServiceForTemplates(&service1)
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRedirectWhenHttpProtoIsTrue() {
 	var actualData string
 	tmpl := s.TemplateContent
