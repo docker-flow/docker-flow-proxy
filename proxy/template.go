@@ -28,6 +28,9 @@ func getFrontTemplate(s Service) string {
         {{- if $sd.IncludeSrcPortACL }}
     {{$sd.SrcPortAcl}}
         {{- end }}
+        {{- if $sd.IncludeSrcHttpsPortACL }}
+    {{$sd.SrcHttpsPortAcl}}
+        {{- end }}
         {{- $length := len .UserAgent.Value}}{{if gt $length 0}}
     acl user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}} hdr_sub(User-Agent) -i{{range .UserAgent.Value}} {{.}}{{end}}
         {{- end}}
@@ -39,9 +42,6 @@ func getFrontTemplate(s Service) string {
         {{- range $key, $value := .ServiceHeader}}
     acl hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}} hdr({{$key}}) {{$value}}
         {{- end}}
-    {{- end}}
-    {{- if gt $sd.HttpsPort 0 }}
-    acl https_{{$.ServiceName}}_{{.Index}} dst_port 443
     {{- end}}
     {{- range $rd := $sd.RedirectFromDomain}}
     http-request redirect code 301 prefix http://{{index $sd.ServiceDomain 0}} if { hdr_beg(host) -i {{$rd}} }
@@ -61,7 +61,7 @@ func getFrontTemplate(s Service) string {
     {{- if eq .ReqMode "http"}}{{- if ne .Port ""}}
     use_backend {{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceHeader}}{{resetIndex}}{{range $key, $value := .ServiceHeader}} hdr_{{$.AclName}}{{$sd.Port}}_{{incIndex}}{{end}}{{end}}{{.SrcPortAclName}}
         {{- if gt $sd.HttpsPort 0 }}
-    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}} https_{{$.ServiceName}}_{{.Index}}
+    use_backend https-{{$.AclName}}-be{{.Port}}_{{.Index}} if url_{{$.AclName}}{{.Port}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_{{$.AclName}}{{.Port}}_{{.Index}}{{end}}{{.SrcHttpsPortAclName}}
         {{- end}}
     {{- $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
         {{- if $.IsDefaultBackend}}
@@ -400,6 +400,21 @@ func FormatServiceForTemplates(sr *Service) {
 			sr.ServiceDest[i].IncludeSrcPortACL = true
 		}
 		sr.ServiceDest[i].SrcPort = srcPort
+
+		// Handle https port
+		srcHttpsPort := sd.SrcHttpsPort
+		if sd.HttpsPort > 0 && srcHttpsPort == 0 {
+			srcHttpsPort = 443
+		}
+		if srcHttpsPort > 0 {
+			sr.ServiceDest[i].SrcHttpsPortAclName = fmt.Sprintf(" srcHttpsPort_%s%d_%d", sr.AclName, srcHttpsPort, sd.Index)
+			sr.ServiceDest[i].SrcHttpsPortAcl = fmt.Sprintf("acl srcHttpsPort_%s%d_%d dst_port %d", sr.AclName, srcHttpsPort, sd.Index, srcHttpsPort)
+		}
+
+		if srcHttpsPort > 0 && sd.HttpsPort > 0 {
+			sr.ServiceDest[i].IncludeSrcHttpsPortACL = true
+		}
+		sr.ServiceDest[i].SrcHttpsPort = srcHttpsPort
 
 	}
 }

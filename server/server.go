@@ -245,6 +245,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	path := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH"))
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
+	srcHttpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_HTTPS_PORT"))
 	reqMode := os.Getenv(prefix + "_REQ_MODE")
 	domain := getSliceFromString(os.Getenv(prefix + "_SERVICE_DOMAIN"))
 	// TODO: Remove.
@@ -296,6 +297,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 				ServicePath:                   path,
 				ServicePathExclude:            servicePathExclude,
 				SrcPort:                       srcPort,
+				SrcHttpsPort:                  srcHttpsPort,
 				SslVerifyNone:                 sslVerifyNone,
 				TimeoutServer:                 timeoutServer,
 				TimeoutTunnel:                 timeoutTunnel,
@@ -322,6 +324,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			reqMode = "http"
 		}
 		srcPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_PORT_%d", prefix, i)))
+		srcHttpsPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_HTTPS_PORT_%d", prefix, i)))
 		allowedMethods := getSliceFromString(os.Getenv(fmt.Sprintf("%s_ALLOWED_METHODS_%d", prefix, i)))
 		deniedMethods := getSliceFromString(os.Getenv(fmt.Sprintf("%s_DENIED_METHODS_%d", prefix, i)))
 		redirectFromDomain := getSliceFromString(os.Getenv(fmt.Sprintf("%s_REDIRECT_FROM_DOMAIN_%d", prefix, i)))
@@ -350,6 +353,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 					ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
 					ServiceDomain:                 domain,
 					SrcPort:                       srcPort,
+					SrcHttpsPort:                  srcHttpsPort,
 					ServicePath:                   path,
 					ServicePathExclude:            servicePathExclude,
 					TimeoutServer:                 timeoutServer,

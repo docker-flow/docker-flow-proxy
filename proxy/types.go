@@ -65,10 +65,17 @@ type ServiceDest struct {
 	// The source (entry) port of a service.
 	// Useful only when specifying multiple destinations of a single service.
 	SrcPort int
+	// The source (entry) port of a https service.
+	// Useful only when specifying multiple destinations of a single service.
+	SrcHttpsPort int
 	// Internal use only. Do not modify.
 	SrcPortAcl string
 	// Internal use only. Do not modify.
 	SrcPortAclName string
+	// Internal use only. Do not modify.
+	SrcHttpsPortAcl string
+	// Internal use only. Do not modify.
+	SrcHttpsPortAclName string
 	// If set to true, server certificates are not verified. This flag should be set for SSL enabled backend services.
 	SslVerifyNone bool
 	// The server timeout in seconds
@@ -91,6 +98,8 @@ type ServiceDest struct {
 	ReqPathSearchReplaceFormatted []string
 	// Internal use only
 	IncludeSrcPortACL bool
+	// Internal use only
+	IncludeSrcHttpsPortACL bool
 }
 
 // UserAgent holds data used to generate proxy configuration. It is extracted as a separate struct since each user agent needs an ACL identifier. If specified, only requests with the same agent will be forwarded to the backend.
@@ -407,6 +416,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		reqMode = "http"
 	}
 	srcPort, _ := strconv.Atoi(getFromString(provider, "srcPort", suffix))
+	srcHttpsPort, _ := strconv.Atoi(getFromString(provider, "srcHttpsPort", suffix))
 	httpsPort, _ := strconv.Atoi(getFromString(provider, "httpsPort", suffix))
 	headerString := getFromString(provider, "serviceHeader", suffix)
 	header := map[string]string{}
@@ -460,6 +470,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		ServicePath:                   getSliceFromString(provider, "servicePath", suffix),
 		ServicePathExclude:            getSliceFromString(provider, "servicePathExclude", suffix),
 		SrcPort:                       srcPort,
+		SrcHttpsPort:                  srcHttpsPort,
 		SslVerifyNone:                 getBoolParam(provider, "sslVerifyNone", suffix),
 		TimeoutClient:                 getFromString(provider, "timeoutClient", suffix),
 		TimeoutServer:                 getFromString(provider, "timeoutServer", suffix),
