@@ -209,8 +209,9 @@ func GetBackTemplate(sr *Service) string {
 
 	// HTTP
 	tmpl := `{{- range $sd := .ServiceDest}}
-{{- if eq .ReqModeFormatted "http" }}
-backend {{$.AclName}}-be{{.Port}}_{{.Index}}
+{{- if ne $sd.Port ""}}
+{{- if eq $sd.ReqModeFormatted "http" }}
+backend {{$.AclName}}-be{{$sd.Port}}_{{.Index}}
     mode {{.ReqModeFormatted}}
     {{- if .HttpsOnly}}
     http-request redirect scheme https{{if .HttpsRedirectCode}} code {{.HttpsRedirectCode}}{{end}} if !{ ssl_fc }
@@ -235,8 +236,8 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     http-request set-path %[path,regsub({{.}})]
         {{- end}}
         {{- if eq .VerifyClientSsl true}}
-    acl valid_client_cert_{{$.ServiceName}}{{.Port}} ssl_c_used ssl_c_verify 0
-    http-request deny unless valid_client_cert_{{$.ServiceName}}{{.Port}}
+    acl valid_client_cert_{{$.ServiceName}}{{$sd.Port}} ssl_c_used ssl_c_verify 0
+    http-request deny unless valid_client_cert_{{$.ServiceName}}{{$sd.Port}}
         {{- end}}
         {{- if .AllowedMethods}}
     acl valid_allowed_method method{{range .AllowedMethods}} {{.}}{{end}}
@@ -278,7 +279,7 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
         {{- end}}
 {{- else if eq .ReqModeFormatted "tcp"}}
     {{- if eq $sd.ServiceGroup "" }}
-backend {{$.AclName}}-be{{.Port}}_{{.Index}}
+backend {{$.AclName}}-be{{$sd.Port}}_{{.Index}}
     mode tcp
         {{- if .CheckTCP}}
     option tcp-check
@@ -292,9 +293,10 @@ backend {{$.AclName}}-be{{.Port}}_{{.Index}}
     server {{$.ServiceName}} {{if eq $sd.OutboundHostname ""}}{{$.ServiceName}}{{end}}{{if ne $sd.OutboundHostname ""}}{{$sd.OutboundHostname}}{{end}}:{{$sd.Port}}{{if .CheckTCP}} check{{end}}
     {{- end}}
 {{- end}}
-{{- end}}
-{{- if ne $.BackendExtra ""}}
+        {{- if ne $.BackendExtra ""}}
     {{ $.BackendExtra }}
+        {{- end}}
+{{- end}}
 {{- end}}
 {{- range $sd := .ServiceDest}}
     {{- if gt $sd.HttpsPort 0}}

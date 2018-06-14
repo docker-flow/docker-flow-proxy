@@ -669,6 +669,7 @@ backend %s-be%s_9
 func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithRedirectToHttps_WhenHttpsOnlyIsTrue() {
 	s.reconfigure.ServiceDest[0].HttpsOnly = true
 	s.reconfigure.ServiceDest[0].Index = 0
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -702,6 +703,7 @@ func (s ReconfigureTestSuite) Test_Execute_WritesBeTemplateWithHttpsRedirectCode
 	s.reconfigure.ServiceDest[0].HttpsOnly = true
 	s.reconfigure.ServiceDest[0].HttpsRedirectCode = "301"
 	s.reconfigure.ServiceDest[0].Index = 0
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -769,6 +771,7 @@ backend https-my-service-be1111_0
 
 func (s ReconfigureTestSuite) Test_Execute_AddsReqHeader_WhenAddReqHeaderIsSet() {
 	s.reconfigure.AddReqHeader = []string{"header-1", "header-2"}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -801,6 +804,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_AddsResHeader_WhenAddResHeaderIsSet() {
 	s.reconfigure.AddResHeader = []string{"header-1", "header-2"}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -833,6 +837,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_AddsCheckResolvers_WhenSet() {
 	s.reconfigure.CheckResolvers = true
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -863,6 +868,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_AddsReqHeader_WhenSetReqHeaderIsSet() {
 	s.reconfigure.SetReqHeader = []string{"header-1", "Strict-Transport-Security \"max-age=16000000; includeSubDomains; preload;\""}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -895,6 +901,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_AddsResHeader_WhenSetResHeaderIsSet() {
 	s.reconfigure.SetResHeader = []string{"header-1", "header-2"}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -927,6 +934,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_DelReqHeader_WhenDelReqHeaderIsSet() {
 	s.reconfigure.DelReqHeader = []string{"header-1", "header-2"}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
@@ -959,6 +967,7 @@ backend %s-be%s_0
 
 func (s ReconfigureTestSuite) Test_Execute_DelResHeader_WhenDelResHeaderIsSet() {
 	s.reconfigure.DelResHeader = []string{"header-1", "header-2"}
+	s.reconfigure.ServiceDest[0].Port = "8080"
 	var actualFilename, actualData string
 	expectedFilename := fmt.Sprintf("%s/%s-be.cfg", s.TemplatesPath, s.ServiceName)
 	expectedData := fmt.Sprintf(
