@@ -1645,6 +1645,43 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWithDomain_Https() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_https_my-service-11111_0 path_beg /path
+    acl domain_https_my-service-11111_0 hdr_beg(host) -i domain-1-1 domain-1-2
+    use_backend https-my-service-1-be1111_0 if url_https_my-service-11111_0 domain_https_my-service-11111_0
+    acl url_https_my-service-21111_0 path_beg /path
+    acl domain_https_my-service-21111_0 hdr_beg(host) -i domain-2-1 domain-2-2
+    use_backend https-my-service-2-be1111_0 if url_https_my-service-21111_0 domain_https_my-service-21111_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	for i := 1; i <= 2; i++ {
+		name := fmt.Sprintf("my-service-%d", i)
+		domain := fmt.Sprintf("domain-%d", i)
+		service := Service{
+			ServiceName: name,
+			PathType:    "path_beg",
+			ServiceDest: []ServiceDest{
+				{HttpsPort: 1111, ServicePath: []string{"/path"}, ServiceDomain: []string{domain + "-1", domain + "-2"}},
+			},
+		}
+		p.AddService(service)
+	}
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServiceDest() {
 	var actualData string
 	tmpl := s.TemplateContent

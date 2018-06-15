@@ -75,7 +75,7 @@ func getFrontTemplate(s Service) string {
             {{- end}}
         {{- end }}
         {{- if gt $sd.HttpsPort 0 }}
-    use_backend https-{{$.AclName}}-be{{.HttpsPort}}_{{.Index}} if url_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_https{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{.SrcHttpsPortAclName}}{{ $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
+    use_backend https-{{$.AclName}}-be{{.HttpsPort}}_{{.Index}} if url_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{if .ServicePathExclude}} !url_exclude_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{if .ServiceDomain}} domain_https_{{$.AclName}}{{.HttpsPort}}_{{.Index}}{{end}}{{.SrcHttpsPortAclName}}{{ $length := len .UserAgent.Value}}{{if gt $length 0}} user_agent_{{$.AclName}}_{{.UserAgent.AclName}}_{{.Index}}{{end}}
         {{- end}}
     {{- end}}
 {{- end}}`

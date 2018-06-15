@@ -389,7 +389,9 @@ func (m *serve) writeInternalServerError(w http.ResponseWriter, resp *Response, 
 }
 
 func (m *serve) hasPort(sd []proxy.ServiceDest) bool {
-	return len(sd) > 0 && len(sd[0].Port) > 0
+	HasPort := len(sd) > 0 && len(sd[0].Port) > 0
+	HasHttpsPort := len(sd) > 0 && sd[0].HttpsPort > 0
+	return HasPort || HasHttpsPort
 }
 
 func getSliceFromString(input string) []string {
