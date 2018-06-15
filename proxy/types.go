@@ -510,7 +510,8 @@ func isServiceDestValid(provider ServiceParameterProvider, index int) bool {
 	hasPath := len(provider.GetString(fmt.Sprintf("servicePath%s", suffix))) > 0
 	hasPort := len(provider.GetString(fmt.Sprintf("port%s", suffix))) > 0
 	hasDomain := len(provider.GetString(fmt.Sprintf("serviceDomain%s", suffix))) > 0
-	return hasPath || hasPort || hasDomain
+	hasHttpsPort := len(provider.GetString(fmt.Sprintf("httpsPort%s", suffix))) > 0
+	return hasPath || hasPort || hasDomain || hasHttpsPort
 }
 
 func getBoolParam(req ServiceParameterProvider, param, index string) bool {
