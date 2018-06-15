@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 )
@@ -22,6 +23,9 @@ type HaProxy struct {
 var Instance proxy
 
 var reloadPause time.Duration = 1000
+
+var certMu = &sync.Mutex{}
+var reloadMu = &sync.Mutex{}
 
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type configData struct {
@@ -143,6 +147,8 @@ func (m HaProxy) ReadConfig() (string, error) {
 
 // Reload HAProxy
 func (m HaProxy) Reload() error {
+	reloadMu.Lock()
+	defer reloadMu.Unlock()
 	logPrintf("Reloading the proxy")
 	var reloadErr error
 	reconfigureAttempts := 20
@@ -332,8 +338,8 @@ func (m *HaProxy) getCertsConfigSnippet() string {
 			h2 = "h2,"
 		}
 		certs = fmt.Sprintf(" ssl crt-list /cfg/crt-list.txt alpn %shttp/1.1", h2)
-		mu.Lock()
-		defer mu.Unlock()
+		certMu.Lock()
+		defer certMu.Unlock()
 		writeFile("/cfg/crt-list.txt", []byte(strings.Join(certPaths, "\n")), 0664)
 	}
 	if len(os.Getenv("CA_FILE")) > 0 {

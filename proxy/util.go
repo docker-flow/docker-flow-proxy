@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 	"unicode"
@@ -142,5 +141,3 @@ func replaceNonAlphabetAndNumbers(value []string) string {
 	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
 	return reg.ReplaceAllString(strings.Join(value, "_"), "_")
 }
-
-var mu = &sync.Mutex{}
