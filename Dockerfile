@@ -45,7 +45,7 @@ EXPOSE 8080
 RUN apk --no-cache add tini
 ENTRYPOINT ["/sbin/tini", "-g", "--"]
 CMD ["docker-flow-proxy", "server"]
-HEALTHCHECK --interval=5s --start-period=3s --timeout=5s CMD check.sh
+HEALTHCHECK --interval=5s --start-period=3s --timeout=10s CMD check.sh
 
 COPY scripts/check.sh /usr/local/bin/check.sh
 RUN chmod +x /usr/local/bin/check.sh
