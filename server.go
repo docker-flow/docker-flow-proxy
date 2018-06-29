@@ -1,18 +1,19 @@
 package main
 
 import (
-	"./actions"
-	"./metrics"
-	"./proxy"
-	"./server"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"./actions"
+	"./metrics"
+	"./proxy"
+	"./server"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Server defines interface used for creating DFP Web server
@@ -22,10 +23,11 @@ type Server interface {
 }
 
 type serve struct {
-	IP              string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
-	ListenerAddress string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
-	Port            string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
-	ServiceName     string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
+	IP                   string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	ListenerAddress      string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
+	Port                 string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
+	ServiceName          string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
+	SuccessfulInitReload bool
 	// TODO: Remove
 	actions.BaseReconfigure
 }
@@ -68,6 +70,7 @@ func (m *serve) Execute(args []string) error {
 	r.HandleFunc("/v1/docker-flow-proxy/reconfigure", server2.ReconfigureHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/reload", server2.ReloadHandler)
 	r.HandleFunc("/v1/docker-flow-proxy/remove", server2.RemoveHandler)
+	r.HandleFunc("/v1/docker-flow-proxy/successfulinitreload", m.SuccessfulInitReloadHandler)
 	r.HandleFunc("/v1/test", server2.Test1Handler)
 	r.HandleFunc("/v2/test", server2.Test2Handler)
 	return httpListenAndServe(address, r)
@@ -91,8 +94,11 @@ func (m *serve) reconfigure(server server.Server) error {
 						err.Error(),
 						interval/time.Second,
 					)
-				} else if !repeatReload {
-					break
+				} else {
+					m.SuccessfulInitReload = true
+					if !repeatReload {
+						break
+					}
 				}
 			}
 
@@ -107,6 +113,16 @@ func (m *serve) reconfigure(server server.Server) error {
 		recon.Execute(true)
 	}
 	return nil
+}
+
+// SuccessfulInitReloadHandler responses with StatusOK when is SuccessfulInitReload otherwise
+// it response with StatusInternalServerError
+func (m *serve) SuccessfulInitReloadHandler(w http.ResponseWriter, req *http.Request) {
+	if !m.SuccessfulInitReload {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // TODO: Move to server package

@@ -15,10 +15,10 @@ if [[ "$HEALTHCHECK" == "true" ]]; then
     fi
 
     if [[ "$LISTENER_ADDRESS" != "" ]]; then
-        wget -qO- "http://${LISTENER_ADDRESS}:8080/v1/docker-flow-swarm-listener/ping"
+        wget -qO- "http://localhost:8080/v1/docker-flow-proxy/successfulinitreload"
 
         if [[ $? -ne 0 ]]; then
-            echo "ERROR: Unable to ping ${LISTENER_ADDRESS}"
+            echo "ERROR: Initial reload was not successful"
             exit 1
         fi
     fi

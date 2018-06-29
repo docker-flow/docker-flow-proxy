@@ -3,18 +3,19 @@
 package main
 
 import (
-	"./actions"
-	"./proxy"
-	"./server"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"./actions"
+	"./proxy"
+	"./server"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type ServerTestSuite struct {
@@ -254,6 +255,30 @@ func (s *ServerTestSuite) Test_Execute_RepeatsContactingSwarmListenerAddress() {
 
 	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress), actualListenerAddress1)
 	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress), actualListenerAddress2)
+}
+
+// SuccessfulInitReloadHandler
+
+func (s *ServerTestSuite) Test_SuccessfulInitReloadHandler_ReturnsStatus200() {
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/successfulinitreload", nil)
+
+	srv := serve{}
+	srv.SuccessfulInitReload = true
+	srv.SuccessfulInitReloadHandler(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", http.StatusOK)
+
+}
+
+func (s *ServerTestSuite) Test_SuccessfulInitReloadHandler_ReturnsStatusInternalServerError() {
+
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/successfulinitreload", nil)
+
+	srv := serve{}
+	srv.SuccessfulInitReload = false
+	srv.SuccessfulInitReloadHandler(s.ResponseWriter, req)
+
+	s.ResponseWriter.AssertCalled(s.T(), "WriteHeader", http.StatusInternalServerError)
 }
 
 // CertPutHandler
