@@ -21,15 +21,7 @@ if [[ "$HEALTHCHECK" == "true" ]]; then
             echo "ERROR: Unable to ping ${LISTENER_ADDRESS}"
             exit 1
         fi
-
-        wget -qO- "http://localhost:8080/v1/docker-flow-proxy/reload"
-
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR: Unable to reload docker flow proxy"
-            exit 1
-        fi
     fi
-
 fi
 
 exit 0
