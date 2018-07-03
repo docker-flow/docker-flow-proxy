@@ -1124,6 +1124,70 @@ func (s *ReconfigureTestSuite) Test_Execute_ReturnsError_WhenAddressIsNotAccessi
 	s.Error(err)
 }
 
+func (s *ReconfigureTestSuite) Test_Execute_WhenFilterProxyInstanceIsTrue_SameProxyInstanceName() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	os.Setenv("FILTER_PROXY_INSTANCE_NAME", "true")
+	defer func() {
+		proxy.Instance = proxyOrig
+		os.Unsetenv("FILTER_PROXY_INSTANCE_NAME")
+	}()
+	proxy.Instance = mockObj
+	sd := proxy.ServiceDest{
+		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+	}
+	expected := proxy.Service{
+		ServiceName:       s.ServiceName,
+		ServiceDest:       []proxy.ServiceDest{sd},
+		PathType:          s.PathType,
+		ProxyInstanceName: s.InstanceName,
+	}
+	r := NewReconfigure(
+		BaseReconfigure{
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  s.InstanceName,
+		},
+		expected,
+	)
+
+	r.Execute(true)
+
+	mockObj.AssertCalled(s.T(), "AddService", mock.Anything)
+}
+
+func (s *ReconfigureTestSuite) Test_Execute_WhenFilterProxyInstanceIsTrue_DifferentProxyInstanceName() {
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	os.Setenv("FILTER_PROXY_INSTANCE_NAME", "true")
+	defer func() {
+		proxy.Instance = proxyOrig
+		os.Unsetenv("FILTER_PROXY_INSTANCE_NAME")
+	}()
+	proxy.Instance = mockObj
+	sd := proxy.ServiceDest{
+		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+	}
+	expected := proxy.Service{
+		ServiceName:       s.ServiceName,
+		ServiceDest:       []proxy.ServiceDest{sd},
+		PathType:          s.PathType,
+		ProxyInstanceName: "another-docker-flow",
+	}
+	r := NewReconfigure(
+		BaseReconfigure{
+			TemplatesPath: s.TemplatesPath,
+			ConfigsPath:   s.ConfigsPath,
+			InstanceName:  "docker-flow",
+		},
+		expected,
+	)
+
+	r.Execute(true)
+
+	mockObj.AssertNotCalled(s.T(), "AddService", mock.Anything)
+}
+
 // Mock
 
 type ReconfigureMock struct {

@@ -588,6 +588,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		DiscoveryType:         "DNS",
 		Distribute:            true,
 		PathType:              "pathType",
+		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
 		Replicas:              83,
 		ReqPathReplace:        "reqPathReplace",
@@ -628,7 +629,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&proxyInstanceName=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
 
 		s.BaseUrl,
 		expected.ServiceName,
@@ -641,6 +642,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceCert,
 		expected.ServiceDest[0].OutboundHostname,
 		expected.PathType,
+		expected.ProxyInstanceName,
 		expected.ReqPathSearch,
 		expected.ReqPathReplace,
 		expected.TemplateFePath,
