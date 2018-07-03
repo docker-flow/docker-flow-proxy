@@ -1,11 +1,12 @@
 package actions
 
 import (
-	"../proxy"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"../proxy"
 )
 
 // Fetchable defines interface that fetches information from other sources
@@ -46,6 +47,7 @@ func (m *fetch) ReloadConfig(baseData BaseReconfigure, listenerAddr string) erro
 	if err = json.NewDecoder(resp.Body).Decode(&services); err != nil {
 		return err
 	}
+
 	needsReload := false
 	for _, s := range services {
 		proxyService := proxy.GetServiceFromMap(&s)

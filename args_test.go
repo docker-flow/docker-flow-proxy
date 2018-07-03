@@ -4,10 +4,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type ArgsTestSuite struct {
@@ -49,6 +50,7 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerLongArgs() {
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
+	s.Len(serverImpl.ListenerAddresses, 1)
 }
 
 func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
@@ -69,12 +71,11 @@ func (s ArgsTestSuite) Test_Parse_ParsesServerShortArgs() {
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
+	s.Len(serverImpl.ListenerAddresses, 1)
 }
 
 func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 	os.Args = []string{"myProgram", "server"}
-	os.Unsetenv("IP")
-	os.Unsetenv("PORT")
 	data := []struct {
 		expected string
 		value    *string
@@ -87,6 +88,7 @@ func (s ArgsTestSuite) Test_Parse_ServerHasDefaultValues() {
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
+	s.Len(serverImpl.ListenerAddresses, 1)
 }
 
 func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
@@ -103,10 +105,74 @@ func (s ArgsTestSuite) Test_Parse_ServerDefaultsToEnvVars() {
 	for _, d := range data {
 		os.Setenv(d.key, d.expected)
 	}
+	defer func() {
+		for _, d := range data {
+			os.Unsetenv(d.key)
+		}
+	}()
+
 	args{}.parse()
 	for _, d := range data {
 		s.Equal(d.expected, *d.value)
 	}
+
+	s.Len(serverImpl.ListenerAddresses, 1)
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesListnerAddressShortArgs() {
+	dataTable := []struct {
+		value    []string
+		expected []string
+	}{
+		{[]string{"-l", "dfsl1", "-l", "dfsl2"}, []string{"dfsl1", "dfsl2"}},
+		{[]string{"-l", "dfsl1"}, []string{"dfsl1"}},
+	}
+
+	rootArgs := []string{"myProgram", "server"}
+	for _, data := range dataTable {
+		os.Args = append(rootArgs, data.value...)
+		args{}.parse()
+		s.Require().Equal(data.expected, serverImpl.ListenerAddresses)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesListnerAddressLongArgs() {
+	dataTable := []struct {
+		value    []string
+		expected []string
+	}{
+		{[]string{"--listener-address", "dfsl1", "--listener-address", "dfsl2"}, []string{"dfsl1", "dfsl2"}},
+		{[]string{"--listener-address", "dfsl1"}, []string{"dfsl1"}},
+	}
+
+	rootArgs := []string{"myProgram", "server"}
+	for _, data := range dataTable {
+		os.Args = append(rootArgs, data.value...)
+		args{}.parse()
+		s.Require().Equal(data.expected, serverImpl.ListenerAddresses)
+	}
+}
+
+func (s ArgsTestSuite) Test_Parse_ParsesListnerAddressEnvVars() {
+	os.Args = []string{"myProgram", "server"}
+	dataTable := []struct {
+		value    string
+		expected []string
+	}{
+		{"dfsl1,dfsl2", []string{"dfsl1", "dfsl2"}},
+		{"dfsl1", []string{"dfsl1"}},
+	}
+
+	defer func() {
+		os.Unsetenv("LISTENER_ADDRESS")
+	}()
+
+	for _, data := range dataTable {
+		os.Setenv("LISTENER_ADDRESS", data.value)
+		args{}.parse()
+		s.Require().Equal(data.expected, serverImpl.ListenerAddresses)
+	}
+
 }
 
 // Suite

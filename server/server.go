@@ -30,23 +30,23 @@ const (
 )
 
 type serve struct {
-	listenerAddress string
-	port            string
-	serviceName     string
-	configsPath     string
-	templatesPath   string
-	cert            Certer
+	listenerAddresses []string
+	port              string
+	serviceName       string
+	configsPath       string
+	templatesPath     string
+	cert              Certer
 }
 
 // NewServer returns instance of the Server with populated data
-var NewServer = func(listenerAddr, port, serviceName, configsPath, templatesPath string, cert Certer) Server {
+var NewServer = func(listenerAddr []string, port, serviceName, configsPath, templatesPath string, cert Certer) Server {
 	return &serve{
-		listenerAddress: listenerAddr,
-		port:            port,
-		serviceName:     serviceName,
-		configsPath:     configsPath,
-		templatesPath:   templatesPath,
-		cert:            cert,
+		listenerAddresses: listenerAddr,
+		port:              port,
+		serviceName:       serviceName,
+		configsPath:       configsPath,
+		templatesPath:     templatesPath,
+		cert:              cert,
 	}
 }
 
@@ -143,22 +143,29 @@ func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	params := new(reloadParams)
 	decoder.Decode(params, req.Form)
-	listenerAddr := ""
 	response := Response{
 		Status: "OK",
 	}
-	if params.FromListener {
-		listenerAddr = m.listenerAddress
-	}
+
 	//MW: I've reconstructed original behavior. BUT.
 	//shouldn't reload call ReloadServicesFromRegistry not just
 	//reload in else, if so ReloadClusterConfig & ReloadServicesFromRegistry
 	//could be enclosed in one method
-	if len(listenerAddr) > 0 {
-		fetch := actions.NewFetch(m.getBaseReconfigure())
-		if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
-			logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
-			m.writeInternalServerError(w, &Response{}, err.Error())
+	if params.FromListener {
+		errs := []string{}
+		for _, listenerAddr := range m.listenerAddresses {
+			if len(listenerAddr) == 0 {
+				continue
+			}
+			fetch := actions.NewFetch(m.getBaseReconfigure())
+			if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
+				errs = append(errs, err.Error())
+				logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
+			}
+		}
+		if len(errs) != 0 {
+			errMsg := strings.Join(errs, " ,")
+			m.writeInternalServerError(w, &Response{}, errMsg)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}

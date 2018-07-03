@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -362,7 +363,7 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithRecreateParam() {
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?recreate=true", nil)
 
 	srv := serve{}
-	srv.listenerAddress = "my-listener"
+	srv.listenerAddresses = []string{"my-listener"}
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
 	s.True(actualRecreate)
@@ -385,10 +386,67 @@ func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam(
 	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?fromListener=true", nil)
 
 	srv := serve{}
-	srv.listenerAddress = "my-listener"
+	srv.listenerAddresses = []string{"my-listener"}
 	srv.ReloadHandler(getResponseWriterMock(), req)
 
-	s.Equal(srv.listenerAddress, actualListenerAddr)
+	s.Equal(srv.listenerAddresses[0], actualListenerAddr)
+}
+func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam_MultipleListeners() {
+	rw := getResponseWriterMock()
+	actualListenerAddrs := []string{}
+	defer MockReload(ReloadMock{
+		ExecuteMock: func(recreate bool) error {
+			return nil
+		},
+	})()
+	defer MockFetch(FetchMock{
+		ReloadClusterConfigMock: func(listenerAddr string) error {
+			actualListenerAddrs = append(
+				actualListenerAddrs, listenerAddr)
+			return nil
+		},
+	})()
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?fromListener=true", nil)
+
+	srv := serve{}
+	srv.listenerAddresses = []string{"dfsl1", "dfsl2"}
+	srv.ReloadHandler(rw, req)
+
+	for _, addr := range srv.listenerAddresses {
+		s.Contains(actualListenerAddrs, addr)
+	}
+
+	rw.AssertCalled(s.T(), "WriteHeader", http.StatusOK)
+}
+
+func (s *ServerTestSuite) Test_ReloadHandler_InvokesReloadWithFromListenerParam_MultipleListeners_OneErrors() {
+	rw := getResponseWriterMock()
+	actualListenerAddrs := []string{}
+	defer MockReload(ReloadMock{
+		ExecuteMock: func(recreate bool) error {
+			return nil
+		},
+	})()
+	defer MockFetch(FetchMock{
+		ReloadClusterConfigMock: func(listenerAddr string) error {
+			actualListenerAddrs = append(
+				actualListenerAddrs, listenerAddr)
+			if listenerAddr == "dfsl2" {
+				return errors.New("bad")
+			}
+			return nil
+		},
+	})()
+	req, _ := http.NewRequest("GET", "/v1/docker-flow-proxy/reload?fromListener=true", nil)
+
+	srv := serve{}
+	srv.listenerAddresses = []string{"dfsl1", "dfsl2"}
+	srv.ReloadHandler(rw, req)
+
+	for _, addr := range srv.listenerAddresses {
+		s.Contains(actualListenerAddrs, addr)
+	}
+	rw.AssertCalled(s.T(), "WriteHeader", http.StatusInternalServerError)
 }
 
 func (s *ServerTestSuite) Test_ReloadHandler_SetsContentTypeToJSON() {
