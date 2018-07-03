@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/jessevdk/go-flags"
 	"os"
+
+	"github.com/jessevdk/go-flags"
 )
 
 type args struct{}

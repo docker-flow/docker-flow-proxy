@@ -171,7 +171,7 @@ func (s *ServerTestSuite) Test_Execute_InvokesReconfigureExecuteForEachServiceDe
 }
 
 func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddress() {
-	expectedListenerAddress := "swarm-listener"
+	expectedListenerAddress := []string{"swarm-listener"}
 	actualListenerAddressChan := make(chan string)
 	defer MockFetch(FetchMock{
 		ReloadConfigMock: func(baseData actions.BaseReconfigure, listenerAddr string) error {
@@ -179,17 +179,52 @@ func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithListenerAddre
 			return nil
 		},
 	})()
-	serverImpl.ListenerAddress = expectedListenerAddress
+	serverImpl.ListenerAddresses = expectedListenerAddress
 
 	serverImpl.Execute([]string{})
 
 	actualListenerAddress, _ := <-actualListenerAddressChan
 	close(actualListenerAddressChan)
-	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress), actualListenerAddress)
+	s.Equal(fmt.Sprintf("http://%s:8080", expectedListenerAddress[0]), actualListenerAddress)
+}
+
+func (s *ServerTestSuite) Test_Execute_InvokesReloadAllServicesWithMutipleListenerAddress() {
+	expectedListenerAddress := []string{"swarm-listener-1", "swarm-listener-2"}
+	actualListenerAddressChan := make(chan string)
+	defer MockFetch(FetchMock{
+		ReloadConfigMock: func(baseData actions.BaseReconfigure, listenerAddr string) error {
+			actualListenerAddressChan <- listenerAddr
+			return nil
+		},
+	})()
+	serverImpl.ListenerAddresses = expectedListenerAddress
+
+	serverImpl.Execute([]string{})
+
+	actualAddrs := []string{}
+	timeout := time.NewTimer(time.Second * 5).C
+
+L:
+	for {
+		select {
+		case <-timeout:
+			s.FailNow("Time out")
+		case addr := <-actualListenerAddressChan:
+			actualAddrs = append(actualAddrs, addr)
+			if len(actualAddrs) == 2 {
+				break L
+			}
+		}
+	}
+
+	close(actualListenerAddressChan)
+	for _, addr := range expectedListenerAddress {
+		s.Contains(actualAddrs, fmt.Sprintf("http://%s:8080", addr))
+	}
 }
 
 func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress_WhenError() {
-	expectedListenerAddress := "swarm-listener"
+	expectedListenerAddress := []string{"swarm-listener"}
 	actualListenerAddressChan := make(chan string)
 	callNum := 0
 	defer MockFetch(FetchMock{
@@ -206,7 +241,7 @@ func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress_Whe
 	defer func() {
 		os.Unsetenv("LISTENER_ADDRESS")
 	}()
-	serverImpl.ListenerAddress = expectedListenerAddress
+	serverImpl.ListenerAddresses = expectedListenerAddress
 
 	serverImpl.Execute([]string{})
 
@@ -217,14 +252,14 @@ func (s *ServerTestSuite) Test_Execute_RetriesContactingSwarmListenerAddress_Whe
 
 	s.False(chok2)
 
-	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress), actualListenerAddress1)
-	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress), actualListenerAddress2)
+	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress[0]), actualListenerAddress1)
+	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress[0]), actualListenerAddress2)
 }
 
 func (s *ServerTestSuite) Test_Execute_RepeatsContactingSwarmListenerAddress() {
 	defer os.Unsetenv("REPEAT_RELOAD")
 	os.Setenv("REPEAT_RELOAD", "true")
-	expectedListenerAddress := "swarm-listener"
+	expectedListenerAddress := []string{"swarm-listener"}
 	actualListenerAddressChan := make(chan string)
 	callNum := 0
 	defer MockFetch(FetchMock{
@@ -242,7 +277,7 @@ func (s *ServerTestSuite) Test_Execute_RepeatsContactingSwarmListenerAddress() {
 	defer func() {
 		os.Unsetenv("LISTENER_ADDRESS")
 	}()
-	serverImpl.ListenerAddress = expectedListenerAddress
+	serverImpl.ListenerAddresses = expectedListenerAddress
 
 	serverImpl.Execute([]string{})
 
@@ -253,8 +288,8 @@ func (s *ServerTestSuite) Test_Execute_RepeatsContactingSwarmListenerAddress() {
 
 	s.False(chok2)
 
-	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress), actualListenerAddress1)
-	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress), actualListenerAddress2)
+	s.Equal(fmt.Sprintf("http://%s:8080-1", expectedListenerAddress[0]), actualListenerAddress1)
+	s.Equal(fmt.Sprintf("http://%s:8080-2", expectedListenerAddress[0]), actualListenerAddress2)
 }
 
 // SuccessfulInitReloadHandler
@@ -385,7 +420,7 @@ type ServerMock struct {
 
 func MockServer(mock ServerMock) func() {
 	newServerOrig := server.NewServer
-	server.NewServer = func(listenerAddr, port, serviceName, configsPath, templatesPath string, cert server.Certer) server.Server {
+	server.NewServer = func(listenerAddr []string, port, serviceName, configsPath, templatesPath string, cert server.Certer) server.Server {
 		return mock
 	}
 	return func() { server.NewServer = newServerOrig }

@@ -23,16 +23,18 @@ type Server interface {
 }
 
 type serve struct {
-	IP                   string `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
-	ListenerAddress      string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)"`
-	Port                 string `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
-	ServiceName          string `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
+	IP                   string   `short:"i" long:"ip" default:"0.0.0.0" env:"IP" description:"IP the server listens to."`
+	ListenerAddresses    []string `short:"l" long:"listener-address" env:"LISTENER_ADDRESS" env-delim:"," description:"The address of the Docker Flow: Swarm Listener. The address matches the name of the Swarm service (e.g. swarm-listener)" default:""`
+	Port                 string   `short:"p" long:"port" default:"8080" env:"PORT" description:"Port the server listens to."`
+	ServiceName          string   `short:"n" long:"service-name" default:"proxy" env:"SERVICE_NAME" description:"The name of the proxy service. It is used only when running in 'swarm' mode and must match the '--name' parameter used to launch the service."`
 	SuccessfulInitReload bool
 	// TODO: Remove
 	actions.BaseReconfigure
 }
 
-var serverImpl = serve{}
+var serverImpl = serve{
+	ListenerAddresses: []string{},
+}
 var cert server.Certer = server.NewCert("/certs")
 
 // Execute runs the Web server.
@@ -46,7 +48,7 @@ func (m *serve) Execute(args []string) error {
 	address := fmt.Sprintf("%s:%s", m.IP, m.Port)
 	cert.Init()
 	var server2 = server.NewServer(
-		m.ListenerAddress,
+		m.ListenerAddresses,
 		m.Port,
 		m.ServiceName,
 		m.ConfigsPath,
@@ -77,12 +79,10 @@ func (m *serve) Execute(args []string) error {
 }
 
 func (m *serve) reconfigure(server server.Server) error {
-	lAddr := ""
-	if len(m.ListenerAddress) > 0 {
-		lAddr = fmt.Sprintf("http://%s:8080", m.ListenerAddress)
-	}
 	fetch := actions.NewFetch(m.BaseReconfigure)
-	if len(lAddr) > 0 {
+
+	if len(m.ListenerAddresses) == 1 && len(m.ListenerAddresses[0]) > 0 {
+		lAddr := fmt.Sprintf("http://%s:8080", m.ListenerAddresses[0])
 		go func() {
 			retryInterval := os.Getenv("RELOAD_INTERVAL")
 			interval, _ := time.ParseDuration(retryInterval + "ms")
@@ -103,6 +103,41 @@ func (m *serve) reconfigure(server server.Server) error {
 			}
 
 		}()
+	}
+
+	// Handlers Listener Addresses
+	if len(m.ListenerAddresses) > 1 {
+		reloadAttemptsStr := os.Getenv("RELOAD_ATTEMPTS")
+		retryInterval := os.Getenv("RELOAD_INTERVAL")
+		interval, _ := time.ParseDuration(retryInterval + "ms")
+		for _, addr := range m.ListenerAddresses {
+			if len(addr) == 0 {
+				continue
+			}
+			lAddr := fmt.Sprintf("http://%s:8080", addr)
+			go func(lAddr string) {
+				reloadAttempts, err := strconv.ParseInt(reloadAttemptsStr, 10, 64)
+				if err != nil {
+					reloadAttempts = 5
+				}
+				for range time.Tick(interval) {
+					if err := fetch.ReloadConfig(m.BaseReconfigure, lAddr); err != nil {
+						logPrintf(
+							"Error: Fetching config from swarm listener failed: %s. Will retry in %d seconds.",
+							err.Error(),
+							interval/time.Second,
+						)
+					} else {
+						m.SuccessfulInitReload = true
+						break
+					}
+					reloadAttempts = reloadAttempts - 1
+					if reloadAttempts <= 0 {
+						break
+					}
+				}
+			}(lAddr)
+		}
 	}
 
 	services := server.GetServicesFromEnvVars()
