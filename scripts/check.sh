@@ -15,12 +15,15 @@ if [[ "$HEALTHCHECK" == "true" ]]; then
     fi
 
     if [[ "$LISTENER_ADDRESS" != "" ]]; then
-        wget -qO- "http://localhost:8080/v1/docker-flow-proxy/successfulinitreload"
 
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR: Initial reload was not successful"
-            exit 1
-        fi
+        while true; do
+            wget -qO- "http://localhost:8080/v1/docker-flow-proxy/successfulinitreload"
+
+            if [[ $? -eq 0 ]]; then
+                exit 0
+            fi
+            sleep 0.5
+        done
     fi
 fi
 
