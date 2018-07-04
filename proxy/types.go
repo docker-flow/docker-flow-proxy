@@ -161,6 +161,9 @@ type Service struct {
 	// The ACL derivative. Defaults to path_beg.
 	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
 	PathType string `split_words:"true"`
+	// When `FILTER_PROXY_INSTANCE_NAME` is set to `true`, only services with
+	// ProxyInstanceName equal to `PROXY_INSTANCE_NAME` will be configured by this proxy.
+	ProxyInstanceName string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
 	// The number of replicas of a service.

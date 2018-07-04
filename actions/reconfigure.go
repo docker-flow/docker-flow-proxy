@@ -47,6 +47,10 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service) R
 
 // Execute creates a new configuration and reloads the proxy
 func (m *Reconfigure) Execute(reloadAfter bool) error {
+	if strings.EqualFold(os.Getenv("FILTER_PROXY_INSTANCE_NAME"), "true") &&
+		!strings.EqualFold(m.InstanceName, m.Service.ProxyInstanceName) {
+		return nil
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if strings.EqualFold(os.Getenv("SKIP_ADDRESS_VALIDATION"), "false") {

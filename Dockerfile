@@ -22,6 +22,7 @@ ENV CERTS="" \
     DEFAULT_REQ_MODE="http" \
     DO_NOT_RESOLVE_ADDR="false" \
     ENABLE_H2="true" \
+    FILTER_PROXY_INSTANCE_NAME="false" \
     HEALTHCHECK="true" \
     HTTPS_ONLY="false" \
     EXTRA_FRONTEND="" \
