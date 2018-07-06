@@ -3,11 +3,12 @@
 package actions
 
 import (
-	"../proxy"
 	"fmt"
+	"testing"
+
+	"../proxy"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type RemoveTestSuite struct {
@@ -110,6 +111,18 @@ func (s RemoveTestSuite) Test_Execute_Invokes_HaProxyReload() {
 	s.remove.Execute([]string{})
 
 	mockObj.AssertCalled(s.T(), "Reload")
+}
+
+func (s RemoveTestSuite) Test_Execute_If_RemoveService_Does_Not_Invokes_HaProxyReload() {
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	mockObj := getProxyMock("RemoveService")
+	mockObj.On("RemoveService", mock.Anything).Return(false)
+	proxy.Instance = mockObj
+
+	s.remove.Execute([]string{})
+
+	mockObj.AssertNotCalled(s.T(), "Reload")
 }
 
 func (s RemoveTestSuite) Test_Execute_ReturnsError_WhenHaProxyReloadFails() {

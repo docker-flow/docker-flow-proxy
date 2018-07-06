@@ -49,10 +49,9 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service) R
 func (m *Reconfigure) Execute(reloadAfter bool) error {
 	if strings.EqualFold(os.Getenv("FILTER_PROXY_INSTANCE_NAME"), "true") &&
 		!strings.EqualFold(m.InstanceName, m.Service.ProxyInstanceName) {
+		logPrintf("Filtering %s configuration, with proxyInstanceName: %s", m.ServiceName, m.Service.ProxyInstanceName)
 		return nil
 	}
-	mu.Lock()
-	defer mu.Unlock()
 	if strings.EqualFold(os.Getenv("SKIP_ADDRESS_VALIDATION"), "false") {
 		host := m.ServiceName
 		if len(m.ServiceDest) > 0 && len(m.ServiceDest[0].OutboundHostname) > 0 {
@@ -63,11 +62,8 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 			return err
 		}
 	}
-	if err := m.createConfigs(); err != nil {
+	if err := m.createConfigsAddService(); err != nil {
 		return err
-	}
-	if !m.hasTemplate() {
-		proxy.Instance.AddService(m.Service)
 	}
 	if reloadAfter {
 		reload := reload{}
@@ -83,6 +79,19 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 			action.Execute([]string{})
 			return err
 		}
+	}
+	return nil
+}
+
+func (m *Reconfigure) createConfigsAddService() error {
+	configProxyMu.Lock()
+	defer configProxyMu.Unlock()
+
+	if err := m.createConfigs(); err != nil {
+		return err
+	}
+	if !m.hasTemplate() {
+		proxy.Instance.AddService(m.Service)
 	}
 	return nil
 }

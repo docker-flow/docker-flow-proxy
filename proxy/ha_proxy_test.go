@@ -2890,9 +2890,23 @@ func (s *HaProxyTestSuite) Test_AddService_RemovesService() {
 
 	p.AddService(s1)
 	p.AddService(s2)
-	p.RemoveService("my-service-1")
+	didRemove := p.RemoveService("my-service-1")
 
+	s.True(didRemove)
 	s.Len(dataInstance.Services, 1)
+}
+
+func (s *HaProxyTestSuite) Test_RemovesService_Does_Not_Exist() {
+	s1 := Service{ServiceName: "my-service-1"}
+	s2 := Service{ServiceName: "my-service-2"}
+	p := NewHaProxy("anything", "doesn't").(HaProxy)
+
+	p.AddService(s1)
+	p.AddService(s2)
+	didRemove := p.RemoveService("my-service-3")
+
+	s.False(didRemove)
+	s.Len(dataInstance.Services, 2)
 }
 
 // Util

@@ -201,8 +201,14 @@ func (m HaProxy) AddService(service Service) {
 }
 
 // RemoveService deletes a service from the `dataInstance` map using `ServiceName` as the key
-func (m HaProxy) RemoveService(service string) {
+// Returns false if there are no services to remove
+func (m HaProxy) RemoveService(service string) bool {
+	_, ok := dataInstance.Services[service]
+	if !ok {
+		return false
+	}
 	delete(dataInstance.Services, service)
+	return true
 }
 
 // GetServices returns a map with all the services used by the proxy.

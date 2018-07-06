@@ -1,8 +1,9 @@
 package actions
 
 import (
-	"../proxy"
 	"fmt"
+
+	"../proxy"
 )
 
 // Removable defines functions that must be implemented by any struct in charge of removing services from the proxy.
@@ -33,17 +34,35 @@ var NewRemove = func(serviceName, aclName, configsPath, templatesPath string, in
 // Execute initiates the removal of a service
 func (m *Remove) Execute(args []string) error {
 	logPrintf("Removing %s configuration", m.ServiceName)
-	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.AclName); err != nil {
-		logPrintf(err.Error())
+	didRemove, err := m.removeConfigsAndService()
+	if err != nil {
 		return err
 	}
-	proxy.Instance.RemoveService(m.ServiceName)
+	if !didRemove {
+		logPrintf("%s was not configured, no reload required", m.ServiceName)
+		return nil
+	}
 	reload := reload{}
 	if err := reload.Execute(true); err != nil {
 		logPrintf(err.Error())
 		return err
 	}
 	return nil
+}
+
+func (m *Remove) removeConfigsAndService() (bool, error) {
+	configProxyMu.Lock()
+	defer configProxyMu.Unlock()
+	didRemove := proxy.Instance.RemoveService(m.ServiceName)
+	if !didRemove {
+		return didRemove, nil
+	}
+
+	if err := m.removeFiles(m.TemplatesPath, m.ServiceName, m.AclName); err != nil {
+		logPrintf(err.Error())
+		return false, err
+	}
+	return didRemove, nil
 }
 
 func (m *Remove) removeFiles(templatesPath, serviceName, aclName string) error {
@@ -55,8 +74,6 @@ func (m *Remove) removeFiles(templatesPath, serviceName, aclName string) error {
 		fmt.Sprintf("%s/%s-fe.cfg", templatesPath, aclName),
 		fmt.Sprintf("%s/%s-be.cfg", templatesPath, aclName),
 	}
-	//	mu.Lock()
-	//	defer mu.Unlock()
 	for _, path := range paths {
 		osRemove(path)
 	}
