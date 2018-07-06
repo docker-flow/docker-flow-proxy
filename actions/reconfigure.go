@@ -7,15 +7,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"../proxy"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"
 const serviceTemplateBeFilename = "service-formatted-be.ctmpl"
-
-var mu = &sync.Mutex{}
 
 // Reconfigurable defines mandatory interface
 type Reconfigurable interface {
