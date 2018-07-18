@@ -338,15 +338,23 @@ func (m HaProxy) getConfigData() configData {
 func (m *HaProxy) getCertsConfigSnippet() string {
 	certPaths := m.GetCertPaths()
 	certs := ""
+	crtListPathEnv := os.Getenv("CRT_LIST_PATH")
 	if len(certPaths) > 0 {
 		h2 := ""
+		crtListPathDefault := "/cfg/crt-list.txt"
+		if len(crtListPathEnv) > 0 {
+			crtListPathDefault = crtListPathEnv
+		}
 		if strings.EqualFold(os.Getenv("ENABLE_H2"), "true") {
 			h2 = "h2,"
 		}
-		certs = fmt.Sprintf(" ssl crt-list /cfg/crt-list.txt alpn %shttp/1.1", h2)
-		certMu.Lock()
-		defer certMu.Unlock()
-		writeFile("/cfg/crt-list.txt", []byte(strings.Join(certPaths, "\n")), 0664)
+		certs = fmt.Sprintf(" ssl crt-list %s alpn %shttp/1.1", crtListPathDefault, h2)
+
+		if len(crtListPathEnv) == 0 {
+			certMu.Lock()
+			defer certMu.Unlock()
+			writeFile(crtListPathDefault, []byte(strings.Join(certPaths, "\n")), 0664)
+		}
 	}
 	if len(os.Getenv("CA_FILE")) > 0 {
 		if len(certs) == 0 {

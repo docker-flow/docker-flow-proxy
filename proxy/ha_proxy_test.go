@@ -2385,6 +2385,54 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_DoesNotAddH2_WhenEnable
 	s.Equal(expectedData, actualData)
 }
 
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_CustomCrtListPath() {
+	readDirOrig := readDir
+	crtListPathOrig := os.Getenv("CRT_LIST_PATH")
+	defer func() {
+		readDir = readDirOrig
+		os.Setenv("CRT_LIST_PATH", crtListPathOrig)
+	}()
+	os.Setenv("CRT_LIST_PATH", "/cfg/custom-crt-list.txt")
+	mockedFiles := []os.FileInfo{}
+	file := FileInfoMock{
+		NameMock: func() string {
+			return "my-cert"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	}
+	mockedFiles = append(mockedFiles, file)
+	readDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
+	var actualData string
+	writeFileCnt := 0
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:80\n    bind *:443 ssl crt-list /cfg/custom-crt-list.txt alpn http/1.1",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		writeFileCnt += 1
+		actualData = string(data)
+		return nil
+	}
+
+	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+	s.Equal(1, writeFileCnt)
+}
+
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCaFile_WhenEnvVarIsSet() {
 	caFile := "my-ca-file"
 	caFileOrig := os.Getenv("CA_FILE")
