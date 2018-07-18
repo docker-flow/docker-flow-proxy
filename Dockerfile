@@ -17,6 +17,7 @@ ENV CERTS="" \
     CFG_TEMPLATE_PATH="/cfg/tmpl/haproxy.tmpl" \
     CHECK_RESOLVERS=false RESOLVERS="nameserver dns 127.0.0.11:53" \
     CONNECTION_MODE="http-keep-alive" \
+    CRT_LIST_PATH="" \
     DEBUG="false" \
     DEFAULT_PORTS="80,443:ssl" \
     DEFAULT_REQ_MODE="http" \
