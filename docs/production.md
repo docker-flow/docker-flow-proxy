@@ -6,7 +6,7 @@
 docker network create --driver overlay proxy
 
 curl -o proxy.yml \
-    https://raw.githubusercontent.com/vfarcic/\
+    https://raw.githubusercontent.com/docker-flow/\
 docker-flow-proxy/master/do/stack.yml
 
 docker stack deploy -c proxy.yml proxy

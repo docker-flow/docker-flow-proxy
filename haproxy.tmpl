@@ -1,5 +1,6 @@
 global
     pidfile /var/run/haproxy.pid
+    stats socket /var/run/haproxy.sock mode 660 level admin expose-fd listeners
     tune.ssl.default-dh-param 2048{{.ExtraGlobal}}
 
     # disable sslv3, prefer modern ciphers
@@ -10,14 +11,15 @@ global
     ssl-default-server-ciphers {{.SslBindCiphers}}
 
 resolvers docker
-    nameserver dns 127.0.0.11:53
+{{- range .Resolvers}}
+    {{.}}
+{{- end}}
 
 defaults
     mode    http
     balance roundrobin
 {{.ExtraDefaults}}
     option  {{.ConnectionMode}}
-    option  forwardfor
     option  redispatch
 
     errorfile 400 /errorfiles/400.http
@@ -38,8 +40,11 @@ defaults
     timeout tunnel  {{.TimeoutTunnel}}s
     timeout http-request {{.TimeoutHttpRequest}}s
     timeout http-keep-alive {{.TimeoutHttpKeepAlive}}s
-{{.UserList}}
 {{.Stats}}
+{{.UserList}}
 frontend services{{.DefaultBinds}}
     mode {{.DefaultReqMode}}
-{{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}
+    {{- if eq .DefaultReqMode "http" }}
+    option  forwardfor
+    {{- end}}
+{{.ExtraFrontend}}{{.ContentFrontend}}{{.ContentFrontendTcp}}{{.ContentFrontendSNI}}{{.ContentListen}}

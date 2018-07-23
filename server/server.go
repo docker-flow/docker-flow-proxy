@@ -30,23 +30,23 @@ const (
 )
 
 type serve struct {
-	listenerAddress string
-	port            string
-	serviceName     string
-	configsPath     string
-	templatesPath   string
-	cert            Certer
+	listenerAddresses []string
+	port              string
+	serviceName       string
+	configsPath       string
+	templatesPath     string
+	cert              Certer
 }
 
 // NewServer returns instance of the Server with populated data
-var NewServer = func(listenerAddr, port, serviceName, configsPath, templatesPath string, cert Certer) Server {
+var NewServer = func(listenerAddr []string, port, serviceName, configsPath, templatesPath string, cert Certer) Server {
 	return &serve{
-		listenerAddress: listenerAddr,
-		port:            port,
-		serviceName:     serviceName,
-		configsPath:     configsPath,
-		templatesPath:   templatesPath,
-		cert:            cert,
+		listenerAddresses: listenerAddr,
+		port:              port,
+		serviceName:       serviceName,
+		configsPath:       configsPath,
+		templatesPath:     templatesPath,
+		cert:              cert,
 	}
 }
 
@@ -143,22 +143,29 @@ func (m *serve) ReloadHandler(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	params := new(reloadParams)
 	decoder.Decode(params, req.Form)
-	listenerAddr := ""
 	response := Response{
 		Status: "OK",
 	}
-	if params.FromListener {
-		listenerAddr = m.listenerAddress
-	}
+
 	//MW: I've reconstructed original behavior. BUT.
 	//shouldn't reload call ReloadServicesFromRegistry not just
 	//reload in else, if so ReloadClusterConfig & ReloadServicesFromRegistry
 	//could be enclosed in one method
-	if len(listenerAddr) > 0 {
-		fetch := actions.NewFetch(m.getBaseReconfigure())
-		if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
-			logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
-			m.writeInternalServerError(w, &Response{}, err.Error())
+	if params.FromListener {
+		errs := []string{}
+		for _, listenerAddr := range m.listenerAddresses {
+			if len(listenerAddr) == 0 {
+				continue
+			}
+			fetch := actions.NewFetch(m.getBaseReconfigure())
+			if err := fetch.ReloadClusterConfig(listenerAddr); err != nil {
+				errs = append(errs, err.Error())
+				logPrintf("Error: ReloadClusterConfig failed: %s", err.Error())
+			}
+		}
+		if len(errs) != 0 {
+			errMsg := strings.Join(errs, " ,")
+			m.writeInternalServerError(w, &Response{}, errMsg)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
@@ -242,17 +249,12 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		return proxy.Service{}, fmt.Errorf("%s_SERVICE_NAME is not set", prefix)
 	}
 	sd := []proxy.ServiceDest{}
-	path := []string{}
-	if len(os.Getenv(prefix+"_SERVICE_PATH")) > 0 {
-		path = strings.Split(os.Getenv(prefix+"_SERVICE_PATH"), ",")
-	}
+	path := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH"))
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
+	srcHttpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_HTTPS_PORT"))
 	reqMode := os.Getenv(prefix + "_REQ_MODE")
-	domain := []string{}
-	if len(os.Getenv(prefix+"_SERVICE_DOMAIN")) > 0 {
-		domain = strings.Split(os.Getenv(prefix+"_SERVICE_DOMAIN"), ",")
-	}
+	domain := getSliceFromString(os.Getenv(prefix + "_SERVICE_DOMAIN"))
 	// TODO: Remove.
 	// It is a temporary workaround to maintain compatibility with the deprecated serviceDomainMatchAll parameter (since July 2017).
 	if len(s.ServiceDomainAlgo) == 0 && strings.EqualFold(os.Getenv(prefix+"_SERVICE_DOMAIN_MATCH_ALL"), "true") {
@@ -262,34 +264,58 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		reqMode = getSecretOrEnvVar("DEFAULT_PROTOCOL", "http")
 	}
 	httpsOnly, _ := strconv.ParseBool(os.Getenv(prefix + "_HTTPS_ONLY"))
+	httpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_HTTPS_PORT"))
 	httpsRedirectCode := os.Getenv(prefix + "_HTTPS_REDIRECT_CODE")
 	globalOutboundHostname := os.Getenv(prefix + "_OUTBOUND_HOSTNAME")
 	reqPathSearchReplace := os.Getenv(prefix + "_REQ_PATH_SEARCH_REPLACE")
+	timeoutServer := os.Getenv(prefix + "_TIMEOUT_SERVER")
+	timeoutTunnel := os.Getenv(prefix + "_TIMEOUT_TUNNEL")
 	reqPathSearchReplaceFormatted := []string{}
 	if len(reqPathSearchReplace) > 0 {
 		reqPathSearchReplaceFormatted = strings.Split(reqPathSearchReplace, ":")
 	}
+	allowedMethods := getSliceFromString(os.Getenv(prefix + "_ALLOWED_METHODS"))
+	deniedMethods := getSliceFromString(os.Getenv(prefix + "_DENIED_METHODS"))
+	redirectFromDomain := getSliceFromString(os.Getenv(prefix + "_REDIRECT_FROM_DOMAIN"))
+	servicePathExclude := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH_EXCLUDE"))
+	verifyClientSsl, _ := strconv.ParseBool(os.Getenv(prefix + "_VERIFY_CLIENT_SSL"))
+	denyHTTP, _ := strconv.ParseBool(os.Getenv(prefix + "_DENY_HTTP"))
+	ignoreAuthorization, _ := strconv.ParseBool(os.Getenv(prefix + "_IGNORE_AUTHORIZATION"))
+	sslVerifyNone, _ := strconv.ParseBool(os.Getenv(prefix + "_SSL_VERIFY_NONE"))
 
 	if len(path) > 0 || len(port) > 0 {
 		sd = append(
 			sd,
 			proxy.ServiceDest{
+				AllowedMethods:                allowedMethods,
+				DeniedMethods:                 deniedMethods,
+				DenyHttp:                      denyHTTP,
 				HttpsOnly:                     httpsOnly,
+				HttpsPort:                     httpsPort,
 				HttpsRedirectCode:             httpsRedirectCode,
+				IgnoreAuthorization:           ignoreAuthorization,
 				OutboundHostname:              globalOutboundHostname,
 				Port:                          port,
+				RedirectFromDomain:            redirectFromDomain,
 				ReqMode:                       reqMode,
 				ReqPathSearchReplace:          reqPathSearchReplace,
 				ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
 				ServiceDomain:                 domain,
 				ServicePath:                   path,
+				ServicePathExclude:            servicePathExclude,
 				SrcPort:                       srcPort,
+				SrcHttpsPort:                  srcHttpsPort,
+				SslVerifyNone:                 sslVerifyNone,
+				TimeoutServer:                 timeoutServer,
+				TimeoutTunnel:                 timeoutTunnel,
+				VerifyClientSsl:               verifyClientSsl,
 			},
 		)
 	}
 	for i := 1; i <= 10; i++ {
+		domain := getSliceFromString(os.Getenv(fmt.Sprintf("%s_SERVICE_DOMAIN_%d", prefix, i)))
 		port := os.Getenv(fmt.Sprintf("%s_PORT_%d", prefix, i))
-		path := os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i))
+		path := getSliceFromString(os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_%d", prefix, i)))
 		reqMode := os.Getenv(fmt.Sprintf("%s_REQ_MODE_%d", prefix, i))
 		reqPathSearchReplace := os.Getenv(fmt.Sprintf("%s_REQ_PATH_SEARCH_REPLACE_%d", prefix, i))
 		reqPathSearchReplaceFormatted := []string{}
@@ -298,10 +324,21 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		}
 		httpsOnly, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_HTTPS_ONLY_%d", prefix, i)))
 		httpsRedirectCode := os.Getenv(fmt.Sprintf("%s_HTTPS_REDIRECT_CODE_%d", prefix, i))
+		timeoutServer := os.Getenv(fmt.Sprintf("%s_TIMEOUT_SERVER_%d", prefix, i))
+		timeoutTunnel := os.Getenv(fmt.Sprintf("%s_TIMEOUT_TUNNEL_%d", prefix, i))
+
 		if len(reqMode) == 0 {
 			reqMode = "http"
 		}
 		srcPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_PORT_%d", prefix, i)))
+		srcHttpsPort, _ := strconv.Atoi(os.Getenv(fmt.Sprintf("%s_SRC_HTTPS_PORT_%d", prefix, i)))
+		allowedMethods := getSliceFromString(os.Getenv(fmt.Sprintf("%s_ALLOWED_METHODS_%d", prefix, i)))
+		deniedMethods := getSliceFromString(os.Getenv(fmt.Sprintf("%s_DENIED_METHODS_%d", prefix, i)))
+		redirectFromDomain := getSliceFromString(os.Getenv(fmt.Sprintf("%s_REDIRECT_FROM_DOMAIN_%d", prefix, i)))
+		servicePathExclude := getSliceFromString(os.Getenv(fmt.Sprintf("%s_SERVICE_PATH_EXCLUDE_%d", prefix, i)))
+		verifyClientSsl, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_VERIFY_CLIENT_SSL_%d", prefix, i)))
+		denyHTTP, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_DENY_HTTP_%d", prefix, i)))
+		ignoreAuthorization, _ := strconv.ParseBool(os.Getenv(fmt.Sprintf("%s_IGNORE_AUTHORIZATION_%d", prefix, i)))
 		if len(path) > 0 && len(port) > 0 {
 			outboundHostname := os.Getenv(fmt.Sprintf("%s_OUTBOUND_HOSTNAME_%d", prefix, i))
 			if len(outboundHostname) == 0 {
@@ -310,15 +347,26 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			sd = append(
 				sd,
 				proxy.ServiceDest{
+					AllowedMethods:                allowedMethods,
+					DeniedMethods:                 deniedMethods,
+					DenyHttp:                      denyHTTP,
 					HttpsOnly:                     httpsOnly,
 					HttpsRedirectCode:             httpsRedirectCode,
+					IgnoreAuthorization:           ignoreAuthorization,
 					OutboundHostname:              outboundHostname,
 					Port:                          port,
+					RedirectFromDomain:            redirectFromDomain,
 					ReqPathSearchReplace:          reqPathSearchReplace,
 					ReqPathSearchReplaceFormatted: reqPathSearchReplaceFormatted,
-					SrcPort:     srcPort,
-					ServicePath: strings.Split(path, ","),
-					ReqMode:     reqMode,
+					ServiceDomain:                 domain,
+					SrcPort:                       srcPort,
+					SrcHttpsPort:                  srcHttpsPort,
+					ServicePath:                   path,
+					ServicePathExclude:            servicePathExclude,
+					TimeoutServer:                 timeoutServer,
+					TimeoutTunnel:                 timeoutTunnel,
+					ReqMode:                       reqMode,
+					VerifyClientSsl:               verifyClientSsl,
 				},
 			)
 		} else {
@@ -348,5 +396,16 @@ func (m *serve) writeInternalServerError(w http.ResponseWriter, resp *Response, 
 }
 
 func (m *serve) hasPort(sd []proxy.ServiceDest) bool {
-	return len(sd) > 0 && len(sd[0].Port) > 0
+	HasPort := len(sd) > 0 && len(sd[0].Port) > 0
+	HasHttpsPort := len(sd) > 0 && sd[0].HttpsPort > 0
+	return HasPort || HasHttpsPort
+}
+
+func getSliceFromString(input string) []string {
+	separator := os.Getenv("SEPARATOR")
+	value := []string{}
+	if len(input) > 0 {
+		value = strings.Split(input, separator)
+	}
+	return value
 }

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 )
 
 type executable interface {
@@ -19,3 +20,5 @@ var writeFeTemplate = ioutil.WriteFile
 var writeBeTemplate = ioutil.WriteFile
 var readTemplateFile = ioutil.ReadFile
 var osRemove = os.Remove
+
+var configProxyMu = &sync.Mutex{}

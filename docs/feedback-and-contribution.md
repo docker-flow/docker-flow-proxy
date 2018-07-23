@@ -8,7 +8,7 @@ The *Docker Flow Proxy* project welcomes, and depends, on contributions from dev
 
 ## Reporting an Issue
 
-Feel fee to [create a new issue](https://github.com/vfarcic/docker-flow-proxy/issues). Include as much detail as you can.
+Feel fee to [create a new issue](https://github.com/docker-flow/docker-flow-proxy/issues). Include as much detail as you can.
 
 If an issue is a bug, please provide steps to reproduce it.
 
@@ -28,7 +28,7 @@ Once you are finish implementing a new feature or fixing a bug, run the *Complet
 
 ### Repository
 
-Fork [docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy).
+Fork [docker-flow-proxy](https://github.com/docker-flow/docker-flow-proxy).
 
 ### Unit Testing
 
@@ -76,8 +76,8 @@ docker-compose -f docker-compose-test.yml run --rm staging-swarm
 
 #### Through Jenkins
 
-Make a PR and let Jenkins do the work. You can monitor the status from the Jenkins job [Viktor Farcic / docker-flow-proxy](http://jenkins.dockerflow.com/blue/organizations/jenkins/vfarcic%2Fdocker-flow-proxy/activity).
+Make a PR and let Jenkins do the work. You can monitor the status from the Jenkins job [Viktor Farcic / docker-flow-proxy](http://jenkins.dockerflow.com/blue/organizations/jenkins/docker-flow%2Fdocker-flow-proxy/activity).
 
-Please [create an issue](https://github.com/vfarcic/docker-flow-proxy/issues) if you'd like to add your repository to the builds.
+Please [create an issue](https://github.com/docker-flow/docker-flow-proxy/issues) if you'd like to add your repository to the builds.
 
 

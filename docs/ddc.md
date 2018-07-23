@@ -35,7 +35,7 @@ docker swarm join --token $TOKEN $(docker-machine ip node1):2377
 
 docker network create --attachable --driver overlay proxy
 
-wget https://raw.githubusercontent.com/vfarcic/docker-flow-stacks\
+wget https://raw.githubusercontent.com/docker-flow/docker-flow-stacks\
 /master/proxy/docker-flow-proxy-admin.yml
 
 docker stack deploy -c docker-flow-proxy-admin.yml proxy

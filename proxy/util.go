@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"sync"
 	"syscall"
+	"time"
 	"unicode"
 )
 
@@ -60,10 +60,23 @@ var cmdRunHa = func(args []string) error {
 var cmdValidateHa = func(args []string) error {
 	return cmdRunHa(args)
 }
+var waitForPidToUpdate = func(previousPid []byte, pidPath string) {
+	ticker := time.NewTicker(500 * time.Millisecond).C
+	for range ticker {
+		if currentPid, err := readPidFile(pidPath); err == nil {
+			if !bytes.Equal(previousPid, currentPid) {
+				return
+			}
+		}
+	}
+}
+
 var readConfigsFile = ioutil.ReadFile
 var readSecretsFile = ioutil.ReadFile
 var writeFile = ioutil.WriteFile
-var lookupHost = net.LookupHost
+
+// LookupHost overwrites net.LookupHost so that it can be mocked from other packages
+var LookupHost = net.LookupHost
 
 // ReadFile overwrites ioutil.ReadFile so that it can be mocked from other packages
 var ReadFile = ioutil.ReadFile
@@ -72,6 +85,11 @@ var readFile = ioutil.ReadFile
 var logPrintf = log.Printf
 var readPidFile = ioutil.ReadFile
 var readConfigsDir = ioutil.ReadDir
+var haSocketOn = func(address string) bool {
+	conn, err := net.Dial("unix", address)
+	defer conn.Close()
+	return err == nil
+}
 var getSecretOrEnvVarSplit = func(key, defaultValue string) string {
 	value := getSecretOrEnvVar(key, defaultValue)
 	if len(value) > 0 {
@@ -123,5 +141,3 @@ func replaceNonAlphabetAndNumbers(value []string) string {
 	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
 	return reg.ReplaceAllString(strings.Join(value, "_"), "_")
 }
-
-var mu = &sync.Mutex{}

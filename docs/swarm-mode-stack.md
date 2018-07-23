@@ -23,7 +23,7 @@ To setup an example Swarm cluster using Docker Machine, please run the commands 
 ```bash
 curl -o swarm-cluster.sh \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/scripts/swarm-cluster.sh
+docker-flow/docker-flow-proxy/master/scripts/swarm-cluster.sh
 
 chmod +x swarm-cluster.sh
 
@@ -44,7 +44,7 @@ docker network create --driver overlay proxy
 
 The *proxy* network will be dedicated to the proxy container and services that will be attached to it.
 
-We'll use [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository to create `docker-flow-proxy` and `docker-flow-swarm-listener` services.
+We'll use [docker-compose-stack.yml](https://github.com/docker-flow/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [docker-flow/docker-flow-proxy](https://github.com/docker-flow/docker-flow-proxy) repository to create `docker-flow-proxy` and `docker-flow-swarm-listener` services.
 
 The content of the `docker-compose-stack.yml` file is as follows.
 
@@ -54,7 +54,7 @@ version: "3"
 services:
 
   proxy:
-    image: vfarcic/docker-flow-proxy
+    image: dockerflow/docker-flow-proxy
     ports:
       - 80:80
       - 443:443
@@ -67,7 +67,7 @@ services:
       replicas: 2
 
   swarm-listener:
-    image: vfarcic/docker-flow-swarm-listener
+    image: dockerflow/docker-flow-swarm-listener
     networks:
       - proxy
     volumes:
@@ -95,12 +95,12 @@ Let's create the stack.
 ```bash
 curl -o docker-compose-stack.yml \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
+docker-flow/docker-flow-proxy/master/docker-compose-stack.yml
 
 docker stack deploy -c docker-compose-stack.yml proxy
 ```
 
-The first command downloaded the Compose file [docker-compose-stack.yml](https://github.com/vfarcic/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [vfarcic/docker-flow-proxy](https://github.com/vfarcic/docker-flow-proxy) repository. The second command created the services that form the stack.
+The first command downloaded the Compose file [docker-compose-stack.yml](https://github.com/docker-flow/docker-flow-proxy/blob/master/docker-compose-stack.yml) from the [docker-flow/docker-flow-proxy](https://github.com/docker-flow/docker-flow-proxy) repository. The second command created the services that form the stack.
 
 The tasks of the stack can be seen through the `stack ps` command.
 
@@ -111,10 +111,10 @@ docker stack ps proxy
 The output is as follows (IDs are removed for brevity).
 
 ```
-NAME                   IMAGE                                     NODE   DESIRED STATE CURRENT STATE         ERROR  PORTS
-proxy_proxy.1          vfarcic/docker-flow-proxy:latest          node-2 Running       Running 2 minutes ago
-proxy_swarm-listener.1 vfarcic/docker-flow-swarm-listener:latest node-1 Running       Running 2 minutes ago
-proxy_proxy.2          vfarcic/docker-flow-proxy:latest          node-3 Running       Running 2 minutes ago
+NAME                   IMAGE                                         NODE   DESIRED STATE CURRENT STATE         ERROR  PORTS
+proxy_proxy.1          dockerflow/docker-flow-proxy:latest          node-2 Running       Running 2 minutes ago
+proxy_swarm-listener.1 dockerflow/docker-flow-swarm-listener:latest node-1 Running       Running 2 minutes ago
+proxy_proxy.2          dockerflow/docker-flow-proxy:latest          node-3 Running       Running 2 minutes ago
 ```
 
 We are running two replicas of the `proxy` (for high-availability in the case of a failure) and one of the `swarm-listener`.

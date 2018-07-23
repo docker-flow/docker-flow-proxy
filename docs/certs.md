@@ -24,7 +24,7 @@ To setup an example Swarm cluster using Docker Machine, please run the commands 
 ```bash
 curl -o swarm-cluster.sh \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/scripts/swarm-cluster.sh
+docker-flow/docker-flow-proxy/master/scripts/swarm-cluster.sh
 
 chmod +x swarm-cluster.sh
 
@@ -40,13 +40,13 @@ docker network create --driver overlay proxy
 
 curl -o docker-compose-stack.yml \
     https://raw.githubusercontent.com/\
-vfarcic/docker-flow-proxy/master/docker-compose-stack.yml
+docker-flow/docker-flow-proxy/master/docker-compose-stack.yml
 
 docker stack deploy -c docker-compose-stack.yml proxy
 
 curl -o docker-compose-go-demo.yml \
     https://raw.githubusercontent.com/\
-vfarcic/go-demo/master/docker-compose-stack.yml
+docker-flow/go-demo/master/docker-compose-stack.yml
 
 docker stack deploy -c docker-compose-go-demo.yml go-demo
 ```
@@ -78,11 +78,11 @@ The error means that there is no certificate that should be used with HTTPS traf
 There are two ways we can add certificates to the proxy. One is to create your own Docker image based on `docker-flow-proxy`. `Dockerfile` could be as follows.
 
 ```
-FROM vfarcic/docker-flow-proxy
+FROM dockerflow/docker-flow-proxy
 COPY my-cert.pem /certs/my-cert.pem
 ```
 
-When the image is built, it will be based on `vfarcic/docker-flow-proxy` and include `my-cert.pem` file. The `my-cert.pem` would be your certificate. Docker Flow proxy will load all certificates located in the `/certs` directory.
+When the image is built, it will be based on `dockerflow/docker-flow-proxy` and include `my-cert.pem` file. The `my-cert.pem` would be your certificate. Docker Flow proxy will load all certificates located in the `/certs` directory.
 
 If your certificate is static (almost never changes) and you are willing to create your own `docker-flow-proxy` image, this might be a good option. An alternative would be to mount a network volume with certificates.
 

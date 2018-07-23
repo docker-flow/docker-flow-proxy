@@ -7,15 +7,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"../proxy"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"
 const serviceTemplateBeFilename = "service-formatted-be.ctmpl"
-
-var mu = &sync.Mutex{}
 
 // Reconfigurable defines mandatory interface
 type Reconfigurable interface {
@@ -47,8 +44,11 @@ var NewReconfigure = func(baseData BaseReconfigure, serviceData proxy.Service) R
 
 // Execute creates a new configuration and reloads the proxy
 func (m *Reconfigure) Execute(reloadAfter bool) error {
-	mu.Lock()
-	defer mu.Unlock()
+	if strings.EqualFold(os.Getenv("FILTER_PROXY_INSTANCE_NAME"), "true") &&
+		!strings.EqualFold(m.InstanceName, m.Service.ProxyInstanceName) {
+		logPrintf("Filtering %s configuration, with proxyInstanceName: %s", m.ServiceName, m.Service.ProxyInstanceName)
+		return nil
+	}
 	if strings.EqualFold(os.Getenv("SKIP_ADDRESS_VALIDATION"), "false") {
 		host := m.ServiceName
 		if len(m.ServiceDest) > 0 && len(m.ServiceDest[0].OutboundHostname) > 0 {
@@ -59,11 +59,8 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 			return err
 		}
 	}
-	if err := m.createConfigs(); err != nil {
+	if err := m.createConfigsAddService(); err != nil {
 		return err
-	}
-	if !m.hasTemplate() {
-		proxy.Instance.AddService(m.Service)
 	}
 	if reloadAfter {
 		reload := reload{}
@@ -83,6 +80,19 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 	return nil
 }
 
+func (m *Reconfigure) createConfigsAddService() error {
+	configProxyMu.Lock()
+	defer configProxyMu.Unlock()
+
+	if err := m.createConfigs(); err != nil {
+		return err
+	}
+	if !m.hasTemplate() {
+		proxy.Instance.AddService(m.Service)
+	}
+	return nil
+}
+
 // GetData returns structure with reconfiguration data and the service
 func (m *Reconfigure) GetData() (BaseReconfigure, proxy.Service) {
 	return m.BaseReconfigure, m.Service
@@ -94,12 +104,7 @@ func (m *Reconfigure) GetTemplates() (front, back string, err error) {
 	if value, err := strconv.ParseBool(os.Getenv("CHECK_RESOLVERS")); err == nil {
 		sr.CheckResolvers = value
 	}
-	for i := range sr.ServiceDest {
-		if len(sr.ServiceDest[i].ReqMode) == 0 {
-			sr.ServiceDest[i].ReqMode = "http"
-		}
-	}
-	m.formatData(sr)
+	proxy.FormatServiceForTemplates(sr)
 	if len(sr.TemplateFePath) > 0 {
 		feTmpl, err := readTemplateFile(sr.TemplateFePath)
 		if err != nil {
@@ -135,24 +140,6 @@ func (m *Reconfigure) createConfigs() error {
 	destBe := fmt.Sprintf("%s/%s-be.cfg", templatesPath, sr.AclName)
 	writeBeTemplate(destBe, []byte(beTemplate), 0664)
 	return nil
-}
-
-// TODO: Move to ha_proxy.go
-func (m *Reconfigure) formatData(sr *proxy.Service) {
-	sr.AclCondition = ""
-	if len(sr.AclName) == 0 {
-		sr.AclName = sr.ServiceName
-	}
-	if len(sr.PathType) == 0 {
-		sr.PathType = "path_beg"
-	}
-	for i, sd := range sr.ServiceDest {
-		if sd.SrcPort > 0 {
-			sr.ServiceDest[i].SrcPortAclName = fmt.Sprintf(" srcPort_%s%d", sr.ServiceName, sd.SrcPort)
-			sr.ServiceDest[i].SrcPortAcl = fmt.Sprintf(`
-    acl srcPort_%s%d dst_port %d`, sr.ServiceName, sd.SrcPort, sd.SrcPort)
-		}
-	}
 }
 
 func (m *Reconfigure) getUsersList(sr *proxy.Service) string {

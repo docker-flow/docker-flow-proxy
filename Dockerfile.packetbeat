@@ -1,4 +1,4 @@
-FROM vfarcic/docker-flow-proxy
+FROM dockerflow/docker-flow-proxy
 
 ENV PACKETBEAT_CONFIG /packetbeat/packetbeat.yml
 

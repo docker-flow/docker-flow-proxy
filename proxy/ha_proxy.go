@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 )
@@ -23,6 +24,9 @@ var Instance proxy
 
 var reloadPause time.Duration = 1000
 
+var certMu = &sync.Mutex{}
+var reloadMu = &sync.Mutex{}
+
 // TODO: Move to data from proxy.go when static (e.g. env. vars.)
 type configData struct {
 	CertsString          string
@@ -30,11 +34,13 @@ type configData struct {
 	ConnectionMode       string
 	ContentFrontendSNI   string
 	ContentFrontendTcp   string
+	ContentListen        string
 	DefaultBinds         string
 	DefaultReqMode       string
 	ExtraDefaults        string
 	ExtraFrontend        string
 	ExtraGlobal          string
+	Resolvers            []string
 	Stats                string
 	TimeoutConnect       string
 	TimeoutClient        string
@@ -141,6 +147,8 @@ func (m HaProxy) ReadConfig() (string, error) {
 
 // Reload HAProxy
 func (m HaProxy) Reload() error {
+	reloadMu.Lock()
+	defer reloadMu.Unlock()
 	logPrintf("Reloading the proxy")
 	var reloadErr error
 	reconfigureAttempts := 20
@@ -163,12 +171,23 @@ func (m HaProxy) Reload() error {
 			return fmt.Errorf("Could not read the %s file\n%s", pidPath, err.Error())
 		}
 		reloadStrategy := m.getReloadStrategy()
-		cmdArgs := []string{reloadStrategy, string(pid)}
+		haproxySocket := "/var/run/haproxy.sock"
+		socketOn := haSocketOn(haproxySocket)
+
+		var cmdArgs []string
+		if socketOn {
+			cmdArgs = []string{"-x", haproxySocket, reloadStrategy, string(pid)}
+		} else {
+			cmdArgs = []string{reloadStrategy, string(pid)}
+		}
+
 		reloadErr = HaProxy{}.RunCmd(cmdArgs)
 		if reloadErr == nil {
+			waitForPidToUpdate(pid, pidPath)
 			logPrintf("Proxy config was reloaded")
 			break
 		}
+
 		logPrintf("Proxy config could not be reloaded. Will try again...")
 		time.Sleep(time.Millisecond * reloadPause)
 	}
@@ -182,8 +201,14 @@ func (m HaProxy) AddService(service Service) {
 }
 
 // RemoveService deletes a service from the `dataInstance` map using `ServiceName` as the key
-func (m HaProxy) RemoveService(service string) {
+// Returns false if there are no services to remove
+func (m HaProxy) RemoveService(service string) bool {
+	_, ok := dataInstance.Services[service]
+	if !ok {
+		return false
+	}
 	delete(dataInstance.Services, service)
+	return true
 }
 
 // GetServices returns a map with all the services used by the proxy.
@@ -245,6 +270,8 @@ func (m HaProxy) getConfigData() configData {
 	}
 	d.ConnectionMode = getSecretOrEnvVar("CONNECTION_MODE", "http-server-close")
 	d.DefaultReqMode = getSecretOrEnvVar("DEFAULT_REQ_MODE", "http")
+	resolversString := getSecretOrEnvVar("RESOLVERS", "nameserver dns 127.0.0.11:53")
+	d.Resolvers = strings.Split(resolversString, ",")
 	d.SslBindCiphers = getSecretOrEnvVar("SSL_BIND_CIPHERS", "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS")
 	d.SslBindOptions = getSecretOrEnvVar("SSL_BIND_OPTIONS", "no-sslv3")
 	d.TimeoutConnect = getSecretOrEnvVar("TIMEOUT_CONNECT", "5")
@@ -278,7 +305,8 @@ func (m HaProxy) getConfigData() configData {
 	if len(bindPortsString) > 0 {
 		bindPorts := strings.Split(bindPortsString, ",")
 		for _, bindPort := range bindPorts {
-			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", bindPort)
+			formatedBindPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
+			d.ExtraFrontend += fmt.Sprintf("\n    bind *:%s", formatedBindPort)
 		}
 	}
 	if len(os.Getenv("CAPTURE_REQUEST_HEADER")) > 0 {
@@ -310,15 +338,23 @@ func (m HaProxy) getConfigData() configData {
 func (m *HaProxy) getCertsConfigSnippet() string {
 	certPaths := m.GetCertPaths()
 	certs := ""
+	crtListPathEnv := os.Getenv("CRT_LIST_PATH")
 	if len(certPaths) > 0 {
 		h2 := ""
+		crtListPathDefault := "/cfg/crt-list.txt"
+		if len(crtListPathEnv) > 0 {
+			crtListPathDefault = crtListPathEnv
+		}
 		if strings.EqualFold(os.Getenv("ENABLE_H2"), "true") {
 			h2 = "h2,"
 		}
-		certs = fmt.Sprintf(" ssl crt-list /cfg/crt-list.txt alpn %shttp/1.1", h2)
-		mu.Lock()
-		defer mu.Unlock()
-		writeFile("/cfg/crt-list.txt", []byte(strings.Join(certPaths, "\n")), 0664)
+		certs = fmt.Sprintf(" ssl crt-list %s alpn %shttp/1.1", crtListPathDefault, h2)
+
+		if len(crtListPathEnv) == 0 {
+			certMu.Lock()
+			defer certMu.Unlock()
+			writeFile(crtListPathDefault, []byte(strings.Join(certPaths, "\n")), 0664)
+		}
 	}
 	if len(os.Getenv("CA_FILE")) > 0 {
 		if len(certs) == 0 {
@@ -432,10 +468,23 @@ func (m *HaProxy) getUserList(data *configData) {
 	}
 }
 
+type tcpInfo struct {
+	ServiceName string
+	Port        string
+	IPs         []string
+}
+
+type tcpGroupInfo struct {
+	TargetService Service
+	TargetDest    ServiceDest
+	TCPInfo       []tcpInfo
+}
+
 func (m *HaProxy) getSni(services *Services, config *configData) {
 	sort.Sort(services)
 	snimap := make(map[int]string)
 	tcpFEs := make(map[int]Services)
+	tcpGroups := make(map[string]*tcpGroupInfo)
 	for _, s := range *services {
 		if len(s.ServiceDest) == 0 {
 			s.ServiceDest = []ServiceDest{{ReqMode: "http"}}
@@ -450,11 +499,34 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 				httpDone = true
 			} else if strings.EqualFold(sd.ReqMode, "sni") {
 				_, headerExists := snimap[sd.SrcPort]
-				snimap[sd.SrcPort] += m.getFrontTemplateSNI(s, i, !headerExists)
+				snimap[sd.SrcPort] += getFrontTemplateSNI(s, i, !headerExists)
+			} else if len(sd.ServiceGroup) > 0 {
+				tcpGroup, ok := tcpGroups[sd.ServiceGroup]
+				newIPs := []string{s.ServiceName}
+				if ips, err := LookupHost("tasks." + s.ServiceName); err == nil {
+					newIPs = ips
+				}
+				if !ok {
+					tcpGroups[sd.ServiceGroup] = &tcpGroupInfo{
+						TargetService: s,
+						TargetDest:    sd,
+						TCPInfo: []tcpInfo{{
+							ServiceName: s.ServiceName,
+							Port:        sd.Port,
+							IPs:         newIPs,
+						}},
+					}
+					continue
+				}
+				tcpGroups[sd.ServiceGroup].TCPInfo = append(tcpGroup.TCPInfo, tcpInfo{
+					ServiceName: s.ServiceName,
+					Port:        sd.Port,
+					IPs:         newIPs,
+				})
+
 			} else {
 				tcpService := s
 				tcpService.ServiceDest = []ServiceDest{sd}
-				tcpService.AclCondition = fmt.Sprintf(" domain_%s", s.AclName)
 				if strings.EqualFold(os.Getenv("DEBUG"), "true") {
 					tcpService.Debug = true
 					tcpService.DebugFormat = getSecretOrEnvVar("DEBUG_TCP_FORMAT", "")
@@ -464,6 +536,7 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 		}
 	}
 	config.ContentFrontendTcp += getFrontTemplateTcp(tcpFEs)
+	config.ContentListen += getListenTCPGroup(tcpGroups)
 
 	// Merge the SNI entries into one single string. Sorted by port.
 	var sniports []int
@@ -474,24 +547,6 @@ func (m *HaProxy) getSni(services *Services, config *configData) {
 	for _, k := range sniports {
 		config.ContentFrontendSNI += snimap[k]
 	}
-}
-
-// TODO: Refactor into template
-func (m *HaProxy) getFrontTemplateSNI(s Service, si int, genHeader bool) string {
-	tmplString := ``
-	if genHeader {
-		tmplString += fmt.Sprintf(`{{$sd1 := index $.ServiceDest %d}}
-
-frontend service_{{$sd1.SrcPort}}
-    bind *:{{$sd1.SrcPort}}
-    mode tcp
-    tcp-request inspect-delay 5s
-    tcp-request content accept if { req_ssl_hello_type 1 }`, si)
-	}
-	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
-    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}{{$sd.SrcPortAcl}}
-    use_backend {{$.ServiceName}}-be{{$sd.Port}}_{{$sd.Index}} if sni_{{$.AclName}}{{$sd.Port}}-%d{{$.AclCondition}}{{$sd.SrcPortAclName}}`, si, si+1, si+1)
-	return templateToString(tmplString, s)
 }
 
 func (m *HaProxy) getReloadStrategy() string {

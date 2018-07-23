@@ -14,7 +14,7 @@ Please note that *Docker Flow Proxy* is not limited to *Docker Machine*. We're u
 To setup an example environment using Docker Machine, please run the commands that follow.
 
 ```bash
-git clone https://github.com/vfarcic/docker-flow-proxy.git
+git clone https://github.com/docker-flow/docker-flow-proxy.git
 
 cd docker-flow-proxy
 
@@ -49,7 +49,7 @@ docker network create --driver overlay go-demo
 
 The first network (*proxy*) will be dedicated to the proxy container and services that should be exposed through it. The second (*go-demo*) is the network used for communications between containers that constitute the *go-demo* service.
 
-Next, we'll create the [swarm-listener](https://github.com/vfarcic/docker-flow-swarm-listener) service. It is companion to the `Docker Flow: Proxy`. Its purpose is to monitor Swarm services and send requests to the proxy whenever a service is created or destroyed.
+Next, we'll create the [swarm-listener](https://github.com/docker-flow/docker-flow-swarm-listener) service. It is companion to the `Docker Flow: Proxy`. Its purpose is to monitor Swarm services and send requests to the proxy whenever a service is created or destroyed.
 
 Let's create the `swarm-listener` service.
 
@@ -65,7 +65,7 @@ docker service create --name swarm-listener \
     -e DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure \
     -e DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove \
     --constraint 'node.role==manager' \
-    vfarcic/docker-flow-swarm-listener
+    dockerflow/docker-flow-swarm-listener
 ```
 
 The service is attached to the proxy network, mounts the Docker socket, and declares the environment variables `DF_NOTIFY_CREATE_SERVICE_URL` and `DF_NOTIFY_REMOVE_SERVICE_URL`. We'll see the purpose of the variables soon. The service is constrained to the `manager` nodes.
@@ -78,7 +78,7 @@ docker service create --name proxy \
     -p 443:443 \
     --network proxy \
     -e LISTENER_ADDRESS=swarm-listener \
-    vfarcic/docker-flow-proxy
+    dockerflow/docker-flow-proxy
 ```
 
 We opened the ports *80* and *443*. External requests will be routed through them towards destination services. The proxy is attached to the *proxy* network. The proxy must belong to the same network as the listener. They will exchange information whenever a service is created or removed.
@@ -138,7 +138,7 @@ We sent a request to the proxy (the only service listening to the port 80) and g
 
 The way the process works is as follows.
 
-[Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIFY_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`.
+[Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) is running inside one of the Swarm manager nodes and queries Docker API in search for newly created services. Once it finds a new service, it looks for its labels. If the service contains the `com.df.notify` (it can hold any value), the rest of the labels with keys starting with `com.df.` are retrieved. All those labels are used to form request parameters. Those parameters are appended to the address specified as the `DF_NOTIFY_CREATE_SERVICE_URL` environment variable defined in the `swarm-listener` service. Finally, a request is sent. In this particular case, the request was made to reconfigure the proxy with the service `go-demo` (the name of the service), using `/demo` as the path, and running on the port `8080`.
 
 Please see the [Reconfigure](usage.md#reconfigure) section for the list of all the arguments that can be used with the proxy.
 
@@ -266,7 +266,7 @@ If you go back to the command we used to create the `proxy` service, you'll noti
     -e LISTENER_ADDRESS=swarm-listener \
 ```
 
-This tells the proxy the address of the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications for all the services. As a result, each proxy instance will soon have the same state as the other.
+This tells the proxy the address of the [Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) service. Whenever a new instance of the proxy is created, it will send a request to the listener to resend notifications for all the services. As a result, each proxy instance will soon have the same state as the other.
 
 If, for example, an instance of the proxy fails, Swarm will reschedule it and, soon afterwards, a new instance will be created. In that case, the process would be the same as when we scaled the proxy and, as the end result, the rescheduled instance will also have the same state as any other.
 
@@ -503,7 +503,7 @@ docker service update \
 
 ### Service Authentication
 
-In many cases, we do not want to protect all services but only a selected few. A service can be protected by adding `users` parameter to the `reconfigure` request. Since we are using the [Docker Flow: Swarm Listener](https://github.com/vfarcic/docker-flow-swarm-listener) service to reconfigure the proxy, we'll add the parameter as one more label.
+In many cases, we do not want to protect all services but only a selected few. A service can be protected by adding `users` parameter to the `reconfigure` request. Since we are using the [Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) service to reconfigure the proxy, we'll add the parameter as one more label.
 
 Let's start by removing the `go-demo` service.
 

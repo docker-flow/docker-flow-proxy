@@ -192,6 +192,44 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_ReturnsProxyServiceWithInde
 	s.Equal(expected, *actual)
 }
 
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenBoolIndexIsNotPresent() {
+	expected := s.getExpectedService()
+	serviceMap := s.getServiceMap(expected, ".1", ",")
+	delete(serviceMap, "sslVerifyNone.1")
+	serviceMap["sslVerifyNone"] = "true"
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
+	s.Equal(expected, *actual)
+}
+
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenSliceIndexIsNotPresent() {
+	expected := s.getExpectedService()
+	serviceMap := s.getServiceMap(expected, ".1", ",")
+	delete(serviceMap, "servicePath.1")
+	delete(serviceMap, "allowedMethods.1")
+	serviceMap["servicePath"] = strings.Join(expected.ServiceDest[0].ServicePath, ",")
+	serviceMap["allowedMethods"] = strings.Join(expected.ServiceDest[0].AllowedMethods, ",")
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
+	s.Equal(expected, *actual)
+}
+
+func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesDefaultValues_WhenStringIndexIsNotPresent() {
+	expected := s.getExpectedService()
+	serviceMap := s.getServiceMap(expected, ".1", ",")
+	delete(serviceMap, "httpsRedirectCode.1")
+	serviceMap["httpsRedirectCode"] = expected.ServiceDest[0].HttpsRedirectCode
+	provider := mapParameterProvider{&serviceMap}
+
+	actual := GetServiceFromProvider(&provider)
+
+	s.Equal(expected, *actual)
+}
+
 func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesSeparatorFromEnvVar() {
 	separatorOrig := os.Getenv("SEPARATOR")
 	defer func() { os.Setenv("SEPARATOR", separatorOrig) }()
@@ -199,7 +237,6 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesSeparatorFromEnvVar() {
 	expected := s.getExpectedService()
 	serviceMap := s.getServiceMap(expected, ".1", "@")
 	provider := mapParameterProvider{&serviceMap}
-	println("xxx")
 	actual := GetServiceFromProvider(&provider)
 
 	s.Equal(expected, *actual)
@@ -212,9 +249,9 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_AddsTasksWhenSessionTypeIsN
 	serviceMap := s.getServiceMap(expected, ".1", ",")
 	provider := mapParameterProvider{&serviceMap}
 	actualHost := ""
-	lookupHostOrig := lookupHost
-	defer func() { lookupHost = lookupHostOrig }()
-	lookupHost = func(host string) (addrs []string, err error) {
+	lookupHostOrig := LookupHost
+	defer func() { LookupHost = lookupHostOrig }()
+	LookupHost = func(host string) (addrs []string, err error) {
 		actualHost = host
 		return expected.Tasks, nil
 	}
@@ -222,35 +259,6 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_AddsTasksWhenSessionTypeIsN
 	actual := GetServiceFromProvider(&provider)
 
 	s.Equal("tasks."+expected.ServiceName, actualHost)
-	s.Equal(expected, *actual)
-}
-
-func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesServiceDomainToIndexedEntries_WhenPortIsEmpty() {
-	expected := Service{
-		ServiceDest: []ServiceDest{{
-			AllowedMethods:     []string{},
-			DeniedMethods:      []string{},
-			Index:              1,
-			Port:               "1234",
-			RedirectFromDomain: []string{},
-			ReqMode:            "reqMode",
-			ReqPathSearchReplaceFormatted: []string{},
-			ServiceDomain:                 []string{"domain1", "domain2"},
-			ServiceHeader:                 map[string]string{},
-			ServicePath:                   []string{"/"},
-			ServicePathExclude:            []string{},
-		}},
-		ServiceName: "serviceName",
-	}
-	serviceMap := map[string]string{
-		"serviceDomain": strings.Join(expected.ServiceDest[0].ServiceDomain, ","),
-		"serviceName":   expected.ServiceName,
-		"port.1":        expected.ServiceDest[0].Port,
-		"reqMode.1":     expected.ServiceDest[0].ReqMode,
-		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
-	}
-	provider := mapParameterProvider{&serviceMap}
-	actual := GetServiceFromProvider(&provider)
 	s.Equal(expected, *actual)
 }
 
@@ -360,12 +368,13 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"addReqHeader":          strings.Join(expected.AddReqHeader, separator),
 		"addResHeader":          strings.Join(expected.AddResHeader, separator),
 		"backendExtra":          expected.BackendExtra,
+		"checkResolvers":        strconv.FormatBool(expected.CheckResolvers),
 		"delReqHeader":          strings.Join(expected.DelReqHeader, separator),
 		"delResHeader":          strings.Join(expected.DelResHeader, separator),
 		"distribute":            strconv.FormatBool(expected.Distribute),
-		"httpsPort":             strconv.Itoa(expected.HttpsPort),
 		"isDefaultBackend":      strconv.FormatBool(expected.IsDefaultBackend),
 		"pathType":              expected.PathType,
+		"proxyInstanceName":     expected.ProxyInstanceName,
 		"redirectWhenHttpProto": strconv.FormatBool(expected.RedirectWhenHttpProto),
 		"reqPathReplace":        expected.ReqPathReplace,
 		"reqPathSearch":         expected.ReqPathSearch,
@@ -375,18 +384,19 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"sessionType":           expected.SessionType,
 		"setReqHeader":          strings.Join(expected.SetReqHeader, separator),
 		"setResHeader":          strings.Join(expected.SetResHeader, separator),
-		"sslVerifyNone":         strconv.FormatBool(expected.SslVerifyNone),
 		"templateBePath":        expected.TemplateBePath,
 		"templateFePath":        expected.TemplateFePath,
-		"timeoutServer":         expected.TimeoutServer,
-		"timeoutTunnel":         expected.TimeoutTunnel,
 		"users":                 "user1:pass1,user2:pass2",
 		"usersPassEncrypted":    "true",
 		// ServiceDest
 		"allowedMethods" + indexSuffix:       strings.Join(expected.ServiceDest[0].AllowedMethods, separator),
+		"balanceGroup" + indexSuffix:         expected.ServiceDest[0].BalanceGroup,
+		"checkTcp" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].CheckTCP),
+		"clitcpka" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].Clitcpka),
 		"deniedMethods" + indexSuffix:        strings.Join(expected.ServiceDest[0].DeniedMethods, separator),
 		"denyHttp" + indexSuffix:             strconv.FormatBool(expected.ServiceDest[0].DenyHttp),
 		"httpsOnly" + indexSuffix:            strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
+		"httpsPort" + indexSuffix:            strconv.Itoa(expected.ServiceDest[0].HttpsPort),
 		"httpsRedirectCode" + indexSuffix:    expected.ServiceDest[0].HttpsRedirectCode,
 		"ignoreAuthorization" + indexSuffix:  strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
 		"outboundHostname" + indexSuffix:     expected.ServiceDest[0].OutboundHostname,
@@ -395,9 +405,15 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"reqMode" + indexSuffix:              expected.ServiceDest[0].ReqMode,
 		"reqPathSearchReplace" + indexSuffix: expected.ServiceDest[0].ReqPathSearchReplace,
 		"serviceDomain" + indexSuffix:        strings.Join(expected.ServiceDest[0].ServiceDomain, separator),
+		"serviceGroup" + indexSuffix:         expected.ServiceDest[0].ServiceGroup,
 		"serviceHeader" + indexSuffix:        header,
 		"servicePath" + indexSuffix:          strings.Join(expected.ServiceDest[0].ServicePath, separator),
+		"timeoutClient" + indexSuffix:        expected.ServiceDest[0].TimeoutClient,
+		"timeoutServer" + indexSuffix:        expected.ServiceDest[0].TimeoutServer,
+		"timeoutTunnel" + indexSuffix:        expected.ServiceDest[0].TimeoutTunnel,
+		"sslVerifyNone" + indexSuffix:        strconv.FormatBool(expected.ServiceDest[0].SslVerifyNone),
 		"userAgent" + indexSuffix:            strings.Join(expected.ServiceDest[0].UserAgent.Value, separator),
+		"userDef" + indexSuffix:              expected.ServiceDest[0].UserDef,
 		"verifyClientSsl" + indexSuffix:      strconv.FormatBool(expected.ServiceDest[0].VerifyClientSsl),
 	}
 }
@@ -408,12 +424,13 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		AddReqHeader:          []string{"add-header-1", "add-header-2"},
 		AddResHeader:          []string{"add-header-1", "add-header-2"},
 		BackendExtra:          "additional backend config",
+		CheckResolvers:        true,
 		DelReqHeader:          []string{"del-header-1", "del-header-2"},
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
-		HttpsPort:             1234,
 		IsDefaultBackend:      true,
 		PathType:              "pathType",
+		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
@@ -421,33 +438,40 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		ServiceDomainAlgo:     "hdr_dom",
 		ServiceDest: []ServiceDest{{
 			AllowedMethods:                []string{"GET", "DELETE"},
+			BalanceGroup:                  "balanceGroup",
+			CheckTCP:                      true,
+			Clitcpka:                      true,
 			DeniedMethods:                 []string{"PUT", "POST"},
 			DenyHttp:                      true,
 			HttpsOnly:                     true,
+			HttpsPort:                     1234,
 			HttpsRedirectCode:             "302",
 			IgnoreAuthorization:           true,
 			OutboundHostname:              "outboundHostname",
 			Port:                          "1234",
 			RedirectFromDomain:            []string{"sub.domain1", "sub.domain2"},
-			ServiceDomain:                 []string{"domain1", "domain2"},
-			ServiceHeader:                 map[string]string{"X-Version": "3", "name": "Viktor"},
-			ServicePath:                   []string{"/"},
-			ServicePathExclude:            []string{},
 			ReqMode:                       "reqMode",
 			ReqPathSearchReplace:          "something,else:foo,bar",
 			ReqPathSearchReplaceFormatted: []string{"reqPathSearch,reqPathReplace", "something,else", "foo,bar"},
+			ServiceDomain:                 []string{"domain1", "domain2"},
+			ServiceGroup:                  "serviceGroup",
+			ServiceHeader:                 map[string]string{"X-Version": "3", "name": "Viktor"},
+			ServicePath:                   []string{"/"},
+			ServicePathExclude:            []string{},
+			SslVerifyNone:                 true,
+			TimeoutClient:                 "timeoutClient",
+			TimeoutServer:                 "timeoutServer",
+			TimeoutTunnel:                 "timeoutTunnel",
 			UserAgent:                     UserAgent{Value: []string{"agent-1", "agent-2/replace-with_"}, AclName: "agent_1_agent_2_replace_with_"},
+			UserDef:                       "userDef",
 			VerifyClientSsl:               true,
 			Index:                         1,
 		}},
 		ServiceName:    "serviceName",
 		SetReqHeader:   []string{"set-header-1", "set-header-2"},
 		SetResHeader:   []string{"set-header-1", "set-header-2"},
-		SslVerifyNone:  true,
 		TemplateBePath: "templateBePath",
 		TemplateFePath: "templateFePath",
-		TimeoutServer:  "timeoutServer",
-		TimeoutTunnel:  "timeoutTunnel",
 		Users: []User{
 			{Username: "user1", Password: "pass1", PassEncrypted: true},
 			{Username: "user2", Password: "pass2", PassEncrypted: true},

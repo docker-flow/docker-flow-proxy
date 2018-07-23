@@ -1,11 +1,8 @@
 package server
 
 import (
-	"../proxy"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -14,6 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"../proxy"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
 type CertTestSuite struct {
@@ -718,8 +719,9 @@ func (m *ProxyMock) AddService(service proxy.Service) {
 	m.Called(service)
 }
 
-func (m *ProxyMock) RemoveService(service string) {
-	m.Called(service)
+func (m *ProxyMock) RemoveService(service string) bool {
+	params := m.Called(service)
+	return params.Bool(0)
 }
 
 func (m *ProxyMock) GetServices() map[string]proxy.Service {
@@ -756,7 +758,7 @@ func getProxyMock(skipMethod string) *ProxyMock {
 		mockObj.On("AddService", mock.Anything)
 	}
 	if skipMethod != "RemoveService" {
-		mockObj.On("RemoveService", mock.Anything)
+		mockObj.On("RemoveService", mock.Anything).Return(true)
 	}
 	if skipMethod != "GetServices" {
 		mockObj.On("GetServices").Return(map[string]proxy.Service{})

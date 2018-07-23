@@ -17,6 +17,6 @@ type proxy interface {
 	GetCertPaths() []string
 	GetCerts() map[string]string
 	AddService(service Service)
-	RemoveService(service string)
+	RemoveService(service string) bool
 	GetServices() map[string]Service
 }

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"../proxy"
 )
@@ -100,6 +101,11 @@ func (m *cert) Put(w http.ResponseWriter, req *http.Request) (string, error) {
 // Init should be executed when the proxy starts.
 // It retrieves the list of all certificates from one of the other proxy replicas.
 func (m *cert) Init() error {
+	// Waiting until DNS info is propagated throughout the cluster
+	if len(os.Getenv("DNS_LOOKUP_PAUSE_MS")) > 0 {
+		pause, _ := strconv.Atoi(os.Getenv("DNS_LOOKUP_PAUSE_MS"))
+		time.Sleep(time.Duration(pause) * time.Millisecond)
+	}
 	dns := fmt.Sprintf("tasks.%s", m.ProxyServiceName)
 	client := &http.Client{}
 	ips, err := lookupHost(dns)

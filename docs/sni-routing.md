@@ -140,7 +140,7 @@ $ docker service ls
 ID                  NAME                 MODE                REPLICAS            IMAGE                                       PORTS
 207xo1qn275w        example_test         replicated          1/1                 faisyl/pydemo:latest
 7w2ohiepgcv6        dfp_proxy            global              1/1                 faisyl/docker-flow-proxy:latest             *:443->443/tcp
-pcoopm5b91ba        dfp_swarm-listener   replicated          1/1                 vfarcic/docker-flow-swarm-listener:latest
+pcoopm5b91ba        dfp_swarm-listener   replicated          1/1                 dockerflow/docker-flow-swarm-listener:latest
 sl75set9jao4        example_api          replicated          1/1                 faisyl/pydemo:latest
 ```
 Here, I have 2 stacks deployed. `dfp` is my docker-flow-proxy stack. `example` is the stack I just deployed. The example stack defines 2 services: `example_test` and `example_api`.
