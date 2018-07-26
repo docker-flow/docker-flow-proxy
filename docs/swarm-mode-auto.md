@@ -2,7 +2,7 @@
 
 *Docker Flow Proxy* running in the *Swarm Mode* is designed to leverage the features introduced in *Docker v1.12+*.
 
-The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://www.docker.com/products/docker-toolbox).
+The examples that follow assume that you have Docker Machine version v0.8+ that includes Docker Engine v1.12+. The easiest way to get them is through [Docker Toolbox](https://docs.docker.com/toolbox/overview/).
 
 !!! info
 	If you are a Windows user, please run all the examples from *Git Bash* (installed through *Docker Toolbox*). Also, make sure that your Git client is configured to check out the code *AS-IS*. Otherwise, Windows might change carriage returns to the Windows format.
