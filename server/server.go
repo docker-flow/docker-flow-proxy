@@ -250,6 +250,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	}
 	sd := []proxy.ServiceDest{}
 	path := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH"))
+	pathType := os.Getenv(prefix + "_PATH_TYPE")
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
 	srcHttpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_HTTPS_PORT"))
@@ -295,6 +296,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 				HttpsRedirectCode:             httpsRedirectCode,
 				IgnoreAuthorization:           ignoreAuthorization,
 				OutboundHostname:              globalOutboundHostname,
+				PathType:                      pathType,
 				Port:                          port,
 				RedirectFromDomain:            redirectFromDomain,
 				ReqMode:                       reqMode,
