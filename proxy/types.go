@@ -36,6 +36,9 @@ type ServiceDest struct {
 	// The hostname where the service is running, for instance on a separate swarm.
 	// If specified, the proxy will dispatch requests to that domain.
 	OutboundHostname string
+	// The ACL derivative. Defaults to path_beg.
+	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
+	PathType string
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
 	Port string
@@ -158,9 +161,6 @@ type Service struct {
 	Distribute bool `split_words:"true"`
 	// If set to true, it will be the default_backend service.
 	IsDefaultBackend bool `split_words:"true"`
-	// The ACL derivative. Defaults to path_beg.
-	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
-	PathType string `split_words:"true"`
 	// When `FILTER_PROXY_INSTANCE_NAME` is set to `true`, only services with
 	// ProxyInstanceName equal to `PROXY_INSTANCE_NAME` will be configured by this proxy.
 	ProxyInstanceName string `split_words:"true"`
@@ -462,6 +462,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		HttpsRedirectCode:             getFromString(provider, "httpsRedirectCode", suffix),
 		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
 		OutboundHostname:              getFromString(provider, "outboundHostname", suffix),
+		PathType:                      getFromString(provider, "pathType", suffix),
 		Port:                          getFromString(provider, "port", suffix),
 		RedirectFromDomain:            getSliceFromString(provider, "redirectFromDomain", suffix),
 		ReqMode:                       reqMode,

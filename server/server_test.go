@@ -587,7 +587,6 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		DelResHeader:          []string{"add-header-1", "add-header-2"},
 		DiscoveryType:         "DNS",
 		Distribute:            true,
-		PathType:              "pathType",
 		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
 		Replicas:              83,
@@ -604,6 +603,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			HttpsPort:          1234,
 			HttpsRedirectCode:  "302",
 			OutboundHostname:   "outboundHostname",
+			PathType:           "pathType",
 			Port:               "1234",
 			RedirectFromDomain: []string{"sub.domain1", "sub.domain2"},
 			ReqMode:            "reqMode",
@@ -641,7 +641,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceDest[0].Clitcpka,
 		expected.ServiceCert,
 		expected.ServiceDest[0].OutboundHostname,
-		expected.PathType,
+		expected.ServiceDest[0].PathType,
 		expected.ProxyInstanceName,
 		expected.ReqPathSearch,
 		expected.ReqPathReplace,
@@ -750,7 +750,6 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
 		IsDefaultBackend:      true,
-		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
 		ServiceCert:           "my-ServiceCert",
 		ServiceDomainAlgo:     "hdr_dom",
@@ -766,6 +765,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 				HttpsRedirectCode:             "302",
 				IgnoreAuthorization:           true,
 				OutboundHostname:              "my-OutboundHostname",
+				PathType:                      "my-PathType",
 				Port:                          "1111",
 				ReqPathSearchReplace:          "/something,/else:/this,/that",
 				ReqPathSearchReplaceFormatted: []string{"/something,/else", "/this,/that"},
@@ -805,7 +805,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_IGNORE_AUTHORIZATION", strconv.FormatBool(service.ServiceDest[0].IgnoreAuthorization))
 	os.Setenv("DFP_SERVICE_IS_DEFAULT_BACKEND", strconv.FormatBool(service.IsDefaultBackend))
 	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.ServiceDest[0].OutboundHostname)
-	os.Setenv("DFP_SERVICE_PATH_TYPE", service.PathType)
+	os.Setenv("DFP_SERVICE_PATH_TYPE", service.ServiceDest[0].PathType)
 	os.Setenv("DFP_SERVICE_REDIRECT_FROM_DOMAIN", strings.Join(service.ServiceDest[0].RedirectFromDomain, ","))
 	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
 	os.Setenv("DFP_SERVICE_REQ_MODE", service.ServiceDest[0].ReqMode)

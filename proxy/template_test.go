@@ -30,7 +30,6 @@ func (s *TemplateTestSuite) Test_FormatServiceForTemplates_DiscoveryTypeDNS_Gets
 
 	service := Service{
 		ServiceName:   "my-service-1",
-		PathType:      "path_beg",
 		DiscoveryType: "DNS",
 		Replicas:      0}
 
@@ -49,10 +48,14 @@ func (s *TemplateTestSuite) Test_FormatData_UsesServiceNameForAclName() {
 }
 
 func (s *TemplateTestSuite) Test_FormatData_NoPathType_DefaultsToPath_Beg() {
-	service := Service{ServiceName: "my-service-1"}
+	service := Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 4480, Port: "1111",
+				ServicePath: []string{"/path-1"}}}}
 
 	FormatServiceForTemplates(&service)
-	s.Equal("path_beg", service.PathType)
+	s.Equal("path_beg", service.ServiceDest[0].PathType)
 
 }
 

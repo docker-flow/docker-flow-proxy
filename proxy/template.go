@@ -20,9 +20,9 @@ func getFrontTemplate(s Service) string {
             {{- end}}
         {{- end}}
         {{- if ne $sd.Port ""}}
-    acl url_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+    acl url_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePath}} {{if eq $sd.PathType ""}}path_beg{{else}}{{$sd.PathType}}{{end}} {{.}}{{end}}
             {{- if .ServicePathExclude}}
-    acl url_exclude_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+    acl url_exclude_{{$.AclName}}{{$sd.Port}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $sd.PathType ""}}path_beg{{else}}{{$sd.PathType}}{{end}} {{.}}{{end}}
             {{- end}}
             {{- if $sd.ServiceDomain}}
     acl domain_{{$.AclName}}{{$sd.Port}}_{{$sd.Index}} {{$.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
@@ -34,9 +34,9 @@ func getFrontTemplate(s Service) string {
             {{- end}}
         {{- end}}
         {{- if gt $sd.HttpsPort 0}}
-    acl url_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePath}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+    acl url_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePath}} {{if eq $sd.PathType ""}}path_beg{{else}}{{$sd.PathType}}{{end}} {{.}}{{end}}
             {{- if .ServicePathExclude}}
-    acl url_exclude_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $.PathType ""}}path_beg{{end}}{{if ne $.PathType ""}}{{$.PathType}}{{end}} {{.}}{{end}}
+    acl url_exclude_https_{{$.AclName}}{{$sd.HttpsPort}}_{{.Index}}{{range .ServicePathExclude}} {{if eq $sd.PathType ""}}path_beg{{else}}{{$sd.PathType}}{{end}} {{.}}{{end}}
             {{- end}}
             {{- if $sd.ServiceDomain}}
     acl domain_https_{{$.AclName}}{{$sd.HttpsPort}}_{{$sd.Index}} {{$.ServiceDomainAlgo}} -i{{range $sd.ServiceDomain}} {{.}}{{end}}
@@ -147,7 +147,7 @@ frontend service_{{$sd1.SrcPort}}
     tcp-request content accept if { req_ssl_hello_type 1 }`, si)
 	}
 	tmplString += fmt.Sprintf(`{{$sd := index $.ServiceDest %d}}
-    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$.PathType}} {{.}}{{end}}
+    acl sni_{{.AclName}}{{$sd.Port}}-%d{{range $sd.ServicePath}} {{$sd.PathType}} {{.}}{{end}}
     {{- if ne $sd.SrcPortAcl "" }}
     {{$sd.SrcPortAcl}}
     {{- end }}
@@ -386,9 +386,6 @@ func FormatServiceForTemplates(sr *Service) {
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
 	}
-	if len(sr.PathType) == 0 {
-		sr.PathType = "path_beg"
-	}
 	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
 		if ips, err := LookupHost("tasks." + sr.ServiceName); err == nil {
 			sr.Replicas = len(ips)
@@ -397,6 +394,10 @@ func FormatServiceForTemplates(sr *Service) {
 	for i, sd := range sr.ServiceDest {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
 			sr.ServiceDest[i].ReqMode = "http"
+		}
+
+		if len(sr.ServiceDest[i].PathType) == 0 {
+			sr.ServiceDest[i].PathType = "path_beg"
 		}
 
 		srcPort := sd.SrcPort

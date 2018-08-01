@@ -24,12 +24,12 @@ func (s *ReconfigureTestSuite) SetupTest() {
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
 		Index:       0,
+		PathType:    "path_beg",
 	}
 	s.InstanceName = "proxy-test-instance"
 	s.ServiceDest = []proxy.ServiceDest{sd}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
-	s.PathType = "path_beg"
 	s.reconfigure = Reconfigure{
 		BaseReconfigure: BaseReconfigure{
 			TemplatesPath: s.TemplatesPath,
@@ -40,7 +40,6 @@ func (s *ReconfigureTestSuite) SetupTest() {
 			ServiceName: s.ServiceName,
 			AclName:     s.ServiceName,
 			ServiceDest: []proxy.ServiceDest{sd},
-			PathType:    s.PathType,
 		},
 	}
 	os.Setenv("SKIP_ADDRESS_VALIDATION", "true")
@@ -1052,11 +1051,11 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	proxy.Instance = mockObj
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+		PathType:    "path_beg",
 	}
 	expected := proxy.Service{
 		ServiceName: "s.ServiceName",
 		ServiceDest: []proxy.ServiceDest{sd},
-		PathType:    s.PathType,
 	}
 	r := NewReconfigure(
 		BaseReconfigure{
@@ -1135,11 +1134,11 @@ func (s *ReconfigureTestSuite) Test_Execute_WhenFilterProxyInstanceIsTrue_SamePr
 	proxy.Instance = mockObj
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+		PathType:    "path_beg",
 	}
 	expected := proxy.Service{
 		ServiceName:       s.ServiceName,
 		ServiceDest:       []proxy.ServiceDest{sd},
-		PathType:          s.PathType,
 		ProxyInstanceName: s.InstanceName,
 	}
 	r := NewReconfigure(
@@ -1167,11 +1166,11 @@ func (s *ReconfigureTestSuite) Test_Execute_WhenFilterProxyInstanceIsTrue_Differ
 	proxy.Instance = mockObj
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+		PathType:    "path_beg",
 	}
 	expected := proxy.Service{
 		ServiceName:       s.ServiceName,
 		ServiceDest:       []proxy.ServiceDest{sd},
-		PathType:          s.PathType,
 		ProxyInstanceName: "another-docker-flow",
 	}
 	r := NewReconfigure(

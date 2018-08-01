@@ -1,15 +1,16 @@
 package actions
 
 import (
-	"../proxy"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"../proxy"
+	"github.com/stretchr/testify/suite"
 )
 
 type FetchTestSuite struct {
@@ -25,12 +26,12 @@ type FetchTestSuite struct {
 func (s *FetchTestSuite) SetupTest() {
 	sd := proxy.ServiceDest{
 		ServicePath: []string{"path/to/my/service/api", "path/to/my/other/service/api"},
+		PathType:    "path_beg",
 	}
 	s.InstanceName = "proxy-test-instance"
 	s.ServiceDest = []proxy.ServiceDest{sd}
 	s.ConfigsPath = "path/to/configs/dir"
 	s.TemplatesPath = "test_configs/tmpl"
-	s.PathType = "path_beg"
 	s.fetch = fetch{
 		BaseReconfigure: BaseReconfigure{
 			TemplatesPath: s.TemplatesPath,
