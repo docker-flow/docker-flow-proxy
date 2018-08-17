@@ -40,6 +40,7 @@ func (s *ReconfigureTestSuite) SetupTest() {
 			ServiceName: s.ServiceName,
 			AclName:     s.ServiceName,
 			ServiceDest: []proxy.ServiceDest{sd},
+			Replicas:    1,
 		},
 	}
 	os.Setenv("SKIP_ADDRESS_VALIDATION", "true")
@@ -121,6 +122,7 @@ func (s ReconfigureTestSuite) Test_GetTemplates_UsesServerTemplate_WhenDiscovery
 	s.reconfigure.Service.ServiceDest[0].Port = "1234"
 	s.reconfigure.Service.DiscoveryType = "DNS"
 	s.reconfigure.Service.Replicas = 0
+	s.reconfigure.Service.IsGlobal = true
 	expected := `
 backend myService-be1234_0
     mode http
@@ -427,6 +429,7 @@ backend https-myService-be4321_0
 	s.reconfigure.ServiceDest[0].Port = "1234"
 	s.reconfigure.ServiceDest[0].HttpsPort = 4321
 	s.reconfigure.Replicas = 0
+	s.reconfigure.IsGlobal = true
 	s.reconfigure.DiscoveryType = "DNS"
 	actualFront, actualBack, _ := s.reconfigure.GetTemplates()
 
@@ -1032,6 +1035,19 @@ func (s ReconfigureTestSuite) Test_Execute_RemovesService_WhenProxyFails() {
 	mockObj.AssertCalled(s.T(), "RemoveService", s.ServiceName)
 }
 
+func (s ReconfigureTestSuite) Test_Execute_RemovesService_WhenReplicasIs0() {
+	s.reconfigure.Service.Replicas = 0
+
+	mockObj := getProxyMock("")
+	proxyOrig := proxy.Instance
+	defer func() { proxy.Instance = proxyOrig }()
+	proxy.Instance = mockObj
+
+	s.reconfigure.Execute(true)
+
+	mockObj.AssertCalled(s.T(), "RemoveService", s.ServiceName)
+}
+
 func (s ReconfigureTestSuite) Test_Execute_ReloadsAgain_WhenProxyFails() {
 	mockObj := getProxyMock("Reload")
 	mockObj.On("Reload").Return(fmt.Errorf("This is an error"))
@@ -1056,6 +1072,7 @@ func (s ReconfigureTestSuite) Test_Execute_AddsService() {
 	expected := proxy.Service{
 		ServiceName: "s.ServiceName",
 		ServiceDest: []proxy.ServiceDest{sd},
+		Replicas:    1,
 	}
 	r := NewReconfigure(
 		BaseReconfigure{
@@ -1140,6 +1157,7 @@ func (s *ReconfigureTestSuite) Test_Execute_WhenFilterProxyInstanceIsTrue_SamePr
 		ServiceName:       s.ServiceName,
 		ServiceDest:       []proxy.ServiceDest{sd},
 		ProxyInstanceName: s.InstanceName,
+		Replicas:          1,
 	}
 	r := NewReconfigure(
 		BaseReconfigure{

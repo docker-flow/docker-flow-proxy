@@ -702,9 +702,43 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 	s.Equal("http", actual.ServiceDest[0].ReqMode)
 }
 
+func (s *ServerTestSuite) Test_GetServiceFromUrl_NoReplicas_IsGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(0, actual.Replicas)
+	s.Equal(true, actual.IsGlobal)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_HasReplicas_NotGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path&replicas=2", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(2, actual.Replicas)
+	s.Equal(false, actual.IsGlobal)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_ZeroReplicas_NotGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path&replicas=0", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(0, actual.Replicas)
+	s.Equal(false, actual.IsGlobal)
+}
+
 func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDomainIsPresent() {
 	expected := proxy.Service{
 		ServiceName: "serviceName",
+		IsGlobal:    true,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				AllowedMethods:     []string{},
