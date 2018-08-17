@@ -280,6 +280,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedData() {
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    0,
 	}
 	serviceMap := map[string]string{
 		"outboundHostname":     expected.ServiceDest[0].OutboundHostname,
@@ -288,6 +289,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedData() {
 		"reqPathSearchReplace": expected.ServiceDest[0].ReqPathSearchReplace,
 		"serviceName":          expected.ServiceName,
 		"servicePath.1":        strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":             strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
@@ -311,12 +313,14 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    3,
 	}
 	serviceMap := map[string]string{
 		"httpsOnly":     strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"serviceName":   expected.ServiceName,
 		"port.1":        expected.ServiceDest[0].Port,
 		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":      strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
@@ -342,11 +346,13 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    3,
 	}
 	serviceMap := map[string]string{
 		"serviceName":   expected.ServiceName,
 		"port.1":        expected.ServiceDest[0].Port,
 		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":      strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 
@@ -377,6 +383,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"redirectWhenHttpProto": strconv.FormatBool(expected.RedirectWhenHttpProto),
 		"reqPathReplace":        expected.ReqPathReplace,
 		"reqPathSearch":         expected.ReqPathSearch,
+		"replicas":              strconv.Itoa(expected.Replicas),
 		"serviceCert":           expected.ServiceCert,
 		"serviceDomainAlgo":     expected.ServiceDomainAlgo,
 		"serviceName":           expected.ServiceName,
@@ -431,6 +438,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		IsDefaultBackend:      true,
 		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
+		Replicas:              3,
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
