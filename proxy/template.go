@@ -386,7 +386,7 @@ func FormatServiceForTemplates(sr *Service) {
 	if len(sr.AclName) == 0 {
 		sr.AclName = sr.ServiceName
 	}
-	if sr.DiscoveryType == "DNS" && sr.Replicas == 0 {
+	if sr.DiscoveryType == "DNS" && sr.Replicas <= 0 {
 		if ips, err := LookupHost("tasks." + sr.ServiceName); err == nil {
 			sr.Replicas = len(ips)
 		}

@@ -375,6 +375,10 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 			break
 		}
 	}
+	// Forces env service to be added
+	if s.Replicas == 0 {
+		s.Replicas = -1
+	}
 	s.ServiceDest = sd
 	return s, nil
 }

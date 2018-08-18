@@ -785,6 +785,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		Distribute:            true,
 		IsDefaultBackend:      true,
 		RedirectWhenHttpProto: true,
+		Replicas:              -1,
 		ServiceCert:           "my-ServiceCert",
 		ServiceDomainAlgo:     "hdr_dom",
 		ServiceName:           "my-ServiceName",
@@ -917,6 +918,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdrDom_WhenServiceDomainMatchAllIsTrue() {
 	service := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				ReqMode: "http",
@@ -952,6 +954,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdr
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexedData() {
 	expected := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				Port:                          "1111",
@@ -1051,6 +1054,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameI
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() {
 	service := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				Port: "1111",

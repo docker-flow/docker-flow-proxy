@@ -169,6 +169,7 @@ type Service struct {
 	// The number of replicas of a service.
 	// This parameter is used if `DiscoveryType` is set to `DNS`.
 	// Non-Global services with 0 replicas will not be added to the HAproxy config.
+	// Replicas is set to -1 with services added through ENV variables
 	Replicas int `split_words:"true"`
 	// TODO: Deprecated since Dec. 2017.
 	// A regular expression to apply the modification.
