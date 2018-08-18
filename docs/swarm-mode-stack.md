@@ -156,7 +156,7 @@ networks:
     external: true
 ```
 
-The stack defines two services (`main` and `db`). They will communicate with each other through the `default` network that will be created automatically by the stack. Since the `main` service is an API, it should be accessible through the proxy, so we're attaching `proxy` network as well. The `main` service defines four service labels. They are the same labels you used in the [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) tutorial.
+The stack defines two services (`main` and `db`). They will communicate with each other through the `default` network that will be created automatically by the stack. Since the `main` service is an API, it should be accessible through the proxy, so we're attaching `proxy` network as well. The `main` service defines three service labels. They are the same labels you used in the [Running Docker Flow Proxy In Swarm Mode With Automatic Reconfiguration](swarm-mode-auto.md) tutorial.
 
 !!! tip
     Don't confuse **service** with **container** labels. The syntax is the same with the difference that service labels are inside the `deploy` section. *Docker Flow Swarm Listener* supports only service labels.
