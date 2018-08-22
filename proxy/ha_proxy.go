@@ -65,12 +65,30 @@ func NewHaProxy(templatesPath, configsPath string) proxy {
 
 // GetCertPaths returns the paths of all the certificates
 func (m HaProxy) GetCertPaths() []string {
-	paths := []string{}
+	preferredCertsGlobs := strings.Split(os.Getenv("PREFERRED_CERTIFICATE"), ",")
+	pathsList := [][]string{[]string{}}
+	defaultIndex := len(preferredCertsGlobs)
+
+	for range preferredCertsGlobs {
+		pathsList = append(pathsList, []string{})
+	}
+
 	files, _ := readDir("/certs")
 	for _, file := range files {
 		if !file.IsDir() {
 			path := fmt.Sprintf("/certs/%s", file.Name())
-			paths = append(paths, path)
+			foundGlob := false
+
+			for idx, pattern := range preferredCertsGlobs {
+				if Glob(pattern, file.Name()) {
+					pathsList[idx] = append(pathsList[idx], path)
+					foundGlob = true
+					break
+				}
+			}
+			if !foundGlob {
+				pathsList[defaultIndex] = append(pathsList[defaultIndex], path)
+			}
 		}
 	}
 	files, _ = readDir("/run/secrets")
@@ -79,11 +97,30 @@ func (m HaProxy) GetCertPaths() []string {
 			lName := strings.ToLower(file.Name())
 			if strings.HasPrefix(lName, "cert-") || strings.HasPrefix(lName, "cert_") {
 				path := fmt.Sprintf("/run/secrets/%s", file.Name())
-				paths = append(paths, path)
+				foundGlob := false
+
+				for idx, pattern := range preferredCertsGlobs {
+					if Glob(pattern, file.Name()) {
+						pathsList[idx] = append(pathsList[idx], path)
+						foundGlob = true
+						break
+					}
+				}
+				if !foundGlob {
+					pathsList[defaultIndex] = append(pathsList[defaultIndex], path)
+				}
 			}
 		}
 	}
-	return paths
+
+	outputPaths := []string{}
+	for _, paths := range pathsList {
+		for _, path := range paths {
+			outputPaths = append(outputPaths, path)
+		}
+	}
+
+	return outputPaths
 }
 
 // GetCerts return all the certificates from the system.

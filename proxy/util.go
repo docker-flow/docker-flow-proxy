@@ -141,3 +141,37 @@ func replaceNonAlphabetAndNumbers(value []string) string {
 	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
 	return reg.ReplaceAllString(strings.Join(value, "_"), "_")
 }
+
+// Glob tests a string against the glob pattern
+func Glob(pattern, str string) bool {
+	if len(pattern) == 0 {
+		return str == pattern
+	}
+
+	if pattern == "*" {
+		return true
+	}
+
+	parts := strings.Split(pattern, "*")
+
+	if len(parts) == 1 {
+		return str == pattern
+	}
+
+	leadingGlob := strings.HasPrefix(pattern, "*")
+	trailingGlob := strings.HasSuffix(pattern, "*")
+	end := len(parts) - 1
+
+	for i := 0; i < end; i++ {
+		idx := strings.Index(str, parts[i])
+		if i == 0 && !leadingGlob && idx != 0 {
+			return false
+		} else if idx < 0 {
+			return false
+		}
+		str = str[idx+len(parts[i]):]
+	}
+
+	return trailingGlob || strings.HasSuffix(str, parts[end])
+
+}
