@@ -177,6 +177,62 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
 	s.EqualValues(expected, actual)
 }
 
+func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts_Globbed() {
+	readDirOrig := readDir
+	preferredCertsOrg := os.Getenv("PREFERRED_CERTIFICATE")
+	defer func() {
+		readDir = readDirOrig
+		os.Setenv("PREFERRED_CERTIFICATE", preferredCertsOrg)
+	}()
+
+	os.Setenv("PREFERRED_CERTIFICATE", "dev3*,dev2.my-cert.com,*.hello.world")
+
+	p := HaProxy{}
+	expected := []string{"/certs/dev3.my-cert.com", "/certs/dev2.my-cert.com",
+		"/certs/api1.hello.world", "/certs/dev1.my-cert.com", "/certs/dev4.my-cert.com"}
+	mockedFiles := []os.FileInfo{}
+	for i := 1; i <= 4; i++ {
+		certName := fmt.Sprintf("dev%d.my-cert.com", i)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
+	}
+
+	// Adds api1.hello.world to the end
+	file := FileInfoMock{
+		NameMock: func() string {
+			return "api1.hello.world"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	}
+	mockedFiles = append(mockedFiles, file)
+
+	readDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
+	dir := FileInfoMock{
+		IsDirMock: func() bool {
+			return true
+		},
+	}
+	mockedFiles = append(mockedFiles, dir)
+
+	actual := p.GetCertPaths()
+
+	s.EqualValues(expected, actual)
+}
+
 func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
 	readDirOrig := readDir
 	defer func() {
