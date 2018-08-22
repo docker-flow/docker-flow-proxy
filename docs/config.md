@@ -34,7 +34,7 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |FILTER_PROXY_INSTANCE_NAME|If set to `true`, only services with `com.df.proxyInstanceName` equal to env variable `PROXY_INSTANCE_NAME` will be processed by the proxy.<br>**Default:** `false`|
 |HTTPS_ONLY         |If set to true, all requests to all services will be redirected to HTTPS.<br>**Example:** `true`<br>**Default Value:** `false`|
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) used for automatic proxy configuration. Multiple values can be separated with comma (`,`). When set to multiple values, the proxy will query each address in order.<br>**Example:** `swarm-listener`|
-PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.<br>**Default value:** `docker-flow`|
+|PROXY_INSTANCE_NAME|The name of the proxy instance. Useful if multiple proxies are running inside a cluster.<br>**Default value:** `docker-flow`|
 |RECONFIGURE_ATTEMPTS|The number of attempts the proxy will try to reconfigure itself before giving up and removing the offending service. The period between reconfigure attempts is 1 second.<br>**Example:** `15`<br>**Default value:** `20`|
 |RELOAD_ATTEMPTS    |The number of attempts the proxy will query a listener addresss during startup. Only used when LISTENER_ADDRESS is a comma seperated list of addresses.<br>**Default value:** `5`|
 |RELOAD_INTERVAL    |Defines the frequency (in milliseconds) between automatic config reloads from Swarm Listener.<br>**Default value:** `5000`|
