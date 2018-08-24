@@ -1,0 +1,14 @@
+name: docker-flow-proxy
+version: 0.0.1
+apiVersion: v1
+description: Docker Flow Proxy
+keywords:
+- docker
+- swarm
+- docker-flow
+home: https://proxy.dockerflow.com
+sources:
+- https://github.com/docker-flow/docker-flow-proxy
+maintainers:
+- name: Viktor Farcic
+  email: viktor@farcic.com

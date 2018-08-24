@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "helm.fullname" . }}
+  labels:
+    app: {{ template "helm.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  ports:
+  - port: 80
+  type: NodePort
+  selector:
+    app: {{ template "helm.name" . }}
+    release: {{ .Release.Name }}

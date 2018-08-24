@@ -1,0 +1,12 @@
+image:
+  tag: latest
+ingress:
+  host:
+  - proxy.dockerflow.com
+resources:
+  limits:
+   cpu: 0.1
+   memory: 40Mi
+  requests:
+   cpu: 0.05
+   memory: 20Mi

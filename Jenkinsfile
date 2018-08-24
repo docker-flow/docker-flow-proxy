@@ -53,7 +53,7 @@ pipeline {
         label "prod"
       }
       steps {
-        dfDeploy2("docker-flow-proxy", "proxy_proxy", "proxy_docs")
+        sh "helm upgrade -i docker-flow-proxy helm/docker-flow-proxy --namespace df --set image.tag=${currentBuild.displayName}"
       }
     }
   }
