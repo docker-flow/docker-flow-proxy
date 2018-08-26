@@ -2,12 +2,13 @@ package logging
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"log"
 	"log/syslog"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type LoggingTestSuite struct {
