@@ -1,8 +1,9 @@
 package logging
 
 import (
-	"github.com/ziutek/syslog"
 	"log"
+
+	"github.com/ziutek/syslog"
 )
 
 var logPrintf = log.Printf
@@ -28,5 +29,8 @@ func (h *handler) mainLoop() {
 var StartLogging = func() {
 	s := syslog.NewServer()
 	s.AddHandler(newHandler())
-	s.Listen("127.0.0.1:1514")
+	err := s.Listen("127.0.0.1:1514")
+	if err != nil {
+		logPrintf("%v", err)
+	}
 }
