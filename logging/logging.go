@@ -32,5 +32,7 @@ var StartLogging = func() {
 	err := s.Listen("127.0.0.1:1514")
 	if err != nil {
 		logPrintf("%v", err)
+	} else {
+		logPrintf("NO ERROR")
 	}
 }
