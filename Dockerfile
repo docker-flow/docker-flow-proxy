@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine AS build
+FROM golang:1.10.3-alpine AS build
 ADD . /src
 WORKDIR /src
 RUN set -x \
@@ -8,7 +8,7 @@ RUN set -x \
     && go build -v -o docker-flow-proxy
 
 
-FROM haproxy:1.8-alpine
+FROM haproxy:1.8.13-alpine
 LABEL org.opencontainers.image.title="Docker Flow Proxy" \
     org.opencontainers.image.version="18.08.26" \
     org.opencontainers.image.description="Automated HAProxy Reverse Proxy for Docker" \
