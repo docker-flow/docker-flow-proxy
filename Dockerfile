@@ -10,7 +10,6 @@ RUN set -x \
 
 FROM haproxy:1.8.13-alpine
 LABEL org.opencontainers.image.title="Docker Flow Proxy" \
-    org.opencontainers.image.version="18.08.26" \
     org.opencontainers.image.description="Automated HAProxy Reverse Proxy for Docker" \
     org.opencontainers.image.url="https://proxy.dockerflow.com" \
     org.opencontainers.image.licenses="MIT" \
