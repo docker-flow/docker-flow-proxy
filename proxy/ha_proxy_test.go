@@ -1616,14 +1616,19 @@ frontend service_1234
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI443() {
+	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
+	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
+	os.Setenv("DEFAULT_PORTS", "80")
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
-		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:443",
 		"",
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s
+    acl url_acl21111_0 path_beg /path
+    use_backend acl2-be1111_0 if url_acl21111_0
 
 frontend service_443
     bind *:443
@@ -1647,7 +1652,15 @@ frontend service_443
 			{SrcPort: 443, Port: "4321", ReqMode: "sni", Index: 0},
 		},
 	}
+	service2 := Service{
+		ServiceName: "my-service2",
+		AclName:     "acl2",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
 	p.AddService(service1)
+	p.AddService(service2)
 
 	FormatServiceForTemplates(&service1)
 	p.CreateConfigFromTemplates()
@@ -1656,14 +1669,19 @@ frontend service_443
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndMultipleSNI443() {
+	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
+	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
+	os.Setenv("DEFAULT_PORTS", "80")
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
-		"\n    bind *:80\n    bind *:443",
+		"\n    bind *:443",
 		"",
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s
+    acl url_acl31111_0 path_beg /path
+    use_backend acl3-be1111_0 if url_acl31111_0
 
 frontend service_443
     bind *:443
@@ -1697,8 +1715,16 @@ frontend service_443
 			{SrcPort: 443, Port: "4321", ReqMode: "sni", Index: 2},
 		},
 	}
+	service3 := Service{
+		ServiceName: "my-service-3",
+		AclName:     "acl3",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
 	p.AddService(service1)
 	p.AddService(service2)
+	p.AddService(service3)
 
 	p.CreateConfigFromTemplates()
 
