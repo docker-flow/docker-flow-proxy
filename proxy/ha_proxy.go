@@ -302,6 +302,25 @@ backend dummy-be
 }
 
 func (m HaProxy) getConfigData() configData {
+
+	services := Services{}
+	hasHTTP := false
+	for _, s := range dataInstance.Services {
+		if len(s.AclName) == 0 {
+			s.AclName = s.ServiceName
+		}
+		services = append(services, s)
+		for i := range s.ServiceDest {
+			if len(s.ServiceDest[i].ReqMode) == 0 {
+				s.ServiceDest[i].ReqMode = "http"
+			}
+			if s.ServiceDest[i].ReqMode == "http" {
+				hasHTTP = true
+			}
+		}
+	}
+	includeDefaultPorts := (len(services) == 0) || hasHTTP
+
 	d := configData{
 		CertsString: m.getCertsConfigSnippet(),
 	}
@@ -328,11 +347,13 @@ func (m HaProxy) getConfigData() configData {
 	m.addCompression(&d)
 	m.addDebug(&d)
 
-	defaultPortsString := getSecretOrEnvVar("DEFAULT_PORTS", "")
-	defaultPorts := strings.Split(defaultPortsString, ",")
-	for _, bindPort := range defaultPorts {
-		formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
-		d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
+	if includeDefaultPorts {
+		defaultPortsString := getSecretOrEnvVar("DEFAULT_PORTS", "")
+		defaultPorts := strings.Split(defaultPortsString, ",")
+		for _, bindPort := range defaultPorts {
+			formattedPort := strings.Replace(bindPort, ":ssl", d.CertsString, -1)
+			d.DefaultBinds += fmt.Sprintf("\n    bind *:%s", formattedPort)
+		}
 	}
 	extraGlobal := getSecretOrEnvVarSplit("EXTRA_GLOBAL", "")
 	if len(extraGlobal) > 0 {
@@ -354,18 +375,6 @@ func (m HaProxy) getConfigData() configData {
     capture request header %s len %s`,
 				values[0],
 				values[1])
-		}
-	}
-	services := Services{}
-	for _, s := range dataInstance.Services {
-		if len(s.AclName) == 0 {
-			s.AclName = s.ServiceName
-		}
-		services = append(services, s)
-		for i := range s.ServiceDest {
-			if len(s.ServiceDest[i].ReqMode) == 0 {
-				s.ServiceDest[i].ReqMode = "http"
-			}
 		}
 	}
 	m.getSni(&services, &d)

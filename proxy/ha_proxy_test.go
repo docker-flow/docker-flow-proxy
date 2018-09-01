@@ -1051,7 +1051,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWellKnownPa
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1082,7 +1086,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp_With_Clitcpka() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1115,7 +1123,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcpWithClientTimeout() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1165,7 +1177,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsListen_TcpGroup() {
 	}
 
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1289,7 +1305,11 @@ frontend tcpFE_3333
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_GroupsTcpFrontendsByPort() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1345,6 +1365,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLoggingToTcpFronten
 	defer func() { os.Setenv("DEBUG", debugOrig) }()
 	os.Setenv("DEBUG", "true")
 	var actualData string
+	tmpl := strings.Replace(
+		s.getTemplateWithLogs(),
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1354,7 +1379,7 @@ frontend tcpFE_1234
     option tcplog
     log global
     default_backend my-service-1-be4321_0%s`,
-		s.getTemplateWithLogs(),
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -1385,6 +1410,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsTcpLoggingFormat() 
 	os.Setenv("DEBUG", "true")
 	os.Setenv("DEBUG_TCP_FORMAT", "something-tcp-related")
 	var actualData string
+	tmpl := strings.Replace(
+		s.getTemplateWithLogs(),
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1395,7 +1425,7 @@ frontend tcpFE_1234
     log global
     log-format something-tcp-related
     default_backend my-service-1-be4321_0%s`,
-		s.getTemplateWithLogs(),
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -1418,7 +1448,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1455,7 +1489,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithDebug() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1495,7 +1533,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClientTimeoutFromServiceDest() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1533,7 +1575,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClitcpkaOption() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1570,13 +1616,10 @@ frontend service_1234
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI443() {
-	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
-	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
-	os.Setenv("DEFAULT_PORTS", "80")
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
-		"\n    bind *:443",
+		"\n    bind *:80\n    bind *:443",
 		"",
 		-1)
 	expectedData := fmt.Sprintf(
@@ -1613,13 +1656,10 @@ frontend service_443
 }
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndMultipleSNI443() {
-	defaultPortsOrig := os.Getenv("DEFAULT_PORTS")
-	defer func() { os.Setenv("DEFAULT_PORTS", defaultPortsOrig) }()
-	os.Setenv("DEFAULT_PORTS", "80")
 	var actualData string
 	tmpl := strings.Replace(
 		s.TemplateContent,
-		"\n    bind *:443",
+		"\n    bind *:80\n    bind *:443",
 		"",
 		-1)
 	expectedData := fmt.Sprintf(
@@ -2309,6 +2349,43 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_SetsProtocol() {
 	}
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_OnlyTCPReqMode() {
+
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    default_backend my-service-1-be4321_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	service1 := Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
+		},
+	}
+	p.AddService(service1)
+
+	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }
