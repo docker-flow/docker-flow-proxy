@@ -6,7 +6,7 @@ ingress:
 resources:
   limits:
    cpu: 0.1
-   memory: 40Mi
+   memory: 6Mi
   requests:
    cpu: 0.05
-   memory: 20Mi
+   memory: 3Mi
