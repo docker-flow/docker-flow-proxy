@@ -1,8 +1,8 @@
-FROM golang:1.10.3-alpine AS build
+FROM golang:1.11.0-alpine AS build
 ADD . /src
 WORKDIR /src
 RUN set -x \
-    && apk add --update --no-cache --no-progress git \
+    && apk add --update --no-cache --no-progress git g++ \
     && go get -d -v -t \
     && go test --cover ./... --run UnitTest \
     && go build -v -o docker-flow-proxy
