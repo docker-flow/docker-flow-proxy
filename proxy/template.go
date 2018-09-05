@@ -391,6 +391,9 @@ func FormatServiceForTemplates(sr *Service) {
 			sr.Replicas = len(ips)
 		}
 	}
+
+	sort.Strings(sr.Tasks)
+
 	for i, sd := range sr.ServiceDest {
 		if len(sr.ServiceDest[i].ReqMode) == 0 {
 			sr.ServiceDest[i].ReqMode = "http"

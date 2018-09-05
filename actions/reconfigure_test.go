@@ -741,7 +741,8 @@ func (s ReconfigureTestSuite) Test_Execute_WritesServerSession() {
 	s.reconfigure.AclName = "my-service"
 	s.reconfigure.ServiceDest[0].Port = "1111"
 	s.reconfigure.ServiceDest[0].HttpsPort = 2222
-	s.reconfigure.Tasks = []string{"1.2.3.4", "4.3.2.1"}
+	// The expectedData will place these ips in order
+	s.reconfigure.Tasks = []string{"4.3.2.1", "1.2.3.4"}
 	s.reconfigure.SessionType = "sticky-server"
 	var actualData string
 	expectedData := `
