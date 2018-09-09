@@ -41,7 +41,7 @@ func (s LoggingTestSuite) Test_StartLogging_OutputsSyslogToStdOut() {
 		expected := fmt.Sprintf("This is a syslog message %d", i)
 		go sysLog.Info(expected)
 		logged := false
-		for c := 0; c < 200; c++ {
+		for c := 0; c < 1000; c++ {
 			if strings.Contains(actual, expected) {
 				logged = true
 				break
