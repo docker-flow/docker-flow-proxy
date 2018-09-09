@@ -5,8 +5,8 @@ ingress:
   - proxy.dockerflow.com
 resources:
   limits:
-   cpu: 0.1
-   memory: 6Mi
+   cpu: 15m
+   memory: 10Mi
   requests:
-   cpu: 0.05
-   memory: 3Mi
+   cpu: 5m
+   memory: 5Mi
