@@ -2,13 +2,14 @@ package server
 
 import (
 	"fmt"
-	"github.com/gorilla/schema"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gorilla/schema"
 )
 
 var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
@@ -16,6 +17,7 @@ var httpWriterSetContentType = func(w http.ResponseWriter, value string) {
 }
 var logPrintf = log.Printf
 var lookupHost = net.LookupHost
+var interfaceAddrs = net.InterfaceAddrs
 
 var decoder = schema.NewDecoder()
 
@@ -76,3 +78,36 @@ var getSecretOrEnvVar = func(key, defaultValue string) string {
 	return defaultValue
 }
 var readSecretsFile = ioutil.ReadFile
+
+// filterNetworkIPs filters out ips that are not contained
+// in one of the network interfaces
+var filterNetworkIPs = func(ipStrs []string) []string {
+	if len(ipStrs) == 0 {
+		return ipStrs
+	}
+	networkAddrs, err := interfaceAddrs()
+	if err != nil {
+		return ipStrs
+	}
+	networkIPs := []*net.IPNet{}
+	for _, addr := range networkAddrs {
+		_, netIP, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			continue
+		}
+		networkIPs = append(networkIPs, netIP)
+	}
+
+	output := []string{}
+	for _, ipStr := range ipStrs {
+		ip := net.ParseIP(ipStr)
+		for _, netIP := range networkIPs {
+			if netIP.Contains(ip) {
+				output = append(output, ip.String())
+				continue
+			}
+		}
+	}
+
+	return output
+}
