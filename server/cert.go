@@ -112,6 +112,9 @@ func (m *cert) Init() error {
 	if err != nil {
 		return err
 	}
+
+	ips = filterNetworkIPs(ips)
+
 	certs := []cert{}
 	for _, ip := range ips {
 		hostPort := ip

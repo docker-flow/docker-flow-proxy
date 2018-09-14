@@ -2,13 +2,15 @@ package server
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type UtilTestSuite struct {
@@ -172,4 +174,74 @@ func (s *UtilTestSuite) Test_SendDistributeRequests_ReturnsError_WhenProxyIPsAre
 
 	s.Assertions.Equal(http.StatusBadRequest, actualStatus)
 	s.Assertions.Error(err)
+}
+
+func (s *UtilTestSuite) Test_FilterIPs_NoIps() {
+	s.Equal([]string{}, filterNetworkIPs([]string{}))
+}
+func (s *UtilTestSuite) Test_FilterIPs_NoFiltering() {
+	interfaceAddrsOrg := interfaceAddrs
+	defer func() {
+		interfaceAddrs = interfaceAddrsOrg
+	}()
+	interfaceAddrs = func() ([]net.Addr, error) {
+		output := make([]net.Addr, 2)
+		_, netIP1, _ := net.ParseCIDR("10.0.0.1/24")
+		output[0] = netIP1
+		_, netIP2, _ := net.ParseCIDR("12.0.0.1/24")
+		output[1] = netIP2
+		return output, nil
+	}
+
+	ips := []string{
+		"10.0.0.2", "10.0.0.3", "10.0.0.8", "12.0.0.3",
+	}
+	fitlerIPs := filterNetworkIPs(ips)
+
+	s.Equal(fitlerIPs, ips)
+}
+func (s *UtilTestSuite) Test_FilterIPs_FiltersEverything() {
+
+	interfaceAddrsOrg := interfaceAddrs
+	defer func() {
+		interfaceAddrs = interfaceAddrsOrg
+	}()
+	interfaceAddrs = func() ([]net.Addr, error) {
+		output := make([]net.Addr, 2)
+		_, netIP1, _ := net.ParseCIDR("11.0.0.1/24")
+		output[0] = netIP1
+		_, netIP2, _ := net.ParseCIDR("12.0.0.1/24")
+		output[1] = netIP2
+		return output, nil
+	}
+
+	ips := []string{
+		"10.0.0.2", "10.0.0.3", "10.0.0.8",
+	}
+	fitlerIPs := filterNetworkIPs(ips)
+
+	s.Equal([]string{}, fitlerIPs)
+}
+
+func (s *UtilTestSuite) Test_FilterIPs_FiltersHalf() {
+
+	interfaceAddrsOrg := interfaceAddrs
+	defer func() {
+		interfaceAddrs = interfaceAddrsOrg
+	}()
+	interfaceAddrs = func() ([]net.Addr, error) {
+		output := make([]net.Addr, 2)
+		_, netIP1, _ := net.ParseCIDR("11.0.0.1/24")
+		output[0] = netIP1
+		_, netIP2, _ := net.ParseCIDR("12.0.0.1/24")
+		output[1] = netIP2
+		return output, nil
+	}
+
+	ips := []string{
+		"10.0.0.2", "10.0.0.3", "12.0.0.8", "11.0.0.3",
+	}
+	fitlerIPs := filterNetworkIPs(ips)
+
+	s.Equal([]string{"12.0.0.8", "11.0.0.3"}, fitlerIPs)
 }
