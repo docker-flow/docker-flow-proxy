@@ -589,6 +589,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		Distribute:            true,
 		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
+		RedirectUnlessHttpsProto: true,
 		Replicas:              83,
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
@@ -629,7 +630,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&proxyInstanceName=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&proxyInstanceName=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&redirectUnlessHttpsProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
 
 		s.BaseUrl,
 		expected.ServiceName,
@@ -655,6 +656,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceDest[0].HttpsRedirectCode,
 		expected.IsDefaultBackend,
 		expected.RedirectWhenHttpProto,
+		expected.RedirectUnlessHttpsProto,
 		expected.ServiceDest[0].HttpsPort,
 		expected.ServiceDest[0].SrcPort,
 		expected.ServiceDest[0].SrcHttpsPort,
@@ -843,6 +845,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_PATH_TYPE", service.ServiceDest[0].PathType)
 	os.Setenv("DFP_SERVICE_REDIRECT_FROM_DOMAIN", strings.Join(service.ServiceDest[0].RedirectFromDomain, ","))
 	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
+	os.Setenv("DFP_SERVICE_REDIRECT_UNLESS_HTTPS_PROTO", strconv.FormatBool(service.RedirectUnlessHttpsProto))
 	os.Setenv("DFP_SERVICE_REQ_MODE", service.ServiceDest[0].ReqMode)
 	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE", service.ServiceDest[0].ReqPathSearchReplace)
 	os.Setenv("DFP_SERVICE_SERVICE_CERT", service.ServiceCert)
@@ -888,6 +891,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_PORT")
 		os.Unsetenv("DFP_SERVICE_REDIRECT_FROM_DOMAIN")
 		os.Unsetenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO")
+		os.Unsetenv("DFP_SERVICE_REDIRECT_UNLESS_HTTPS_PROTO")
 		os.Unsetenv("DFP_SERVICE_REQ_MODE")
 		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE")
 		os.Unsetenv("DFP_SERVICE_SERVICE_CERT")
