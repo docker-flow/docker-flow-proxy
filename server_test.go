@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"./actions"
-	"./proxy"
-	"./server"
+	"github.com/docker-flow/docker-flow-proxy/actions"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
+	"github.com/docker-flow/docker-flow-proxy/server"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )

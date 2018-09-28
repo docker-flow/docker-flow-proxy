@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )

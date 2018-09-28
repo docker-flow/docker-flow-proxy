@@ -3,12 +3,13 @@
 package main
 
 import (
-	"./logging"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/docker-flow/docker-flow-proxy/logging"
+	"github.com/stretchr/testify/suite"
 )
 
 // Setup

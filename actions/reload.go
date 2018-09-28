@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 // Reloader defines the interface for reloading HAProxy

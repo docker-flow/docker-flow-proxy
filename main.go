@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"./logging"
+	"github.com/docker-flow/docker-flow-proxy/logging"
 )
 
 func main() {

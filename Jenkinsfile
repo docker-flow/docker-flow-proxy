@@ -15,7 +15,7 @@ pipeline {
           def dateFormat = new SimpleDateFormat("yy.MM.dd")
           currentBuild.displayName = dateFormat.format(new Date()) + "-" + env.BUILD_NUMBER
         }
-        dfBuild2("docker-flow-proxy")
+        dfBuild2("docker-flow-proxy", "thomasjpfan/gox-build:0.1.1-1.11.0-alpine3.8")
         sh "docker image build -t dockerflow/docker-flow-proxy:latest-packet-beat -f Dockerfile.packetbeat ."
         sh "docker image tag dockerflow/docker-flow-proxy:latest-packet-beat dockerflow/docker-flow-proxy:${currentBuild.displayName}-packet-beat"
       }
