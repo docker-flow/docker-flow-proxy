@@ -16,6 +16,8 @@ require (
 	github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e
 	github.com/prometheus/procfs v0.0.0-20180920065004-418d78d0b9a7 // indirect
 	github.com/sirupsen/logrus v1.1.0 // indirect
+	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/testify v1.2.2
 	github.com/ziutek/syslog v0.0.0-20180426113420-8a9fdf1a8529
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 )
