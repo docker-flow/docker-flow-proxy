@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 var mu = &sync.Mutex{}
