@@ -1,6 +1,6 @@
 package main
 
-import haproxy "./proxy"
+import haproxy "github.com/docker-flow/docker-flow-proxy/proxy"
 
 type runner interface {
 	Execute(args []string) error

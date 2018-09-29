@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 // Removable defines functions that must be implemented by any struct in charge of removing services from the proxy.

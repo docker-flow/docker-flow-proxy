@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"

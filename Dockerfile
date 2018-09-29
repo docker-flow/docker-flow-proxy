@@ -3,7 +3,7 @@ ADD . /src
 WORKDIR /src
 RUN set -x \
     && apk add --update --no-cache --no-progress git g++ \
-    && go get -d -v -t \
+    && go get -d -v \
     && go test --cover ./... --run UnitTest \
     && go build -v -o docker-flow-proxy
 

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 // Fetchable defines interface that fetches information from other sources
