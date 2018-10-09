@@ -166,6 +166,8 @@ type Service struct {
 	ProxyInstanceName string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
+	// Whether to redirect to https unless X-Forwarded-Proto is https
+	RedirectUnlessHttpsProto bool `split_words:"true"`
 	// The number of replicas of a service.
 	// This parameter is used if `DiscoveryType` is set to `DNS`.
 	// Non-Global services with 0 replicas will not be added to the HAproxy config.
