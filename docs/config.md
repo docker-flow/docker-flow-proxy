@@ -29,8 +29,8 @@ The following environment variables can be used to configure the *Docker Flow Pr
 |DEFAULT_REQ_MODE   |The default request mode used by the proxy.<br>**Default value:** `http`|
 |DO_NOT_RESOLVE_ADDR|Whether not to resolve addresses. If set to `true`, the proxy will NOT fail if the service is not available.<br>**Default value:** `false`|
 |ENABLE_H2          |Whether to enable http/2<br>**Example:** `false`<br>**Default:** `true`|
-|EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration. Multiple lines should be separated with comma (*,*).|
-|EXTRA_GLOBAL       |Value will be added to the default `global` configuration. Multiple lines should be separated with comma (*,*).|
+|EXTRA_FRONTEND     |Value will be added to the default `frontend` configuration. Multiple lines should be separated with comma (*,*). If you are setting `maxconn`, be sure to add `maxcoon` to `EXTRA_GLOBAL` as well.|
+|EXTRA_GLOBAL       |Value will be added to the default `global` configuration. Multiple lines should be separated with comma (*,*). If you are setting `maxconn`, be sure to add `maxcoon` to `EXTRA_FRONTEND` as well.|
 |FILTER_PROXY_INSTANCE_NAME|If set to `true`, only services with `com.df.proxyInstanceName` equal to env variable `PROXY_INSTANCE_NAME` will be processed by the proxy.<br>**Default:** `false`|
 |HTTPS_ONLY         |If set to true, all requests to all services will be redirected to HTTPS.<br>**Example:** `true`<br>**Default Value:** `false`|
 |LISTENER_ADDRESS   |The address of the [Docker Flow: Swarm Listener](https://github.com/docker-flow/docker-flow-swarm-listener) used for automatic proxy configuration. Multiple values can be separated with comma (`,`). When set to multiple values, the proxy will query each address in order.<br>**Example:** `swarm-listener`|
