@@ -314,7 +314,9 @@ backend {{$.AclName}}-be{{$sd.Port}}_{{.Index}}
     {{- end}}
 {{- end}}
         {{- if ne $.BackendExtra ""}}
-    {{ $.BackendExtra }}
+{{$arr := Split $.BackendExtra "||"}}
+{{range $k, $v := $arr}}    {{$v}}
+{{end}}
         {{- end}}
 {{- end}}
 {{- end}}
@@ -382,7 +384,9 @@ backend https-{{$.AclName}}-be{{.HttpsPort}}_{{.Index}}
                 {{- end}}
             {{- end}}
             {{- if ne $.BackendExtra ""}}
-    {{ $.BackendExtra }}
+    {{$arr := Split $.BackendExtra "||"}}
+    {{range $k, $v := $arr}}        {{$v}}
+    {{end}}
             {{- end}}
     {{- end}}
 {{- end}}`
