@@ -1,5 +1,7 @@
 # Docker Flow Proxy
 
+**This project needs adoption. I (@vfarcic) moved to Kubernetes and cannot dedicate time to this project anymore. Similarly, involvement from other contributors dropped as well. Please consider contributing yourself if you think this project is useful.**
+
 [![GitHub release](https://img.shields.io/github/release/docker-flow/docker-flow-proxy.svg)]()
 [![license](https://img.shields.io/github/license/docker-flow/docker-flow-proxy.svg)]()
 [![Docker Pulls](https://img.shields.io/docker/pulls/vfarcic/docker-flow-proxy.svg)]()
