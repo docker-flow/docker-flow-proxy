@@ -177,6 +177,62 @@ func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts() {
 	s.EqualValues(expected, actual)
 }
 
+func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsCerts_Globbed() {
+	readDirOrig := readDir
+	preferredCertsOrg := os.Getenv("PREFERRED_CERTIFICATE")
+	defer func() {
+		readDir = readDirOrig
+		os.Setenv("PREFERRED_CERTIFICATE", preferredCertsOrg)
+	}()
+
+	os.Setenv("PREFERRED_CERTIFICATE", "dev3*,dev2.my-cert.com,*.hello.world")
+
+	p := HaProxy{}
+	expected := []string{"/certs/dev3.my-cert.com", "/certs/dev2.my-cert.com",
+		"/certs/api1.hello.world", "/certs/dev1.my-cert.com", "/certs/dev4.my-cert.com"}
+	mockedFiles := []os.FileInfo{}
+	for i := 1; i <= 4; i++ {
+		certName := fmt.Sprintf("dev%d.my-cert.com", i)
+		file := FileInfoMock{
+			NameMock: func() string {
+				return certName
+			},
+			IsDirMock: func() bool {
+				return false
+			},
+		}
+		mockedFiles = append(mockedFiles, file)
+	}
+
+	// Adds api1.hello.world to the end
+	file := FileInfoMock{
+		NameMock: func() string {
+			return "api1.hello.world"
+		},
+		IsDirMock: func() bool {
+			return false
+		},
+	}
+	mockedFiles = append(mockedFiles, file)
+
+	readDir = func(dir string) ([]os.FileInfo, error) {
+		if dir == "/certs" {
+			return mockedFiles, nil
+		}
+		return []os.FileInfo{}, nil
+	}
+	dir := FileInfoMock{
+		IsDirMock: func() bool {
+			return true
+		},
+	}
+	mockedFiles = append(mockedFiles, dir)
+
+	actual := p.GetCertPaths()
+
+	s.EqualValues(expected, actual)
+}
+
 func (s HaProxyTestSuite) Test_GetCertPaths_ReturnsSecrets() {
 	readDirOrig := readDir
 	defer func() {
@@ -766,17 +822,15 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEnd() {
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName: "my-service-1",
-		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: "acl port1111Acl", SrcPortAclName: " my-src-port", IncludeSrcPortACL: true, Index: 0},
-			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: "acl port2222Acl", Index: 1, IncludeSrcPortACL: true},
+			{Port: "1111", ServicePath: []string{"/path-1", "/path-2"}, SrcPortAcl: "acl port1111Acl", SrcPortAclName: " my-src-port", IncludeSrcPortACL: true, Index: 0, PathType: "path_beg"},
+			{Port: "2222", ServicePath: []string{"/path-3"}, SrcPortAcl: "acl port2222Acl", Index: 1, IncludeSrcPortACL: true, PathType: "path_beg"},
 		},
 	}
 	service2 := Service{
 		ServiceName: "my-service-2",
-		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "3333", ServicePath: []string{"/path-4"}, SrcPortAcl: "acl port3333Acl", Index: 0, IncludeSrcPortACL: true},
+			{Port: "3333", ServicePath: []string{"/path-4"}, SrcPortAcl: "acl port3333Acl", Index: 0, IncludeSrcPortACL: true, PathType: "path_beg"},
 		},
 	}
 	p.AddService(service1)
@@ -810,9 +864,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsServicePathExclude(
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service := Service{
 		ServiceName: "my-service-1",
-		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", HttpsPort: 2222, ServicePath: []string{"/path-1"}, ServicePathExclude: []string{"/path-2", "/path-3"}},
+			{Port: "1111",
+				HttpsPort:          2222,
+				ServicePath:        []string{"/path-1"},
+				ServicePathExclude: []string{"/path-2", "/path-3"},
+				PathType:           "path_beg"},
 		},
 	}
 	p.AddService(service)
@@ -994,7 +1051,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_PutsServicesWellKnownPa
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1025,7 +1086,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcp_With_Clitcpka() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1058,7 +1123,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndTcpWithClientTimeout() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1108,7 +1177,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsListen_TcpGroup() {
 	}
 
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1232,7 +1305,11 @@ frontend tcpFE_3333
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_GroupsTcpFrontendsByPort() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1288,6 +1365,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsLoggingToTcpFronten
 	defer func() { os.Setenv("DEBUG", debugOrig) }()
 	os.Setenv("DEBUG", "true")
 	var actualData string
+	tmpl := strings.Replace(
+		s.getTemplateWithLogs(),
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1297,7 +1379,7 @@ frontend tcpFE_1234
     option tcplog
     log global
     default_backend my-service-1-be4321_0%s`,
-		s.getTemplateWithLogs(),
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -1328,6 +1410,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsTcpLoggingFormat() 
 	os.Setenv("DEBUG", "true")
 	os.Setenv("DEBUG_TCP_FORMAT", "something-tcp-related")
 	var actualData string
+	tmpl := strings.Replace(
+		s.getTemplateWithLogs(),
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1338,7 +1425,7 @@ frontend tcpFE_1234
     log global
     log-format something-tcp-related
     default_backend my-service-1-be4321_0%s`,
-		s.getTemplateWithLogs(),
+		tmpl,
 		s.ServicesContent,
 	)
 	writeFile = func(filename string, data []byte, perm os.FileMode) error {
@@ -1361,7 +1448,11 @@ frontend tcpFE_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1398,7 +1489,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithDebug() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1438,7 +1533,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClientTimeoutFromServiceDest() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1476,7 +1575,11 @@ frontend service_1234
 
 func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI_WithClitcpkaOption() {
 	var actualData string
-	tmpl := s.TemplateContent
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
 	expectedData := fmt.Sprintf(
 		`%s
 
@@ -1524,6 +1627,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndSNI4
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s
+    acl url_acl21111_0 path_beg /path
+    use_backend acl2-be1111_0 if url_acl21111_0
 
 frontend service_443
     bind *:443
@@ -1547,7 +1652,15 @@ frontend service_443
 			{SrcPort: 443, Port: "4321", ReqMode: "sni", Index: 0},
 		},
 	}
+	service2 := Service{
+		ServiceName: "my-service2",
+		AclName:     "acl2",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
 	p.AddService(service1)
+	p.AddService(service2)
 
 	FormatServiceForTemplates(&service1)
 	p.CreateConfigFromTemplates()
@@ -1567,6 +1680,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndMult
 		-1)
 	expectedData := fmt.Sprintf(
 		`%s
+    acl url_acl31111_0 path_beg /path
+    use_backend acl3-be1111_0 if url_acl31111_0
 
 frontend service_443
     bind *:443
@@ -1600,8 +1715,16 @@ frontend service_443
 			{SrcPort: 443, Port: "4321", ReqMode: "sni", Index: 2},
 		},
 	}
+	service3 := Service{
+		ServiceName: "my-service-3",
+		AclName:     "acl3",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}},
+		},
+	}
 	p.AddService(service1)
 	p.AddService(service2)
+	p.AddService(service3)
 
 	p.CreateConfigFromTemplates()
 
@@ -1632,9 +1755,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		domain := fmt.Sprintf("domain-%d", i)
 		service := Service{
 			ServiceName: name,
-			PathType:    "path_beg",
 			ServiceDest: []ServiceDest{
-				{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{domain + "-1", domain + "-2"}},
+				{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{domain + "-1", domain + "-2"},
+					PathType: "path_beg"},
 			},
 		}
 		p.AddService(service)
@@ -1669,9 +1792,9 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		domain := fmt.Sprintf("domain-%d", i)
 		service := Service{
 			ServiceName: name,
-			PathType:    "path_beg",
 			ServiceDest: []ServiceDest{
-				{HttpsPort: 1111, ServicePath: []string{"/path"}, ServiceDomain: []string{domain + "-1", domain + "-2"}},
+				{HttpsPort: 1111, ServicePath: []string{"/path"}, ServiceDomain: []string{domain + "-1", domain + "-2"},
+					PathType: "path_beg"},
 			},
 		}
 		p.AddService(service)
@@ -1706,19 +1829,20 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsDomainsForEachServi
 	domain := "domain"
 	service := Service{
 		ServiceName: name,
-		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
 			{
 				Port:          "1111",
 				ServicePath:   []string{"/path"},
 				ServiceDomain: []string{domain + "-1-1.com", domain + "-1-2.com"},
 				Index:         1,
+				PathType:      "path_beg",
 			}, {
 				SrcPort:       4321,
 				Port:          "2222",
 				ServicePath:   []string{"/path"},
 				ServiceDomain: []string{domain + "-2-1.com", domain + "-2-2.com"},
 				Index:         45,
+				PathType:      "path_beg",
 			},
 		},
 	}
@@ -1752,22 +1876,24 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndUser
 	}
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service := Service{
-		AclName:  "my-service",
-		PathType: "path_beg",
+		AclName: "my-service",
 		ServiceDest: []ServiceDest{{
 			Port:        "1111",
 			ServicePath: []string{"/path"},
 			UserAgent:   UserAgent{Value: []string{"agent-1", "agent-2"}, AclName: "my-acl-name-1-2"},
 			Index:       0,
+			PathType:    "path_beg",
 		}, {
 			Port:        "2222",
 			ServicePath: []string{"/path"},
 			UserAgent:   UserAgent{Value: []string{"agent-3"}, AclName: "my-acl-name-3"},
 			Index:       1,
+			PathType:    "path_beg",
 		}, {
 			Port:        "3333",
 			ServicePath: []string{"/path"},
 			Index:       2,
+			PathType:    "path_beg",
 		}},
 		ServiceName: "my-service",
 	}
@@ -1798,9 +1924,8 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 		ServiceName:      "my-service",
 		IsDefaultBackend: true,
 		AclName:          "my-service",
-		PathType:         "path_beg",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}},
+			{Port: "1111", ServicePath: []string{"/path"}, PathType: "path_beg"},
 		},
 	}
 	p.AddService(service)
@@ -1828,11 +1953,11 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service := Service{
 		AclName:           "my-service",
-		PathType:          "path_beg",
 		ServiceDomainAlgo: "hdr_dom(xxx)",
 		ServiceName:       "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"domain-1", "domain-2"}},
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"domain-1", "domain-2"},
+				PathType: "path_beg"},
 		},
 	}
 	p.AddService(service)
@@ -1893,10 +2018,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName: "my-service",
-		PathType:    "path_beg",
 		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}, HttpsPort: 2222},
+			{Port: "1111", ServicePath: []string{"/path"}, HttpsPort: 2222,
+				PathType: "path_beg"},
 		},
 	}
 	p.AddService(service1)
@@ -1928,11 +2053,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsContentFrontEndWith
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName: "my-service",
-		PathType:    "path_beg",
 		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{Port: "1111", ServicePath: []string{"/path"},
-				SrcPort: 8080, HttpsPort: 2222},
+				SrcPort: 8080, HttpsPort: 2222, PathType: "path_beg"},
 		},
 	}
 	p.AddService(service1)
@@ -1963,11 +2087,10 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRed
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName:           "my-service",
-		PathType:              "path_beg",
 		RedirectWhenHttpProto: true,
 		AclName:               "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}},
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}, PathType: "path_beg"},
 		},
 	}
 	p.AddService(service1)
@@ -1997,11 +2120,76 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_usesHttpsRedirectCode()
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName:           "my-service",
-		PathType:              "path_beg",
 		RedirectWhenHttpProto: true,
 		AclName:               "my-service",
 		ServiceDest: []ServiceDest{
-			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}, HttpsRedirectCode: "301"},
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}, HttpsRedirectCode: "301", PathType: "path_beg"},
+		},
+	}
+	p.AddService(service1)
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToHttps_WhenRedirectUnlessHttpsProtoIsTrue() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111_0 path_beg /path
+    acl domain_my-service1111_0 hdr_beg(host) -i my-domain.com
+    acl is_my-service_https hdr(X-Forwarded-Proto) https
+    http-request redirect scheme https if !is_my-service_https url_my-service1111_0 domain_my-service1111_0
+    use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	service1 := Service{
+		ServiceName:           "my-service",
+		RedirectUnlessHttpsProto: true,
+		AclName:               "my-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}, PathType: "path_beg"},
+		},
+	}
+	p.AddService(service1)
+
+	p.CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_usesHttpsRedirectCode_3WhenRedirectUnlessHttpsProtoIsTrue() {
+	var actualData string
+	tmpl := s.TemplateContent
+	expectedData := fmt.Sprintf(
+		`%s
+    acl url_my-service1111_0 path_beg /path
+    acl domain_my-service1111_0 hdr_beg(host) -i my-domain.com
+    acl is_my-service_https hdr(X-Forwarded-Proto) https
+    http-request redirect scheme https code 301 if !is_my-service_https url_my-service1111_0 domain_my-service1111_0
+    use_backend my-service-be1111_0 if url_my-service1111_0 domain_my-service1111_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	service1 := Service{
+		ServiceName:           "my-service",
+		RedirectUnlessHttpsProto: true,
+		AclName:               "my-service",
+		ServiceDest: []ServiceDest{
+			{Port: "1111", ServicePath: []string{"/path"}, ServiceDomain: []string{"my-domain.com"}, HttpsRedirectCode: "301", PathType: "path_beg"},
 		},
 	}
 	p.AddService(service1)
@@ -2031,7 +2219,6 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToDomain_WhenRe
 	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
 	service1 := Service{
 		ServiceName: "my-service",
-		PathType:    "path_beg",
 		AclName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{
@@ -2039,6 +2226,7 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_ForwardsToDomain_WhenRe
 				ServicePath:        []string{"/path"},
 				ServiceDomain:      []string{"my-domain-1.com", "my-domain-2.com"},
 				RedirectFromDomain: []string{"my-other-domain-1.com", "my-other-domain-2.com"},
+				PathType:           "path_beg",
 			},
 		},
 	}
@@ -2069,12 +2257,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_AddsCompressionAlgoToTh
 	service1 := Service{
 		CompressionAlgo: "my-compression-algo",
 		CompressionType: "my-compression-type",
-		PathType:        "path_beg",
 		ServiceName:     "my-service",
 		ServiceDest: []ServiceDest{
 			{
 				Port:        "1111",
 				ServicePath: []string{"/path"},
+				PathType:    "path_beg",
 			},
 		},
 	}
@@ -2107,12 +2295,12 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_UsesServiceHeader() {
 	header["name"] = "Viktor"
 	service := Service{
 		ServiceName: "my-service",
-		PathType:    "path_beg",
 		ServiceDest: []ServiceDest{
 			{
 				Port:          "1111",
 				ServicePath:   []string{"/path"},
 				ServiceHeader: header,
+				PathType:      "path_beg",
 			},
 		},
 	}
@@ -2253,6 +2441,43 @@ func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_SetsProtocol() {
 	}
 
 	NewHaProxy(s.TemplatesPath, s.ConfigsPath).CreateConfigFromTemplates()
+
+	s.Equal(expectedData, actualData)
+}
+
+func (s HaProxyTestSuite) Test_CreateConfigFromTemplates_OnlyTCPReqMode() {
+
+	var actualData string
+	tmpl := strings.Replace(
+		s.TemplateContent,
+		"\n    bind *:80\n    bind *:443",
+		"",
+		-1)
+	expectedData := fmt.Sprintf(
+		`%s
+
+frontend tcpFE_1234
+    bind *:1234
+    mode tcp
+    default_backend my-service-1-be4321_0%s`,
+		tmpl,
+		s.ServicesContent,
+	)
+	writeFile = func(filename string, data []byte, perm os.FileMode) error {
+		actualData = string(data)
+		return nil
+	}
+
+	p := NewHaProxy(s.TemplatesPath, s.ConfigsPath)
+	service1 := Service{
+		ServiceName: "my-service-1",
+		ServiceDest: []ServiceDest{
+			{SrcPort: 1234, Port: "4321", ReqMode: "tcp"},
+		},
+	}
+	p.AddService(service1)
+
+	p.CreateConfigFromTemplates()
 
 	s.Equal(expectedData, actualData)
 }

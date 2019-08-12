@@ -1,7 +1,7 @@
 package server
 
 import (
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"net/http"
 )
 

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"./actions"
-	"./metrics"
-	"./proxy"
-	"./server"
+	"github.com/docker-flow/docker-flow-proxy/metrics"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
+	"github.com/docker-flow/docker-flow-proxy/server"
+	"github.com/docker-flow/docker-flow-proxy/actions"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 )

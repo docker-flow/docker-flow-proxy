@@ -36,6 +36,9 @@ type ServiceDest struct {
 	// The hostname where the service is running, for instance on a separate swarm.
 	// If specified, the proxy will dispatch requests to that domain.
 	OutboundHostname string
+	// The ACL derivative. Defaults to path_beg.
+	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
+	PathType string
 	// The internal port of a service that should be reconfigured.
 	// The port is used only in the *swarm* mode.
 	Port string
@@ -158,16 +161,17 @@ type Service struct {
 	Distribute bool `split_words:"true"`
 	// If set to true, it will be the default_backend service.
 	IsDefaultBackend bool `split_words:"true"`
-	// The ACL derivative. Defaults to path_beg.
-	// See https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.3.6-path for more info.
-	PathType string `split_words:"true"`
 	// When `FILTER_PROXY_INSTANCE_NAME` is set to `true`, only services with
 	// ProxyInstanceName equal to `PROXY_INSTANCE_NAME` will be configured by this proxy.
 	ProxyInstanceName string `split_words:"true"`
 	// Whether to redirect to https when X-Forwarded-Proto is http
 	RedirectWhenHttpProto bool `split_words:"true"`
+	// Whether to redirect to https unless X-Forwarded-Proto is https
+	RedirectUnlessHttpsProto bool `split_words:"true"`
 	// The number of replicas of a service.
-	// This parameter is currently used only if `DiscoveryType` is set to `DNS`.
+	// This parameter is used if `DiscoveryType` is set to `DNS`.
+	// Non-Global services with 0 replicas will not be added to the HAproxy config.
+	// Replicas is set to -1 with services added through ENV variables
 	Replicas int `split_words:"true"`
 	// TODO: Deprecated since Dec. 2017.
 	// A regular expression to apply the modification.
@@ -207,6 +211,7 @@ type Service struct {
 	// The rest of variables are for internal use only
 	ServicePort         string
 	AclCondition        string
+	IsGlobal            bool
 	LookupRetry         int
 	LookupRetryInterval int
 	ServiceDest         []ServiceDest
@@ -348,6 +353,16 @@ func GetServiceFromProvider(provider ServiceParameterProvider) *Service {
 	if len(provider.GetString("delResHeader")) > 0 {
 		sr.DelResHeader = strings.Split(provider.GetString("delResHeader"), separator)
 	}
+
+	if replicas := provider.GetString("replicas"); len(replicas) > 0 {
+		if replicasInt, err := strconv.Atoi(replicas); err == nil {
+			sr.Replicas = replicasInt
+		}
+	} else {
+		// When the replicas parameters is not given, the service is global
+		sr.IsGlobal = true
+	}
+
 	if len(sr.SessionType) > 0 {
 		sr.Tasks, _ = LookupHost("tasks." + sr.ServiceName)
 	}
@@ -462,6 +477,7 @@ func getServiceDest(sr *Service, provider ServiceParameterProvider, index int) S
 		HttpsRedirectCode:             getFromString(provider, "httpsRedirectCode", suffix),
 		IgnoreAuthorization:           getBoolParam(provider, "ignoreAuthorization", suffix),
 		OutboundHostname:              getFromString(provider, "outboundHostname", suffix),
+		PathType:                      getFromString(provider, "pathType", suffix),
 		Port:                          getFromString(provider, "port", suffix),
 		RedirectFromDomain:            getSliceFromString(provider, "redirectFromDomain", suffix),
 		ReqMode:                       reqMode,

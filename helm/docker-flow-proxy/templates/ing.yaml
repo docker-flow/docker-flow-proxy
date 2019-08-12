@@ -1,0 +1,34 @@
+{{- $serviceName := include "helm.fullname" . -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ template "helm.fullname" . }}
+  labels:
+    app: {{ template "helm.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/ingress.global-static-ip-name: df-ip
+    kubernetes.io/tls-acme: "true"
+spec:
+  rules:
+  {{- range .Values.ingress.host }}
+  {{- $url := splitList "/" . }}
+  - host: {{ first $url }}
+    http:
+      paths:
+        - path: /{{ rest $url | join "/" }}
+          backend:
+            serviceName: {{ $serviceName }}
+            servicePort: 80
+  {{- end -}}
+  {{- range .Values.ingress.host }}
+  {{- $url := splitList "/" . }}
+  tls:
+  - hosts:
+    - {{ first $url }}
+    secretName: le-{{ $serviceName }}
+  {{- end -}}

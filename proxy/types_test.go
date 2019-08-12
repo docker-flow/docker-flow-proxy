@@ -280,6 +280,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedData() {
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    0,
 	}
 	serviceMap := map[string]string{
 		"outboundHostname":     expected.ServiceDest[0].OutboundHostname,
@@ -288,6 +289,7 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesNonIndexedData() {
 		"reqPathSearchReplace": expected.ServiceDest[0].ReqPathSearchReplace,
 		"serviceName":          expected.ServiceName,
 		"servicePath.1":        strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":             strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
@@ -311,12 +313,14 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_MovesHttpsOnlyToIndexedEntr
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    3,
 	}
 	serviceMap := map[string]string{
 		"httpsOnly":     strconv.FormatBool(expected.ServiceDest[0].HttpsOnly),
 		"serviceName":   expected.ServiceName,
 		"port.1":        expected.ServiceDest[0].Port,
 		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":      strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 	actual := GetServiceFromProvider(&provider)
@@ -342,11 +346,13 @@ func (s *TypesTestSuite) Test_GetServiceFromProvider_UsesHttpsOnlyFromEnvVar() {
 			ServicePathExclude:            []string{},
 		}},
 		ServiceName: "serviceName",
+		Replicas:    3,
 	}
 	serviceMap := map[string]string{
 		"serviceName":   expected.ServiceName,
 		"port.1":        expected.ServiceDest[0].Port,
 		"servicePath.1": strings.Join(expected.ServiceDest[0].ServicePath, ","),
+		"replicas":      strconv.Itoa(expected.Replicas),
 	}
 	provider := mapParameterProvider{&serviceMap}
 
@@ -373,11 +379,12 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"delResHeader":          strings.Join(expected.DelResHeader, separator),
 		"distribute":            strconv.FormatBool(expected.Distribute),
 		"isDefaultBackend":      strconv.FormatBool(expected.IsDefaultBackend),
-		"pathType":              expected.PathType,
 		"proxyInstanceName":     expected.ProxyInstanceName,
 		"redirectWhenHttpProto": strconv.FormatBool(expected.RedirectWhenHttpProto),
+		"redirectUnlessHttpsProto": strconv.FormatBool(expected.RedirectUnlessHttpsProto),
 		"reqPathReplace":        expected.ReqPathReplace,
 		"reqPathSearch":         expected.ReqPathSearch,
+		"replicas":              strconv.Itoa(expected.Replicas),
 		"serviceCert":           expected.ServiceCert,
 		"serviceDomainAlgo":     expected.ServiceDomainAlgo,
 		"serviceName":           expected.ServiceName,
@@ -400,6 +407,7 @@ func (s *TypesTestSuite) getServiceMap(expected Service, indexSuffix, separator 
 		"httpsRedirectCode" + indexSuffix:    expected.ServiceDest[0].HttpsRedirectCode,
 		"ignoreAuthorization" + indexSuffix:  strconv.FormatBool(expected.ServiceDest[0].IgnoreAuthorization),
 		"outboundHostname" + indexSuffix:     expected.ServiceDest[0].OutboundHostname,
+		"pathType":                           expected.ServiceDest[0].PathType,
 		"port" + indexSuffix:                 expected.ServiceDest[0].Port,
 		"redirectFromDomain" + indexSuffix:   strings.Join(expected.ServiceDest[0].RedirectFromDomain, separator),
 		"reqMode" + indexSuffix:              expected.ServiceDest[0].ReqMode,
@@ -429,9 +437,10 @@ func (s *TypesTestSuite) getExpectedService() Service {
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
 		IsDefaultBackend:      true,
-		PathType:              "pathType",
 		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
+		RedirectUnlessHttpsProto: true,
+		Replicas:              3,
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
 		ServiceCert:           "serviceCert",
@@ -448,6 +457,7 @@ func (s *TypesTestSuite) getExpectedService() Service {
 			HttpsRedirectCode:             "302",
 			IgnoreAuthorization:           true,
 			OutboundHostname:              "outboundHostname",
+			PathType:                      "pathType",
 			Port:                          "1234",
 			RedirectFromDomain:            []string{"sub.domain1", "sub.domain2"},
 			ReqMode:                       "reqMode",

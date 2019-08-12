@@ -12,17 +12,26 @@ import (
 	"strings"
 	"testing"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
 type CertTestSuite struct {
 	suite.Suite
-	serviceName string
+	serviceName         string
+	filterNetworkIPsOrg func(ips []string) []string
 }
 
 func (s *CertTestSuite) SetupTest() {
+	s.filterNetworkIPsOrg = filterNetworkIPs
+	filterNetworkIPs = func(ips []string) []string {
+		return ips
+	}
+}
+
+func (s *CertTestSuite) TearDownTest() {
+	filterNetworkIPs = s.filterNetworkIPsOrg
 }
 
 func TestCertUnitTestSuite(t *testing.T) {

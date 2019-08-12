@@ -61,6 +61,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |redirectFromDomain|If a request is sent to one of the domains in this list, it will be redirected to one of the values of the `serviceDomain`. Multiple domains can be separated with comma (e.g. `acme.com,something.acme.com`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service.<br>**Example:** `acme.com,something.acme.com`|
 |proxyInstanceName|When `FILTER_PROXY_INSTANCE_NAME` is set to `true`, only services with proxyInstanceName equal to `PROXY_INSTANCE_NAME` will be configured by this proxy.<br>**Example:** `docker-flow`|
 |redirectWhenHttpProto|Whether to redirect to https when X-Forwarded-Proto is set and the request is made over an HTTP port.<br>**Example:** `true`<br>**Default Value:** `false`|
+|redirectUnlessHttpsProto|Whether to redirect to https unless X-Forwarded-Proto is explicitly `https`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |serviceCert  |Content of the PEM-encoded certificate to be used by the proxy when serving traffic over SSL.|
 |serviceDomain  |The domain of the service. If set, the proxy will allow access only to requests coming to that domain. Multiple domains can be separated with comma (e.g. `acme.com,something.else.com`). The parameter can be prefixed with an index thus allowing definition of multiple destinations for a single service (e.g. `serviceDomain.1`, `serviceDomain.2`, and so on).  Asterisk sign can be placed to beginning of value and in this case **serviceDomainAlgo** parameter will be **replaced** to `hdr_end(host)`. This parameter is **mandatory** if `servicePath` is not specified.<br>**Example:** `ecme.com`|
 |serviceDomainAlgo|Algorithm that should be applied to domain ACLs. Any ACL works only with one flag: `-i : ignore case during matching of all subsequent patterns`. If not set, the value of the environment variable `SERVICE_DOMAIN_ALGO` will be used instead. If defaults to `hdr_beg(host)`<br>**Examples:**<br>`hdr(host)`: matches only if domain is the same as `serviceDomain`<br>`hdr_dom(host)`: matches the specified `serviceDomain` and any subdomain (a string either isolated or delimited by dots). **Example:** if `hdr_dom(host)` contains `www.ecme.com` and `serviceDomain` equals `ecme.com` the rule will be passed.<br>`req.ssl_sni`: matches Server Name TLS extension|
@@ -77,7 +78,7 @@ The following query parameters can be used only when `reqMode` is set to `http` 
 |usersPassEncrypted|Indicates whether passwords provided by `users` or `usersSecret` contain encrypted data. Passwords can be encrypted with the command `mkpasswd -m sha-512 password1`.<br>**Example:** `true`<br>**Default Value:** `false`|
 |verifyClientSsl|Whether to verify client SSL and, if it is not valid, deny request and return 403 Forbidden status code. SSL is validated against the `ca-file` specified through the environment variable `CA_FILE`.<br>**Example:** true<br>**Default Value:** `false`|
 
-Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, or `userDef` parameters. In that case, `srcPort` is required.
+Multiple destinations for a single service can be specified by adding index as a suffix to `servicePath`, `servicePathExclude`, `srcPort`, `port`, `userAgent`, `ignoreAuthorization`, `serviceDomain`, `allowedMethods`, `deniedMethods`, `denyHttp`, `httpsOnly`, `redirectFromDomain`, `ReqMode`, `reqPathSearchReplace`, `outboundHostname`, `sslVerifyNone`, `pathType`, or `userDef` parameters. In that case, `srcPort` is required.
 
 ### TCP Mode HTTP Query Parameters
 
@@ -123,48 +124,49 @@ The environment variables must apply the rules that follow.
 
 The map between the HTTP query parameters and environment variables is as follows.
 
-|Query                |Environment variable    |
-|---------------------|------------------------|
-|aclName              |ACL_NAME                |
-|addReqHeader         |ADD_REQ_HEADER          |
-|addResHeader         |ADD_RES_HEADER          |
-|allowedMethods       |ALLOWED_METHODS         |
-|backendExtra         |BACKEND_EXTRA           |
-|compressionAlgo      |COMPRESSION_ALGO        |
-|compressionType      |COMPRESSION_TYPE        |
-|deniedMethods        |DENIED_METHODS          |
-|denyHttp             |DENY_HTTP               |
-|distribute           |DISTRIBUTE              |
-|httpsOnly            |HTTPS_ONLY              |
-|httpsPort            |HTTPS_PORT              |
-|ignoreAuthorization  |IGNORE_AUTHORIZATION    |
-|isDefaultBackend     |IS_DEFAULT_BACKEND      |
-|outboundHostname     |OUTBOUND_HOSTNAME       |
-|pathType             |PATH_TYPE               |
-|port                 |PORT                    |
-|redirectFromDomain   |REDIRECT_FROM_DOMAIN    |
-|redirectWhenHttpProto|REDIRECT_WHEN_HTTP_PROTO|
-|reqMode              |REQ_MODE                |
-|reqPathSearchReplace |REQ_PATH_SEARCH_REPLACE |
-|serviceCert          |SERVICE_CERT            |
-|serviceDomain        |SERVICE_DOMAIN          |
-|serviceName          |SERVICE_NAME            |
-|servicePath          |SERVICE_PATH            |
-|servicePathExclude   |SERVICE_PATH_EXCLUDE    |
-|setReqHeader         |SET_REQ_HEADER          |
-|setResHeader         |SET_RES_HEADER          |
-|srcPort              |SRC_PORT                |
-|srcHttpsPort         |SRC_HTTPS_PORT          |
-|sslVerifyNone        |SSL_VERIFY_NONE         |
-|templateBePath       |TEMPLATE_BE_PATH        |
-|templateFePath       |TEMPLATE_FE_PATH        |
-|timeoutServer        |TIMEOUT_SERVER          |
-|timeoutClient        |TIMEOUT_CLIENT          |
-|timeoutTunnel        |TIMEOUT_TUNNEL          |
-|users                |**Not supported**       |
-|usersSecret          |**Not supported**       |
-|usersPassEncrypted   |**Not supported**       |
-|verifyClientSsl      |VERIFY_CLIENT_SSL       |
+|Query                   |Environment variable       |
+|------------------------|---------------------------|
+|aclName                 |ACL_NAME                   |
+|addReqHeader            |ADD_REQ_HEADER             |
+|addResHeader            |ADD_RES_HEADER             |
+|allowedMethods          |ALLOWED_METHODS            |
+|backendExtra            |BACKEND_EXTRA              |
+|compressionAlgo         |COMPRESSION_ALGO           |
+|compressionType         |COMPRESSION_TYPE           |
+|deniedMethods           |DENIED_METHODS             |
+|denyHttp                |DENY_HTTP                  |
+|distribute              |DISTRIBUTE                 |
+|httpsOnly               |HTTPS_ONLY                 |
+|httpsPort               |HTTPS_PORT                 |
+|ignoreAuthorization     |IGNORE_AUTHORIZATION       |
+|isDefaultBackend        |IS_DEFAULT_BACKEND         |
+|outboundHostname        |OUTBOUND_HOSTNAME          |
+|pathType                |PATH_TYPE                  |
+|port                    |PORT                       |
+|redirectFromDomain      |REDIRECT_FROM_DOMAIN       |
+|redirectWhenHttpProto   |REDIRECT_WHEN_HTTP_PROTO   |
+|redirectUnlessHttpsProto|REDIRECT_UNLESS_HTTPS_PROTO|
+|reqMode                 |REQ_MODE                   |
+|reqPathSearchReplace    |REQ_PATH_SEARCH_REPLACE    |
+|serviceCert             |SERVICE_CERT               |
+|serviceDomain           |SERVICE_DOMAIN             |
+|serviceName             |SERVICE_NAME               |
+|servicePath             |SERVICE_PATH               |
+|servicePathExclude      |SERVICE_PATH_EXCLUDE       |
+|setReqHeader            |SET_REQ_HEADER             |
+|setResHeader            |SET_RES_HEADER             |
+|srcPort                 |SRC_PORT                   |
+|srcHttpsPort            |SRC_HTTPS_PORT             |
+|sslVerifyNone           |SSL_VERIFY_NONE            |
+|templateBePath          |TEMPLATE_BE_PATH           |
+|templateFePath          |TEMPLATE_FE_PATH           |
+|timeoutServer           |TIMEOUT_SERVER             |
+|timeoutClient           |TIMEOUT_CLIENT             |
+|timeoutTunnel           |TIMEOUT_TUNNEL             |
+|users                   |**Not supported**          |
+|usersSecret             |**Not supported**          |
+|usersPassEncrypted      |**Not supported**          |
+|verifyClientSsl         |VERIFY_CLIENT_SSL          |
 
 Please explore the [Configuring Non-Swarm Services](non-swarm.md) tutorial for more info.
 

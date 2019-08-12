@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 )
 
 const serviceTemplateFeFilename = "service-formatted-fe.ctmpl"
@@ -58,6 +58,17 @@ func (m *Reconfigure) Execute(reloadAfter bool) error {
 			logPrintf("Could not reach the service %s. Is the service running and connected to the same network as the proxy?", host)
 			return err
 		}
+	}
+	// Not global and replicas == 0, the service is not active
+	if !m.Service.IsGlobal && m.Service.Replicas == 0 {
+		action := NewRemove(
+			m.Service.ServiceName,
+			m.Service.AclName,
+			m.ConfigsPath,
+			m.TemplatesPath,
+			m.InstanceName,
+		)
+		return action.Execute([]string{})
 	}
 	if err := m.createConfigsAddService(); err != nil {
 		return err

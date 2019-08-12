@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"testing"

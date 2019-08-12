@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"../actions"
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/actions"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
@@ -587,9 +587,9 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		DelResHeader:          []string{"add-header-1", "add-header-2"},
 		DiscoveryType:         "DNS",
 		Distribute:            true,
-		PathType:              "pathType",
 		ProxyInstanceName:     "docker-flow",
 		RedirectWhenHttpProto: true,
+		RedirectUnlessHttpsProto: true,
 		Replicas:              83,
 		ReqPathReplace:        "reqPathReplace",
 		ReqPathSearch:         "reqPathSearch",
@@ -604,6 +604,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			HttpsPort:          1234,
 			HttpsRedirectCode:  "302",
 			OutboundHostname:   "outboundHostname",
+			PathType:           "pathType",
 			Port:               "1234",
 			RedirectFromDomain: []string{"sub.domain1", "sub.domain2"},
 			ReqMode:            "reqMode",
@@ -629,7 +630,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 			{Username: "user2", Password: "pass2", PassEncrypted: true}},
 	}
 	addr := fmt.Sprintf(
-		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&proxyInstanceName=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
+		"%s?serviceName=%s&users=%s&usersPassEncrypted=%t&aclName=%s&balanceGroup=%s&checkTcp=%t&clitcpka=%t&serviceCert=%s&outboundHostname=%s&pathType=%s&proxyInstanceName=%s&reqPathSearch=%s&reqPathReplace=%s&templateFePath=%s&templateBePath=%s&timeoutServer=%s&timeoutClient=%s&timeoutTunnel=%s&reqMode=%s&httpsOnly=%t&httpsRedirectCode=%s&isDefaultBackend=%t&redirectWhenHttpProto=%t&redirectUnlessHttpsProto=%t&httpsPort=%d&srcPort=%d&srcHttpsPort=%d&serviceDomain=%s&redirectFromDomain=%s&distribute=%t&sslVerifyNone=%t&serviceDomainAlgo=%s&addReqHeader=%s&addResHeader=%s&setReqHeader=%s&setResHeader=%s&delReqHeader=%s&delResHeader=%s&servicePath=/&servicePathExclude=%s&port=1234&connectionMode=%s&serviceHeader=X-Version:3,name:Viktor&allowedMethods=GET,DELETE&deniedMethods=PUT,POST&compressionAlgo=%s&compressionType=%s&checkResolvers=%t&replicas=%d&discoveryType=%s",
 
 		s.BaseUrl,
 		expected.ServiceName,
@@ -641,7 +642,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceDest[0].Clitcpka,
 		expected.ServiceCert,
 		expected.ServiceDest[0].OutboundHostname,
-		expected.PathType,
+		expected.ServiceDest[0].PathType,
 		expected.ProxyInstanceName,
 		expected.ReqPathSearch,
 		expected.ReqPathReplace,
@@ -655,6 +656,7 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_ReturnsProxyService() {
 		expected.ServiceDest[0].HttpsRedirectCode,
 		expected.IsDefaultBackend,
 		expected.RedirectWhenHttpProto,
+		expected.RedirectUnlessHttpsProto,
 		expected.ServiceDest[0].HttpsPort,
 		expected.ServiceDest[0].SrcPort,
 		expected.ServiceDest[0].SrcHttpsPort,
@@ -702,9 +704,43 @@ func (s *ServerTestSuite) Test_GetServiceFromUrl_DefaultsReqModeToHttp() {
 	s.Equal("http", actual.ServiceDest[0].ReqMode)
 }
 
+func (s *ServerTestSuite) Test_GetServiceFromUrl_NoReplicas_IsGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(0, actual.Replicas)
+	s.Equal(true, actual.IsGlobal)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_HasReplicas_NotGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path&replicas=2", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(2, actual.Replicas)
+	s.Equal(false, actual.IsGlobal)
+}
+
+func (s *ServerTestSuite) Test_GetServiceFromUrl_ZeroReplicas_NotGlobal() {
+	req, _ := http.NewRequest("GET", s.BaseUrl+"?servicePath=/my-path&replicas=0", nil)
+	srv := serve{}
+
+	actual := srv.GetServiceFromUrl(req)
+
+	s.Equal("http", actual.ServiceDest[0].ReqMode)
+	s.Equal(0, actual.Replicas)
+	s.Equal(false, actual.IsGlobal)
+}
+
 func (s *ServerTestSuite) Test_GetServiceFromUrl_SetsServicePathToSlash_WhenDomainIsPresent() {
 	expected := proxy.Service{
 		ServiceName: "serviceName",
+		IsGlobal:    true,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				AllowedMethods:     []string{},
@@ -750,8 +786,8 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		DelResHeader:          []string{"del-header-1", "del-header-2"},
 		Distribute:            true,
 		IsDefaultBackend:      true,
-		PathType:              "my-PathType",
 		RedirectWhenHttpProto: true,
+		Replicas:              -1,
 		ServiceCert:           "my-ServiceCert",
 		ServiceDomainAlgo:     "hdr_dom",
 		ServiceName:           "my-ServiceName",
@@ -766,6 +802,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 				HttpsRedirectCode:             "302",
 				IgnoreAuthorization:           true,
 				OutboundHostname:              "my-OutboundHostname",
+				PathType:                      "my-PathType",
 				Port:                          "1111",
 				ReqPathSearchReplace:          "/something,/else:/this,/that",
 				ReqPathSearchReplaceFormatted: []string{"/something,/else", "/this,/that"},
@@ -805,9 +842,10 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 	os.Setenv("DFP_SERVICE_IGNORE_AUTHORIZATION", strconv.FormatBool(service.ServiceDest[0].IgnoreAuthorization))
 	os.Setenv("DFP_SERVICE_IS_DEFAULT_BACKEND", strconv.FormatBool(service.IsDefaultBackend))
 	os.Setenv("DFP_SERVICE_OUTBOUND_HOSTNAME", service.ServiceDest[0].OutboundHostname)
-	os.Setenv("DFP_SERVICE_PATH_TYPE", service.PathType)
+	os.Setenv("DFP_SERVICE_PATH_TYPE", service.ServiceDest[0].PathType)
 	os.Setenv("DFP_SERVICE_REDIRECT_FROM_DOMAIN", strings.Join(service.ServiceDest[0].RedirectFromDomain, ","))
 	os.Setenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO", strconv.FormatBool(service.RedirectWhenHttpProto))
+	os.Setenv("DFP_SERVICE_REDIRECT_UNLESS_HTTPS_PROTO", strconv.FormatBool(service.RedirectUnlessHttpsProto))
 	os.Setenv("DFP_SERVICE_REQ_MODE", service.ServiceDest[0].ReqMode)
 	os.Setenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE", service.ServiceDest[0].ReqPathSearchReplace)
 	os.Setenv("DFP_SERVICE_SERVICE_CERT", service.ServiceCert)
@@ -853,6 +891,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 		os.Unsetenv("DFP_SERVICE_PORT")
 		os.Unsetenv("DFP_SERVICE_REDIRECT_FROM_DOMAIN")
 		os.Unsetenv("DFP_SERVICE_REDIRECT_WHEN_HTTP_PROTO")
+		os.Unsetenv("DFP_SERVICE_REDIRECT_UNLESS_HTTPS_PROTO")
 		os.Unsetenv("DFP_SERVICE_REQ_MODE")
 		os.Unsetenv("DFP_SERVICE_REQ_PATH_SEARCH_REPLACE")
 		os.Unsetenv("DFP_SERVICE_SERVICE_CERT")
@@ -883,6 +922,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServices() {
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdrDom_WhenServiceDomainMatchAllIsTrue() {
 	service := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				ReqMode: "http",
@@ -918,6 +958,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_SetsServiceDomainAlgoToHdr
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsServicesWithIndexedData() {
 	expected := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				Port:                          "1111",
@@ -1017,6 +1058,7 @@ func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsEmptyIfServiceNameI
 func (s *ServerTestSuite) Test_GetServicesFromEnvVars_ReturnsMultipleServices() {
 	service := proxy.Service{
 		ServiceName: "my-ServiceName",
+		Replicas:    -1,
 		ServiceDest: []proxy.ServiceDest{
 			{
 				Port: "1111",

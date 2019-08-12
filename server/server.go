@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"../actions"
-	"../proxy"
+	"github.com/docker-flow/docker-flow-proxy/actions"
+	"github.com/docker-flow/docker-flow-proxy/proxy"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -250,6 +250,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 	}
 	sd := []proxy.ServiceDest{}
 	path := getSliceFromString(os.Getenv(prefix + "_SERVICE_PATH"))
+	pathType := os.Getenv(prefix + "_PATH_TYPE")
 	port := os.Getenv(prefix + "_PORT")
 	srcPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_PORT"))
 	srcHttpsPort, _ := strconv.Atoi(os.Getenv(prefix + "_SRC_HTTPS_PORT"))
@@ -295,6 +296,7 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 				HttpsRedirectCode:             httpsRedirectCode,
 				IgnoreAuthorization:           ignoreAuthorization,
 				OutboundHostname:              globalOutboundHostname,
+				PathType:                      pathType,
 				Port:                          port,
 				RedirectFromDomain:            redirectFromDomain,
 				ReqMode:                       reqMode,
@@ -372,6 +374,10 @@ func (m *serve) getServiceFromEnvVars(prefix string) (proxy.Service, error) {
 		} else {
 			break
 		}
+	}
+	// Forces env service to be added
+	if s.Replicas == 0 {
+		s.Replicas = -1
 	}
 	s.ServiceDest = sd
 	return s, nil
