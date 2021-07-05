@@ -1,6 +1,5 @@
 # Docker Flow Proxy
 
-**This project needs adoption. I (@vfarcic) moved to Kubernetes and cannot dedicate time to this project anymore. Similarly, involvement from other contributors dropped as well. Please consider contributing yourself if you think this project is useful.**
 
 [![GitHub release](https://img.shields.io/github/release/docker-flow/docker-flow-proxy.svg)]()
 [![license](https://img.shields.io/github/license/docker-flow/docker-flow-proxy.svg)]()
@@ -9,7 +8,7 @@
 
 The goal of the *Docker Flow Proxy* project is to provide an easy way to reconfigure proxy every time a new service is deployed, or when a service is scaled. It does not try to "reinvent the wheel", but to leverage the existing leaders and combine them through an easy to use integration. It uses [HAProxy](http://www.haproxy.org/) as a proxy and adds custom logic that allows on-demand reconfiguration.
 
-Supported archetectures are:
+Supported architectures are:
 
 - linux-amd64
 - linux-arm
