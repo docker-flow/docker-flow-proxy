@@ -174,7 +174,13 @@ func (m *Reconfigure) parseFrontTemplate(src string, sr *proxy.Service) string {
 
 func (m *Reconfigure) parseBackTemplate(src, usersList string, sr *proxy.Service) string {
 	tmplUsersList, _ := template.New("template").Parse(usersList)
-	tmpl, _ := template.New("").Parse(src)
+	funcMap := template.FuncMap{
+		"Split": func(s string, d string) []string {
+			arr := strings.Split(s, d)
+			return arr
+		},
+	}
+	tmpl, _ := template.New("").Funcs(funcMap).Parse(src)
 	var bufUsersList bytes.Buffer
 	var buf bytes.Buffer
 	tmplUsersList.Execute(&bufUsersList, sr)
