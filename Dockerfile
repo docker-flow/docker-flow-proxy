@@ -8,7 +8,7 @@ RUN set -x \
     && go build -v -o docker-flow-proxy
 
 
-FROM haproxy:1.8.13-alpine
+FROM haproxy:1.8.30-alpine
 LABEL org.opencontainers.image.title="Docker Flow Proxy" \
     org.opencontainers.image.description="Automated HAProxy Reverse Proxy for Docker" \
     org.opencontainers.image.url="https://proxy.dockerflow.com" \
