@@ -1,4 +1,4 @@
-FROM golang:1.11.0-alpine AS build
+FROM golang:1.13-alpine AS build
 ADD . /src
 WORKDIR /src
 RUN set -x \
