@@ -1,3 +1,12 @@
+FROM golang:1.11.0-alpine AS build
+ADD . /src
+WORKDIR /src
+RUN set -x \
+    && apk add --update --no-cache --no-progress git g++ \
+    && go get -d -v \
+    && go test --cover ./... --run UnitTest \
+    && env GOOS=linux GOARM=7 GOARCH=arm go build -v -o docker-flow-proxy_linux_arm
+
 FROM arm32v7/haproxy
 COPY tmp/qemu-arm-static /usr/bin/qemu-arm-static
 
@@ -40,7 +49,7 @@ COPY haproxy.cfg /cfg/haproxy.cfg
 RUN mkdir -p /cfg/tmpl /templates /certs /logs
 COPY haproxy.tmpl /cfg/tmpl/haproxy.tmpl
 
-COPY docker-flow-proxy_linux_arm /usr/local/bin/docker-flow-proxy
+COPY --from=build /src/docker-flow-proxy_linux_arm /usr/local/bin/docker-flow-proxy
 RUN chmod +x /usr/local/bin/docker-flow-proxy
 
 HEALTHCHECK --interval=5s --start-period=3s --timeout=5s CMD check.sh
