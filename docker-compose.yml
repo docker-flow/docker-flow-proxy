@@ -35,7 +35,7 @@ services:
 
   proxy:
     container_name: docker-flow-proxy
-    image: dockerflow/docker-flow-proxy
+    image: dockerflow/docker-flow-proxy:dev
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
       PROXY_INSTANCE_NAME: docker-flow
@@ -49,7 +49,7 @@ services:
   app:
     build: .
     container_name: docker-flow-proxy
-    image: dockerflow/docker-flow-proxy
+    image: dockerflow/docker-flow-proxy:dev
     environment:
       CONSUL_ADDRESS: $CONSUL_IP:8500
     ports:

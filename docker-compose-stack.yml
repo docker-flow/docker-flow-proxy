@@ -3,7 +3,7 @@ version: "3"
 services:
 
   proxy:
-    image: dockerflow/docker-flow-proxy
+    image: dockerflow/docker-flow-proxy:dev
     ports:
       - 80:80
       - 443:443
