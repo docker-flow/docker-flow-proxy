@@ -2,7 +2,7 @@
 
 # Start the first process
 echo 'Packetbeat starting';
-nohup ./packetbeat/packetbeat -c /packetbeat/packetbeat.yml &
+nohup ./packetbeat/packetbeat -c ${PACKETBEAT_CONFIG} &
 status=$?
 if [ $status -ne 0 ]; then
   echo "Failed to start packetbeat: $status"
@@ -17,6 +17,9 @@ if [ $status -ne 0 ]; then
   exit $status
 fi
 
+# Give the process a chance to start. 
+sleep 3
+
 # Naive check runs checks once a minute to see if either of the processes exited.
 # This illustrates part of the heavy lifting you need to do if you want to run
 # more than one service in a container. The container will exit with an error
@@ -29,9 +32,13 @@ while /bin/true; do
   PROCESS_2_STATUS=$?
   # If the greps above find anything, they will exit with 0 status
   # If they are not both 0, then something is wrong
-  if [ $PROCESS_1_STATUS -ne 0 -o $PROCESS_2_STATUS -ne 0 ]; then
-    echo "One of the processes has already exited."
-    exit -1
+  if [ $PROCESS_1_STATUS -ne 0 ]; then
+    echo "Packetbeat has already exited."
+    exit 1
+  fi
+  if [ $PROCESS_2_STATUS -ne 0 ]; then
+    echo "Docker-flow-proxy has already exited."
+    exit 1
   fi
   sleep 60
 done
