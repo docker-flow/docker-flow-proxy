@@ -14,10 +14,10 @@ RUN apk add glibc-2.25-r0.apk
 ENV LANG=C.UTF-8
 
 
-RUN wget https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-7.16.1-linux-x86_64.tar.gz
-RUN tar xzf packetbeat-7.16.1-linux-x86_64.tar.gz
-RUN rm packetbeat-7.16.1-linux-x86_64.tar.gz
-RUN mv packetbeat-7.16.1-linux-x86_64 /packetbeat
+RUN wget https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-7.16.2-linux-x86_64.tar.gz
+RUN tar xzf packetbeat-7.16.2-linux-x86_64.tar.gz
+RUN rm packetbeat-7.16.2-linux-x86_64.tar.gz
+RUN mv packetbeat-7.16.2-linux-x86_64 /packetbeat
 COPY scripts/runner_pbeat.sh /runner_pbeat.sh
 RUN chmod +x /runner_pbeat.sh
 
