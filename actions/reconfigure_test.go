@@ -533,8 +533,8 @@ backend myService-be5555_2
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsHttpRequestSetPath_WhenReqPathSearchReplaceFormattedIsPresent() {
 	s.reconfigure.ServiceDest = []proxy.ServiceDest{{
-		Port:  "1234",
-		Index: 0,
+		Port:                          "1234",
+		Index:                         0,
 		ReqPathSearchReplaceFormatted: []string{"this,that", "foo,bar"},
 		HttpsPort:                     1234,
 	}}
@@ -558,16 +558,17 @@ backend https-myService-be1234_0
 }
 
 func (s ReconfigureTestSuite) Test_GetTemplates_AddsBackendExtra() {
-	s.reconfigure.BackendExtra = "Additional backend"
+	s.reconfigure.BackendExtra = "Additional backend line 1||Additional backend line 2"
 	s.reconfigure.ServiceDest = []proxy.ServiceDest{{Port: "1234", Index: 0}}
 	expected := fmt.Sprintf(`
 backend myService-be1234_0
     mode http
     http-request add-header X-Forwarded-Proto https if { ssl_fc }
     server myService myService:1234
-    %s`,
-		s.reconfigure.BackendExtra,
-	)
+
+    Additional backend line 1
+    Additional backend line 2
+`)
 
 	_, backend, _ := s.reconfigure.GetTemplates()
 
